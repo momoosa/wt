@@ -7,12 +7,14 @@
 
 import SwiftUI
 import SwiftData
+import WeektimeKit
 
 @main
 struct WeektimeApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Goal.self,
+            GoalTheme.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

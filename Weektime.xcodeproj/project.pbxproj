@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CD0668512E34C3620063AC1F /* WeektimeKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD0668502E34C3620063AC1F /* WeektimeKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CD75CC6D2E2FE5E700890F20 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD75CC5B2E2FE5E600890F20 /* Weektime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Weektime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* WeektimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WeektimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* WeektimeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WeektimeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -65,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD0668512E34C3620063AC1F /* WeektimeKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,12 +91,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CD06684D2E34B5D90063AC1F /* InternalPackages */ = {
+			isa = PBXGroup;
+			children = (
+				CD06684E2E34B5FC0063AC1F /* WeektimeKit */,
+			);
+			path = InternalPackages;
+			sourceTree = "<group>";
+		};
+		CD06684F2E34C3620063AC1F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		CD75CC522E2FE5E600890F20 = {
 			isa = PBXGroup;
 			children = (
+				CD06684D2E34B5D90063AC1F /* InternalPackages */,
 				CD75CC5D2E2FE5E600890F20 /* Weektime */,
 				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
 				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
+				CD06684F2E34C3620063AC1F /* Frameworks */,
 				CD75CC5C2E2FE5E600890F20 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -125,6 +148,7 @@
 			);
 			name = Weektime;
 			packageProductDependencies = (
+				CD0668502E34C3620063AC1F /* WeektimeKit */,
 			);
 			productName = Weektime;
 			productReference = CD75CC5B2E2FE5E600890F20 /* Weektime.app */;
@@ -624,6 +648,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CD0668502E34C3620063AC1F /* WeektimeKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WeektimeKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CD75CC532E2FE5E600890F20 /* Project object */;
 }
