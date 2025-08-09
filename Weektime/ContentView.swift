@@ -12,26 +12,27 @@ import WeektimeKit
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Goal]
-
+    @Query private var goals: [Goal]
+    @Query private var sessions: [GoalSession]
+    let day: Day
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(items) { goal in
+                ForEach(sessions) { session in
                     Section {
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(goal.title)
+                                Text(session.goal.title)
                                 HStack {
                                     Text("25/30 min")
                                         .fontWeight(.semibold)
                                         .font(.footnote)
                                     
-                                    Text(goal.primaryTheme.title)
+                                    Text(session.goal.primaryTheme.title)
                                         .font(.caption2)
                                         .padding(4)
                                         .background(Capsule()
-                                            .fill(goal.primaryTheme.theme.light.opacity(0.15)))
+                                            .fill(session.goal.primaryTheme.theme.light.opacity(0.15)))
                                     Spacer()
                                     
                                 }
@@ -45,15 +46,15 @@ struct ContentView: View {
                                 Image(systemName: "play.circle.fill")
                             }
                         }
-                        .foregroundStyle(colorScheme == .dark ? goal.primaryTheme.theme.neon : goal.primaryTheme.theme.dark)
-                        .listRowBackground(colorScheme == .dark ? goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
+                        .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
+                        .listRowBackground(colorScheme == .dark ? session.goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
                     }
                     .listSectionSpacing(.compact)
                 }
                 .onDelete(perform: deleteItems)
 
             }
-            .animation(.spring(), value: items)
+            .animation(.spring(), value: goals)
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
@@ -72,8 +73,23 @@ struct ContentView: View {
         } detail: {
             Text("Select an item")
         }
+        .onAppear {
+            refreshGoals()
+        }
+        .onChange(of: goals) { old, new in
+            refreshGoals()
+        }
     }
 
+    private func refreshGoals() {
+        for goal in goals {
+            if !sessions.contains(where: { $0.goal == goal }) {
+                let session = GoalSession(title: goal.title, goal: goal, day: day)
+                modelContext.insert(session)
+            }
+        }
+    }
+    
     private func addItem() {
         let newItem = GoalTheme(title: "Health", color: themes.randomElement()! ) // TOOD:
         let goal = Goal(title: "New goal", primaryTheme: newItem)
@@ -85,13 +101,14 @@ struct ContentView: View {
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                modelContext.delete(goals[index])
             }
         }
     }
 }
 
 #Preview {
-    ContentView()
+    let day = Day(start: Date.now.startOfDay()!, end: Date.now.endOfDay()!)
+    ContentView(day: day)
         .modelContainer(for: Item.self, inMemory: true)
 }

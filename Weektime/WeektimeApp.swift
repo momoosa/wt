@@ -24,10 +24,28 @@ struct WeektimeApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-
+    
+    
+    @State var day: Day?
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if let day {
+                ContentView(day: day)
+            } else {
+                Text("")
+                    .onAppear {
+                        guard let startDate = Date.now.startOfDay() else {
+                            fatalError("Could not create Day")
+                        }
+                        
+                        guard let endDate = Date.now.endOfDay() else {
+                            fatalError("Could not create Day")
+                        }
+                        self.day = Day(start: startDate, end: endDate)
+                        
+                    }
+                
+            }
         }
         .modelContainer(sharedModelContainer)
     }
