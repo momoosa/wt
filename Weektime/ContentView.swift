@@ -44,13 +44,11 @@ struct ContentView: View {
                             } label: {
                                 Image(systemName: "play.circle.fill")
                             }
-                            
                         }
                         .foregroundStyle(colorScheme == .dark ? goal.primaryTheme.theme.neon : goal.primaryTheme.theme.dark)
                         .listRowBackground(colorScheme == .dark ? goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
                     }
-                        
-                            .listSectionSpacing(.compact)
+                    .listSectionSpacing(.compact)
                 }
                 .onDelete(perform: deleteItems)
 
