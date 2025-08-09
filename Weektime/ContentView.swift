@@ -15,45 +15,60 @@ struct ContentView: View {
     @Query private var goals: [Goal]
     @Query private var sessions: [GoalSession]
     let day: Day
+    @State private var selectedSession: GoalSession?
+    @Namespace var namespace
+
     var body: some View {
-        NavigationSplitView {
             List {
                 ForEach(sessions) { session in
                     Section {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(session.goal.title)
+                    NavigationLink {
+                        ChecklistDetailView(session: session, animation: namespace)
+                    } label: {
                                 HStack {
-                                    Text("25/30 min")
-                                        .fontWeight(.semibold)
-                                        .font(.footnote)
-                                    
-                                    Text(session.goal.primaryTheme.title)
-                                        .font(.caption2)
-                                        .padding(4)
-                                        .background(Capsule()
-                                            .fill(session.goal.primaryTheme.theme.light.opacity(0.15)))
+                                    VStack(alignment: .leading) {
+                                        Text(session.goal.title)
+                                        HStack {
+                                            Text("25/30 min")
+                                                .fontWeight(.semibold)
+                                                .font(.footnote)
+
+                                            Text(session.goal.primaryTheme.title)
+                                                .font(.caption2)
+                                                .padding(4)
+                                                .background(Capsule()
+                                                    .fill(session.goal.primaryTheme.theme.light.opacity(0.15)))
+                                            Spacer()
+
+                                        }
+                                        .opacity(0.7)
+                                    }
+
                                     Spacer()
-                                    
+
+                                    Button {
+                                        
+                                    } label: {
+                                        Image(systemName: "play.circle.fill")
+                                    }
                                 }
-                                .opacity(0.7)
+                                .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
+                            .listRowBackground(colorScheme == .dark ? session.goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
+                            .onTapGesture {
+                                    selectedSession = session
                             }
-                            
-                            Spacer()
-                            Button {
-                                
-                            } label: {
-                                Image(systemName: "play.circle.fill")
-                            }
-                        }
-                        .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
-                        .listRowBackground(colorScheme == .dark ? session.goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
+                        .matchedTransitionSource(id: session.id, in: namespace)                    }
                     }
                     .listSectionSpacing(.compact)
+
+                   
+
                 }
                 .onDelete(perform: deleteItems)
 
             }
+        
+
             .animation(.spring(), value: goals)
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -70,9 +85,7 @@ struct ContentView: View {
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
-        }
+    
         .onAppear {
             refreshGoals()
         }
@@ -104,7 +117,7 @@ struct ContentView: View {
                 modelContext.delete(goals[index])
             }
         }
-    }
+    }    
 }
 
 #Preview {

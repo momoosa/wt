@@ -30,7 +30,11 @@ struct WeektimeApp: App {
     var body: some Scene {
         WindowGroup {
             if let day {
-                ContentView(day: day)
+                NavigationStack {
+                    ContentView(day: day)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .navigationTitle("Today")
+                }
             } else {
                 Text("")
                     .onAppear {

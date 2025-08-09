@@ -14,7 +14,8 @@ public final class Goal {
     public var primaryTheme: GoalTheme
     @Relationship
     var goalSessions: [GoalSession] = []
-    
+    @Relationship public var checklistItems: [ChecklistItem] = []
+
     public init(title: String, primaryTheme: GoalTheme) {
         self.title = title
         self.primaryTheme = primaryTheme
