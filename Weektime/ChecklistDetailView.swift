@@ -18,19 +18,51 @@ struct ChecklistDetailView: View {
                     }
                 }
             }
-
+            .navigationTitle(session.goal.title)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                
                 ToolbarItem(placement: .topBarTrailing) {
-                    EditButton()
+                    Menu {
+                        
+                        Button {
+                            withAnimation {
+                                session.goal.status = .archived
+                            }
+                        } label: {
+                            if session.goal.status == .archived {
+                                Text("Unarchive")
+                            } else {
+                                Text("Archive")
+                            }
+                        }
+                    } label: {
+
+                        Image(systemName: "ellipsis.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+
+                    }
+
+                
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+//                                        self.goalToEdit = goal
+                                        
+                                    } label: {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .symbolRenderingMode(.hierarchical)
+
+                                    }
+                    
+                }
+         
                 ToolbarItem(placement: .bottomBar) {
                     Button("Add Checklist Item") {
                         addChecklistItem(to: session)
                     }
                 }
-                }
-            
+            }
+         
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
         .onDisappear {
             let emptyItems = session.checklist.filter { $0.checklistItem.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }

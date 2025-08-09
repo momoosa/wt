@@ -11,6 +11,7 @@ import SwiftData
 @Model
 public final class Goal {
     public var title: String
+    public var status: Status
     public var primaryTheme: GoalTheme
     @Relationship
     var goalSessions: [GoalSession] = []
@@ -18,6 +19,15 @@ public final class Goal {
 
     public init(title: String, primaryTheme: GoalTheme) {
         self.title = title
+        self.status = .active
         self.primaryTheme = primaryTheme
+    }
+}
+
+public extension Goal {
+    enum Status: String, Codable {
+        case suggestion
+        case active
+        case archived
     }
 }
