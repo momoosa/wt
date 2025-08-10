@@ -16,14 +16,15 @@ struct ContentView: View {
     @Query private var sessions: [GoalSession]
     let day: Day
     @State private var selectedSession: GoalSession?
-    @Namespace var namespace
+    @Namespace var animation
+    @State private var showingGoalEditor = false
 
     var body: some View {
             List {
                 ForEach(sessions) { session in
                     Section {
                     NavigationLink {
-                        ChecklistDetailView(session: session, animation: namespace)
+                        ChecklistDetailView(session: session, animation: animation)
                     } label: {
                                 HStack {
                                     VStack(alignment: .leading) {
@@ -57,7 +58,8 @@ struct ContentView: View {
                             .onTapGesture {
                                     selectedSession = session
                             }
-                        .matchedTransitionSource(id: session.id, in: namespace)                    }
+                        .matchedTransitionSource(id: session.id, in: animation)
+                    }
                     }
                     .listSectionSpacing(.compact)
 
@@ -79,11 +81,16 @@ struct ContentView: View {
                     EditButton()
                 }
 #endif
-                ToolbarItem {
-                    Button(action: addItem) {
+            
+                ToolbarItem(placement: .bottomBar) {
+                    Button(action: { showingGoalEditor = true }) {
                         Label("Add Item", systemImage: "plus")
                     }
+                    
                 }
+                .matchedTransitionSource(
+                                       id: "info", in: animation
+                                   )
             }
     
         .onAppear {
@@ -91,6 +98,14 @@ struct ContentView: View {
         }
         .onChange(of: goals) { old, new in
             refreshGoals()
+        }
+        .sheet(isPresented: $showingGoalEditor) {
+            GoalEditorView()
+            
+                .navigationTransition(
+                    .zoom(sourceID: "info", in: animation)
+                )
+
         }
     }
 
@@ -125,3 +140,4 @@ struct ContentView: View {
     ContentView(day: day)
         .modelContainer(for: Item.self, inMemory: true)
 }
+
