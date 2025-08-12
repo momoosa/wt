@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>You'll be able to keep track of active sessions outside of the app and be notified when they're finished.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

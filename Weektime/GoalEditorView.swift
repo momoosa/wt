@@ -29,15 +29,26 @@ struct GoalEditorView: View {
                                         Text(title)
                                     }
                                     HStack {
-                                        if let recommendedDuration = task.recommendedDurationInMinutes {
-                                            Text("\(recommendedDuration) minutes")
-                                                .contentTransition(.numericText())
+                                        if let subtitle = task.subtitle {
+                                            Text(subtitle)
                                         } else {
                                             Text("")
-                                            
                                         }
                                     }
                                     .font(.footnote)
+                                    
+                                    if let themes = task.themes, !themes.isEmpty {
+                                        HStack {
+                                            ForEach(themes, id: \.self) { theme in
+                                                Text(theme)
+                                                    .padding(2)
+                                                    .background(Capsule()
+                                                        .fill(Color(.tertiarySystemBackground)))
+                                            }
+                                        }
+                                        .font(.footnote)
+
+                                    }
                                 }
                             }
                         }
@@ -119,7 +130,7 @@ struct GoalEditorView: View {
         let stream = session.streamResponse(generating: GoalEditorSuggestionsResult.self) {
             
 
-            "Come up with up to 10 separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instead of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument. Make it 100% relevant to: \(userInput)"
+            "Come up with up to 10 separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title, subtitle, description and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instead of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument. Make it 100% relevant to: \(userInput)"
         }
         
         for try await partialResponse in stream {
