@@ -1,20 +1,26 @@
 import SwiftUI
-import FoundationModels // Replace with actual import if the module import name differs
+import FoundationModels
+import WeektimeKit
+import SwiftData
 
 struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var userInput: String = ""
     @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     @State private var errorMessage: String?
     @State private var session = LanguageModelSession(instructions: "Come up with up to three separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the title + duration.")
-
+    @State var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
     var body: some View {
         NavigationStack {
             List {
                 Section(header: Text("Describe your goal")) {
                     TextField("What do you want to do?", text: $userInput)
                 }
-                Section(header: Text("Generated things to do")) {
+                
+            
+
+                Section {
                     if session.isResponding {
                         ProgressView("Generating suggestions...")
                     } else if let errorMessage {
@@ -50,8 +56,19 @@ struct GoalEditorView: View {
 
                                     }
                                 }
+                                .listRowBackground(task.id == selectedSuggestion?.id ? Color.green.opacity(0.3) : Color(.systemBackground))
+//                                .listRowBackground(task.id == selectedSuggestion.id ? Color.green : Color.clear)
+                                .onTapGesture {
+                                    selectedSuggestion = task
+                                }
                             }
                         }
+                    }
+                } header: {
+                    if session.isResponding {
+                        Text("Loading suggestions")
+                    } else {
+                        Text("Suggestions")
                     }
                 }
                 Button("Generate Tasks") {
@@ -73,15 +90,26 @@ struct GoalEditorView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        if let selectedSuggestion, let title = selectedSuggestion.title {
+                            let newItem = GoalTheme(title: selectedSuggestion.themes![0], color: themes.randomElement()! ) // TOOD:
+                            let goal = Goal(title: title, primaryTheme: newItem)
+                                modelContext.insert(goal)
+
+                        }
                         dismiss()
                     } label: {
                         Image(systemName: "checkmark")
                     }
                 }
             }
+        
         }
         .task {
             prewarm()
+            if userInput.isEmpty {
+                generateChecklist(for: "")
+            }
+
         }
     }
 
@@ -90,7 +118,6 @@ struct GoalEditorView: View {
     }
     
     func generateChecklist(for input: String) {
-        guard !input.isEmpty else { return }
         errorMessage = nil
 //        result = []
 
