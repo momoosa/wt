@@ -264,9 +264,9 @@ struct ContentView: View {
             }
                 saveTimerState()
         } else {
-            saveTimerState()
             withAnimation {
                 activeSession = ActiveSessionDetails(id: session.id, startDate: .now, elapsedTime: 0)
+                saveTimerState()
                 activeSession?.startUITimer()
             }
         }
