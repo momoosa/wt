@@ -18,6 +18,8 @@ struct ContentView: View {
     @State private var selectedSession: GoalSession?
     @Namespace var animation
     @State private var showingGoalEditor = false
+    @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .archivedGoals]
+    @State private var activeFilter: Filter?
     
     @State private var timer: Timer?
     @State private var activeSessionID: GoalSession.ID? = nil
@@ -35,11 +37,19 @@ struct ContentView: View {
         // Wrapping main content in a ZStack to enable overlaying "Active Timers" above the plus button
         ZStack(alignment: .bottom) {
             List {
+              filtersHeader
+                
                 ForEach(sessions) { session in
                     Section {
-                        NavigationLink {
-                            ChecklistDetailView(session: session, animation: animation)
-                        } label: {
+                        ZStack {
+                            NavigationLink {
+                                ChecklistDetailView(session: session, animation: animation)
+                                    .tint(session.goal.primaryTheme.theme.dark)
+                            } label: {
+                                EmptyView()
+                            }
+                            .opacity(0)
+                            
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text(session.goal.title)
@@ -77,7 +87,9 @@ struct ContentView: View {
                                 selectedSession = session
                             }
                             .matchedTransitionSource(id: session.id, in: animation)
+
                         }
+                        
                     }
                     .listSectionSpacing(.compact)
                 }
@@ -157,6 +169,49 @@ struct ContentView: View {
         }
     }
     
+    
+    
+    var filtersHeader: some View {
+            Section {
+                
+            } header: {
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack {
+                        ForEach(availableFilters, id: \.self) { filter in
+                            HStack {
+                                if let image = filter.label.imageName {
+                                    Image(systemName: image)
+                                } else if let text = filter.label.text {
+                                    Text(text)
+                                }
+                            }
+                            .foregroundStyle(filter.id == activeFilter?.id ? filter.tintColor : .primary)
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                            .padding([.top, .bottom], 6)
+                            .padding([.leading, .trailing], 10)
+                            .frame(minWidth: 60.0)
+//                            .background {
+//                                Capsule()
+//                                    .fill(filter.id == activeFilter.id ? filter.tintColor.opacity(0.4) : Color(.systemGray5))
+//                            }
+//                            .onTapGesture {
+//                                withAnimation {
+//                                    activeFilter = filter
+//                                }
+//                            }
+                        }
+                    }
+                    .padding([.leading, .trailing])
+
+                }
+
+            }
+            .listRowInsets(EdgeInsets())
+        
+            .listSectionMargins(.horizontal, 0) // Space around sections. (Requires iOS 26)
+    }
     private func refreshGoals() {
         for goal in goals {
             if !sessions.contains(where: { $0.goal == goal }) {
@@ -215,6 +270,7 @@ struct ContentView: View {
             withAnimation {
                 activeSessionID = session.id
                 activeSessionStartDate = Date()
+
                 activeSessionElapsedTime = 0
                 saveTimerState()
                 startUITimer()
@@ -225,7 +281,9 @@ struct ContentView: View {
     private func startUITimer() {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { _ in
-            self.now = Date()
+            withAnimation {
+                self.now = Date()
+            }
         }
     }
     

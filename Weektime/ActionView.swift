@@ -27,6 +27,7 @@ struct ActionView: View {
                     .fontWeight(.semibold)
                 Text(timerText(for: session))
                     .font(.caption)
+                    .contentTransition(.numericText())
             }
             Button {
                 eventHandler(.stopTapped)
@@ -38,7 +39,7 @@ struct ActionView: View {
         .foregroundStyle(session.goal.primaryTheme.theme.dark)
     }
     
-    private func timerText(for session: GoalSession) -> String {
+    private func timerText(for session: GoalSession, currentTime: Date = .now) -> String {
         let elapsed: TimeInterval
         if activeSessionID == session.id, let startDate = activeSessionStartDate {
             elapsed = activeSessionElapsedTime + currentTime.timeIntervalSince(startDate)

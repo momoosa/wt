@@ -18,6 +18,8 @@ struct ChecklistDetailView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(session.goal.primaryTheme.theme.dark.opacity(0.2))
             .navigationTitle(session.goal.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
