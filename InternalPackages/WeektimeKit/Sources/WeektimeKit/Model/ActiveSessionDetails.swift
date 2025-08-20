@@ -10,18 +10,40 @@ import SwiftUI
 import SwiftData
 
 @Observable
-final class ActiveSessionDetails {
-    public private(set) var activeSessionID: UUID? = nil
-    public private(set) var activeSessionStartDate: Date? = nil
-    public private(set) var activeSessionElapsedTime: TimeInterval = 0
-    
-    private func timerText(for session: GoalSession, currentTime: Date = .now) -> String {
-        let elapsed: TimeInterval
-        if activeSessionID == session.id, let startDate = activeSessionStartDate {
-            elapsed = activeSessionElapsedTime + currentTime.timeIntervalSince(startDate)
-        } else {
-            elapsed = 0
-        }
-        return Duration.seconds(elapsed).formatted()
+public final class ActiveSessionDetails {
+    public private(set) var id: UUID
+    public private(set) var startDate: Date
+    public private(set) var elapsedTime: TimeInterval = 0
+    public var currentTime: Date?
+    public private(set) var timeText: String?
+    private var timer: Timer?
+    let timerInterval: TimeInterval = 1.0
+
+    public init(id: UUID, startDate: Date, elapsedTime: TimeInterval) {
+        self.id = id
+        self.startDate = startDate
+        self.elapsedTime = elapsedTime
     }
+    
+    public func timerText(currentTime: Date = .now) -> String {
+        let elapsed = elapsedTime + currentTime.timeIntervalSince(startDate)
+        let formatted = Duration.seconds(elapsed).formatted()
+        return formatted
+    }
+    
+    public func startUITimer() {
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { _ in
+            withAnimation {
+                self.timeText = self.timerText()
+                self.currentTime = Date()
+            }
+        }
+    }
+    
+    public func stopUITimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
 }

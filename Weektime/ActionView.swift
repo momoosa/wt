@@ -14,10 +14,7 @@ struct ActionView: View {
         case stopTapped
     }
     let session: GoalSession
-    @Binding var activeSessionID: UUID?
-    @Binding var activeSessionStartDate: Date?
-    @Binding var activeSessionElapsedTime: TimeInterval
-    @Binding var currentTime: Date
+    @Bindable var details: ActiveSessionDetails
     let eventHandler: (Event) -> Void
     var body: some View {
         HStack {
@@ -25,9 +22,11 @@ struct ActionView: View {
                 Text(session.title)
                     .font(.footnote)
                     .fontWeight(.semibold)
-                Text(timerText(for: session))
-                    .font(.caption)
-                    .contentTransition(.numericText())
+                if let timeText = details.timeText {
+                    Text(timeText)
+                        .font(.caption)
+                        .contentTransition(.numericText())
+                }
             }
             Button {
                 eventHandler(.stopTapped)
@@ -37,16 +36,6 @@ struct ActionView: View {
             }
         }
         .foregroundStyle(session.goal.primaryTheme.theme.dark)
-    }
-    
-    private func timerText(for session: GoalSession, currentTime: Date = .now) -> String {
-        let elapsed: TimeInterval
-        if activeSessionID == session.id, let startDate = activeSessionStartDate {
-            elapsed = activeSessionElapsedTime + currentTime.timeIntervalSince(startDate)
-        } else {
-            elapsed = 0
-        }
-        return Duration.seconds(elapsed).formatted()
     }
 }
 
