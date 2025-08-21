@@ -10,6 +10,7 @@ import SwiftData
 import WeektimeKit
 
 struct ContentView: View {
+    @Environment(GoalStore.self) var goalStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var goals: [Goal]
@@ -47,6 +48,8 @@ struct ContentView: View {
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text(session.goal.title)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
                                     HStack {
                                         if let activeSession, activeSession.id == session.id, let timeText = activeSession.timeText {
                                             Text(timeText)
@@ -213,6 +216,11 @@ struct ContentView: View {
         
             .listSectionMargins(.horizontal, 0) // Space around sections. (Requires iOS 26)
     }
+    
+    init(day: Day) {
+        self.day = day
+    }
+    
     private func refreshGoals() {
         for goal in goals {
             if !sessions.contains(where: { $0.goal == goal }) {
@@ -256,11 +264,12 @@ struct ContentView: View {
     }
     
     private func toggleTimer(for session: GoalSession) {
-        if activeSession?.id == session.id {
+        if let activeSession, activeSession.id == session.id {
+            goalStore.save(session: session, in: day, startDate: activeSession.startDate, endDate: .now)
             // Stop the current active timer
-            activeSession?.stopUITimer()
+            activeSession.stopUITimer()
             withAnimation {
-                activeSession = nil
+                self.activeSession = nil
             }
                 saveTimerState()
         } else {
@@ -299,7 +308,9 @@ struct ContentView: View {
 }
 
 #Preview {
+    let store = GoalStore()
     let day = Day(start: Date.now.startOfDay()!, end: Date.now.endOfDay()!)
     ContentView(day: day)
+        .environment(store)
         .modelContainer(for: Item.self, inMemory: true)
 }

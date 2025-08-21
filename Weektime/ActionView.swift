@@ -18,6 +18,8 @@ struct ActionView: View {
     let eventHandler: (Event) -> Void
     var body: some View {
         HStack {
+            Spacer()
+                .frame(width: 8)
             VStack(alignment: .leading) {
                 Text(session.title)
                     .font(.footnote)

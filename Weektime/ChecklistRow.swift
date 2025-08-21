@@ -12,10 +12,11 @@ struct ChecklistRow: View {
     @Environment(\.editMode) var editMode
     @Bindable var item: ChecklistItemSession
     var body: some View {
+        let color = item.session.goal.primaryTheme.theme.dark
         HStack {
             Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
                 .contentTransition(.symbolEffect(.replace))
-                .foregroundStyle(item.isCompleted ? .green : .secondary)
+                .foregroundStyle(item.isCompleted ? color : .secondary)
             if let editMode, editMode.wrappedValue == .active {
                 TextField("Type here", text: $item.checklistItem.title)
                     

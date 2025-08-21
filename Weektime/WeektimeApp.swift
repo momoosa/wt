@@ -25,8 +25,9 @@ struct WeektimeApp: App {
         }
     }()
     
-    
+    @State var goalStore = GoalStore()
     @State var day: Day?
+    @Query var days: [Day]
     var body: some Scene {
         WindowGroup {
             if let day {
@@ -34,19 +35,23 @@ struct WeektimeApp: App {
                     ContentView(day: day)
                         .navigationBarTitleDisplayMode(.inline)
                         .navigationTitle("Today")
+                        .environment(goalStore)
+
                 }
             } else {
                 Text("")
-                    .onAppear {
-                        guard let startDate = Date.now.startOfDay() else {
-                            fatalError("Could not create Day")
+                    .task {
+                        if day == nil {
+                            // TODO: Switch day
+                            do {
+                                let weekStore = WeekStore(modelContext: sharedModelContainer.mainContext)
+                                
+                                self.day = try weekStore.fetchCurrentDay()
+                                
+                            } catch {
+                                
+                            }
                         }
-                        
-                        guard let endDate = Date.now.endOfDay() else {
-                            fatalError("Could not create Day")
-                        }
-                        self.day = Day(start: startDate, end: endDate)
-                        
                     }
                 
             }

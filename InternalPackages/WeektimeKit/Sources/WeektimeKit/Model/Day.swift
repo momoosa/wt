@@ -45,4 +45,11 @@ public final class Day {
         weekdayID = Int16(weekday)
     }
 
+    public func add(historicalSession: HistoricalSession) {
+        if let index = historicalSessions.firstIndex(where: { $0.id == historicalSession.id }) {
+            historicalSessions[index] = historicalSession
+        } else {
+            historicalSessions.append(historicalSession)
+        }
+    }
 }

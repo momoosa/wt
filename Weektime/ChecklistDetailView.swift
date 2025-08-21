@@ -5,21 +5,139 @@ import WeektimeKit
 struct ChecklistDetailView: View {
     var session: GoalSession
     @Environment(\.editMode) private var editMode
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.modelContext) private var context
     var animation: Namespace.ID
-
+    let historicalSessionLimit = 3
+    var historicalSessions: [HistoricalSession] {
+        session.day.historicalSessions.filter({ $0.goalIDs.contains(session.goal.id.uuidString )})
+    }
+    
     var body: some View {
-            List(session.checklist, id: \.id) { item in
-                ChecklistRow(item: item)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation {
-                        item.isCompleted.toggle()
+        List {
+   
+            Section {
+                if !historicalSessions.isEmpty {
+                    ForEach(historicalSessions.prefix(historicalSessionLimit)) { session in
+                        HistoricalSessionRow(session: session, showsRelativeTimeInsteadOfTitle: true)
+                            .foregroundStyle(.primary)
+                            .swipeActions {
+                                Button {
+                                    withAnimation {
+                                        
+                                        // TODO:
+                                        //                                        session.day.delete(historicalSessionIDs: [session.id])
+                                        
+                                        context.delete(session)
+                                        Task {
+                                            try context.save()
+                                        }
+                                    }
+                                } label: {
+                                    Label {
+                                                   Text("Delete")
+                                               } icon: {
+                                                   Image(systemName: "xmark.bin")
+                                               }
+                                               
+                                           }
+                                           .tint(.red)
+                                           
+                                       }
+                               }
+                           } else {
+                               ContentUnavailableView {
+                                   Text("No progress for this goal today.")
+                               } description: {
+                                   
+                               } actions: {
+                                   Button {
+                                       
+                                   } label: {
+                                       Text("Add manual entry")
+                                   }
+                               }
+
+                           }
+                       } header: {
+                           HStack {
+                               Text("History")
+                               Text("\(historicalSessions.count)")
+                                   .font(.caption2)
+                                   .foregroundStyle(Color(.systemBackground))
+                                   .padding(4)
+                                   .frame(minWidth: 20)
+                                   .background(Capsule()
+                                    .fill(session.goal.primaryTheme.theme.dark))
+                               Spacer()
+                               Button {
+           //                      TODO:  dayToEdit = day
+                               } label: {
+                                   Image(systemName: "plus.circle.fill")
+                                       .symbolRenderingMode(.hierarchical)
+                               }
+                           }
+                       } footer: {
+                           if historicalSessions.count > historicalSessionLimit {
+                               HStack {
+                                   Spacer()
+                                   Button {
+                                       //                            dayToEdit = day
+                                   } label: {
+                                           Text("View all")
+                                   }
+           //                        .buttonStyle(PrimaryButtonStyle(color: goal.color))
+                                   Spacer()
+                               }
+                           }
+                       }
+
+                   
+
+            Section {
+                ForEach(session.checklist, id: \.id) { item in
+                    ChecklistRow(item: item)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation {
+                                item.isCompleted.toggle()
+                            }
+                        }
+                }
+            } header: {
+                HStack {
+                    Text("To do")
+                    Text("\(session.checklist.filter { $0.isCompleted }.count)/\(session.checklist.count)")
+                        .font(.caption2)
+                        .foregroundStyle(Color(.systemBackground))
+                        .padding(4)
+                        .background(Capsule()
+                            .fill(session.goal.primaryTheme.theme.dark))
+                        Spacer()
+                    Button {
+                        addChecklistItem(to: session)
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                }
+            } footer: {
+                if historicalSessions.count > historicalSessionLimit {
+                    HStack {
+                        Spacer()
+                        Button {
+                            //                            dayToEdit = day
+                        } label: {
+                                Text("View all")
+                        }
+//                        .buttonStyle(PrimaryButtonStyle(color: goal.color))
+                        Spacer()
                     }
                 }
             }
+        }
+        
             .scrollContentBackground(.hidden)
-            .background(session.goal.primaryTheme.theme.dark.opacity(0.15))
+            .background(session.goal.primaryTheme.theme.dark.opacity(0.1))
             .navigationTitle(session.goal.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -58,11 +176,6 @@ struct ChecklistDetailView: View {
                     
                 }
          
-                ToolbarItem(placement: .bottomBar) {
-                    Button("Add Checklist Item") {
-                        addChecklistItem(to: session)
-                    }
-                }
             }
          
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
@@ -72,8 +185,8 @@ struct ChecklistDetailView: View {
                 if let index = session.checklist.firstIndex(where: { $0.id == item.id }) {
                     session.checklist.remove(at: index)
                 }
-                modelContext.delete(item)
-                modelContext.delete(item.checklistItem)
+                context.delete(item)
+                context.delete(item.checklistItem)
             }
         }
     }
@@ -82,6 +195,6 @@ struct ChecklistDetailView: View {
         let item = ChecklistItem(title: "")
         let checklistSession = ChecklistItemSession(checklistItem: item, isCompleted: false, session: session)
         session.checklist.append(checklistSession)
-        modelContext.insert(checklistSession)
+        context.insert(checklistSession)
     }
 }

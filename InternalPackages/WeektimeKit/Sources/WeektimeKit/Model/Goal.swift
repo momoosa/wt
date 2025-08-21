@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 public final class Goal {
+    public private(set) var id: UUID
     public var title: String
     public var status: Status
     public var primaryTheme: GoalTheme
@@ -18,6 +19,7 @@ public final class Goal {
     @Relationship public var checklistItems: [ChecklistItem] = []
 
     public init(title: String, primaryTheme: GoalTheme) {
+        self.id = UUID()
         self.title = title
         self.status = .active
         self.primaryTheme = primaryTheme
