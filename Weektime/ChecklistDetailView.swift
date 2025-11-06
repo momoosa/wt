@@ -8,16 +8,12 @@ struct ChecklistDetailView: View {
     @Environment(\.modelContext) private var context
     var animation: Namespace.ID
     let historicalSessionLimit = 3
-    var historicalSessions: [HistoricalSession] {
-        session.day.historicalSessions.filter({ $0.goalIDs.contains(session.goal.id.uuidString )})
-    }
-    
     var body: some View {
         List {
    
             Section {
-                if !historicalSessions.isEmpty {
-                    ForEach(historicalSessions.prefix(historicalSessionLimit)) { session in
+                if !session.historicalSessions.isEmpty {
+                    ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { session in
                         HistoricalSessionRow(session: session, showsRelativeTimeInsteadOfTitle: true)
                             .foregroundStyle(.primary)
                             .swipeActions {
@@ -61,7 +57,7 @@ struct ChecklistDetailView: View {
                        } header: {
                            HStack {
                                Text("History")
-                               Text("\(historicalSessions.count)")
+                               Text("\(session.historicalSessions.count)")
                                    .font(.caption2)
                                    .foregroundStyle(Color(.systemBackground))
                                    .padding(4)
@@ -77,7 +73,7 @@ struct ChecklistDetailView: View {
                                }
                            }
                        } footer: {
-                           if historicalSessions.count > historicalSessionLimit {
+                           if session.historicalSessions.count > historicalSessionLimit {
                                HStack {
                                    Spacer()
                                    Button {
@@ -121,7 +117,7 @@ struct ChecklistDetailView: View {
                     }
                 }
             } footer: {
-                if historicalSessions.count > historicalSessionLimit {
+                if session.historicalSessions.count > historicalSessionLimit {
                     HStack {
                         Spacer()
                         Button {

@@ -33,8 +33,10 @@ struct ActionView: View {
             Button {
                 eventHandler(.stopTapped)
             } label: {
-                Image(systemName: "stop.circle.fill")
+                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.goal.primaryTheme.theme.light, font: .title2, gaugeScale: 0.5)
+                    .contentTransition(.symbolEffect(.replace))
                     .symbolRenderingMode(.hierarchical)
+                    .font(.title2)
             }
         }
         .foregroundStyle(session.goal.primaryTheme.theme.dark)

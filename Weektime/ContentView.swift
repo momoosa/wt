@@ -57,7 +57,7 @@ struct ContentView: View {
                                                 .fontWeight(.semibold)
                                                 .font(.footnote)
                                         } else {
-                                            Text("TODO:")
+                                            Text(session.formattedTime)
                                                 .fontWeight(.semibold)
                                                 .font(.footnote)
 
@@ -79,7 +79,8 @@ struct ContentView: View {
                                 Button {
                                     toggleTimer(for: session)
                                 } label: {
-                                    Image(systemName: session.id == activeSession?.id ? "stop.circle.fill" : "play.circle.fill")
+                                    let image = session.id == activeSession?.id ? "stop.circle.fill" : "play.circle.fill"
+                                    GaugePlayIcon(isActive: session.id == activeSession?.id, imageName: image, progress: session.progress, color: session.goal.primaryTheme.theme.light, font: .title2, gaugeScale: 0.4)
                                         .contentTransition(.symbolEffect(.replace))
                                         .symbolRenderingMode(.hierarchical)
                                         .font(.title2)
