@@ -142,7 +142,7 @@ struct ChecklistDetailView: View {
         
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
         .sheet(isPresented: $isShowingEditScreen, content: {
-            IntervalsEditorView(goal: session.goal)
+            IntervalsEditorView(goal: session.goal, currentSession: session)
         })
         .onDisappear {
             let emptyItems = session.checklist.filter { $0.checklistItem.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }

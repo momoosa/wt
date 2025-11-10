@@ -3,10 +3,13 @@ import SwiftData
 
 public struct IntervalsEditorView: View {
     @Bindable var goal: Goal
+    var currentSession: GoalSession?
+
     @Environment(\.modelContext) private var modelContext
 
-    public init(goal: Goal) {
+    public init(goal: Goal, currentSession: GoalSession? = nil) {
         self._goal = Bindable(wrappedValue: goal)
+        self.currentSession = currentSession
     }
 
     public var body: some View {
@@ -93,6 +96,15 @@ public struct IntervalsEditorView: View {
 
         goal.intervals.append(newInterval)
         modelContext.insert(newInterval)
+
+        // If a current goal session is active, also create a matching IntervalSession
+        if let session = currentSession {
+            // Create an IntervalSession associated to this new interval and goal session
+            let newIntervalSession = IntervalSession(interval: newInterval, session: session)
+            // If your IntervalSession needs order or duration mirroring, set them here
+            modelContext.insert(newIntervalSession)
+        }
+
         try? modelContext.save()
     }
 
