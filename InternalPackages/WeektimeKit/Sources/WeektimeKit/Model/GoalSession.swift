@@ -15,6 +15,7 @@ public final class GoalSession {
     public private(set) var goal: Goal
     public private(set) var day: Day
     @Relationship public var checklist: [ChecklistItemSession] = []
+    @Relationship public var intervals: [IntervalSession] = []
     public var historicalSessions: [HistoricalSession] {
         day.historicalSessions.filter({ $0.goalIDs.contains(goal.id.uuidString )})
     }

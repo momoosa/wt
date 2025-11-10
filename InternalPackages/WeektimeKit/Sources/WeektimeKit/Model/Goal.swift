@@ -17,6 +17,7 @@ public final class Goal {
     @Relationship
     var goalSessions: [GoalSession] = []
     @Relationship public var checklistItems: [ChecklistItem] = []
+    @Relationship public var intervals: [Interval] = []
 
     public init(title: String, primaryTheme: GoalTheme) {
         self.id = UUID()

@@ -34,7 +34,7 @@ struct WeektimeApp: App {
                 NavigationStack {
                     ContentView(day: day)
                         .navigationBarTitleDisplayMode(.inline)
-                        .navigationTitle("Today")
+                        .navigationTitle(day.startDate.formatted(.dateTime.month().day()))
                         .environment(goalStore)
 
                 }
