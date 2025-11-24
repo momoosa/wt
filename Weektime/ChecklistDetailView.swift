@@ -9,6 +9,7 @@ struct ChecklistDetailView: View {
     var animation: Namespace.ID
     let historicalSessionLimit = 3
     @State var isShowingEditScreen = false
+    @State private var isShowingIntervalsEditor = false
     var body: some View {
         List {
             
@@ -89,13 +90,16 @@ struct ChecklistDetailView: View {
             }
             
             
-            if !session.checklist.isEmpty {
-                todoSection
-            }
+            // Replaced calls to todoSection and intervalSection with combinedSection (always rendered)
+            combinedSection
             
-            if !session.intervals.isEmpty {
-                intervalSection
-            }
+//            if !session.checklist.isEmpty {
+//                todoSection
+//            }
+//
+//            if !session.intervals.isEmpty {
+//                intervalSection
+//            }
         }
         
         .scrollContentBackground(.hidden)
@@ -144,6 +148,9 @@ struct ChecklistDetailView: View {
         .sheet(isPresented: $isShowingEditScreen, content: {
             IntervalsEditorView(goal: session.goal, currentSession: session)
         })
+        .sheet(isPresented: $isShowingIntervalsEditor) {
+            IntervalsEditorView(goal: session.goal, currentSession: session)
+        }
         .onDisappear {
             let emptyItems = session.checklist.filter { $0.checklistItem.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             for item in emptyItems {
@@ -152,6 +159,71 @@ struct ChecklistDetailView: View {
                 }
                 context.delete(item)
                 context.delete(item.checklistItem)
+            }
+        }
+    }
+    
+    var combinedSection: some View {
+        Section {
+            ForEach(session.checklist, id: \.id) { item in
+                ChecklistRow(item: item)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation {
+                            item.isCompleted.toggle()
+                        }
+                    }
+            }
+            ForEach(session.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex }), id: \.id) { item in
+                Text("\(item.interval.name)")
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation {
+                            item.isCompleted.toggle()
+                        }
+                    }
+            }
+        } header: {
+            let completed = session.checklist.filter { $0.isCompleted }.count + session.intervals.filter { $0.isCompleted }.count
+            let total = session.checklist.count + session.intervals.count
+            HStack {
+                Text("Checklist")
+                Text("\(completed)/\(total)")
+                    .font(.caption2)
+                    .foregroundStyle(Color(.systemBackground))
+                    .padding(4)
+                    .background(Capsule()
+                        .fill(session.goal.primaryTheme.theme.dark))
+                Spacer()
+                Menu {
+                    Button {
+                        addChecklistItem(to: session)
+                    } label: {
+                        Label("Add To-Do", systemImage: "checkmark.circle")
+                    }
+                    Button {
+                        isShowingIntervalsEditor = true
+                    } label: {
+                        Label("Add Interval", systemImage: "timer")
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                }
+            }
+        } footer: {
+            let total = session.checklist.count + session.intervals.count
+            if total > historicalSessionLimit {
+                HStack {
+                    Spacer()
+                    Button {
+                        //                            dayToEdit = day
+                    } label: {
+                        Text("View all")
+                    }
+                    //                        .buttonStyle(PrimaryButtonStyle(color: goal.color))
+                    Spacer()
+                }
             }
         }
     }
@@ -202,7 +274,7 @@ struct ChecklistDetailView: View {
     
     var intervalSection: some View {
         Section {
-            ForEach(session.intervals, id: \.id) { item in
+            ForEach(session.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex }), id: \.id) { item in
                 Text("\(item.interval)")
                     .contentShape(Rectangle())
                     .onTapGesture {

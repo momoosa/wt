@@ -90,12 +90,15 @@ struct GoalEditorView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        let goal: Goal
                         if let selectedSuggestion, let title = selectedSuggestion.title {
                             let newItem = GoalTheme(title: selectedSuggestion.themes![0], color: themes.randomElement()! ) // TOOD:
-                            let goal = Goal(title: title, primaryTheme: newItem)
-                                modelContext.insert(goal)
+                            goal = Goal(title: title, primaryTheme: newItem)
 
+                        } else {
+                            goal = Goal(title: userInput, primaryTheme: GoalTheme(title: "", color: themes.randomElement()!))
                         }
+                        modelContext.insert(goal)
                         dismiss()
                     } label: {
                         Image(systemName: "checkmark")
@@ -118,6 +121,7 @@ struct GoalEditorView: View {
     }
     
     func generateChecklist(for input: String) {
+        return
         errorMessage = nil
 //        result = []
 
