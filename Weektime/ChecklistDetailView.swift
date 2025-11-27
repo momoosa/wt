@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import WeektimeKit
+import UserNotifications
 
 struct ChecklistDetailView: View {
     var session: GoalSession
@@ -59,7 +60,6 @@ struct ChecklistDetailView: View {
                             Text("Add manual entry")
                         }
                     }
-                    
                 }
             } header: {
                 HStack {
@@ -169,18 +169,66 @@ struct ChecklistDetailView: View {
         }
     }
     
-    var combinedSection: some View {
+    var checklistSection: some View {
         Section {
             ForEach(session.checklist, id: \.id) { item in
-                ChecklistRow(item: item)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation {
-                            item.isCompleted.toggle()
-                        }
+                           ChecklistRow(item: item)
+                               .contentShape(Rectangle())
+                               .onTapGesture {
+                                   withAnimation {
+                                       item.isCompleted.toggle()
+                                   }
+                               }
+                       }
+        } header: {
+            let completed = session.checklist.filter { $0.isCompleted }.count
+            let total = session.checklist.count
+            HStack {
+                Text("Checklist")
+                Text("\(completed)/\(total)")
+                    .font(.caption2)
+                    .foregroundStyle(Color(.systemBackground))
+                    .padding(4)
+                    .background(Capsule()
+                        .fill(session.goal.primaryTheme.theme.dark))
+                Spacer()
+                Menu {
+                    Button {
+                        addChecklistItem(to: session)
+                    } label: {
+                        Label("Add To Do", systemImage: "timer")
                     }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                }
             }
+        } footer: {
+            let total = session.intervals.count
+            if total > historicalSessionLimit {
+                HStack {
+                    Spacer()
+                    Button {
+                        //                            dayToEdit = day
+                    } label: {
+                        Text("View all")
+                    }
+                    //                        .buttonStyle(PrimaryButtonStyle(color: goal.color))
+                    Spacer()
+                }
+            }
+        }
+
+    }
+    var combinedSection: some View {
+        Section {
             ForEach(session.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex }), id: \.id) { item in
+                let filteredSorted = session.intervals
+                    .filter { $0.interval.kind == item.interval.kind && $0.interval.name == item.interval.name }
+                    .sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })
+                let totalCount = filteredSorted.count
+                let currentIndex = (filteredSorted.firstIndex(where: { $0.id == item.id }) ?? 0) + 1
+
                 let duration = TimeInterval(item.interval.durationSeconds)
                 let isActive = activeIntervalID == item.id
                 let elapsed = isActive ? intervalElapsed : 0
@@ -197,7 +245,7 @@ struct ChecklistDetailView: View {
                             }()
                             let total = TimeInterval(item.interval.durationSeconds)
 
-                            Text(item.interval.name)
+                            Text("\(item.interval.name) \(currentIndex)/\(totalCount)")
                                 .fontWeight(.semibold)
                                 .strikethrough(isCompleted, pattern: .solid, color: .primary)
                                 .opacity(isCompleted ? 0.6 : 1)
@@ -247,10 +295,10 @@ struct ChecklistDetailView: View {
                 }
             }
         } header: {
-            let completed = session.checklist.filter { $0.isCompleted }.count + session.intervals.filter { $0.isCompleted }.count
-            let total = session.checklist.count + session.intervals.count
+            let completed = session.intervals.filter { $0.isCompleted }.count
+            let total = session.intervals.count
             HStack {
-                Text("Checklist")
+                Text("Intervals")
                 Text("\(completed)/\(total)")
                     .font(.caption2)
                     .foregroundStyle(Color(.systemBackground))
@@ -259,11 +307,6 @@ struct ChecklistDetailView: View {
                         .fill(session.goal.primaryTheme.theme.dark))
                 Spacer()
                 Menu {
-                    Button {
-                        addChecklistItem(to: session)
-                    } label: {
-                        Label("Add To-Do", systemImage: "checkmark.circle")
-                    }
                     Button {
                         isShowingIntervalsEditor = true
                     } label: {
@@ -275,7 +318,7 @@ struct ChecklistDetailView: View {
                 }
             }
         } footer: {
-            let total = session.checklist.count + session.intervals.count
+            let total = session.intervals.count
             if total > historicalSessionLimit {
                 HStack {
                     Spacer()
@@ -338,6 +381,12 @@ struct ChecklistDetailView: View {
     var intervalSection: some View {
         Section {
             ForEach(session.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex }), id: \.id) { item in
+                let filteredSorted = session.intervals
+                    .filter { $0.interval.kind == item.interval.kind && $0.interval.name == item.interval.name }
+                    .sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })
+                let totalCount = filteredSorted.count
+                let currentIndex = (filteredSorted.firstIndex(where: { $0.id == item.id }) ?? 0) + 1
+
                 ZStack(alignment: .leading) {
                     // Background progress bar filling full row height
                     let duration = TimeInterval(item.interval.durationSeconds)
@@ -363,7 +412,7 @@ struct ChecklistDetailView: View {
                             }()
                             let total = TimeInterval(item.interval.durationSeconds)
 
-                            Text(item.interval.name)
+                            Text("\(item.interval.name) \(currentIndex)/\(totalCount)")
                                 .fontWeight(.semibold)
                                 .strikethrough(isCompleted, pattern: .solid, color: .primary)
                                 .opacity(isCompleted ? 0.6 : 1)
@@ -441,13 +490,21 @@ struct ChecklistDetailView: View {
     // MARK: - Interval Playback Logic
     private func toggleIntervalPlayback(for item: IntervalSession, in session: GoalSession) {
         if activeIntervalID == item.id {
+            // Pause current
             stopUITimer()
         } else {
-            startInterval(item: item, in: session)
+            // Starting or resuming a specific item
+            var remainingOffset: TimeInterval = 0
+            if activeIntervalID == nil, let start = intervalStartDate, item.id == activeIntervalID {
+                let duration = TimeInterval(item.interval.durationSeconds)
+                let elapsed = Date().timeIntervalSince(start)
+                remainingOffset = max(duration - elapsed, 0)
+            }
+            startInterval(item: item, in: session, remainingOffset: remainingOffset)
         }
     }
 
-    private func startInterval(item: IntervalSession, in session: GoalSession) {
+    private func startInterval(item: IntervalSession, in session: GoalSession, remainingOffset: TimeInterval = 0) {
         stopUITimer() // ensure only one timer
         activeIntervalID = item.id
         intervalStartDate = Date()
@@ -456,6 +513,8 @@ struct ChecklistDetailView: View {
             tickCurrentInterval(in: session)
         }
         RunLoop.current.add(uiTimer!, forMode: .common)
+        cancelAllIntervalNotifications(for: session)
+        scheduleNotifications(from: item, in: session, startingIn: remainingOffset)
     }
 
     private func tickCurrentInterval(in session: GoalSession) {
@@ -491,5 +550,45 @@ struct ChecklistDetailView: View {
     private func stopUITimer() {
         uiTimer?.invalidate()
         uiTimer = nil
+        cancelAllIntervalNotifications(for: session)
+    }
+    
+    // MARK: - Notifications
+    private func requestNotificationAuthorizationIfNeeded() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            if settings.authorizationStatus == .notDetermined {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+            }
+        }
+    }
+
+    private func notificationIdentifier(for interval: IntervalSession) -> String {
+        return "interval_\(interval.id)"
+    }
+
+    private func cancelAllIntervalNotifications(for session: GoalSession) {
+        let ids = session.intervals.map { notificationIdentifier(for: $0) }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    private func scheduleNotifications(from current: IntervalSession, in session: GoalSession, startingIn secondsOffset: TimeInterval = 0) {
+        // Schedule notification for current interval end and all subsequent intervals
+        requestNotificationAuthorizationIfNeeded()
+        let sorted = session.intervals.sorted { $0.interval.orderIndex < $1.interval.orderIndex }
+        guard let startIndex = sorted.firstIndex(where: { $0.id == current.id }) else { return }
+        var cumulative: TimeInterval = secondsOffset
+        for idx in startIndex..<sorted.count {
+            let item = sorted[idx]
+            let duration = TimeInterval(item.interval.durationSeconds)
+            cumulative += duration
+            let content = UNMutableNotificationContent()
+            content.title = session.goal.title
+            content.body = "\(item.interval.name) complete"
+            content.sound = .default
+
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(cumulative, 0.5), repeats: false)
+            let request = UNNotificationRequest(identifier: notificationIdentifier(for: item), content: content, trigger: trigger)
+            UNUserNotificationCenter.current().add(request)
+        }
     }
 }

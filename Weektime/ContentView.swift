@@ -19,8 +19,8 @@ struct ContentView: View {
     @State private var selectedSession: GoalSession?
     @Namespace var animation
     @State private var showingGoalEditor = false
-    @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .archivedGoals]
-    @State private var activeFilter: Filter?
+    @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .skippedSessions, .archivedGoals]
+    @State private var activeFilter: Filter = .activeToday
     
     @State private var activeSession: ActiveSessionDetails?
     @State private var now = Date()
@@ -34,7 +34,7 @@ struct ContentView: View {
             List {
               filtersHeader
                 
-                ForEach(sessions) { session in
+                ForEach(filter(sessions: sessions, with: activeFilter)) { session in
                     Section {
                         ZStack {
                             NavigationLink {
@@ -174,7 +174,25 @@ struct ContentView: View {
         }
     }
     
-    
+    private func count(for filter: Filter) -> Int {
+        switch filter {
+        case .skippedSessions:
+            return sessions.filter { $0.status == .skipped }.count
+        case .archivedGoals:
+            // Count archived goals that have a session for this day
+            let archivedGoalIDs = Set(goals.filter { $0.status == .archived }.map { $0.id })
+            return sessions.filter { archivedGoalIDs.contains($0.goal.id) }.count
+        case .activeToday:
+            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
+        case .allGoals:
+            return sessions.count
+        case .recommendedGoals:
+            // Currently same criteria as active non-skipped/non-archived
+            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
+        case .theme(let goalTheme):
+            return sessions.filter { $0.goal.primaryTheme.theme.id == goalTheme.id && $0.goal.status != .archived && $0.status != .skipped }.count
+        }
+    }
     
     var filtersHeader: some View {
             Section {
@@ -184,14 +202,19 @@ struct ContentView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
                         ForEach(availableFilters, id: \.self) { filter in
-                            HStack {
+                            HStack(spacing: 4) {
                                 if let image = filter.label.imageName {
                                     Image(systemName: image)
-                                } else if let text = filter.label.text {
-                                    Text(text)
+                                }
+                                if let text = filter.label.text {
+                                    if filter == .skippedSessions || filter == .archivedGoals {
+                                        Text("\(text) (\(count(for: filter)))")
+                                    } else {
+                                        Text(text)
+                                    }
                                 }
                             }
-                            .foregroundStyle(filter.id == activeFilter?.id ? filter.tintColor : .primary)
+                            .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
                             .font(.footnote)
                             .fontWeight(.semibold)
                             .padding([.top, .bottom], 6)
@@ -199,7 +222,7 @@ struct ContentView: View {
                             .frame(minWidth: 60.0)
                             .background {
                                 Capsule()
-                                    .fill(filter.id == activeFilter?.id ? filter.tintColor.opacity(0.4) : Color(.systemGray5))
+                                    .fill(filter.id == activeFilter.id ? filter.tintColor.opacity(0.4) : Color(.systemGray5))
                             }
                             .onTapGesture {
                                 withAnimation {
@@ -220,6 +243,13 @@ struct ContentView: View {
     
     init(day: Day) {
         self.day = day
+        let dayID = day.id
+        
+        self._sessions = Query(
+                    filter: #Predicate<GoalSession> { event in
+                        event.day.id == dayID
+                    }
+                )
     }
     
     private func refreshGoals() {
@@ -242,11 +272,38 @@ struct ContentView: View {
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(goals[index])
+                sessions[index].status = .skipped
             }
         }
     }
     
+    private func filter(sessions: [GoalSession], with filter: Filter?) -> [GoalSession] {
+        guard let filter else {
+            return sessions
+        }
+        
+        return sessions.filter { session in
+            let isArchived = session.goal.status == .archived
+            let isSkipped = session.status == .skipped
+            switch activeFilter {
+            case .activeToday:
+                return !isArchived && !isSkipped
+            case .recommendedGoals:
+                return !isArchived && !isSkipped
+            case .allGoals:
+                return true
+            case .archivedGoals:
+                return isArchived
+            case .skippedSessions:
+                return isSkipped
+            case .theme(let goalTheme):
+                return session.goal.primaryTheme.theme.id == goalTheme.id && !isArchived && !isSkipped
+ // TODO:
+            case nil:
+                return true
+            }
+        }
+    }
     func handle(event: ActionView.Event) {
         switch event {
         case .stopTapped:
@@ -315,3 +372,4 @@ struct ContentView: View {
         .environment(store)
         .modelContainer(for: Item.self, inMemory: true)
 }
+

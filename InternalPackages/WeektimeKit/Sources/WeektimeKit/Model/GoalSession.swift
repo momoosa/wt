@@ -12,6 +12,7 @@ import SwiftData
 public final class GoalSession {
     public var id: UUID
     public var title: String
+    public var status: Status
     public private(set) var goal: Goal
     public private(set) var day: Day
     @Relationship public var checklist: [ChecklistItemSession] = []
@@ -42,5 +43,17 @@ public final class GoalSession {
         self.title = title
         self.goal = goal
         self.day = day
+        self.status = .active
+        self.intervals = goal.intervals.map({ interval in
+            IntervalSession(interval: interval, session: self)
+        })
+    }
+}
+
+public extension GoalSession {
+    enum Status: String, Codable {
+        case suggestion
+        case active
+        case skipped
     }
 }
