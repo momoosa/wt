@@ -95,11 +95,21 @@ struct ContentView: View {
                             .matchedTransitionSource(id: session.id, in: animation)
 
                         }
-                        
+                        .swipeActions {
+                            Button {
+                                skip(session: session)
+                            } label: {
+                                Label {
+                                    Text(session.status == .skipped ? "Reactivate" : "Skip")
+                                } icon: {
+                                    Image(systemName: "xmark.circle.fill")
+                                }
+                            }
+                            .tint(.orange)
+                        }
                     }
                     .listSectionSpacing(.compact)
                 }
-                .onDelete(perform: deleteItems)
             }
             .animation(.spring(), value: goals)
 #if os(macOS)
@@ -208,14 +218,31 @@ struct ContentView: View {
                                 }
                                 if let text = filter.label.text {
                                     if filter == .skippedSessions || filter == .archivedGoals {
-                                        Text("\(text) (\(count(for: filter)))")
+                                        let count = count(for: filter)
+                                        HStack {
+                                            Text(text)
+                                                .font(.footnote)
+                                            Text("\(count)")
+                                                .foregroundStyle(Color(.systemBackground))
+                                                .font(.caption2)
+                                                .padding(4)
+                                                .background {
+                                                    if count > 9 {
+                                                        Capsule()
+                                                            .fill(.primary)
+                                                    } else {
+                                                        Circle()
+                                                            .fill(.primary)
+                                                    }
+                                                }
+                                        }
+                                        
                                     } else {
                                         Text(text)
                                     }
                                 }
                             }
                             .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
-                            .font(.footnote)
                             .fontWeight(.semibold)
                             .padding([.top, .bottom], 6)
                             .padding([.leading, .trailing], 10)
@@ -269,11 +296,10 @@ struct ContentView: View {
         }
     }
     
-    private func deleteItems(offsets: IndexSet) {
+    
+    func skip(session: GoalSession) {
         withAnimation {
-            for index in offsets {
-                sessions[index].status = .skipped
-            }
+            session.status = session.status == .skipped ? .active : .skipped
         }
     }
     
@@ -299,8 +325,6 @@ struct ContentView: View {
             case .theme(let goalTheme):
                 return session.goal.primaryTheme.theme.id == goalTheme.id && !isArchived && !isSkipped
  // TODO:
-            case nil:
-                return true
             }
         }
     }
