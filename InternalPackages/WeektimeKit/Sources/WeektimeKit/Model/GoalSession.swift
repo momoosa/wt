@@ -16,7 +16,7 @@ public final class GoalSession {
     public private(set) var goal: Goal
     public private(set) var day: Day
     @Relationship public var checklist: [ChecklistItemSession] = []
-    @Relationship public var intervals: [IntervalSession] = []
+    @Relationship public var intervalLists: [IntervalListSession] = []
     public var historicalSessions: [HistoricalSession] {
         day.historicalSessions.filter({ $0.goalIDs.contains(goal.id.uuidString )})
     }
@@ -44,8 +44,8 @@ public final class GoalSession {
         self.goal = goal
         self.day = day
         self.status = .active
-        self.intervals = goal.intervals.map({ interval in
-            IntervalSession(interval: interval, session: self)
+        self.intervalLists = goal.intervalLists.map({ interval in
+            IntervalListSession(list: interval)
         })
     }
 }

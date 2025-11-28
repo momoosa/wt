@@ -83,10 +83,10 @@ public struct IntervalsEditorView: View {
     }
 
     private func deleteIntervals(at offsets: IndexSet) {
-        let sortedIntervals = goal.intervals.sorted(by: { $0.orderIndex < $1.orderIndex })
+        let sortedIntervals = goal.intervalLists.sorted(by: { $0.orderIndex < $1.orderIndex })
         for offset in offsets {
             let interval = sortedIntervals[offset]
-            goal.intervals.removeAll(where: { $0.id == interval.id })
+            goal.intervalLists.removeAll(where: { $0.id == interval.id })
             modelContext.delete(interval)
         }
         reindexIntervals()
@@ -94,39 +94,19 @@ public struct IntervalsEditorView: View {
     }
 
     private func moveIntervals(from source: IndexSet, to destination: Int) {
-        var sortedIntervals = goal.intervals.sorted(by: { $0.orderIndex < $1.orderIndex })
+        var sortedIntervals = goal.intervalLists.sorted(by: { $0.orderIndex < $1.orderIndex })
         sortedIntervals.move(fromOffsets: source, toOffset: destination)
 
-        goal.intervals.removeAll()
+        goal.intervalLists.removeAll()
         for interval in sortedIntervals {
-            goal.intervals.append(interval)
+            goal.intervalLists.append(interval)
         }
         reindexIntervals()
         try? modelContext.save()
     }
 
-    private func addInterval(kind: Interval.Kind) {
-        let nameToUse = intervalName.isEmpty ? "Interval \(goal.intervals.count + 1)" : intervalName
-        let newInterval = Interval(name: nameToUse, durationSeconds: 10, orderIndex: goal.intervals.count, kind: kind)
-        newInterval.goal = goal
-
-        goal.intervals.append(newInterval)
-        modelContext.insert(newInterval)
-
-        // If a current goal session is active, also create a matching IntervalSession
-        if let session = currentSession {
-            // Create an IntervalSession associated to this new interval and goal session
-            let newIntervalSession = IntervalSession(interval: newInterval, session: session)
-            // If your IntervalSession needs order or duration mirroring, set them here
-            modelContext.insert(newIntervalSession)
-        }
-
-        try? modelContext.save()
-        intervalName = ""
-    }
-
     private func reindexIntervals() {
-        let sorted = goal.intervals.sorted(by: { $0.orderIndex < $1.orderIndex })
+        let sorted = goal.intervalLists.sorted(by: { $0.orderIndex < $1.orderIndex })
         for (index, interval) in sorted.enumerated() {
             interval.orderIndex = index
         }
@@ -134,18 +114,22 @@ public struct IntervalsEditorView: View {
 
     private func generateIntervalsAndSessions() {
         // Remove existing intervals for a clean regeneration
-        let existing = goal.intervals
+        let existing = goal.intervalLists
         for interval in existing {
             modelContext.delete(interval)
         }
-        goal.intervals.removeAll()
+        goal.intervalLists.removeAll()
 
         var order = 0
         func makeInterval(name: String, seconds: Int, kind: Interval.Kind) {
             guard seconds > 0 else { return }
-            let interval = Interval(name: name, durationSeconds: seconds, orderIndex: order, goal: goal, kind: kind)
-            interval.goal = goal
-            goal.intervals.append(interval)
+            let list = IntervalList(name: "test")
+            list.goal = goal
+            modelContext.insert(list)
+            
+            let interval = Interval(name: name, durationSeconds: seconds, orderIndex: order, list: list, kind: kind)
+            interval.list = list
+            goal.intervalLists.append(list)
             modelContext.insert(interval)
 
             if let session = currentSession {

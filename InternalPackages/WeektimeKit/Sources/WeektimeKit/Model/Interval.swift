@@ -27,14 +27,14 @@ public final class Interval {
             kindRawValue = newValue.rawValue
         }
     }
-    // Relationship to Goal without inverse to avoid compile-time coupling
-    public var goal: Goal?
+    // Relationship to IntervalList without inverse to avoid compile-time coupling
+    public var list: IntervalList?
     
-    public init(name: String, durationSeconds: Int, orderIndex: Int = 0, goal: Goal? = nil, kind: Kind) {
+    public init(name: String, durationSeconds: Int, orderIndex: Int = 0, list: IntervalList? = nil, kind: Kind) {
         self.name = name
         self.durationSeconds = durationSeconds
         self.orderIndex = orderIndex
-        self.goal = goal
+        self.list = list
         self.kind = kind
     }
     
@@ -44,7 +44,7 @@ public final class Interval {
     ///   - breakDurationSeconds: Duration in seconds for each break interval.
     ///   - workDurationSeconds: Duration in seconds for each work interval.
     ///   - repeatCount: Number of break/work pairs to create.
-    ///   - goal: Optional goal to associate with each created interval.
+    ///   - list: Optional IntervalList to associate with each created interval.
     ///   - breakName: Optional name to assign to break intervals (defaults to "Break").
     ///   - workName: Optional name to assign to work intervals (defaults to "Work").
     /// - Returns: An array of `Interval` alternating `.breakTime` and `.work` with increasing `orderIndex`.
@@ -52,7 +52,7 @@ public final class Interval {
         breakDurationSeconds: Int,
         workDurationSeconds: Int,
         repeatCount: Int,
-        goal: Goal? = nil,
+        list: IntervalList? = nil,
         breakName: String = "Break",
         workName: String = "Work"
     ) -> [Interval] {
@@ -65,7 +65,7 @@ public final class Interval {
                 name: "\(breakName) \(i + 1)",
                 durationSeconds: breakDurationSeconds,
                 orderIndex: index,
-                goal: goal,
+                list: list,
                 kind: .breakTime
             )
             result.append(breakInterval)
@@ -76,7 +76,7 @@ public final class Interval {
                 name: "\(workName) \(i + 1)",
                 durationSeconds: workDurationSeconds,
                 orderIndex: index,
-                goal: goal,
+                list: list,
                 kind: .work
             )
             result.append(workInterval)
@@ -85,3 +85,4 @@ public final class Interval {
         return result
     }
 }
+
