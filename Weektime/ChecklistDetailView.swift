@@ -16,6 +16,10 @@ struct ChecklistDetailView: View {
     @State private var intervalStartDate: Date? = nil
     @State private var intervalElapsed: TimeInterval = 0
     @State private var uiTimer: Timer? = nil
+    var tintColor: Color {
+        session.goal.primaryTheme.theme.dark
+    }
+    
     var body: some View {
         List {
             // History section remains as-is
@@ -69,17 +73,25 @@ struct ChecklistDetailView: View {
                     }
                 }
                 .tabViewStyle(.page)
-                .frame(minHeight: 300)
+                .frame(minHeight: 200)
             } header: {
                 VStack {
                     HStack {
-                        Text("Lists") // TODO: Naming
-                        Text("\(session.historicalSessions.count)")
-                            .font(.caption2)
-                            .foregroundStyle(Color(.systemBackground))
-                            .padding(4)
-                            .frame(minWidth: 20)
-                            .background(Capsule().fill(session.goal.primaryTheme.theme.dark))
+                        Button {
+                            
+                        } label: {
+                            Text("Lists") // TODO: Naming
+                            Text("\(session.intervalLists.count)")
+                                .font(.caption2)
+                                .foregroundStyle(Color(.systemBackground))
+                                .padding(2)
+                                .frame(minWidth: 15)
+                                .background(Capsule().fill(tintColor))
+                            Image(systemName: "chevron.right")
+                                .tint(tintColor)
+                                .fontWeight(.semibold)
+                        }
+                        
                         Spacer()
                         Button {
                             isShowingIntervalsEditor = true
@@ -87,10 +99,11 @@ struct ChecklistDetailView: View {
                     }
                     
                     ScrollView(.horizontal) {
-                        ForEach(session.intervalLists) { listSession in
-                            Text(listSession.list.name)
+                        LazyHStack {
+                            ForEach(session.intervalLists) { listSession in
+                                Text(listSession.list.name)
+                            }
                         }
-
                     }
                 }
 

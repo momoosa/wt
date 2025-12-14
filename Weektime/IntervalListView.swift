@@ -20,104 +20,84 @@ struct IntervalListView: View {
     var body: some View {
         Section {
      
-           
-            ForEach(listSession.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })) { item in
-                let filteredSorted = listSession.intervals
-                // TODO:
-//                    .filter { $0.interval.kind == item.interval.kind && $0.interval.name == item.interval.name }
-                    .sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })
-                let totalCount = filteredSorted.count
-                let currentIndex = (filteredSorted.firstIndex(where: { $0.id == item.id }) ?? 0) + 1
-
-                let duration = TimeInterval(item.interval.durationSeconds)
-                let isActive = activeIntervalID == item.id
-                let elapsed = isActive ? intervalElapsed : 0
-                let progress = min(max(elapsed / max(duration, 0.001), 0), 1)
-                ZStack(alignment: .leading) {
-                    // Background progress bar filling full row height
-
-                    HStack {
-//                        VStack(alignment: .leading, spacing: 4) {
-//                            let isCompleted = item.isCompleted
-//                            let displayElapsed: TimeInterval = {
-//                                if isCompleted { return TimeInterval(item.interval.durationSeconds) }
-//                                return isActive ? min(elapsed, duration) : 0
-//                            }()
-//                            let total = TimeInterval(item.interval.durationSeconds)
-//
-//                            Text("\(item.interval.name) \(currentIndex)/\(totalCount)")
-//                                .fontWeight(.semibold)
-//                                .strikethrough(isCompleted, pattern: .solid, color: .primary)
-//                                .opacity(isCompleted ? 0.6 : 1)
-//
-//                            if isCompleted {
-//                                Text("\(Duration.seconds(displayElapsed).formatted(.time(pattern: .minuteSecond)))/\(Duration.seconds(total).formatted(.time(pattern: .minuteSecond)))")
-//                                    .font(.caption)
-//                                    .opacity(0.7)
-//                            } else {
-//                                let remaining = max(total - displayElapsed, 0)
-//                                Text("\(Duration.seconds(remaining).formatted(.time(pattern: .minuteSecond))) remaining")
-//                                    .font(.caption)
-//                                    .opacity(0.7)
-//                            }
-//                        }
-                        Spacer()
-                        Button {
-                            toggleIntervalPlayback(for: item)
-                        } label: {
-                            Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
-                                .symbolRenderingMode(.hierarchical)
-                                .font(.title2)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.vertical, 8)
-                }
-                .listRowBackground(
-                    Color(.secondarySystemGroupedBackground)
-                        .overlay {
-                            GeometryReader { geo in
-                                let width = geo.size.width * progress
-                                Rectangle()
-                                    .fill(listSession.list.goal?.primaryTheme.theme.light.opacity(0.25) ?? .blue.opacity(0.25))
-                                    .frame(width: width)
-                                    .animation(.easeInOut(duration: 0.2), value: progress)
+            LazyVStack {
+                
+                ForEach(listSession.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })) { item in
+                    let filteredSorted = listSession.intervals
+                    // TODO:
+                    //                    .filter { $0.interval.kind == item.interval.kind && $0.interval.name == item.interval.name }
+                        .sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })
+                    let totalCount = filteredSorted.count
+                    let currentIndex = (filteredSorted.firstIndex(where: { $0.id == item.id }) ?? 0) + 1
+                    
+                    let duration = TimeInterval(item.interval.durationSeconds)
+                    let isActive = activeIntervalID == item.id
+                    let elapsed = isActive ? intervalElapsed : 0
+                    let progress = min(max(elapsed / max(duration, 0.001), 0), 1)
+                    ZStack(alignment: .leading) {
+                        // Background progress bar filling full row height
+                        
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                let isCompleted = item.isCompleted
+                                let displayElapsed: TimeInterval = {
+                                    if isCompleted { return TimeInterval(item.interval.durationSeconds) }
+                                    return isActive ? min(elapsed, duration) : 0
+                                }()
+                                let total = TimeInterval(item.interval.durationSeconds)
+                                
+                                Text("\(item.interval.name) \(currentIndex)/\(totalCount)")
+                                    .fontWeight(.semibold)
+                                    .strikethrough(isCompleted, pattern: .solid, color: .primary)
+                                    .opacity(isCompleted ? 0.6 : 1)
+                                
+                                if isCompleted {
+                                    Text("\(Duration.seconds(displayElapsed).formatted(.time(pattern: .minuteSecond)))/\(Duration.seconds(total).formatted(.time(pattern: .minuteSecond)))")
+                                        .font(.caption)
+                                        .opacity(0.7)
+                                } else {
+                                    let remaining = max(total - displayElapsed, 0)
+                                    Text("\(Duration.seconds(remaining).formatted(.time(pattern: .minuteSecond))) remaining")
+                                        .font(.caption)
+                                        .opacity(0.7)
+                                }
                             }
-                            .allowsHitTesting(false)
+                            Spacer()
+                            Button {
+                                toggleIntervalPlayback(for: item)
+                            } label: {
+                                Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .font(.title2)
+                            }
+                            .buttonStyle(.plain)
                         }
-
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation {
-                        item.isCompleted.toggle()
+                        .padding(.vertical, 8)
+                    }
+                    .listRowBackground(
+                        Color(.secondarySystemGroupedBackground)
+                            .overlay {
+                                GeometryReader { geo in
+                                    let width = geo.size.width * progress
+                                    Rectangle()
+                                        .fill(listSession.list.goal?.primaryTheme.theme.light.opacity(0.25) ?? .blue.opacity(0.25))
+                                        .frame(width: width)
+                                        .animation(.easeInOut(duration: 0.2), value: progress)
+                                }
+                                .allowsHitTesting(false)
+                            }
+                        
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation {
+                            item.isCompleted.toggle()
+                        }
                     }
                 }
             }
-        } header: {
-            let completed = listSession.intervals.filter { $0.isCompleted }.count
-            let total = listSession.intervals.count
-            HStack {
-                Text("Intervals")
-                Text("\(completed)/\(total)")
-                    .font(.caption2)
-                    .foregroundStyle(Color(.systemBackground))
-                    .padding(4)
-                    .background(Capsule()
-                        .fill(listSession.list.goal?.primaryTheme.theme.dark ?? .blue))
-                Spacer()
-                Menu {
-                    Button {
-                        // TODO:
-//                        isShowingIntervalsEditor = true
-                    } label: {
-                        Label("Add Interval", systemImage: "timer")
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .symbolRenderingMode(.hierarchical)
-                }
-            }
+            
+    
         } footer: {
             let total = listSession.intervals.count
             if total > historicalSessionLimit {

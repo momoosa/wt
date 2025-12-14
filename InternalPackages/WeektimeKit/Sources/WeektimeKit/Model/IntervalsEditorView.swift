@@ -33,7 +33,6 @@ public struct IntervalsEditorView: View {
                 
                 TextField("Name", text: $list.name)
 
-                ForEach(list.intervals.sorted(by: { $0.orderIndex < $1.orderIndex })) { interval in
                     Section {
                         VStack(alignment: .leading, spacing: 12) {
                             TextField("Name", text: $intervalName)
@@ -75,7 +74,6 @@ public struct IntervalsEditorView: View {
                         Text("Test") // TODO:
                     }
 
-                }
             }
             .task {
                 await MainActor.run {
