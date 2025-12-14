@@ -112,6 +112,7 @@ struct ContentView: View {
                 }
             }
             .animation(.spring(), value: goals)
+
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
@@ -239,6 +240,8 @@ struct ContentView: View {
                                         
                                     } else {
                                         Text(text)
+                                            .font(.footnote)
+
                                     }
                                 }
                             }

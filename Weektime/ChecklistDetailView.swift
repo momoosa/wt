@@ -70,10 +70,32 @@ struct ChecklistDetailView: View {
                 }
                 .tabViewStyle(.page)
                 .frame(minHeight: 300)
-            }
+            } header: {
+                VStack {
+                    HStack {
+                        Text("Lists") // TODO: Naming
+                        Text("\(session.historicalSessions.count)")
+                            .font(.caption2)
+                            .foregroundStyle(Color(.systemBackground))
+                            .padding(4)
+                            .frame(minWidth: 20)
+                            .background(Capsule().fill(session.goal.primaryTheme.theme.dark))
+                        Spacer()
+                        Button {
+                            isShowingIntervalsEditor = true
+                        } label: { Image(systemName: "plus.circle.fill").symbolRenderingMode(.hierarchical) }
+                    }
+                    
+                    ScrollView(.horizontal) {
+                        ForEach(session.intervalLists) { listSession in
+                            Text(listSession.list.name)
+                        }
 
+                    }
+                }
+
+            }
         }
-        
         .scrollContentBackground(.hidden)
         .background(session.goal.primaryTheme.theme.dark.opacity(0.1))
         .navigationTitle(session.goal.title)
@@ -117,11 +139,12 @@ struct ChecklistDetailView: View {
         }
         
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
-        .sheet(isPresented: $isShowingEditScreen, content: {
-            IntervalsEditorView(goal: session.goal, currentSession: session)
-        })
+//        .sheet(isPresented: $isShowingEditScreen, content: {
+//            IntervalsEditorView(goal: session.goal, currentSession: session)
+//        })
         .sheet(isPresented: $isShowingIntervalsEditor) {
-            IntervalsEditorView(goal: session.goal, currentSession: session)
+            let list = IntervalList(name: "", goal: session.goal)
+            IntervalsEditorView(list: list, goalSession: session)
         }
         .onDisappear {
             let emptyItems = session.checklist.filter { $0.checklistItem.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -136,6 +159,7 @@ struct ChecklistDetailView: View {
         }
     }
   
+
     
     // TODO:
 //    var intervalSection: some View {

@@ -28,6 +28,7 @@ struct WeektimeApp: App {
     @State var goalStore = GoalStore()
     @State var day: Day?
     @Query var days: [Day]
+    private let permissionHandler = PermissionsHandler()
     var body: some Scene {
         WindowGroup {
             if let day {
@@ -36,7 +37,9 @@ struct WeektimeApp: App {
                         .navigationBarTitleDisplayMode(.inline)
                         .navigationTitle(day.startDate.formatted(.dateTime.month().day()))
                         .environment(goalStore)
-
+                        .task {
+                            await permissionHandler.requestScreentimeAuthorization() // TODO: MOve somewhere...
+                        }
                 }
             } else {
                 Text("")

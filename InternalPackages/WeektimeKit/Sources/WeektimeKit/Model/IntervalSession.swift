@@ -14,9 +14,9 @@ public final class IntervalSession {
     public var interval: Interval
     public var elapsedSeconds: Int = 0
     public var isCompleted: Bool = false
-    public var session: GoalSession?
+    public var session: IntervalListSession?
 
-    public init(interval: Interval, session: GoalSession? = nil, elapsedSeconds: Int = 0, isCompleted: Bool = false) {
+    public init(interval: Interval, session: IntervalListSession? = nil, elapsedSeconds: Int = 0, isCompleted: Bool = false) {
         self.interval = interval
         self.session = session
         self.elapsedSeconds = elapsedSeconds

@@ -8,6 +8,21 @@
 
 /* Begin PBXBuildFile section */
 		CD0668512E34C3620063AC1F /* WeektimeKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD0668502E34C3620063AC1F /* WeektimeKit */; };
+		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
+		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
+		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
+		CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */; };
+		CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */; };
+		CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA292EE9FA1000C1C411 /* ContentView.swift */; };
+		CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */; };
+		CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */; };
+		CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */; };
+		CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */; };
+		CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */; };
+		CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */; };
+		CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA312EE9FA1000C1C411 /* Item.swift */; };
+		CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */; };
+		CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,30 +44,29 @@
 
 /* Begin PBXFileReference section */
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
+		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
 		CD75CC5B2E2FE5E600890F20 /* Weektime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Weektime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* WeektimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WeektimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* WeektimeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WeektimeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
+		CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistDetailView.swift; sourceTree = "<group>"; };
+		CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistRow.swift; sourceTree = "<group>"; };
+		CDEBAA292EE9FA1000C1C411 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Filter.swift; sourceTree = "<group>"; };
+		CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaugePlayIcon.swift; sourceTree = "<group>"; };
+		CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorSuggestionsResult.swift; sourceTree = "<group>"; };
+		CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorView.swift; sourceTree = "<group>"; };
+		CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSuggestion.swift; sourceTree = "<group>"; };
+		CDEBAA2F2EE9FA1000C1C411 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListView.swift; sourceTree = "<group>"; };
+		CDEBAA312EE9FA1000C1C411 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
+		CDEBAA322EE9FA1000C1C411 /* Weektime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Weektime.entitlements; sourceTree = "<group>"; };
+		CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeektimeApp.swift; sourceTree = "<group>"; };
+		CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		CD75CC7E2E2FE5E800890F20 /* Exceptions for "Weektime" folder in "Weektime" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = CD75CC5A2E2FE5E600890F20 /* Weektime */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CD75CC5D2E2FE5E600890F20 /* Weektime */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CD75CC7E2E2FE5E800890F20 /* Exceptions for "Weektime" folder in "Weektime" target */,
-			);
-			path = Weektime;
-			sourceTree = "<group>";
-		};
 		CD75CC6F2E2FE5E700890F20 /* WeektimeTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = WeektimeTests;
@@ -106,11 +120,19 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		CD5601642EEB2FC4001D0BB0 /* Screentime */ = {
+			isa = PBXGroup;
+			children = (
+				CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */,
+			);
+			path = Screentime;
+			sourceTree = "<group>";
+		};
 		CD75CC522E2FE5E600890F20 = {
 			isa = PBXGroup;
 			children = (
 				CD06684D2E34B5D90063AC1F /* InternalPackages */,
-				CD75CC5D2E2FE5E600890F20 /* Weektime */,
+				CDEBAA342EE9FA1000C1C411 /* Weektime */,
 				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
 				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
 				CD06684F2E34C3620063AC1F /* Frameworks */,
@@ -128,6 +150,38 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		CDEBAA342EE9FA1000C1C411 /* Weektime */ = {
+			isa = PBXGroup;
+			children = (
+				CD5601642EEB2FC4001D0BB0 /* Screentime */,
+				CDEBAA442EE9FA2400C1C411 /* Configuration */,
+				CDEBAA252EE9FA1000C1C411 /* ActionView.swift */,
+				CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */,
+				CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */,
+				CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */,
+				CDEBAA292EE9FA1000C1C411 /* ContentView.swift */,
+				CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */,
+				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
+				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
+				CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */,
+				CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */,
+				CDEBAA2F2EE9FA1000C1C411 /* Info.plist */,
+				CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */,
+				CDEBAA312EE9FA1000C1C411 /* Item.swift */,
+				CDEBAA322EE9FA1000C1C411 /* Weektime.entitlements */,
+				CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */,
+			);
+			path = Weektime;
+			sourceTree = "<group>";
+		};
+		CDEBAA442EE9FA2400C1C411 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -142,9 +196,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				CD75CC5D2E2FE5E600890F20 /* Weektime */,
 			);
 			name = Weektime;
 			packageProductDependencies = (
@@ -249,6 +300,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -273,6 +325,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
+				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
+				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
+				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
+				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
+				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
+				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
+				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
+				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
+				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
+				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
+				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
+				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
+				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,6 +377,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Weektime/Weektime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = D6W66G49J8;
@@ -335,7 +402,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.Weektime;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -355,6 +422,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Weektime/Weektime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = D6W66G49J8;
@@ -379,7 +447,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.Weektime;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;

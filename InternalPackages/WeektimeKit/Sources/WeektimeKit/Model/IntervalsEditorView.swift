@@ -2,8 +2,8 @@ import SwiftUI
 import SwiftData
 
 public struct IntervalsEditorView: View {
-    @Bindable var goal: Goal
-    var currentSession: GoalSession?
+    @Bindable var list: IntervalList
+    let session: IntervalListSession?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -16,50 +16,66 @@ public struct IntervalsEditorView: View {
     @State private var intervalName: String = ""
     @FocusState private var nameFieldFocused: Bool
 
-    public init(goal: Goal, currentSession: GoalSession? = nil) {
-        self._goal = Bindable(wrappedValue: goal)
-        self.currentSession = currentSession
+    public init(list: IntervalList, goalSession: GoalSession) {
+        self.list = list
+        let session = IntervalListSession(list: list, goal: goalSession)
+        self.session = session
+    }
+    
+    public init(list: IntervalList, session: IntervalListSession) {
+        self.list = list
+        self.session = session
     }
 
     public var body: some View {
         NavigationStack {
-            VStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    TextField("Name", text: $intervalName)
-                        .textInputAutocapitalization(.words)
-                        .disableAutocorrection(false)
-                        .focused($nameFieldFocused)
-                        .submitLabel(.done)
-                    HStack {
-                        Text("Warmup")
-                        Spacer()
-                        Stepper(value: $warmupSeconds, in: 0...3600) {
-                            Text("\(warmupSeconds)s").monospacedDigit()
+            List {
+                
+                TextField("Name", text: $list.name)
+
+                ForEach(list.intervals.sorted(by: { $0.orderIndex < $1.orderIndex })) { interval in
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            TextField("Name", text: $intervalName)
+                                .textInputAutocapitalization(.words)
+                                .disableAutocorrection(false)
+                                .focused($nameFieldFocused)
+                                .submitLabel(.done)
+                            HStack {
+                                Text("Warmup")
+                                Spacer()
+                                Stepper(value: $warmupSeconds, in: 0...3600) {
+                                    Text("\(warmupSeconds)s").monospacedDigit()
+                                }
+                            }
+                            HStack {
+                                Text("Work")
+                                Spacer()
+                                Stepper(value: $workSeconds, in: 1...3600) {
+                                    Text("\(workSeconds)s").monospacedDigit()
+                                }
+                            }
+                            HStack {
+                                Text("Break")
+                                Spacer()
+                                Stepper(value: $breakSeconds, in: 0...3600) {
+                                    Text("\(breakSeconds)s").monospacedDigit()
+                                }
+                            }
+                            HStack {
+                                Text("Repeats")
+                                Spacer()
+                                Stepper(value: $repeatCount, in: 1...200) {
+                                    Text("\(repeatCount)").monospacedDigit()
+                                }
+                            }
                         }
+
+                    } header: {
+                        Text("Test") // TODO:
                     }
-                    HStack {
-                        Text("Work")
-                        Spacer()
-                        Stepper(value: $workSeconds, in: 1...3600) {
-                            Text("\(workSeconds)s").monospacedDigit()
-                        }
-                    }
-                    HStack {
-                        Text("Break")
-                        Spacer()
-                        Stepper(value: $breakSeconds, in: 0...3600) {
-                            Text("\(breakSeconds)s").monospacedDigit()
-                        }
-                    }
-                    HStack {
-                        Text("Repeats")
-                        Spacer()
-                        Stepper(value: $repeatCount, in: 1...200) {
-                            Text("\(repeatCount)").monospacedDigit()
-                        }
-                    }
+
                 }
-                .padding([.horizontal, .top])
             }
             .task {
                 await MainActor.run {
@@ -72,7 +88,7 @@ public struct IntervalsEditorView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        generateIntervalsAndSessions()
+                        generateIntervalsAndSessions() // TODO:
                         dismiss()
                     }
                     .buttonStyle(.borderedProminent)
@@ -82,75 +98,39 @@ public struct IntervalsEditorView: View {
         }
     }
 
-    private func deleteIntervals(at offsets: IndexSet) {
-        let sortedIntervals = goal.intervalLists.sorted(by: { $0.orderIndex < $1.orderIndex })
-        for offset in offsets {
-            let interval = sortedIntervals[offset]
-            goal.intervalLists.removeAll(where: { $0.id == interval.id })
-            modelContext.delete(interval)
-        }
-        reindexIntervals()
-        try? modelContext.save()
-    }
 
-    private func moveIntervals(from source: IndexSet, to destination: Int) {
-        var sortedIntervals = goal.intervalLists.sorted(by: { $0.orderIndex < $1.orderIndex })
-        sortedIntervals.move(fromOffsets: source, toOffset: destination)
-
-        goal.intervalLists.removeAll()
-        for interval in sortedIntervals {
-            goal.intervalLists.append(interval)
-        }
-        reindexIntervals()
-        try? modelContext.save()
-    }
-
-    private func reindexIntervals() {
-        let sorted = goal.intervalLists.sorted(by: { $0.orderIndex < $1.orderIndex })
-        for (index, interval) in sorted.enumerated() {
-            interval.orderIndex = index
-        }
-    }
 
     private func generateIntervalsAndSessions() {
         // Remove existing intervals for a clean regeneration
-        let existing = goal.intervalLists
-        for interval in existing {
-            modelContext.delete(interval)
-        }
-        goal.intervalLists.removeAll()
-
         var order = 0
-        func makeInterval(name: String, seconds: Int, kind: Interval.Kind) {
+        func makeInterval(name: String, seconds: Int, kind: Interval.Kind, list: IntervalList?, session: IntervalListSession?) {
             guard seconds > 0 else { return }
             let list = IntervalList(name: "test")
-            list.goal = goal
             modelContext.insert(list)
             
             let interval = Interval(name: name, durationSeconds: seconds, orderIndex: order, list: list, kind: kind)
             interval.list = list
-            goal.intervalLists.append(list)
             modelContext.insert(interval)
-
-            if let session = currentSession {
-                let sessionItem = IntervalSession(interval: interval, session: session)
-                modelContext.insert(sessionItem)
+            if let session {
+                let intervalSession = IntervalSession(interval: interval)
+                session.intervals.append(intervalSession)
+                modelContext.insert(intervalSession)
             }
             order += 1
         }
 
-        if warmupSeconds > 0 { 
-            makeInterval(name: "Warmup", seconds: warmupSeconds, kind: .work)
+        if warmupSeconds > 0 { // TODO:
+            makeInterval(name: "Warmup", seconds: warmupSeconds, kind: .work, list: list, session: session)
         }
 
+        // TODO: 
         for i in 1...repeatCount {
-            makeInterval(name: intervalName.isEmpty ? "Work \(i)" : intervalName, seconds: workSeconds, kind: .work)
+            makeInterval(name: intervalName.isEmpty ? "Work \(i)" : intervalName, seconds: workSeconds, kind: .work, list: list, session: session)
             if breakSeconds > 0 {
-                makeInterval(name: "Break \(i)", seconds: breakSeconds, kind: .breakTime)
+                makeInterval(name: "Break \(i)", seconds: breakSeconds, kind: .breakTime, list: list, session: session)
             }
         }
 
-        reindexIntervals()
         try? modelContext.save()
         intervalName = ""
     }
