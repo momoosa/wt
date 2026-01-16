@@ -7,6 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */; };
+		CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */; };
+		CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */; };
+		CD0085932F1ADBAC00A555D6 /* HEALTHKIT_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD0085922F1ADBAC00A555D6 /* HEALTHKIT_GUIDE.md */; };
+		CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */ = {isa = PBXBuildFile; fileRef = CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */; };
+		CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */; };
+		CD0085992F1ADBE900A555D6 /* HEALTHKIT_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD0085982F1ADBE900A555D6 /* HEALTHKIT_IMPLEMENTATION.md */; };
+		CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */; };
+		CD00859D2F1ADC3000A555D6 /* HEALTHKIT_QUICKSTART.md in Resources */ = {isa = PBXBuildFile; fileRef = CD00859C2F1ADC3000A555D6 /* HEALTHKIT_QUICKSTART.md */; };
+		CD00859F2F1ADC6100A555D6 /* HEALTHKIT_ARCHITECTURE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD00859E2F1ADC6100A555D6 /* HEALTHKIT_ARCHITECTURE.md */; };
 		CD0668512E34C3620063AC1F /* WeektimeKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD0668502E34C3620063AC1F /* WeektimeKit */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
@@ -45,6 +55,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitConfigurationView.swift; sourceTree = "<group>"; };
+		CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitBadge.swift; sourceTree = "<group>"; };
+		CD0085922F1ADBAC00A555D6 /* HEALTHKIT_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HEALTHKIT_GUIDE.md; sourceTree = "<group>"; };
+		CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-HealthKit.plist"; sourceTree = "<group>"; };
+		CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitInfoRow.swift; sourceTree = "<group>"; };
+		CD0085982F1ADBE900A555D6 /* HEALTHKIT_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HEALTHKIT_IMPLEMENTATION.md; sourceTree = "<group>"; };
+		CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalHealthKitSettingsView.swift; sourceTree = "<group>"; };
+		CD00859C2F1ADC3000A555D6 /* HEALTHKIT_QUICKSTART.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HEALTHKIT_QUICKSTART.md; sourceTree = "<group>"; };
+		CD00859E2F1ADC6100A555D6 /* HEALTHKIT_ARCHITECTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HEALTHKIT_ARCHITECTURE.md; sourceTree = "<group>"; };
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
@@ -176,6 +196,16 @@
 				CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */,
 				CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */,
 				CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */,
+				CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */,
+				CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */,
+				CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */,
+				CD0085922F1ADBAC00A555D6 /* HEALTHKIT_GUIDE.md */,
+				CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */,
+				CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */,
+				CD0085982F1ADBE900A555D6 /* HEALTHKIT_IMPLEMENTATION.md */,
+				CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */,
+				CD00859C2F1ADC3000A555D6 /* HEALTHKIT_QUICKSTART.md */,
+				CD00859E2F1ADC6100A555D6 /* HEALTHKIT_ARCHITECTURE.md */,
 			);
 			path = Weektime;
 			sourceTree = "<group>";
@@ -306,6 +336,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */,
+				CD00859D2F1ADC3000A555D6 /* HEALTHKIT_QUICKSTART.md in Resources */,
+				CD0085992F1ADBE900A555D6 /* HEALTHKIT_IMPLEMENTATION.md in Resources */,
+				CD0085932F1ADBAC00A555D6 /* HEALTHKIT_GUIDE.md in Resources */,
+				CD00859F2F1ADC6100A555D6 /* HEALTHKIT_ARCHITECTURE.md in Resources */,
 				CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -334,16 +369,21 @@
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
+				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
+				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
 				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
+				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
 				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
+				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
+				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
@@ -395,6 +435,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Weektime/Info.plist;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Needed to create goals linked to Apple Health.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -440,6 +481,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Weektime/Info.plist;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Needed to create goals linked to Apple Health.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -455,7 +497,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.mo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.ios.weektime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;

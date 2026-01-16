@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import WeektimeKit
+import HealthKit
 
 struct ContentView: View {
     @Environment(GoalStore.self) var goalStore
@@ -24,7 +25,8 @@ struct ContentView: View {
     
     @State private var activeSession: ActiveSessionDetails?
     @State private var now = Date()
-    
+    @State private var healthKitManager = HealthKitManager()
+    @State private var healthKitObservers = [HKObserverQuery]()
     // MARK: - UserDefaults Keys for Timer Persistence
     private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
     private let activeSessionStartDateKey = "ActiveSessionStartDateV1"
@@ -81,6 +83,12 @@ struct ContentView: View {
                                             .padding(4)
                                             .background(Capsule()
                                                 .fill(session.goal.primaryTheme.theme.light.opacity(0.15)))
+                                        
+                                        HealthKitBadge(
+                                            metric: session.goal.healthKitMetric,
+                                            isEnabled: session.goal.healthKitSyncEnabled
+                                        )
+                                        
                                         Spacer()
                                         
                                     }
@@ -184,12 +192,15 @@ struct ContentView: View {
             loadTimerState()
             
             refreshGoals()
+            syncHealthKitData()
+            
             if activeSession?.id != nil {
                 activeSession?.startUITimer()
             }
         }
         .onChange(of: goals) { old, new in
             refreshGoals()
+            syncHealthKitData()
         }
         .onDisappear {
             activeSession?.stopUITimer()
@@ -379,14 +390,26 @@ struct ContentView: View {
     
     private func toggleTimer(for session: GoalSession) {
         if let activeSession, activeSession.id == session.id {
+            // Stopping timer - use medium impact haptic
+            #if os(iOS)
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            #endif
+            
             goalStore.save(session: session, in: day, startDate: activeSession.startDate, endDate: .now)
             // Stop the current active timer
             activeSession.stopUITimer()
             withAnimation {
                 self.activeSession = nil
             }
-                saveTimerState()
+            saveTimerState()
         } else {
+            // Starting timer - use success notification haptic (positive & encouraging!)
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            #endif
+            
             withAnimation {
                 activeSession = ActiveSessionDetails(id: session.id, startDate: .now, elapsedTime: session.elapsedTime, dailyTarget: session.dailyTarget)
                 saveTimerState()
@@ -425,6 +448,213 @@ struct ContentView: View {
         }
     }
     
+    // MARK: - HealthKit Integration
+    
+    private func syncHealthKitData() {
+        guard healthKitManager.isHealthKitAvailable else { return }
+        
+        // Get all goals with HealthKit sync enabled
+        let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
+        
+        // Request authorization if needed
+        let metrics = healthKitGoals.compactMap { $0.healthKitMetric }
+        guard !metrics.isEmpty else { return }
+        
+        Task {
+            // Request authorization first (this will be a no-op if already authorized)
+            do {
+                try await healthKitManager.requestAuthorization(for: metrics)
+            } catch {
+                print("HealthKit authorization failed: \(error)")
+                return
+            }
+            
+            // Fetch data for each goal
+            for goal in healthKitGoals {
+                guard let metric = goal.healthKitMetric else { continue }
+                
+                do {
+                    // Fetch individual samples (for history display)
+                    let samples = try await healthKitManager.fetchSamples(
+                        for: metric,
+                        from: day.startDate,
+                        to: day.endDate
+                    )
+                    
+                    // Merge samples to avoid double-counting
+                    let mergedSamples = mergeSamples(samples)
+                    
+                    // Calculate total duration from merged samples
+                    let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
+                    
+                    // Update the corresponding session
+                    await MainActor.run {
+                        if let session = sessions.first(where: { $0.goal.id == goal.id }) {
+                            session.updateHealthKitTime(duration)
+                            
+                            // Create or update historical sessions from HealthKit samples
+                            syncHistoricalSessions(from: mergedSamples, for: goal, in: session)
+                        }
+                    }
+                } catch {
+                    print("Failed to fetch HealthKit data for \(goal.title): \(error)")
+                }
+            }
+        }
+    }
+    
+    /// Sync historical sessions from HealthKit samples
+    /// - Parameter samples: Already-merged HealthKit samples
+    private func syncHistoricalSessions(from samples: [HealthKitSample], for goal: Goal, in session: GoalSession) {
+        // Note: samples are already merged at this point
+        
+        // Get existing HealthKit-sourced historical sessions for this goal and day
+        let existingHealthKitSessionIDs = Set(
+            day.historicalSessions
+                .filter { $0.healthKitType != nil && $0.goalIDs.contains(goal.id.uuidString) }
+                .map { $0.id }
+        )
+        
+        // Track which sample IDs we're keeping
+        var processedSampleIDs = Set<String>()
+        
+        for sample in samples {
+            processedSampleIDs.insert(sample.id)
+            
+            // Check if this sample already exists as a historical session
+            if existingHealthKitSessionIDs.contains(sample.id) {
+                // Session already exists, skip
+                continue
+            }
+            
+            // Create new historical session from HealthKit sample
+            let historicalSession = HistoricalSession(
+                id: sample.id,
+                title: "\(sample.metric.displayName) - \(sample.sourceName)",
+                start: sample.startDate,
+                end: sample.endDate,
+                healthKitType: sample.metric.rawValue,
+                needsHealthKitRecord: false // Already synced from HealthKit
+            )
+            historicalSession.goalIDs.append(goal.id.uuidString)
+            day.add(historicalSession: historicalSession)
+            
+            modelContext.insert(historicalSession)
+        }
+        
+        // Remove historical sessions that no longer exist in HealthKit
+        let sessionsToRemove = day.historicalSessions.filter { session in
+            guard session.healthKitType != nil,
+                  session.goalIDs.contains(goal.id.uuidString) else {
+                return false
+            }
+            return !processedSampleIDs.contains(session.id)
+        }
+        
+        for session in sessionsToRemove {
+            modelContext.delete(session)
+        }
+    }
+    
+    /// Merge consecutive HealthKit samples that are short and have no time gap between them
+    /// - Parameter samples: Array of HealthKit samples to merge
+    /// - Returns: Array with consecutive short sessions merged
+    private func mergeSamples(_ samples: [HealthKitSample]) -> [HealthKitSample] {
+        guard !samples.isEmpty else { return [] }
+        
+        // Sort by start date
+        let sorted = samples.sorted { $0.startDate < $1.startDate }
+        var merged: [HealthKitSample] = []
+        var currentGroup: [HealthKitSample] = [sorted[0]]
+        
+        for i in 1..<sorted.count {
+            let previous = sorted[i - 1]
+            let current = sorted[i]
+            
+            // Check if we should merge with the current group
+            let timeBetween = current.startDate.timeIntervalSince(previous.endDate)
+            let shouldMerge = timeBetween <= 0 && // No gap (or overlap)
+                              previous.duration < 300 && // Previous session < 5 minutes
+                              current.duration < 300 && // Current session < 5 minutes
+                              previous.metric == current.metric && // Same metric type
+                              previous.sourceName == current.sourceName // Same source app
+            
+            if shouldMerge {
+                currentGroup.append(current)
+            } else {
+                // Finalize the current group
+                merged.append(createMergedSample(from: currentGroup))
+                currentGroup = [current]
+            }
+        }
+        
+        // Don't forget the last group
+        merged.append(createMergedSample(from: currentGroup))
+        
+        return merged
+    }
+    
+    /// Create a single merged sample from a group of samples
+    private func createMergedSample(from samples: [HealthKitSample]) -> HealthKitSample {
+        guard !samples.isEmpty else {
+            fatalError("Cannot create merged sample from empty array")
+        }
+        
+        // If only one sample, return it as-is
+        if samples.count == 1 {
+            return samples[0]
+        }
+        
+        // Merge multiple samples
+        let sortedByDate = samples.sorted { $0.startDate < $1.startDate }
+        let earliestStart = sortedByDate.first!.startDate
+        let latestEnd = sortedByDate.max { $0.endDate < $1.endDate }!.endDate
+        let totalDuration = latestEnd.timeIntervalSince(earliestStart)
+        
+        // Create a combined ID from all merged sample IDs
+        let combinedID = sortedByDate.map { $0.id }.joined(separator: "_")
+        
+        return HealthKitSample(
+            id: combinedID,
+            startDate: earliestStart,
+            endDate: latestEnd,
+            duration: totalDuration,
+            metric: samples[0].metric,
+            sourceName: samples[0].sourceName
+        )
+    }
+    
+    /// Start observing HealthKit changes for real-time updates
+    private func startHealthKitObservers() {
+        // Stop any existing observers first
+        stopHealthKitObservers()
+        
+        guard healthKitManager.isHealthKitAvailable else { return }
+        
+        let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
+        let uniqueMetrics = Set(healthKitGoals.compactMap { $0.healthKitMetric })
+        
+        for metric in uniqueMetrics {
+            do {
+                let observer = try healthKitManager.observeMetric(metric) { _ in
+                    // When HealthKit data changes, re-sync
+                    self.syncHealthKitData()
+                }
+                healthKitObservers.append(observer)
+            } catch {
+                print("Failed to start observer for \(metric.displayName): \(error)")
+            }
+        }
+    }
+    
+    /// Stop all HealthKit observers
+    private func stopHealthKitObservers() {
+        for observer in healthKitObservers {
+            healthKitManager.stopObserving(observer)
+        }
+        healthKitObservers.removeAll()
+    }
+    
     // MARK: - Debug Helpers
     
     #if DEBUG
@@ -434,7 +664,9 @@ struct ContentView: View {
             title: debugGoal.title,
             primaryTheme: theme,
             weeklyTarget: TimeInterval(debugGoal.weeklyTargetMinutes * 60),
-            notificationsEnabled: debugGoal.notificationsEnabled
+            notificationsEnabled: debugGoal.notificationsEnabled,
+            healthKitMetric: debugGoal.healthKitMetric,
+            healthKitSyncEnabled: debugGoal.healthKitSyncEnabled
         )
         withAnimation {
             modelContext.insert(goal)
@@ -508,6 +740,18 @@ enum DebugGoals: String, CaseIterable, Identifiable {
         default:
             return false
         }
+    }
+    
+    var healthKitMetric: HealthKitMetric? {
+        switch self {
+        case .exercise: return .appleExerciseTime
+        case .meditation: return .mindfulMinutes
+        default: return nil
+        }
+    }
+    
+    var healthKitSyncEnabled: Bool {
+        return healthKitMetric != nil
     }
 }
 #endif

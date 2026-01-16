@@ -21,13 +21,22 @@ public final class GoalSession {
         day.historicalSessions.filter({ $0.goalIDs.contains(goal.id.uuidString )})
     }
     
+    /// Time tracked from HealthKit for this session (if enabled)
+    public private(set) var healthKitTime: TimeInterval = 0
+    
     public var dailyTarget: TimeInterval {
         return goal.weeklyTarget / 7
     }
+    
+    /// Total elapsed time including both manual tracking and HealthKit data
     public var elapsedTime: TimeInterval {
-        historicalSessions.reduce(0) { partialResult, session in
+        // historicalSessions already includes both manual sessions and HealthKit sessions
+        // (HealthKit sessions have healthKitType != nil)
+        let totalTime = historicalSessions.reduce(0) { partialResult, session in
             partialResult + session.duration
         }
+        
+        return totalTime
     }
     
     public var hasMetDailyTarget: Bool {
@@ -59,5 +68,10 @@ public extension GoalSession {
         case suggestion
         case active
         case skipped
+    }
+    
+    /// Update the HealthKit time for this session
+    func updateHealthKitTime(_ time: TimeInterval) {
+        healthKitTime = time
     }
 }

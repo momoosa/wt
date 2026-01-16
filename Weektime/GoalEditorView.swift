@@ -15,6 +15,8 @@ struct GoalEditorView: View {
     @State private var currentStage: EditorStage = .name
     @State private var durationInMinutes: Int = 30
     @State private var notificationsEnabled: Bool = false
+    @State private var selectedHealthKitMetric: HealthKitMetric?
+    @State private var healthKitSyncEnabled: Bool = false
     
     enum EditorStage {
         case name
@@ -42,6 +44,11 @@ struct GoalEditorView: View {
                         Section(header: Text("Notifications")) {
                             Toggle("Notify when target is reached", isOn: $notificationsEnabled)
                         }
+                        
+                        HealthKitConfigurationView(
+                            selectedMetric: $selectedHealthKitMetric,
+                            syncEnabled: $healthKitSyncEnabled
+                        )
                     }
 
 //                Section {
@@ -176,9 +183,23 @@ struct GoalEditorView: View {
         let goal: Goal
         if let selectedSuggestion, let title = selectedSuggestion.title {
             let newItem = GoalTheme(title: selectedSuggestion.themes![0], color: themes.randomElement()!)
-            goal = Goal(title: title, primaryTheme: newItem, weeklyTarget: TimeInterval(durationInMinutes * 60), notificationsEnabled: notificationsEnabled)
+            goal = Goal(
+                title: title,
+                primaryTheme: newItem,
+                weeklyTarget: TimeInterval(durationInMinutes * 60),
+                notificationsEnabled: notificationsEnabled,
+                healthKitMetric: selectedHealthKitMetric,
+                healthKitSyncEnabled: healthKitSyncEnabled
+            )
         } else {
-            goal = Goal(title: userInput, primaryTheme: GoalTheme(title: "", color: themes.randomElement()!), weeklyTarget: TimeInterval(durationInMinutes * 60), notificationsEnabled: notificationsEnabled)
+            goal = Goal(
+                title: userInput,
+                primaryTheme: GoalTheme(title: "", color: themes.randomElement()!),
+                weeklyTarget: TimeInterval(durationInMinutes * 60),
+                notificationsEnabled: notificationsEnabled,
+                healthKitMetric: selectedHealthKitMetric,
+                healthKitSyncEnabled: healthKitSyncEnabled
+            )
         }
         
         // Request notification permissions if enabled

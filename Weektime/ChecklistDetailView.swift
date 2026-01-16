@@ -29,19 +29,22 @@ struct ChecklistDetailView: View {
             // History section remains as-is
             Section {
                 if !session.historicalSessions.isEmpty {
-                    ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { session in
-                        HistoricalSessionRow(session: session, showsTimeSummaryInsteadOfTitle: true)
+                    ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
+                        HistoricalSessionRow(session: historicalSession, showsTimeSummaryInsteadOfTitle: true)
                             .foregroundStyle(.primary)
                             .swipeActions {
-                                Button {
-                                    withAnimation {
-                                        context.delete(session)
-                                        Task { try context.save() }
+                                // Only allow deletion of manual entries, not HealthKit synced ones
+                                if historicalSession.healthKitType == nil {
+                                    Button {
+                                        withAnimation {
+                                            context.delete(historicalSession)
+                                            Task { try context.save() }
+                                        }
+                                    } label: {
+                                        Label { Text("Delete") } icon: { Image(systemName: "xmark.bin") }
                                     }
-                                } label: {
-                                    Label { Text("Delete") } icon: { Image(systemName: "xmark.bin") }
+                                    .tint(.red)
                                 }
-                                .tint(.red)
                             }
                     }
                 } else {

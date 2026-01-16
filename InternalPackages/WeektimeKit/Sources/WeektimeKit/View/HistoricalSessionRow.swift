@@ -11,14 +11,6 @@ public struct HistoricalSessionRow: View {
     let showsTimeSummaryInsteadOfTitle: Bool
     public var body: some View {
         HStack {
-//            if let imageName = goal.imageName {
-//                        Image(systemName: imageName)
-//                            .symbolRenderingMode(.hierarchical)
-//                            .foregroundStyle(color.primary) // TODO: Make a view
-//                            .frame(width: 30, height: 30)
-//                            .background(GoalIcon(color: color.secondary))
-//
-//                    }
             VStack(alignment: .leading) {
                 HStack {
                     if showsTimeSummaryInsteadOfTitle {
@@ -26,10 +18,19 @@ public struct HistoricalSessionRow: View {
                     } else {
                         Text(session.title)
                     }
+                    
+                    // Show HealthKit badge if this is from HealthKit
+                    if session.healthKitType != nil {
+                        Image(systemName: "heart.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                    }
+                    
                     Spacer()
                 }
                 Text("\(session.startDate.formatted(.dateTime.hour().minute().second())) - \(session.endDate.formatted(.dateTime.hour().minute().second()))")
                     .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }

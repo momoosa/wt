@@ -36,7 +36,7 @@ public final class HistoricalSession {
         self.needsHealthKitRecord = needsHealthKitRecord
     }
     
-    var duration: Double { // TODO: Extension
+    public var duration: Double { // TODO: Extension
         return endDate.timeIntervalSince(startDate)
     }
 }
