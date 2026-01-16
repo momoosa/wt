@@ -22,12 +22,16 @@ public final class GoalSession {
     }
     
     public var dailyTarget: TimeInterval {
-        return 600
+        return goal.weeklyTarget / 7
     }
     public var elapsedTime: TimeInterval {
         historicalSessions.reduce(0) { partialResult, session in
             partialResult + session.duration
         }
+    }
+    
+    public var hasMetDailyTarget: Bool {
+        return elapsedTime >= dailyTarget
     }
     
     public var formattedTime: String {

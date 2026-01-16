@@ -8,7 +8,7 @@ import SwiftUI
 
 public struct HistoricalSessionRow: View {
     let session: HistoricalSession
-    let showsRelativeTimeInsteadOfTitle: Bool
+    let showsTimeSummaryInsteadOfTitle: Bool
     public var body: some View {
         HStack {
 //            if let imageName = goal.imageName {
@@ -21,13 +21,12 @@ public struct HistoricalSessionRow: View {
 //                    }
             VStack(alignment: .leading) {
                 HStack {
-                    if showsRelativeTimeInsteadOfTitle {
-                        Text(session.startDate.formatted(.relative(presentation: .numeric)))
+                    if showsTimeSummaryInsteadOfTitle {
+                        Text("\(Duration.seconds(session.endDate.timeIntervalSince(session.startDate)).formatted())")
                     } else {
                         Text(session.title)
                     }
                     Spacer()
-                    Text("\(Duration.seconds(session.endDate.timeIntervalSince(session.startDate)).formatted())")
                 }
                 Text("\(session.startDate.formatted(.dateTime.hour().minute().second())) - \(session.endDate.formatted(.dateTime.hour().minute().second()))")
                     .font(.footnote)
@@ -35,9 +34,9 @@ public struct HistoricalSessionRow: View {
         }
     }
     
-    public init(session: HistoricalSession, showsRelativeTimeInsteadOfTitle: Bool = false) {
+    public init(session: HistoricalSession, showsTimeSummaryInsteadOfTitle: Bool = false) {
         self.session = session
-        self.showsRelativeTimeInsteadOfTitle = showsRelativeTimeInsteadOfTitle
+        self.showsTimeSummaryInsteadOfTitle = showsTimeSummaryInsteadOfTitle
     }
 }
 

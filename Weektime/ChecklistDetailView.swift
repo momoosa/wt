@@ -16,6 +16,10 @@ struct ChecklistDetailView: View {
     @State private var intervalStartDate: Date? = nil
     @State private var intervalElapsed: TimeInterval = 0
     @State private var uiTimer: Timer? = nil
+
+    @State private var selectedListID: String?
+    @State private var isShowingListsOverview = false
+
     var tintColor: Color {
         session.goal.primaryTheme.theme.dark
     }
@@ -26,7 +30,7 @@ struct ChecklistDetailView: View {
             Section {
                 if !session.historicalSessions.isEmpty {
                     ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { session in
-                        HistoricalSessionRow(session: session, showsRelativeTimeInsteadOfTitle: true)
+                        HistoricalSessionRow(session: session, showsTimeSummaryInsteadOfTitle: true)
                             .foregroundStyle(.primary)
                             .swipeActions {
                                 Button {
@@ -67,18 +71,24 @@ struct ChecklistDetailView: View {
 
             // NEW: Horizontal tabs for lists
             Section {
-                TabView {
+                TabView(selection: $selectedListID) {
                     ForEach(session.intervalLists) { listSession in
-                        IntervalListView(listSession: listSession, activeIntervalID: $activeIntervalID, intervalStartDate: $intervalStartDate, intervalElapsed: $intervalElapsed, uiTimer: $uiTimer)
+                        IntervalListView(listSession: listSession, activeIntervalID: $activeIntervalID, intervalStartDate: $intervalStartDate, intervalElapsed: $intervalElapsed, uiTimer: $uiTimer, limit: 3)
+                            .tag(listSession.id)
                     }
                 }
                 .tabViewStyle(.page)
                 .frame(minHeight: 200)
+                .onAppear {
+                    if selectedListID == nil {
+                        selectedListID = session.intervalLists.first?.id
+                    }
+                }
             } header: {
                 VStack {
                     HStack {
                         Button {
-                            
+                            isShowingListsOverview = true
                         } label: {
                             Text("Lists") // TODO: Naming
                             Text("\(session.intervalLists.count)")
@@ -98,13 +108,7 @@ struct ChecklistDetailView: View {
                         } label: { Image(systemName: "plus.circle.fill").symbolRenderingMode(.hierarchical) }
                     }
                     
-                    ScrollView(.horizontal) {
-                        LazyHStack {
-                            ForEach(session.intervalLists) { listSession in
-                                Text(listSession.list.name)
-                            }
-                        }
-                    }
+                    IntervalListSelector(lists: session.intervalLists, selectedListID: $selectedListID, tintColor: tintColor)
                 }
 
             }
@@ -150,11 +154,10 @@ struct ChecklistDetailView: View {
             }
             
         }
-        
+        .navigationDestination(isPresented: $isShowingListsOverview) {
+            ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor)
+        }
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
-//        .sheet(isPresented: $isShowingEditScreen, content: {
-//            IntervalsEditorView(goal: session.goal, currentSession: session)
-//        })
         .sheet(isPresented: $isShowingIntervalsEditor) {
             let list = IntervalList(name: "", goal: session.goal)
             IntervalsEditorView(list: list, goalSession: session)
@@ -323,3 +326,4 @@ struct ChecklistDetailView: View {
 //        }
 //    }
 }
+

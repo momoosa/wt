@@ -16,19 +16,42 @@ public final class ActiveSessionDetails {
     public private(set) var elapsedTime: TimeInterval = 0
     public var currentTime: Date?
     public private(set) var timeText: String?
+    public var dailyTarget: TimeInterval? // Add daily target
+    public var onTargetReached: (() -> Void)? // Callback when target is reached
     private var timer: Timer?
     let timerInterval: TimeInterval = 1.0
+    private var hasNotifiedTargetReached = false // Track if we've already sent the notification
 
-    public init(id: UUID, startDate: Date, elapsedTime: TimeInterval) {
+    public init(id: UUID, startDate: Date, elapsedTime: TimeInterval, dailyTarget: TimeInterval? = nil, onTargetReached: (() -> Void)? = nil) {
         self.id = id
         self.startDate = startDate
         self.elapsedTime = elapsedTime
+        self.dailyTarget = dailyTarget
+        self.onTargetReached = onTargetReached
+        
+        // If we're already past the target when initializing, mark as notified
+        if let dailyTarget = dailyTarget, elapsedTime >= dailyTarget {
+            hasNotifiedTargetReached = true
+        }
     }
     
     public func timerText(currentTime: Date = .now) -> String {
         let elapsed = elapsedTime + currentTime.timeIntervalSince(startDate)
-        let formatted = Duration.seconds(elapsed).formatted()
-        return formatted
+        let elapsedFormatted = Duration.seconds(elapsed).formatted(.time(pattern: .hourMinuteSecond))
+        
+        // If we have a daily target, show it in the format "0:10:01/0:12:00"
+        if let dailyTarget = dailyTarget {
+            let targetFormatted = Duration.seconds(dailyTarget).formatted(.time(pattern: .hourMinuteSecond))
+            return "\(elapsedFormatted)/\(targetFormatted)"
+        } else {
+            return elapsedFormatted
+        }
+    }
+    
+    public var hasMetDailyTarget: Bool {
+        guard let dailyTarget = dailyTarget else { return false }
+        let elapsed = elapsedTime + Date.now.timeIntervalSince(startDate)
+        return elapsed >= dailyTarget
     }
     
     public func startUITimer() {
@@ -37,6 +60,15 @@ public final class ActiveSessionDetails {
             withAnimation {
                 self.timeText = self.timerText()
                 self.currentTime = Date()
+                
+                // Check if target was just reached
+                if !self.hasNotifiedTargetReached, let dailyTarget = self.dailyTarget {
+                    let elapsed = self.elapsedTime + Date.now.timeIntervalSince(self.startDate)
+                    if elapsed >= dailyTarget {
+                        self.hasNotifiedTargetReached = true
+                        self.onTargetReached?()
+                    }
+                }
             }
         }
     }

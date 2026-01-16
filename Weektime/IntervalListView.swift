@@ -13,16 +13,23 @@ struct IntervalListView: View {
     @Binding private var intervalStartDate: Date?
     @Binding private var intervalElapsed: TimeInterval
     @Binding private var uiTimer: Timer?
-    let historicalSessionLimit = 3
+    let limit: Int?
 
     let listSession: IntervalListSession
     
     var body: some View {
+        let intervals: [IntervalSession]
+        
+        if let limit {
+            intervals = Array(listSession.intervals.prefix(limit))
+        }  else {
+            intervals = listSession.intervals
+        }
+        return LazyVStack {
         Section {
      
-            LazyVStack {
                 
-                ForEach(listSession.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })) { item in
+                ForEach(intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })) { item in
                     let filteredSorted = listSession.intervals
                     // TODO:
                     //                    .filter { $0.interval.kind == item.interval.kind && $0.interval.name == item.interval.name }
@@ -95,33 +102,22 @@ struct IntervalListView: View {
                         }
                     }
                 }
-            }
-            
-    
         } footer: {
-            let total = listSession.intervals.count
-            if total > historicalSessionLimit {
-                HStack {
-                    Spacer()
-                    Button {
-                        //                            dayToEdit = day
-                    } label: {
-                        Text("View all")
-                    }
-                    //                        .buttonStyle(PrimaryButtonStyle(color: goal.color))
-                    Spacer()
-                }
+            if let limit, self.listSession.list.intervals.count - limit > 0 {
+                let count = self.listSession.list.intervals.count - limit
+                Text("And \(count) more")
             }
         }
-
+            }
     }
     
-    public init(listSession: IntervalListSession, activeIntervalID: Binding<String?>, intervalStartDate: Binding<Date?>, intervalElapsed: Binding<TimeInterval>, uiTimer: Binding<Timer?>) {
+    public init(listSession: IntervalListSession, activeIntervalID: Binding<String?>, intervalStartDate: Binding<Date?>, intervalElapsed: Binding<TimeInterval>, uiTimer: Binding<Timer?>, limit: Int? = nil) {
         self._activeIntervalID = activeIntervalID
         self._intervalStartDate = intervalStartDate
         self._intervalElapsed = intervalElapsed
         self._uiTimer = uiTimer
         self.listSession = listSession
+        self.limit = limit
     }
     
     // MARK: - Interval Playback Logic

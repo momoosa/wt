@@ -4,7 +4,7 @@ import SwiftData
 
 /// A model representing a named collection of Interval items associated to a Goal.
 @Model
-public final class IntervalListSession  {
+public final class IntervalListSession: Identifiable {
     /// Unique identifier for the IntervalList.
     public var id: String
     /// The order index of the IntervalList.

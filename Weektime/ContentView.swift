@@ -56,11 +56,24 @@ struct ContentView: View {
                                                 .contentTransition(.numericText())
                                                 .fontWeight(.semibold)
                                                 .font(.footnote)
+                                            
+                                            if activeSession.hasMetDailyTarget {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .symbolRenderingMode(.hierarchical)
+                                                    .foregroundStyle(.green)
+                                                    .font(.footnote)
+                                            }
                                         } else {
                                             Text(session.formattedTime)
                                                 .fontWeight(.semibold)
                                                 .font(.footnote)
-
+                                            
+                                            if session.hasMetDailyTarget {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .symbolRenderingMode(.hierarchical)
+                                                    .foregroundStyle(.green)
+                                                    .font(.footnote)
+                                            }
                                         }
                                         
                                         Text(session.goal.primaryTheme.title)
@@ -122,6 +135,22 @@ struct ContentView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 EditButton()
             }
+            
+            #if DEBUG
+            ToolbarItem(placement: .navigationBarLeading) {
+                Menu {
+                    ForEach(DebugGoals.allCases) { debugGoal in
+                        Button {
+                            addDebugGoal(debugGoal)
+                        } label: {
+                            Label(debugGoal.title, systemImage: "plus.circle")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "hammer.fill")
+                }
+            }
+            #endif
 #endif
             
             if let activeSession = activeSession, let session = sessions.first(where: { $0.id == activeSession.id }) { // TODO: Combine with ActiveSessionDetails?
@@ -359,7 +388,7 @@ struct ContentView: View {
                 saveTimerState()
         } else {
             withAnimation {
-                activeSession = ActiveSessionDetails(id: session.id, startDate: .now, elapsedTime: 0)
+                activeSession = ActiveSessionDetails(id: session.id, startDate: .now, elapsedTime: session.elapsedTime, dailyTarget: session.dailyTarget)
                 saveTimerState()
                 activeSession?.startUITimer()
             }
@@ -385,12 +414,103 @@ struct ContentView: View {
         if let idString = UserDefaults.standard.string(forKey: activeSessionIDKey), let uuid = UUID(uuidString: idString) {
             let timeInterval = UserDefaults.standard.double(forKey: activeSessionStartDateKey)
             let elapsed = UserDefaults.standard.double(forKey: activeSessionElapsedTimeKey)
-            activeSession = ActiveSessionDetails(id: uuid, startDate: Date(timeIntervalSince1970: timeInterval), elapsedTime: elapsed)
+            
+            // Find the session to get the daily target
+            let session = sessions.first(where: { $0.id == uuid })
+            let dailyTarget = session?.dailyTarget
+            
+            activeSession = ActiveSessionDetails(id: uuid, startDate: Date(timeIntervalSince1970: timeInterval), elapsedTime: elapsed, dailyTarget: dailyTarget)
         } else {
             activeSession = nil
         }
     }
+    
+    // MARK: - Debug Helpers
+    
+    #if DEBUG
+    private func addDebugGoal(_ debugGoal: DebugGoals) {
+        let theme = GoalTheme(title: debugGoal.themeTitle, color: debugGoal.theme)
+        let goal = Goal(
+            title: debugGoal.title,
+            primaryTheme: theme,
+            weeklyTarget: TimeInterval(debugGoal.weeklyTargetMinutes * 60),
+            notificationsEnabled: debugGoal.notificationsEnabled
+        )
+        withAnimation {
+            modelContext.insert(goal)
+        }
+    }
+    #endif
 }
+
+// MARK: - Debug Goals
+
+#if DEBUG
+enum DebugGoals: String, CaseIterable, Identifiable {
+    case reading = "Reading"
+    case exercise = "Exercise"
+    case meditation = "Meditation"
+    case coding = "Coding Practice"
+    case music = "Music Practice"
+    case cooking = "Cooking"
+    case learning = "Language Learning"
+    case writing = "Writing"
+    
+    var id: String { rawValue }
+    
+    var title: String {
+        rawValue
+    }
+    
+    var themeTitle: String {
+        switch self {
+        case .reading: return "Learning"
+        case .exercise: return "Health"
+        case .meditation: return "Wellness"
+        case .coding: return "Tech"
+        case .music: return "Creative"
+        case .cooking: return "Home"
+        case .learning: return "Education"
+        case .writing: return "Creative"
+        }
+    }
+    
+    var theme: Theme {
+        switch self {
+        case .reading: return themes.first(where: { $0.id == "blue" })!
+        case .exercise: return themes.first(where: { $0.id == "red" })!
+        case .meditation: return themes.first(where: { $0.id == "purple" })!
+        case .coding: return themes.first(where: { $0.id == "green" })!
+        case .music: return themes.first(where: { $0.id == "orange" })!
+        case .cooking: return themes.first(where: { $0.id == "yellow" })!
+        case .learning: return themes.first(where: { $0.id == "purple" })!
+        case .writing: return themes.first(where: { $0.id == "teal" })!
+        }
+    }
+    
+    var weeklyTargetMinutes: Int {
+        switch self {
+        case .reading: return 210 // 30 min/day
+        case .exercise: return 175 // 25 min/day
+        case .meditation: return 70 // 10 min/day
+        case .coding: return 420 // 60 min/day
+        case .music: return 140 // 20 min/day
+        case .cooking: return 105 // 15 min/day
+        case .learning: return 210 // 30 min/day
+        case .writing: return 140 // 20 min/day
+        }
+    }
+    
+    var notificationsEnabled: Bool {
+        switch self {
+        case .meditation, .exercise, .reading:
+            return true
+        default:
+            return false
+        }
+    }
+}
+#endif
 
 #Preview {
     let store = GoalStore()
