@@ -4,6 +4,15 @@ import WeektimeKit
 import SwiftData
 import UserNotifications
 
+// MARK: - AI Suggestion Model
+@Generable
+struct GoalSuggestionResponse: Codable {
+    var suggestedDuration: Int // in minutes
+    var suggestedTheme: String
+    var suggestedHealthKitMetric: String? // raw value of HealthKitMetric
+    var reasoning: String? // optional explanation
+}
+
 struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -17,6 +26,8 @@ struct GoalEditorView: View {
     @State private var notificationsEnabled: Bool = false
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
+    @State private var isGeneratingSuggestions = false
+    @State private var aiSuggestion: GoalSuggestionResponse?
     
     enum EditorStage {
         case name
@@ -32,13 +43,33 @@ struct GoalEditorView: View {
                     }
                     
                     if currentStage == .duration {
+                        // Show AI suggestion reasoning if available
+                        if let aiSuggestion, let reasoning = aiSuggestion.reasoning {
+                            Section {
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "sparkles")
+                                        .foregroundStyle(.purple)
+                                        .font(.title3)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("AI Suggestion")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(.secondary)
+                                        Text(reasoning)
+                                            .font(.callout)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        
                         Section(header: Text("Duration")) {
                             Picker("Duration (minutes)", selection: $durationInMinutes) {
                                 ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
                                     Text("\(minutes) min").tag(minutes)
                                 }
                             }
-                            .pickerStyle(.wheel)
+                            .pickerStyle(.menu)
                         }
                         
                         Section(header: Text("Notifications")) {
@@ -115,14 +146,23 @@ struct GoalEditorView: View {
                     Button(action: {
                         handleButtonTap()
                     }) {
-                        Text(currentStage == .name ? "Next" : "Save")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(buttonEnabled ? Color.accentColor : Color.gray)
-                            .foregroundStyle(.white)
-                            .cornerRadius(10)
+                        HStack {
+                            if isGeneratingSuggestions {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(.white)
+                                Text("Generating suggestions...")
+                            } else {
+                                Text(currentStage == .name ? "Next" : "Save")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(buttonEnabled && !isGeneratingSuggestions ? Color.accentColor : Color.gray)
+                        .foregroundStyle(.white)
+                        .cornerRadius(10)
                     }
-                    .disabled(!buttonEnabled)
+                    .disabled(!buttonEnabled || isGeneratingSuggestions)
                     .padding()
                 }
                 .background(Color(.systemBackground))
@@ -171,22 +211,108 @@ struct GoalEditorView: View {
     func handleButtonTap() {
         switch currentStage {
         case .name:
-            withAnimation {
-                currentStage = .duration
+            // Generate AI suggestions before moving to duration stage
+            Task {
+                await generateAISuggestions()
+                await MainActor.run {
+                    withAnimation {
+                        currentStage = .duration
+                    }
+                }
             }
         case .duration:
             saveGoal()
         }
     }
     
+    /// Generate AI-powered suggestions for duration, theme, and HealthKit metric
+    func generateAISuggestions() async {
+        guard !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        
+        await MainActor.run {
+            isGeneratingSuggestions = true
+        }
+        
+        do {
+            let session = LanguageModelSession()
+            
+            let prompt = """
+            Analyze this goal activity: "\(userInput)"
+            
+            Provide smart suggestions for:
+            1. Duration: Recommended daily duration in minutes (between 5 and 90)
+            2. Theme: A theme category (e.g., "Wellness", "Learning", "Fitness", "Creative", "Productivity")
+            3. HealthKit Metric: If applicable, suggest one of these HealthKit metrics:
+               - "apple_exercise_time" for workouts, running, cardio, sports
+               - "mindful_minutes" for meditation, mindfulness, breathing exercises, journaling
+               - null if no HealthKit metric applies
+            4. Reasoning: Brief explanation of your suggestions (optional)
+            
+            Examples:
+            - "meditate" → duration: 10, theme: "Wellness", healthKitMetric: "mindful_minutes"
+            - "run" → duration: 25, theme: "Fitness", healthKitMetric: "apple_exercise_time"
+            - "read" → duration: 30, theme: "Learning", healthKitMetric: null
+            - "journal" → duration: 15, theme: "Wellness", healthKitMetric: "mindful_minutes"
+            """
+            
+            let response = try await session.respond(
+                to: Prompt(prompt),
+                generating: GoalSuggestionResponse.self,
+                options: GenerationOptions(temperature: 0.3)
+            )
+            
+            await MainActor.run {
+                let suggestion = response.content
+                self.aiSuggestion = suggestion
+                
+                // Apply suggestions
+                self.durationInMinutes = suggestion.suggestedDuration
+                
+                // Try to match HealthKit metric
+                if let metricRawValue = suggestion.suggestedHealthKitMetric,
+                   let metric = HealthKitMetric(rawValue: metricRawValue) {
+                    self.selectedHealthKitMetric = metric
+                    self.healthKitSyncEnabled = true
+                }
+                
+                isGeneratingSuggestions = false
+                
+                print("🤖 AI Suggestions:")
+                print("   Duration: \(suggestion.suggestedDuration) min")
+                print("   Theme: \(suggestion.suggestedTheme)")
+                print("   HealthKit: \(suggestion.suggestedHealthKitMetric ?? "none")")
+                if let reasoning = suggestion.reasoning {
+                    print("   Reasoning: \(reasoning)")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                isGeneratingSuggestions = false
+                print("❌ Failed to generate AI suggestions: \(error)")
+            }
+        }
+    }
+    
     func saveGoal() {
         let goal: Goal
+        
+        // Determine theme title
+        let themeTitle: String
+        if let aiSuggestion {
+            themeTitle = aiSuggestion.suggestedTheme
+        } else if let selectedSuggestion, let themes = selectedSuggestion.themes, !themes.isEmpty {
+            themeTitle = themes[0]
+        } else {
+            themeTitle = ""
+        }
+        
+        let theme = GoalTheme(title: themeTitle, color: themes.randomElement()!)
+        
         if let selectedSuggestion, let title = selectedSuggestion.title {
-            let newItem = GoalTheme(title: selectedSuggestion.themes![0], color: themes.randomElement()!)
             goal = Goal(
                 title: title,
-                primaryTheme: newItem,
-                weeklyTarget: TimeInterval(durationInMinutes * 60),
+                primaryTheme: theme,
+                weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
                 notificationsEnabled: notificationsEnabled,
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
@@ -194,8 +320,8 @@ struct GoalEditorView: View {
         } else {
             goal = Goal(
                 title: userInput,
-                primaryTheme: GoalTheme(title: "", color: themes.randomElement()!),
-                weeklyTarget: TimeInterval(durationInMinutes * 60),
+                primaryTheme: theme,
+                weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
                 notificationsEnabled: notificationsEnabled,
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
