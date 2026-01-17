@@ -41,9 +41,8 @@ struct GoalEditorView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                ScrollView {
                     
-                    LazyVStack {
+                    List {
                         if currentStage == .name {
                             // Custom input section
                             Section {
@@ -53,12 +52,6 @@ struct GoalEditorView: View {
                                             selectedTemplate = nil
                                         }
                                     }
-                                    .padding()
-                                    .background {
-                                        Capsule()
-                                            .fill(Color(.secondarySystemGroupedBackground))
-                                    }
-                                    .background()
                                 
                             }
                             
@@ -169,7 +162,6 @@ struct GoalEditorView: View {
                     }
                     .animation(.spring(), value: result)
                     
-                }
                 // Bottom button
                 VStack(spacing: 0) {
                     Divider()
