@@ -41,132 +41,135 @@ struct GoalEditorView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                LazyVStack {
-                    if currentStage == .name {
-                        // Custom input section
-                        Section {
-                            TextField("What do you want to do?", text: $userInput)
-                                .onChange(of: userInput) { _, newValue in
-                                    if !newValue.isEmpty {
-                                        selectedTemplate = nil
-                                     }
-                                }
-                                .padding()
-                                .background {
-                                    Capsule()
-                                        .fill(Color(.secondarySystemGroupedBackground))
-                                }
-                                .background()
+                ScrollView {
+                    
+                    LazyVStack {
+                        if currentStage == .name {
+                            // Custom input section
+                            Section {
+                                TextField("What do you want to do?", text: $userInput)
+                                    .onChange(of: userInput) { _, newValue in
+                                        if !newValue.isEmpty {
+                                            selectedTemplate = nil
+                                        }
+                                    }
+                                    .padding()
+                                    .background {
+                                        Capsule()
+                                            .fill(Color(.secondarySystemGroupedBackground))
+                                    }
+                                    .background()
+                                
+                            }
                             
-                        }
-                        
-                        // Scrollable Category Tabs
-                        Section {
-                            
-                            
-                            VStack(spacing: 0) {
-                                ScrollViewReader { proxy in
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack {
-                                            HStack(spacing: 12) {
-                                                ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
-                                                    CategoryTab(
-                                                        category: category,
-                                                        isSelected: selectedCategoryIndex == index
-                                                    )
-                                                    .id(index) // Add ID for scrolling
-                                                    .onTapGesture {
-                                                        withAnimation(.spring(response: 0.3)) {
-                                                            selectedCategoryIndex = index
-                                                        }
-                                                        
-                                                        // Haptic feedback
+                            // Scrollable Category Tabs
+                            Section {
+                                
+                                
+                                VStack(spacing: 0) {
+                                    ScrollViewReader { proxy in
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack {
+                                                HStack(spacing: 12) {
+                                                    ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                                                        CategoryTab(
+                                                            category: category,
+                                                            isSelected: selectedCategoryIndex == index
+                                                        )
+                                                        .id(index) // Add ID for scrolling
+                                                        .onTapGesture {
+                                                            withAnimation(.spring(response: 0.3)) {
+                                                                selectedCategoryIndex = index
+                                                            }
+                                                            
+                                                            // Haptic feedback
 #if os(iOS)
-                                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                                        generator.impactOccurred()
+                                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                                            generator.impactOccurred()
 #endif
+                                                        }
                                                     }
                                                 }
+                                                .padding(.horizontal)
+                                                .padding(.vertical)
                                             }
-                                            .padding(.horizontal)
-                                            .padding(.vertical)
+                                        }
+                                        .onAppear {
+                                            scrollProxy = proxy
+                                        }
+                                        .onChange(of: selectedCategoryIndex) { _, newIndex in
+                                            // Auto-scroll to selected tab
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                proxy.scrollTo(newIndex, anchor: .center)
+                                            }
                                         }
                                     }
-                                    .onAppear {
-                                        scrollProxy = proxy
-                                    }
-                                    .onChange(of: selectedCategoryIndex) { _, newIndex in
-                                        // Auto-scroll to selected tab
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            proxy.scrollTo(newIndex, anchor: .center)
+                                    // Category Tabs
+                                    TabView(selection: $selectedCategoryIndex) {
+                                        ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                                            CategorySuggestionsView(
+                                                category: category,
+                                                selectedTemplate: $selectedTemplate,
+                                                userInput: $userInput
+                                            )
+                                            .tag(index)
                                         }
                                     }
+                                    .tabViewStyle(.page(indexDisplayMode: .never))
+                                    .frame(height: 400)
                                 }
-                                // Category Tabs
-                                TabView(selection: $selectedCategoryIndex) {
-                                    ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
-                                        CategorySuggestionsView(
-                                            category: category,
-                                            selectedTemplate: $selectedTemplate,
-                                            userInput: $userInput
-                                        )
-                                        .tag(index)
-                                    }
-                                }
-                                .tabViewStyle(.page(indexDisplayMode: .never))
-                                .frame(height: 400)
+                                
+                            } header: {
+                                Text("Suggestions")
                             }
-
-                        } header: {
-                            Text("Suggestions")
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
                         }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
+                        
+                        if currentStage == .duration {
+                            // Show AI suggestion reasoning if available
+                            if let aiSuggestion, let reasoning = aiSuggestion.reasoning {
+                                Section {
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Image(systemName: "sparkles")
+                                            .foregroundStyle(.purple)
+                                            .font(.title3)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("AI Suggestion")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(.secondary)
+                                            Text(reasoning)
+                                                .font(.callout)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            }
+                            
+                            Section(header: Text("Duration")) {
+                                Picker("Duration (minutes)", selection: $durationInMinutes) {
+                                    ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
+                                        Text("\(minutes) min").tag(minutes)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            
+                            Section(header: Text("Notifications")) {
+                                Toggle("Notify when target is reached", isOn: $notificationsEnabled)
+                            }
+                            
+                            HealthKitConfigurationView(
+                                selectedMetric: $selectedHealthKitMetric,
+                                syncEnabled: $healthKitSyncEnabled
+                            )
+                        }
+                        
                     }
+                    .animation(.spring(), value: result)
                     
-                    if currentStage == .duration {
-                        // Show AI suggestion reasoning if available
-                        if let aiSuggestion, let reasoning = aiSuggestion.reasoning {
-                            Section {
-                                HStack(alignment: .top, spacing: 8) {
-                                    Image(systemName: "sparkles")
-                                        .foregroundStyle(.purple)
-                                        .font(.title3)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("AI Suggestion")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(.secondary)
-                                        Text(reasoning)
-                                            .font(.callout)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                        
-                        Section(header: Text("Duration")) {
-                            Picker("Duration (minutes)", selection: $durationInMinutes) {
-                                ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
-                                    Text("\(minutes) min").tag(minutes)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                        }
-                        
-                        Section(header: Text("Notifications")) {
-                            Toggle("Notify when target is reached", isOn: $notificationsEnabled)
-                        }
-                        
-                        HealthKitConfigurationView(
-                            selectedMetric: $selectedHealthKitMetric,
-                            syncEnabled: $healthKitSyncEnabled
-                        )
-                    }
-
                 }
-                .animation(.spring(), value: result)
-                
                 // Bottom button
                 VStack(spacing: 0) {
                     Divider()
@@ -568,7 +571,7 @@ struct SuggestionRow: View {
             Text("\(suggestion.duration) min")
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? categoryColor : .white)
+                .foregroundStyle(isSelected ? categoryColor : categoryColor.contrastingTextColor)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
@@ -599,12 +602,12 @@ struct CategoryTab: View {
         HStack(spacing: 8) {
             Image(systemName: category.icon)
                 .font(.system(size: 18))
-                .foregroundStyle(isSelected ? .white : category.colorValue)
+                .foregroundStyle(isSelected ? category.colorValue.contrastingTextColor : category.colorValue)
             
             Text(category.name)
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? .white : .primary)
+                .foregroundStyle(isSelected ? category.colorValue.contrastingTextColor : .primary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -619,4 +622,39 @@ struct CategoryTab: View {
         .scaleEffect(isSelected ? 1.05 : 1.0)
     }
 }
+
+// MARK: - Color Extension for Contrast
+
+extension Color {
+    /// Returns either black or white text color based on the background luminance
+    var contrastingTextColor: Color {
+        // Convert to UIColor/NSColor to access RGB components
+        #if os(iOS)
+        let uiColor = UIColor(self)
+        #elseif os(macOS)
+        let uiColor = NSColor(self)
+        #endif
+        
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        
+        #if os(iOS)
+        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        #elseif os(macOS)
+        if let rgbColor = uiColor.usingColorSpace(.deviceRGB) {
+            rgbColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        }
+        #endif
+        
+        // Calculate relative luminance using the formula:
+        // L = 0.2126 * R + 0.7152 * G + 0.0722 * B
+        let luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+        
+        // Use black text for light backgrounds, white text for dark backgrounds
+        return luminance > 0.6 ? .black : .white
+    }
+}
+
 
