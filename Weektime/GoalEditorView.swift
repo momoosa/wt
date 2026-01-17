@@ -33,6 +33,29 @@ struct GoalEditorView: View {
     @State private var selectedCategoryIndex: Int = 0
     @State private var scrollProxy: ScrollViewProxy?
     
+    // Local alias map for suggestion autocomplete
+    private let suggestionAliases: [String: [String]] = [
+        // Keyed by canonical suggestion title (case-insensitive matching will be used)
+        "Meditation": ["meditate", "rest", "mindfulness", "breathing"],
+        "Run": ["running", "jog", "jogging", "cardio"],
+        "Reading": ["read", "book", "books"],
+        "Journal": ["journaling", "write journal", "diary"],
+        "Yoga": ["stretching", "stretch", "asanas"],
+        "Walk": ["walking", "steps"],
+    ]
+
+    private func matchesSuggestion(_ suggestion: GoalTemplateSuggestion, with input: String) -> Bool {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        // Title match
+        if suggestion.title.caseInsensitiveCompare(trimmed) == .orderedSame { return true }
+        // Alias match
+        if let aliases = suggestionAliases[suggestion.title] {
+            return aliases.contains { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        }
+        return false
+    }
+    
     enum EditorStage {
         case name
         case duration
@@ -48,8 +71,31 @@ struct GoalEditorView: View {
                             Section {
                                 TextField("What do you want to do?", text: $userInput)
                                     .onChange(of: userInput) { _, newValue in
+                                        // Clear selection if user is typing freeform
                                         if !newValue.isEmpty {
                                             selectedTemplate = nil
+                                        }
+
+                                        // Try to find a match among suggestions by title or aliases and select it
+                                        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                        guard !trimmed.isEmpty else { return }
+
+                                        if let (categoryIndex, matchedSuggestion) = suggestionsData.categories.enumerated().compactMap({ (idx, category) -> (Int, GoalTemplateSuggestion)? in
+                                            if let suggestion = category.suggestions.first(where: { matchesSuggestion($0, with: trimmed) }) {
+                                                return (idx, suggestion)
+                                            }
+                                            return nil
+                                        }).first {
+                                            // Select the template and category
+                                            selectedTemplate = matchedSuggestion
+                                            selectedCategoryIndex = categoryIndex
+
+                                            // Scroll category tabs to selected category if available
+                                            if let proxy = scrollProxy {
+                                                withAnimation(.easeInOut(duration: 0.25)) {
+                                                    proxy.scrollTo(categoryIndex, anchor: .center)
+                                                }
+                                            }
                                         }
                                     }
                                 
@@ -120,6 +166,22 @@ struct GoalEditorView: View {
                         }
                         
                         if currentStage == .duration {
+                            // Skip suggestions while generating
+                            if isGeneratingSuggestions {
+                                Section {
+                                    Button(role: .cancel) {
+                                        // Cancel suggestion flow
+                                        isGeneratingSuggestions = false
+                                        aiSuggestion = nil
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "forward.fill")
+                                            Text("Skip suggestions")
+                                        }
+                                    }
+                                }
+                            }
+                            
                             // Show AI suggestion reasoning if available
                             if let aiSuggestion, let reasoning = aiSuggestion.reasoning {
                                 Section {
@@ -180,7 +242,10 @@ struct GoalEditorView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(buttonEnabled && !isGeneratingSuggestions ? Color.accentColor : Color.gray)
+                        .background {
+                            Capsule()
+                                .fill(buttonEnabled && !isGeneratingSuggestions ? Color.accentColor : Color.gray)
+                        }
                         .foregroundStyle(.white)
                         .cornerRadius(10)
                     }
@@ -233,22 +298,18 @@ struct GoalEditorView: View {
     func handleButtonTap() {
         switch currentStage {
         case .name:
-            // If template is selected, prefill data without AI
             if let template = selectedTemplate {
+                // Prefill from template and go to duration without AI
                 applyTemplate(template)
                 withAnimation {
                     currentStage = .duration
                 }
             } else {
-                // Generate AI suggestions for custom input
-                Task {
-                    await generateAISuggestions()
-                    await MainActor.run {
-                        withAnimation {
-                            currentStage = .duration
-                        }
-                    }
+                // New goal: go to duration immediately, then start generating suggestions in background
+                withAnimation {
+                    currentStage = .duration
                 }
+                Task { await generateAISuggestions() }
             }
         case .duration:
             saveGoal()
@@ -290,7 +351,10 @@ struct GoalEditorView: View {
     
     /// Generate AI-powered suggestions for duration, theme, and HealthKit metric
     func generateAISuggestions() async {
-        guard !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            await MainActor.run { isGeneratingSuggestions = false }
+            return
+        }
         
         await MainActor.run {
             isGeneratingSuggestions = true
