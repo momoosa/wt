@@ -13,6 +13,9 @@
 		CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */ = {isa = PBXBuildFile; fileRef = CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */; };
 		CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */; };
 		CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */; };
+		CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A02F1B817700A555D6 /* GoalSuggestions.json */; };
+		CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */; };
+		CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */; };
 		CD0668512E34C3620063AC1F /* WeektimeKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD0668502E34C3620063AC1F /* WeektimeKit */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
@@ -57,6 +60,9 @@
 		CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-HealthKit.plist"; sourceTree = "<group>"; };
 		CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitInfoRow.swift; sourceTree = "<group>"; };
 		CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalHealthKitSettingsView.swift; sourceTree = "<group>"; };
+		CD0085A02F1B817700A555D6 /* GoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = GoalSuggestions.json; sourceTree = "<group>"; };
+		CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSuggestionsModel.swift; sourceTree = "<group>"; };
+		CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ResourcesGoalSuggestions.json; sourceTree = "<group>"; };
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
@@ -194,6 +200,9 @@
 				CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */,
 				CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */,
 				CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */,
+				CD0085A02F1B817700A555D6 /* GoalSuggestions.json */,
+				CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */,
+				CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */,
 			);
 			path = Weektime;
 			sourceTree = "<group>";
@@ -326,6 +335,8 @@
 			files = (
 				CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */,
 				CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */,
+				CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */,
+				CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -358,6 +369,7 @@
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
+				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
 				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
 				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,

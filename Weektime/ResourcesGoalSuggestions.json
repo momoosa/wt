@@ -1,0 +1,582 @@
+{
+  "categories": [
+    {
+      "id": "fitness",
+      "name": "Fitness",
+      "icon": "figure.run",
+      "color": "red",
+      "suggestions": [
+        {
+          "id": "morning_run",
+          "title": "Morning Run",
+          "subtitle": "Start your day with energy",
+          "duration": 25,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.run"
+        },
+        {
+          "id": "yoga",
+          "title": "Yoga Practice",
+          "subtitle": "Stretch and strengthen",
+          "duration": 20,
+          "theme": "Wellness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.yoga"
+        },
+        {
+          "id": "gym_workout",
+          "title": "Gym Workout",
+          "subtitle": "Build strength and endurance",
+          "duration": 45,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "dumbbell.fill"
+        },
+        {
+          "id": "walk",
+          "title": "Daily Walk",
+          "subtitle": "Get moving outdoors",
+          "duration": 30,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.walk"
+        },
+        {
+          "id": "cycling",
+          "title": "Cycling",
+          "subtitle": "Ride for cardio health",
+          "duration": 30,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.outdoor.cycle"
+        },
+        {
+          "id": "swimming",
+          "title": "Swimming",
+          "subtitle": "Full body workout",
+          "duration": 30,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.pool.swim"
+        },
+        {
+          "id": "hiit",
+          "title": "HIIT Training",
+          "subtitle": "High intensity intervals",
+          "duration": 20,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "bolt.heart.fill"
+        },
+        {
+          "id": "stretching",
+          "title": "Stretching",
+          "subtitle": "Improve flexibility",
+          "duration": 15,
+          "theme": "Wellness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.flexibility"
+        },
+        {
+          "id": "pilates",
+          "title": "Pilates",
+          "subtitle": "Core strength and balance",
+          "duration": 30,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.pilates"
+        },
+        {
+          "id": "dance",
+          "title": "Dance Workout",
+          "subtitle": "Move to the rhythm",
+          "duration": 25,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.dance"
+        }
+      ]
+    },
+    {
+      "id": "mindfulness",
+      "name": "Mindfulness",
+      "icon": "brain.head.profile",
+      "color": "purple",
+      "suggestions": [
+        {
+          "id": "meditation",
+          "title": "Meditation",
+          "subtitle": "Find inner peace",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "sparkles"
+        },
+        {
+          "id": "journaling",
+          "title": "Journaling",
+          "subtitle": "Reflect on your day",
+          "duration": 15,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "book.closed"
+        },
+        {
+          "id": "breathing",
+          "title": "Breathing Exercises",
+          "subtitle": "Calm your mind",
+          "duration": 5,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "wind"
+        },
+        {
+          "id": "gratitude",
+          "title": "Gratitude Practice",
+          "subtitle": "Count your blessings",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "heart.fill"
+        },
+        {
+          "id": "body_scan",
+          "title": "Body Scan",
+          "subtitle": "Connect with yourself",
+          "duration": 15,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "figure.mind.and.body"
+        },
+        {
+          "id": "affirmations",
+          "title": "Daily Affirmations",
+          "subtitle": "Positive self-talk",
+          "duration": 5,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "quote.bubble"
+        },
+        {
+          "id": "mindful_walk",
+          "title": "Mindful Walking",
+          "subtitle": "Present moment awareness",
+          "duration": 20,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "figure.walk.motion"
+        },
+        {
+          "id": "loving_kindness",
+          "title": "Loving Kindness",
+          "subtitle": "Cultivate compassion",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "heart.circle"
+        }
+      ]
+    },
+    {
+      "id": "learning",
+      "name": "Learning",
+      "icon": "book.fill",
+      "color": "blue",
+      "suggestions": [
+        {
+          "id": "reading",
+          "title": "Reading",
+          "subtitle": "Expand your knowledge",
+          "duration": 30,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "book.pages"
+        },
+        {
+          "id": "language",
+          "title": "Language Learning",
+          "subtitle": "Practice a new language",
+          "duration": 20,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "globe"
+        },
+        {
+          "id": "coding",
+          "title": "Coding Practice",
+          "subtitle": "Build your skills",
+          "duration": 45,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "laptopcomputer"
+        },
+        {
+          "id": "online_course",
+          "title": "Online Course",
+          "subtitle": "Learn something new",
+          "duration": 30,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "graduationcap.fill"
+        },
+        {
+          "id": "audiobook",
+          "title": "Audiobook",
+          "subtitle": "Listen and learn",
+          "duration": 25,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "headphones"
+        },
+        {
+          "id": "documentary",
+          "title": "Watch Documentary",
+          "subtitle": "Visual learning",
+          "duration": 30,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "film"
+        },
+        {
+          "id": "research",
+          "title": "Research Topic",
+          "subtitle": "Deep dive into interests",
+          "duration": 20,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "magnifyingglass"
+        },
+        {
+          "id": "study",
+          "title": "Study Session",
+          "subtitle": "Review and practice",
+          "duration": 45,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "text.book.closed"
+        }
+      ]
+    },
+    {
+      "id": "creative",
+      "name": "Creative",
+      "icon": "paintpalette.fill",
+      "color": "orange",
+      "suggestions": [
+        {
+          "id": "music_practice",
+          "title": "Music Practice",
+          "subtitle": "Master your instrument",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "music.note"
+        },
+        {
+          "id": "drawing",
+          "title": "Drawing",
+          "subtitle": "Express yourself visually",
+          "duration": 25,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "pencil.tip"
+        },
+        {
+          "id": "writing",
+          "title": "Creative Writing",
+          "subtitle": "Tell your stories",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "doc.text"
+        },
+        {
+          "id": "photography",
+          "title": "Photography",
+          "subtitle": "Capture moments",
+          "duration": 20,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "camera.fill"
+        },
+        {
+          "id": "painting",
+          "title": "Painting",
+          "subtitle": "Create with colors",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "paintbrush.fill"
+        },
+        {
+          "id": "knitting",
+          "title": "Knitting/Crochet",
+          "subtitle": "Craft with yarn",
+          "duration": 25,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "thread"
+        },
+        {
+          "id": "cooking_creative",
+          "title": "Recipe Creation",
+          "subtitle": "Experiment in kitchen",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "fork.knife"
+        },
+        {
+          "id": "video_editing",
+          "title": "Video Editing",
+          "subtitle": "Create visual stories",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "video.fill"
+        }
+      ]
+    },
+    {
+      "id": "chores",
+      "name": "Chores",
+      "icon": "house.fill",
+      "color": "green",
+      "suggestions": [
+        {
+          "id": "cleaning",
+          "title": "House Cleaning",
+          "subtitle": "Tidy up your space",
+          "duration": 30,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "sparkles"
+        },
+        {
+          "id": "meal_prep",
+          "title": "Meal Prep",
+          "subtitle": "Plan healthy meals",
+          "duration": 45,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "fork.knife"
+        },
+        {
+          "id": "laundry",
+          "title": "Laundry",
+          "subtitle": "Fresh clothes ready",
+          "duration": 20,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "tshirt.fill"
+        },
+        {
+          "id": "gardening",
+          "title": "Gardening",
+          "subtitle": "Nurture your plants",
+          "duration": 30,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "leaf.fill"
+        },
+        {
+          "id": "dishes",
+          "title": "Washing Dishes",
+          "subtitle": "Clean kitchen routine",
+          "duration": 15,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "drop.fill"
+        },
+        {
+          "id": "organizing",
+          "title": "Organizing",
+          "subtitle": "Declutter your space",
+          "duration": 20,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "square.stack.3d.up"
+        },
+        {
+          "id": "vacuuming",
+          "title": "Vacuuming",
+          "subtitle": "Deep clean floors",
+          "duration": 20,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "wind"
+        },
+        {
+          "id": "grocery_shopping",
+          "title": "Grocery Shopping",
+          "subtitle": "Stock your pantry",
+          "duration": 30,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "cart.fill"
+        }
+      ]
+    },
+    {
+      "id": "sleep",
+      "name": "Sleep",
+      "icon": "moon.stars.fill",
+      "color": "indigo",
+      "suggestions": [
+        {
+          "id": "bedtime_routine",
+          "title": "Bedtime Routine",
+          "subtitle": "Wind down for better sleep",
+          "duration": 15,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "bed.double.fill"
+        },
+        {
+          "id": "sleep_meditation",
+          "title": "Sleep Meditation",
+          "subtitle": "Relax before bed",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": "mindful_minutes",
+          "icon": "moon.zzz.fill"
+        },
+        {
+          "id": "screen_free",
+          "title": "Screen-Free Time",
+          "subtitle": "Digital detox before sleep",
+          "duration": 30,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "iphone.slash"
+        },
+        {
+          "id": "reading_bed",
+          "title": "Reading in Bed",
+          "subtitle": "Calm your mind with a book",
+          "duration": 20,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "book.fill"
+        },
+        {
+          "id": "herbal_tea",
+          "title": "Herbal Tea Ritual",
+          "subtitle": "Soothing evening drink",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "cup.and.saucer.fill"
+        },
+        {
+          "id": "gentle_stretching",
+          "title": "Gentle Stretching",
+          "subtitle": "Release tension",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "figure.flexibility"
+        },
+        {
+          "id": "sleep_prep",
+          "title": "Prepare Environment",
+          "subtitle": "Optimize bedroom",
+          "duration": 10,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "lightbulb.slash"
+        },
+        {
+          "id": "evening_walk",
+          "title": "Evening Walk",
+          "subtitle": "Calm nighttime stroll",
+          "duration": 15,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "moon.stars"
+        }
+      ]
+    },
+    {
+      "id": "hobbies",
+      "name": "Hobbies",
+      "icon": "star.fill",
+      "color": "yellow",
+      "suggestions": [
+        {
+          "id": "puzzle",
+          "title": "Puzzles",
+          "subtitle": "Challenge your mind",
+          "duration": 20,
+          "theme": "Recreation",
+          "healthKitMetric": null,
+          "icon": "puzzlepiece.fill"
+        },
+        {
+          "id": "board_games",
+          "title": "Board Games",
+          "subtitle": "Quality time with others",
+          "duration": 45,
+          "theme": "Recreation",
+          "healthKitMetric": null,
+          "icon": "dice.fill"
+        },
+        {
+          "id": "crafts",
+          "title": "Crafts",
+          "subtitle": "Create something beautiful",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "scissors"
+        },
+        {
+          "id": "podcasts",
+          "title": "Listen to Podcasts",
+          "subtitle": "Learn while relaxing",
+          "duration": 25,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "waveform"
+        },
+        {
+          "id": "baking",
+          "title": "Baking",
+          "subtitle": "Create delicious treats",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "birthday.cake"
+        },
+        {
+          "id": "collecting",
+          "title": "Collection Care",
+          "subtitle": "Organize your treasures",
+          "duration": 20,
+          "theme": "Recreation",
+          "healthKitMetric": null,
+          "icon": "archivebox.fill"
+        },
+        {
+          "id": "bird_watching",
+          "title": "Bird Watching",
+          "subtitle": "Connect with nature",
+          "duration": 30,
+          "theme": "Recreation",
+          "healthKitMetric": null,
+          "icon": "bird"
+        },
+        {
+          "id": "model_building",
+          "title": "Model Building",
+          "subtitle": "Precision and patience",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "cube.fill"
+        }
+      ]
+    }
+  ]
+}

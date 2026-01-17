@@ -28,6 +28,10 @@ struct GoalEditorView: View {
     @State private var healthKitSyncEnabled: Bool = false
     @State private var isGeneratingSuggestions = false
     @State private var aiSuggestion: GoalSuggestionResponse?
+    @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
+    @State private var selectedTemplate: GoalTemplateSuggestion?
+    @State private var selectedCategoryIndex: Int = 0
+    @State private var scrollProxy: ScrollViewProxy?
     
     enum EditorStage {
         case name
@@ -37,9 +41,87 @@ struct GoalEditorView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                List {
-                    Section(header: Text("Describe your goal")) {
-                        TextField("What do you want to do?", text: $userInput)
+                LazyVStack {
+                    if currentStage == .name {
+                        // Custom input section
+                        Section {
+                            TextField("What do you want to do?", text: $userInput)
+                                .onChange(of: userInput) { _, newValue in
+                                    if !newValue.isEmpty {
+                                        selectedTemplate = nil
+                                     }
+                                }
+                                .padding()
+                                .background {
+                                    Capsule()
+                                        .fill(Color(.secondarySystemGroupedBackground))
+                                }
+                                .background()
+                            
+                        }
+                        
+                        // Scrollable Category Tabs
+                        Section {
+                            
+                            
+                            VStack(spacing: 0) {
+                                ScrollViewReader { proxy in
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack {
+                                            HStack(spacing: 12) {
+                                                ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                                                    CategoryTab(
+                                                        category: category,
+                                                        isSelected: selectedCategoryIndex == index
+                                                    )
+                                                    .id(index) // Add ID for scrolling
+                                                    .onTapGesture {
+                                                        withAnimation(.spring(response: 0.3)) {
+                                                            selectedCategoryIndex = index
+                                                        }
+                                                        
+                                                        // Haptic feedback
+#if os(iOS)
+                                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                                        generator.impactOccurred()
+#endif
+                                                    }
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                            .padding(.vertical)
+                                        }
+                                    }
+                                    .onAppear {
+                                        scrollProxy = proxy
+                                    }
+                                    .onChange(of: selectedCategoryIndex) { _, newIndex in
+                                        // Auto-scroll to selected tab
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            proxy.scrollTo(newIndex, anchor: .center)
+                                        }
+                                    }
+                                }
+                                // Category Tabs
+                                TabView(selection: $selectedCategoryIndex) {
+                                    ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                                        CategorySuggestionsView(
+                                            category: category,
+                                            selectedTemplate: $selectedTemplate,
+                                            userInput: $userInput
+                                        )
+                                        .tag(index)
+                                    }
+                                }
+                                .tabViewStyle(.page(indexDisplayMode: .never))
+                                .frame(height: 400)
+                            }
+
+                        } header: {
+                            Text("Suggestions")
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
                     
                     if currentStage == .duration {
@@ -82,61 +164,6 @@ struct GoalEditorView: View {
                         )
                     }
 
-//                Section {
-//                    if session.isResponding {
-//                        ProgressView("Generating suggestions...")
-//                    } else if let errorMessage {
-//                        Text(errorMessage).foregroundStyle(.red)
-//                    } else if let suggestions = result?.suggestions {
-//                        if suggestions.isEmpty {
-//                            
-//                        } else {
-//                            ForEach(suggestions.prefix(5)) { task in
-//                                VStack(alignment: .leading) {
-//                                    if let title = task.title {
-//                                        Text(title)
-//                                    }
-//                                    HStack {
-//                                        if let subtitle = task.subtitle {
-//                                            Text(subtitle)
-//                                        } else {
-//                                            Text("")
-//                                        }
-//                                    }
-//                                    .font(.footnote)
-//                                    
-//                                    if let themes = task.themes, !themes.isEmpty {
-//                                        HStack {
-//                                            ForEach(themes, id: \.self) { theme in
-//                                                Text(theme)
-//                                                    .padding(2)
-//                                                    .background(Capsule()
-//                                                        .fill(Color(.tertiarySystemBackground)))
-//                                            }
-//                                        }
-//                                        .font(.footnote)
-//
-//                                    }
-//                                }
-//                                .listRowBackground(task.id == selectedSuggestion?.id ? Color.green.opacity(0.3) : Color(.systemBackground))
-////                                .listRowBackground(task.id == selectedSuggestion.id ? Color.green : Color.clear)
-//                                .onTapGesture {
-//                                    selectedSuggestion = task
-//                                }
-//                            }
-//                        }
-//                    }
-//                } header: {
-//                    if session.isResponding {
-//                        Text("Loading suggestions")
-//                    } else {
-//                        Text("Suggestions")
-//                    }
-//                }
-//                Button("Generate Tasks") {
-//                    generateChecklist(for: userInput)
-//                }
-//                .disabled(session.isResponding)
                 }
                 .animation(.spring(), value: result)
                 
@@ -202,7 +229,7 @@ struct GoalEditorView: View {
     var buttonEnabled: Bool {
         switch currentStage {
         case .name:
-            return !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return selectedTemplate != nil || !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .duration:
             return true
         }
@@ -211,18 +238,59 @@ struct GoalEditorView: View {
     func handleButtonTap() {
         switch currentStage {
         case .name:
-            // Generate AI suggestions before moving to duration stage
-            Task {
-                await generateAISuggestions()
-                await MainActor.run {
-                    withAnimation {
-                        currentStage = .duration
+            // If template is selected, prefill data without AI
+            if let template = selectedTemplate {
+                applyTemplate(template)
+                withAnimation {
+                    currentStage = .duration
+                }
+            } else {
+                // Generate AI suggestions for custom input
+                Task {
+                    await generateAISuggestions()
+                    await MainActor.run {
+                        withAnimation {
+                            currentStage = .duration
+                        }
                     }
                 }
             }
         case .duration:
             saveGoal()
         }
+    }
+    
+    /// Apply a template's predefined values
+    func applyTemplate(_ template: GoalTemplateSuggestion) {
+        // Set the title
+        userInput = template.title
+        
+        // Set duration
+        durationInMinutes = template.duration
+        
+        // Set HealthKit metric if available
+        if let metricRawValue = template.healthKitMetric,
+           let metric = HealthKitMetric(rawValue: metricRawValue) {
+            selectedHealthKitMetric = metric
+            healthKitSyncEnabled = true
+        } else {
+            selectedHealthKitMetric = nil
+            healthKitSyncEnabled = false
+        }
+        
+        // Create AI suggestion for display
+        aiSuggestion = GoalSuggestionResponse(
+            suggestedDuration: template.duration,
+            suggestedTheme: template.theme,
+            suggestedHealthKitMetric: template.healthKitMetric,
+            reasoning: template.subtitle
+        )
+        
+        print("✨ Template Applied:")
+        print("   Title: \(template.title)")
+        print("   Duration: \(template.duration) min")
+        print("   Theme: \(template.theme)")
+        print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
     
     /// Generate AI-powered suggestions for duration, theme, and HealthKit metric
@@ -428,3 +496,127 @@ struct GoalEditorView: View {
 //        }
     }
 }
+// MARK: - Category Suggestions View
+
+struct CategorySuggestionsView: View {
+    let category: GoalCategory
+    @Binding var selectedTemplate: GoalTemplateSuggestion?
+    @Binding var userInput: String
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Suggestions List
+            List {
+                ForEach(category.suggestions) { suggestion in
+                    SuggestionRow(
+                        suggestion: suggestion,
+                        isSelected: selectedTemplate?.id == suggestion.id,
+                        categoryColor: category.colorValue
+                    )
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedTemplate = suggestion
+                            userInput = suggestion.title // Prefill textfield
+                        }
+                        
+                        // Haptic feedback
+                        #if os(iOS)
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        #endif
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+        }
+    }
+}
+
+// MARK: - Suggestion Row
+
+struct SuggestionRow: View {
+    let suggestion: GoalTemplateSuggestion
+    let isSelected: Bool
+    let categoryColor: Color
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon
+            Image(systemName: suggestion.icon)
+                .font(.system(size: 32))
+                .foregroundStyle(isSelected ? .white : categoryColor)
+                .frame(width: 50)
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(suggestion.title)
+                    .font(.headline)
+                    .foregroundStyle(isSelected ? .white : .primary)
+                
+                Text(suggestion.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? .white.opacity(0.9) : .secondary)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+            
+            // Duration badge
+            Text("\(suggestion.duration) min")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(isSelected ? categoryColor : .white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? .white : categoryColor)
+                )
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isSelected ? categoryColor : Color(.systemGray6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(isSelected ? categoryColor : Color.clear, lineWidth: 2)
+        )
+        .scaleEffect(isSelected ? 1.02 : 1.0)
+    }
+}
+
+// MARK: - Category Tab
+struct CategoryTab: View {
+    let category: GoalCategory
+    let isSelected: Bool
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: category.icon)
+                .font(.system(size: 18))
+                .foregroundStyle(isSelected ? .white : category.colorValue)
+            
+            Text(category.name)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(isSelected ? .white : .primary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            Capsule()
+                .fill(isSelected ? category.colorValue : Color(.systemGray6))
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(category.colorValue, lineWidth: isSelected ? 0 : 1.5)
+        )
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+    }
+}
+
