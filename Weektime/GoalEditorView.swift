@@ -33,6 +33,63 @@ struct GoalEditorView: View {
     @State private var selectedCategoryIndex: Int = 0
     @State private var scrollProxy: ScrollViewProxy?
     
+    // Scheduling state
+    enum TimeRelation: String, CaseIterable, Identifiable { case before, after; var id: String { rawValue } }
+    struct DaySchedule: Identifiable { let id = UUID(); var enabled: Bool; var relation: TimeRelation; var time: Date }
+    @State private var weeklySchedule: [Int: DaySchedule] = {
+        // Keys 1...7 for Sun(1) ... Sat(7) using Calendar component .weekday
+        var dict: [Int: DaySchedule] = [:]
+        let calendar = Calendar.current
+        let defaultMorning = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+        for weekday in 1...7 {
+            dict[weekday] = DaySchedule(enabled: false, relation: .before, time: defaultMorning)
+        }
+        return dict
+    }()
+    
+    // Option 2: Multiple times list with per-day overrides
+    @State private var globalTimes: [Date] = []
+    @State private var customizeByDay: Bool = false
+    // Keys 1...7 for Sun...Sat
+    @State private var perDayTimes: [Int: [Date]] = [:]
+    
+    // Grid scheduling types
+    enum TimeBucket: String, CaseIterable, Identifiable { case morning, midday, afternoon, evening, night; var id: String { rawValue }
+        var displayName: String {
+            switch self {
+            case .morning: return "Morning"
+            case .midday: return "Midday"
+            case .afternoon: return "Afternoon"
+            case .evening: return "Evening"
+            case .night: return "Night"
+            }
+        }
+        var hoursRange: ClosedRange<Int> {
+            switch self {
+            case .morning: return 6...10
+            case .midday: return 10...14
+            case .afternoon: return 14...17
+            case .evening: return 17...21
+            case .night: return 21...23
+            }
+        }
+    }
+    struct DayBucket: Identifiable, Hashable {
+        var id: String {
+            return "\(weekday)-\(bucket.id)"
+        }
+        let weekday: Int
+        let bucket: TimeBucket
+    }
+    @State private var activeBuckets: Set<DayBucket> = []
+    @State private var bucketTimes: [DayBucket: [DateComponents]] = [:]
+    @State private var editingBucket: DayBucket?
+    @State private var tempTimes: [Date] = []
+    
+    // Simple multi-select time of day
+    enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
+    @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = []
+    
     // Local alias map for suggestion autocomplete
     private let suggestionAliases: [String: [String]] = [
         // Keyed by canonical suggestion title (case-insensitive matching will be used)
@@ -66,7 +123,6 @@ struct GoalEditorView: View {
             VStack(spacing: 0) {
                     
                     List {
-                        if currentStage == .name {
                             // Custom input section
                             Section {
                                 TextField("What do you want to do?", text: $userInput)
@@ -100,7 +156,8 @@ struct GoalEditorView: View {
                                     }
                                 
                             }
-                            
+                        if currentStage == .name {
+
                             // Scrollable Category Tabs
                             Section {
                                 
@@ -166,6 +223,61 @@ struct GoalEditorView: View {
                         }
                         
                         if currentStage == .duration {
+                            Section(header: Text("Time of Day")) {
+                                Menu {
+                                    // Toggle choices
+                                    ForEach(SimpleTimeOfDay.allCases) { option in
+                                        Button {
+                                            if selectedSimpleTimes.contains(option) {
+                                                selectedSimpleTimes.remove(option)
+                                            } else {
+                                                selectedSimpleTimes.insert(option)
+                                            }
+                                        } label: {
+                                            HStack {
+                                                Text(option.rawValue)
+                                                Spacer()
+                                                if selectedSimpleTimes.contains(option) {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Divider()
+                                    Button {
+                                        selectedSimpleTimes = Set(SimpleTimeOfDay.allCases)
+                                    } label: {
+                                        Label("Select All", systemImage: "checkmark.circle")
+                                    }
+                                    Button(role: .destructive) {
+                                        selectedSimpleTimes.removeAll()
+                                    } label: {
+                                        Label("Clear All", systemImage: "xmark.circle")
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text("Select")
+                                        Spacer()
+                                        let summary: String = {
+                                            if selectedSimpleTimes.isEmpty { return "None" }
+                                            // Show up to three selections, else count
+                                            let names = selectedSimpleTimes.map { $0.rawValue }
+                                            if names.count <= 3 {
+                                                return names.sorted().joined(separator: ", ")
+                                            } else {
+                                                return "\(names.count) selected"
+                                            }
+                                        }()
+                                        Text(summary)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Text("Quickly choose when this goal is relevant. You can still fine-tune below.")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            
                             // Skip suggestions while generating
                             if isGeneratingSuggestions {
                                 Section {
@@ -199,6 +311,104 @@ struct GoalEditorView: View {
                                         }
                                     }
                                     .padding(.vertical, 4)
+                                }
+                            }
+                            
+                            // Times (global)
+                            Section(header: Text("Times")) {
+                                if globalTimes.isEmpty {
+                                    Text("Add one or more times when you'd like this goal suggested.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                                ForEach(globalTimes.indices, id: \.self) { idx in
+                                    HStack {
+                                        DatePicker(
+                                            "Time \(idx + 1)",
+                                            selection: Binding(
+                                                get: { globalTimes[idx] },
+                                                set: { globalTimes[idx] = $0 }
+                                            ),
+                                            displayedComponents: .hourAndMinute
+                                        )
+                                        Spacer()
+                                        Button(role: .destructive) {
+                                            globalTimes.remove(at: idx)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .foregroundStyle(.red)
+                                        }
+                                        .buttonStyle(.borderless)
+                                    }
+                                }
+                                Button {
+                                    let base = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+                                    globalTimes.append(base)
+                                } label: {
+                                    Label("Add time", systemImage: "plus.circle")
+                                }
+                            }
+
+                            // Toggle for per-day overrides
+                            Section {
+                                Toggle("Customize by day", isOn: $customizeByDay)
+                            }
+
+                            // Per-day overrides
+                            if customizeByDay {
+                                Section(header: Text("Per-Day Overrides")) {
+                                    let weekdays = Calendar.current.weekdaySymbols // Sun..Sat
+                                    ForEach(0..<weekdays.count, id: \.self) { offset in
+                                        let weekday = offset + 1
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack {
+                                                Text(weekdays[offset])
+                                                    .font(.headline)
+                                                Spacer()
+                                                if let times = perDayTimes[weekday], !times.isEmpty {
+                                                    Button(role: .destructive) {
+                                                        perDayTimes[weekday] = []
+                                                    } label: {
+                                                        Label("Clear", systemImage: "xmark.circle")
+                                                    }
+                                                    .buttonStyle(.borderless)
+                                                }
+                                            }
+
+                                            let times = perDayTimes[weekday] ?? []
+                                            ForEach(times.indices, id: \.self) { tIdx in
+                                                HStack {
+                                                    DatePicker(
+                                                        "Time \(tIdx + 1)",
+                                                        selection: Binding(
+                                                            get: { perDayTimes[weekday]![tIdx] },
+                                                            set: { perDayTimes[weekday]![tIdx] = $0 }
+                                                        ),
+                                                        displayedComponents: .hourAndMinute
+                                                    )
+                                                    Spacer()
+                                                    Button(role: .destructive) {
+                                                        perDayTimes[weekday]?.remove(at: tIdx)
+                                                    } label: {
+                                                        Image(systemName: "trash")
+                                                            .foregroundStyle(.red)
+                                                    }
+                                                    .buttonStyle(.borderless)
+                                                }
+                                            }
+
+                                            Button {
+                                                let base = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) ?? Date()
+                                                perDayTimes[weekday, default: []].append(base)
+                                            } label: {
+                                                Label("Add time for \(weekdays[offset])", systemImage: "plus.circle")
+                                            }
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                    Text("Global times apply to all days unless a day has overrides here.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                             
@@ -275,7 +485,54 @@ struct GoalEditorView: View {
                 }
                 // Removed the trailing toolbar button since we have the bottom button now
             }
-        
+        }
+        .sheet(item: $editingBucket) { key in
+            NavigationStack {
+                VStack {
+                    if tempTimes.isEmpty {
+                        Text("Add one or more exact times for this cell.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    List {
+                        ForEach(tempTimes.indices, id: \.self) { idx in
+                            DatePicker(
+                                "Time \(idx + 1)",
+                                selection: Binding(
+                                    get: { tempTimes[idx] },
+                                    set: { tempTimes[idx] = $0 }
+                                ),
+                                displayedComponents: .hourAndMinute
+                            )
+                            Button(role: .destructive) {
+                                tempTimes.remove(at: idx)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                        Button {
+                            let base = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+                            tempTimes.append(base)
+                        } label: {
+                            Label("Add time", systemImage: "plus.circle")
+                        }
+                    }
+                }
+                .navigationTitle("Edit Times")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { editingBucket = nil }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            let comps = tempTimes.map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
+                            bucketTimes[key] = comps
+                            editingBucket = nil
+                        }
+                    }
+                }
+            }
         }
         .task {
             prewarm()
@@ -435,6 +692,25 @@ struct GoalEditorView: View {
         
         let theme = GoalTheme(title: themeTitle, color: themes.randomElement()!)
         
+        if !selectedSimpleTimes.isEmpty {
+            print("Simple Time of Day:", selectedSimpleTimes.map { $0.rawValue }.sorted().joined(separator: ", "))
+        }
+        
+        // Debug: Grid schedule (active buckets + per-cell times)
+        if !activeBuckets.isEmpty {
+            let weekdays = Calendar.current.shortWeekdaySymbols
+            for entry in activeBuckets {
+                let dayName = weekdays[(entry.weekday - 1) % weekdays.count]
+                let times = bucketTimes[entry] ?? []
+                if times.isEmpty {
+                    print("Grid active: \(dayName) - \(entry.bucket.rawValue) (no exact times)")
+                } else {
+                    let formatted = times.map { String(format: "%02d:%02d", $0.hour ?? 0, $0.minute ?? 0) }.joined(separator: ", ")
+                    print("Grid active: \(dayName) - \(entry.bucket.rawValue) times: \(formatted)")
+                }
+            }
+        }
+        
         if let selectedSuggestion, let title = selectedSuggestion.title {
             goal = Goal(
                 title: title,
@@ -453,6 +729,34 @@ struct GoalEditorView: View {
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
             )
+        }
+        
+        // Debug: Option 2 schedule (global + per-day overrides)
+        if !globalTimes.isEmpty {
+            let compsList = globalTimes.map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
+            print("Global times:", compsList.map { String(format: "%02d:%02d", $0.hour ?? 0, $0.minute ?? 0) }.joined(separator: ", "))
+        }
+        if !perDayTimes.isEmpty {
+            let weekdays = Calendar.current.weekdaySymbols
+            for weekday in 1...7 {
+                if let times = perDayTimes[weekday], !times.isEmpty {
+                    let formatted = times.map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
+                        .map { String(format: "%02d:%02d", $0.hour ?? 0, $0.minute ?? 0) }
+                        .joined(separator: ", ")
+                    let name = weekdays[(weekday - 1) % weekdays.count]
+                    print("Overrides for \(name): \(formatted)")
+                }
+            }
+        }
+        
+        // TODO: Persist scheduling to the Goal model when supported
+        // Debug print for current schedule
+        let calendar = Calendar.current
+        for weekday in 1...7 {
+            if let sched = weeklySchedule[weekday], sched.enabled {
+                let comps = calendar.dateComponents([.hour, .minute], from: sched.time)
+                print("Schedule for weekday \(weekday): \(sched.relation.rawValue) \(String(format: "%02d:%02d", comps.hour ?? 0, comps.minute ?? 0))")
+            }
         }
         
         // Request notification permissions if enabled
