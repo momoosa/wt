@@ -49,7 +49,6 @@ struct GoalEditorView: View {
     
     // Option 2: Multiple times list with per-day overrides
     @State private var globalTimes: [Date] = []
-    @State private var customizeByDay: Bool = false
     // Keys 1...7 for Sun...Sat
     @State private var perDayTimes: [Int: [Date]] = [:]
     
@@ -81,14 +80,13 @@ struct GoalEditorView: View {
         let weekday: Int
         let bucket: TimeBucket
     }
-    @State private var activeBuckets: Set<DayBucket> = []
     @State private var bucketTimes: [DayBucket: [DateComponents]] = [:]
     @State private var editingBucket: DayBucket?
     @State private var tempTimes: [Date] = []
     
     // Simple multi-select time of day
     enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
-    @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = []
+    @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = [.anytime]
     
     // Local alias map for suggestion autocomplete
     private let suggestionAliases: [String: [String]] = [
@@ -223,6 +221,43 @@ struct GoalEditorView: View {
                         }
                         
                         if currentStage == .duration {
+                            
+                            // Skip suggestions while generating
+                            if isGeneratingSuggestions {
+                                Section {
+                                    Button(role: .cancel) {
+                                        // Cancel suggestion flow
+                                        isGeneratingSuggestions = false
+                                        aiSuggestion = nil
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "forward.fill")
+                                            Text("Skip suggestions")
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Show AI suggestion reasoning if available
+                            if let aiSuggestion, let reasoning = aiSuggestion.reasoning {
+                                Section {
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Image(systemName: "sparkles")
+                                            .foregroundStyle(.purple)
+                                            .font(.title3)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("AI Suggestion")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(.secondary)
+                                            Text(reasoning)
+                                                .font(.callout)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            }
+                            
                             Section(header: Text("Time of Day")) {
                                 Menu {
                                     // Toggle choices
@@ -276,142 +311,6 @@ struct GoalEditorView: View {
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                             }
-                            
-                            
-                            // Skip suggestions while generating
-                            if isGeneratingSuggestions {
-                                Section {
-                                    Button(role: .cancel) {
-                                        // Cancel suggestion flow
-                                        isGeneratingSuggestions = false
-                                        aiSuggestion = nil
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "forward.fill")
-                                            Text("Skip suggestions")
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Show AI suggestion reasoning if available
-                            if let aiSuggestion, let reasoning = aiSuggestion.reasoning {
-                                Section {
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Image(systemName: "sparkles")
-                                            .foregroundStyle(.purple)
-                                            .font(.title3)
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("AI Suggestion")
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(.secondary)
-                                            Text(reasoning)
-                                                .font(.callout)
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
-                            
-                            // Times (global)
-                            Section(header: Text("Times")) {
-                                if globalTimes.isEmpty {
-                                    Text("Add one or more times when you'd like this goal suggested.")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                                ForEach(globalTimes.indices, id: \.self) { idx in
-                                    HStack {
-                                        DatePicker(
-                                            "Time \(idx + 1)",
-                                            selection: Binding(
-                                                get: { globalTimes[idx] },
-                                                set: { globalTimes[idx] = $0 }
-                                            ),
-                                            displayedComponents: .hourAndMinute
-                                        )
-                                        Spacer()
-                                        Button(role: .destructive) {
-                                            globalTimes.remove(at: idx)
-                                        } label: {
-                                            Image(systemName: "trash")
-                                                .foregroundStyle(.red)
-                                        }
-                                        .buttonStyle(.borderless)
-                                    }
-                                }
-                                Button {
-                                    let base = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-                                    globalTimes.append(base)
-                                } label: {
-                                    Label("Add time", systemImage: "plus.circle")
-                                }
-                            }
-
-                            // Toggle for per-day overrides
-                            Section {
-                                Toggle("Customize by day", isOn: $customizeByDay)
-                            }
-
-                            // Per-day overrides
-                            if customizeByDay {
-                                Section(header: Text("Per-Day Overrides")) {
-                                    let weekdays = Calendar.current.weekdaySymbols // Sun..Sat
-                                    ForEach(0..<weekdays.count, id: \.self) { offset in
-                                        let weekday = offset + 1
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            HStack {
-                                                Text(weekdays[offset])
-                                                    .font(.headline)
-                                                Spacer()
-                                                if let times = perDayTimes[weekday], !times.isEmpty {
-                                                    Button(role: .destructive) {
-                                                        perDayTimes[weekday] = []
-                                                    } label: {
-                                                        Label("Clear", systemImage: "xmark.circle")
-                                                    }
-                                                    .buttonStyle(.borderless)
-                                                }
-                                            }
-
-                                            let times = perDayTimes[weekday] ?? []
-                                            ForEach(times.indices, id: \.self) { tIdx in
-                                                HStack {
-                                                    DatePicker(
-                                                        "Time \(tIdx + 1)",
-                                                        selection: Binding(
-                                                            get: { perDayTimes[weekday]![tIdx] },
-                                                            set: { perDayTimes[weekday]![tIdx] = $0 }
-                                                        ),
-                                                        displayedComponents: .hourAndMinute
-                                                    )
-                                                    Spacer()
-                                                    Button(role: .destructive) {
-                                                        perDayTimes[weekday]?.remove(at: tIdx)
-                                                    } label: {
-                                                        Image(systemName: "trash")
-                                                            .foregroundStyle(.red)
-                                                    }
-                                                    .buttonStyle(.borderless)
-                                                }
-                                            }
-
-                                            Button {
-                                                let base = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) ?? Date()
-                                                perDayTimes[weekday, default: []].append(base)
-                                            } label: {
-                                                Label("Add time for \(weekdays[offset])", systemImage: "plus.circle")
-                                            }
-                                        }
-                                        .padding(.vertical, 4)
-                                    }
-                                    Text("Global times apply to all days unless a day has overrides here.")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            
                             Section(header: Text("Duration")) {
                                 Picker("Duration (minutes)", selection: $durationInMinutes) {
                                     ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
@@ -695,22 +594,7 @@ struct GoalEditorView: View {
         if !selectedSimpleTimes.isEmpty {
             print("Simple Time of Day:", selectedSimpleTimes.map { $0.rawValue }.sorted().joined(separator: ", "))
         }
-        
-        // Debug: Grid schedule (active buckets + per-cell times)
-        if !activeBuckets.isEmpty {
-            let weekdays = Calendar.current.shortWeekdaySymbols
-            for entry in activeBuckets {
-                let dayName = weekdays[(entry.weekday - 1) % weekdays.count]
-                let times = bucketTimes[entry] ?? []
-                if times.isEmpty {
-                    print("Grid active: \(dayName) - \(entry.bucket.rawValue) (no exact times)")
-                } else {
-                    let formatted = times.map { String(format: "%02d:%02d", $0.hour ?? 0, $0.minute ?? 0) }.joined(separator: ", ")
-                    print("Grid active: \(dayName) - \(entry.bucket.rawValue) times: \(formatted)")
-                }
-            }
-        }
-        
+      
         if let selectedSuggestion, let title = selectedSuggestion.title {
             goal = Goal(
                 title: title,
@@ -729,24 +613,6 @@ struct GoalEditorView: View {
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
             )
-        }
-        
-        // Debug: Option 2 schedule (global + per-day overrides)
-        if !globalTimes.isEmpty {
-            let compsList = globalTimes.map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
-            print("Global times:", compsList.map { String(format: "%02d:%02d", $0.hour ?? 0, $0.minute ?? 0) }.joined(separator: ", "))
-        }
-        if !perDayTimes.isEmpty {
-            let weekdays = Calendar.current.weekdaySymbols
-            for weekday in 1...7 {
-                if let times = perDayTimes[weekday], !times.isEmpty {
-                    let formatted = times.map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
-                        .map { String(format: "%02d:%02d", $0.hour ?? 0, $0.minute ?? 0) }
-                        .joined(separator: ", ")
-                    let name = weekdays[(weekday - 1) % weekdays.count]
-                    print("Overrides for \(name): \(formatted)")
-                }
-            }
         }
         
         // TODO: Persist scheduling to the Goal model when supported
