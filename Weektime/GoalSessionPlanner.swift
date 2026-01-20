@@ -101,6 +101,9 @@ public class GoalSessionPlanner: ObservableObject {
     ) -> AsyncThrowingStream<DailyPlan.PartiallyGenerated, Error> {
         isGenerating = true
         
+        // Clear current plan when starting a new planning session
+        currentPlan = nil
+        
         let prompt = buildPrompt(
             goals: goals,
             goalSessions: goalSessions,
@@ -180,6 +183,9 @@ public class GoalSessionPlanner: ObservableObject {
         // Build goal context
         var goalContexts: [String] = []
         
+        // Build a list of valid goal IDs
+        let validGoalIDs = goals.map { $0.id.uuidString }
+        
         for goal in goals {
             guard let session = goalSessions.first(where: { $0.goal.id == goal.id }) else { continue }
             
@@ -223,6 +229,9 @@ public class GoalSessionPlanner: ObservableObject {
         You are an AI planner helping a user optimize their daily schedule for personal goals.
         
         Today is \(dayName), and the current time is \(currentTime).
+        
+        VALID GOAL IDS (use ONLY these exact IDs in your PlannedSession objects):
+        \(validGoalIDs.joined(separator: "\n"))
         
         USER PREFERENCES:
         - Planning Horizon: \(preferences.planningHorizon.description)
@@ -270,10 +279,24 @@ public class GoalSessionPlanner: ObservableObject {
            - Balanced: Mix of session lengths
            - Flexible: Shorter, more frequent sessions
         
+        CRITICAL INSTRUCTIONS FOR THE "id" FIELD:
+        - Each PlannedSession's "id" field MUST be one of the VALID GOAL IDS listed at the top
+        - Look at the "VALID GOAL IDS" list and choose the ID that matches the goal you're planning
+        - Match the goal by looking at its title in the "ACTIVE GOALS" section, then use its corresponding ID
+        - The "id" field must be an EXACT copy of one of the UUIDs from the VALID GOAL IDS list
+        - Do NOT create new IDs, do NOT simplify them, do NOT use "goal1" or "goal_001"
+        
         TASK:
         Create an optimized daily plan with recommended start times, durations, and priorities for each goal.
         Provide clear reasoning for each scheduling decision.
         Include an overall strategy summary explaining your approach for the day.
+        
+        For each PlannedSession:
+        1. Choose a goal from the ACTIVE GOALS section
+        2. Find that goal's ID in the VALID GOAL IDS list at the top
+        3. Copy that exact UUID string into the PlannedSession's "id" field
+        4. Set "goalTitle" to match the goal's title
+        5. Choose appropriate start time, duration, priority, and reasoning
         
         Format times as 24-hour HH:mm (e.g., "09:30", "14:00", "19:45").
         Order sessions chronologically by recommended start time.

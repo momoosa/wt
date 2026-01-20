@@ -53,7 +53,6 @@ struct ContentView: View {
     @State private var planner = GoalSessionPlanner()
     @State private var plannerPreferences = PlannerPreferences.default
     @State private var isPlanning = false
-    @State private var showPlanningResult = false
     @State private var revealedSessionIDs: Set<UUID> = []
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
@@ -334,15 +333,6 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
-        }
-        .alert("Planning Complete", isPresented: .constant(planner.currentPlan != nil && isPlanning == false && showPlanningResult)) {
-            Button("OK") {
-                showPlanningResult = false
-            }
-        } message: {
-            if let plan = planner.currentPlan {
-                Text("Created \(plan.sessions.count) planned session(s) for today.")
-            }
         }
     }
     
@@ -829,6 +819,15 @@ struct ContentView: View {
         // Clear previous revealed sessions
         revealedSessionIDs.removeAll()
         
+        // Delete all existing GoalSession objects for this day
+        await MainActor.run {
+            for session in sessions {
+                modelContext.delete(session)
+            }
+            // Save the deletion
+            try? modelContext.save()
+        }
+        
         // Provide haptic feedback
         #if os(iOS)
         let generator = UINotificationFeedbackGenerator()
@@ -861,22 +860,59 @@ struct ContentView: View {
                 max(1, timeBasedMaxSessions)
             )
             
-            let plan = try await planner.generateDailyPlan(
+            self.day.removeAllSessions()
+            
+            // Use streaming to get real-time updates
+            let stream = planner.streamDailyPlan(
                 for: activeGoals,
                 goalSessions: sessions,
                 currentDate: day.startDate,
                 userPreferences: preferences
             )
             
-            // Apply the plan by updating GoalSession statuses
-            await applyPlan(plan)
+            var latestPlan: DailyPlan?
             
-            // Animate the reveal of planned sessions
-            await animatePlannedSessions(plan)
+            for try await partialPlan in stream {
+                // Convert partial plan to full plan if we have sessions
+                if let sessions = partialPlan.sessions {
+                    let fullyGeneratedSessions = sessions.compactMap { partialSession -> PlannedSession? in
+                        guard let id = partialSession.id,
+                              let goalTitle = partialSession.goalTitle,
+                              let recommendedStartTime = partialSession.recommendedStartTime,
+                              let suggestedDuration = partialSession.suggestedDuration,
+                              let priority = partialSession.priority,
+                              let reasoning = partialSession.reasoning else {
+                            return nil
+                        }
+                        
+                        return PlannedSession(
+                            id: id,
+                            goalTitle: goalTitle,
+                            recommendedStartTime: recommendedStartTime,
+                            suggestedDuration: suggestedDuration,
+                            priority: priority,
+                            reasoning: reasoning
+                        )
+                    }
+                    
+                    // Only update if we have at least one fully generated session
+                    if !fullyGeneratedSessions.isEmpty {
+                        let plan = DailyPlan(
+                            sessions: fullyGeneratedSessions,
+                            overallStrategy: partialPlan.overallStrategy ?? nil
+                        )
+                        latestPlan = plan
+                        
+                        // Apply the partial plan as it streams in
+                        await applyPlan(plan)
+                    }
+                }
+            }
             
-            // Show result
-            await MainActor.run {
-                showPlanningResult = true
+            // Use the final plan for animation
+            if let plan = latestPlan {
+                // Animate the reveal of planned sessions
+                await animatePlannedSessions(plan)
             }
             
         } catch {
@@ -968,21 +1004,54 @@ struct ContentView: View {
         }
     }
     
-    /// Apply the generated plan to GoalSessions
+    /// Apply the generated plan by creating GoalSession objects
+    @MainActor
     private func applyPlan(_ plan: DailyPlan) async {
-        await MainActor.run {
-            // First, clear all existing planning details
-            for session in sessions {
-                session.clearPlanningDetails()
-            }
+            // Get existing sessions to avoid duplicates during streaming
+            let existingSessionGoalIDs = Set(sessions.map { $0.goal.id })
             
-            // Update sessions based on the plan
+            // Create new GoalSession objects for each planned session
             for plannedSession in plan.sessions {
-                // Find the corresponding GoalSession by matching the goal ID
-                if let goalID = UUID(uuidString: plannedSession.id),
-                   let session = sessions.first(where: { $0.goal.id == goalID }) {
+                // Try to find the goal by UUID first
+                var goal: Goal?
+                let goalIDs = goals.map { $0.id }
+                if let goalID = UUID(uuidString: plannedSession.id) {
+                    // UUID parsing succeeded - find by ID
+                    for id in goalIDs {
+                        if id.uuidString == plannedSession.id {
+                            print("§ maaaatch")
+                        }
+                        print("§\(id)")
+                    }
+                    goal = goals.first(where: { $0.id == goalID })
+                }
+                
+                
+                // Fallback: if UUID parsing failed or goal not found, try matching by title
+                if goal == nil {
+                    goal = goals.first(where: { $0.title == plannedSession.goalTitle })
+                }
+                
+                guard let matchedGoal = goal else {
+                    print("⚠️ Could not find goal for planned session: \(plannedSession.goalTitle) (ID: \(plannedSession.id))")
+                    continue
+                }
+                
+                // Check if a session already exists for this goal
+                if let existingSession = sessions.first(where: { $0.goal.id == matchedGoal.id }) {
+                    // Update existing session's planning details
+                    existingSession.updatePlanningDetails(
+                        startTime: plannedSession.recommendedStartTime,
+                        duration: plannedSession.suggestedDuration,
+                        priority: plannedSession.priority,
+                        reasoning: plannedSession.reasoning
+                    )
+                    existingSession.status = .active
+                } else {
+                    // Create a new GoalSession only if one doesn't exist
+                    let session = GoalSession(title: matchedGoal.title, goal: matchedGoal, day: day)
                     
-                    // Update planning details
+                    // Apply planning details
                     session.updatePlanningDetails(
                         startTime: plannedSession.recommendedStartTime,
                         duration: plannedSession.suggestedDuration,
@@ -990,24 +1059,16 @@ struct ContentView: View {
                         reasoning: plannedSession.reasoning
                     )
                     
-                    // Mark as active (unless it's been skipped by the user)
-                    if session.status != .skipped {
-                        session.status = .active
-                    }
+                    // Mark as active
+                    session.status = .active
+                    
+                    // Insert into model context
+                    modelContext.insert(session)
                 }
             }
             
-            // Sessions not in the plan become suggestions
-            let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
-            for session in sessions {
-                if !plannedGoalIDs.contains(session.goal.id) && session.plannedStartTime == nil {
-                    // This session wasn't planned for today - mark as suggestion
-                    if session.status == .active {
-                        session.status = .suggestion
-                    }
-                }
-            }
-        }
+            // Save the new/updated sessions
+            try? modelContext.save()
     }
     
     // MARK: - Debug Helpers

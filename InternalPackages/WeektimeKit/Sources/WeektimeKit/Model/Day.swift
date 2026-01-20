@@ -45,6 +45,13 @@ public final class Day {
         weekdayID = Int16(weekday)
     }
 
+    public func removeAllSessions() {
+        for session in sessions {
+            modelContext?.delete(session)
+        }
+        sessions.removeAll()
+    }
+    
     public func add(historicalSession: HistoricalSession) {
         if let index = historicalSessions.firstIndex(where: { $0.id == historicalSession.id }) {
             historicalSessions[index] = historicalSession
