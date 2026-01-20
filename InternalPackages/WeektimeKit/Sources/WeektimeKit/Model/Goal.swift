@@ -21,6 +21,9 @@ public final class Goal {
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
     public var healthKitSyncEnabled: Bool = false // Whether to sync time from HealthKit
     
+    // Time of Day Preferences (for AI planner)
+    public var preferredTimesOfDay: [String] = [] // e.g., ["morning", "afternoon", "evening", "night"]
+    
     @Relationship
     var goalSessions: [GoalSession] = []
     @Relationship public var checklistItems: [ChecklistItem] = []

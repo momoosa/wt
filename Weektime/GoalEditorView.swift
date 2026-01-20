@@ -591,6 +591,9 @@ struct GoalEditorView: View {
         
         let theme = GoalTheme(title: themeTitle, color: themes.randomElement()!)
         
+        // Convert time of day selections to strings for storage
+        let timePreferences = selectedSimpleTimes.map { $0.rawValue.lowercased() }
+        
         if !selectedSimpleTimes.isEmpty {
             print("Simple Time of Day:", selectedSimpleTimes.map { $0.rawValue }.sorted().joined(separator: ", "))
         }
@@ -604,6 +607,7 @@ struct GoalEditorView: View {
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
             )
+            goal.preferredTimesOfDay = timePreferences
         } else {
             goal = Goal(
                 title: userInput,
@@ -613,6 +617,7 @@ struct GoalEditorView: View {
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
             )
+            goal.preferredTimesOfDay = timePreferences
         }
         
         // TODO: Persist scheduling to the Goal model when supported

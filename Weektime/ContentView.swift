@@ -23,10 +23,33 @@ struct ContentView: View {
     @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .skippedSessions, .archivedGoals]
     @State private var activeFilter: Filter = .activeToday
     
+    private var dynamicAvailableFilters: [Filter] {
+        var filters = availableFilters
+        
+        // Add "Planned" filter if there are any planned sessions
+        let hasPlannedSessions = sessions.contains(where: { $0.plannedStartTime != nil })
+        if hasPlannedSessions && !filters.contains(.planned) {
+            // Insert planned filter after activeToday
+            if let index = filters.firstIndex(of: .activeToday) {
+                filters.insert(.planned, at: index + 1)
+            } else {
+                filters.insert(.planned, at: 0)
+            }
+        }
+        
+        return filters
+    }
+    
     @State private var activeSession: ActiveSessionDetails?
     @State private var now = Date()
+    @State private var showPlanner = false
+    @State private var showAllGoals = false
     @State private var healthKitManager = HealthKitManager()
     @State private var healthKitObservers = [HKObserverQuery]()
+    @State private var planner = GoalSessionPlanner()
+    @State private var plannerPreferences = PlannerPreferences.default
+    @State private var isPlanning = false
+    @State private var showPlanningResult = false
     // MARK: - UserDefaults Keys for Timer Persistence
     private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
     private let activeSessionStartDateKey = "ActiveSessionStartDateV1"
@@ -49,9 +72,17 @@ struct ContentView: View {
                             
                             HStack {
                                 VStack(alignment: .leading) {
-                                    Text(session.goal.title)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
+                                    HStack {
+                                        Text(session.goal.title)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(.primary)
+                                        
+                                        // Show AI planning badge
+                                        if let priority = session.plannedPriority {
+                                            priorityBadge(for: priority)
+                                        }
+                                    }
+                                    
                                     HStack {
                                         if let activeSession, activeSession.id == session.id, let timeText = activeSession.timeText {
                                             Text(timeText)
@@ -78,6 +109,21 @@ struct ContentView: View {
                                             }
                                         }
                                         
+                                        // Show planned start time
+                                        if let startTime = session.plannedStartTime {
+                                            Text("•")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                            
+                                            Label {
+                                                Text(startTime)
+                                            } icon: {
+                                                Image(systemName: "clock.fill")
+                                            }
+                                            .font(.caption2)
+                                            .foregroundStyle(.purple)
+                                        }
+                                        
                                         Text(session.goal.primaryTheme.title)
                                             .font(.caption2)
                                             .padding(4)
@@ -93,6 +139,14 @@ struct ContentView: View {
                                         
                                     }
                                     .opacity(0.7)
+                                    
+                                    // Show AI reasoning if available
+                                    if let reasoning = session.plannedReasoning, selectedSession == session {
+                                        Text(reasoning)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .padding(.top, 4)
+                                    }
                                 }
                                 
                                 Spacer()
@@ -141,7 +195,15 @@ struct ContentView: View {
         .toolbar {
 #if os(iOS)
             ToolbarItem(placement: .navigationBarTrailing) {
-                EditButton()
+                HStack(spacing: 12) {
+                    Button {
+                        showAllGoals = true
+                    } label: {
+                        Image(systemName: "list.bullet")
+                    }
+                    
+                    EditButton()
+                }
             }
             
             #if DEBUG
@@ -171,6 +233,23 @@ struct ContentView: View {
                 }
             }
             ToolbarSpacer(.fixed, placement: .bottomBar)
+
+            ToolbarItem(placement: .bottomBar) {
+                // Planner button
+                Button {
+                    Task {
+                        await generateDailyPlan()
+                    }
+                } label: {
+                    if isPlanning {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Label("Plan Day", systemImage: "sparkles")
+                    }
+                }
+                .disabled(isPlanning)
+            }
 
             ToolbarItem(placement: .bottomBar) {
                 // Plus button with overlay of active timer above it
@@ -223,6 +302,18 @@ struct ContentView: View {
                     .zoom(sourceID: "info", in: animation)
                 )
         }
+        .sheet(isPresented: $showAllGoals) {
+            AllGoalsView(goals: goals)
+        }
+        .alert("Planning Complete", isPresented: .constant(planner.currentPlan != nil && isPlanning == false && showPlanningResult)) {
+            Button("OK") {
+                showPlanningResult = false
+            }
+        } message: {
+            if let plan = planner.currentPlan {
+                Text("Created \(plan.sessions.count) planned session(s) for today.")
+            }
+        }
     }
     
     private func count(for filter: Filter) -> Int {
@@ -240,6 +331,8 @@ struct ContentView: View {
         case .recommendedGoals:
             // Currently same criteria as active non-skipped/non-archived
             return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
+        case .planned:
+            return sessions.filter { $0.plannedStartTime != nil && $0.goal.status != .archived && $0.status != .skipped }.count
         case .theme(let goalTheme):
             return sessions.filter { $0.goal.primaryTheme.theme.id == goalTheme.id && $0.goal.status != .archived && $0.status != .skipped }.count
         }
@@ -252,13 +345,13 @@ struct ContentView: View {
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        ForEach(availableFilters, id: \.self) { filter in
+                        ForEach(dynamicAvailableFilters, id: \.self) { filter in
                             HStack(spacing: 4) {
                                 if let image = filter.label.imageName {
                                     Image(systemName: image)
                                 }
                                 if let text = filter.label.text {
-                                    if filter == .skippedSessions || filter == .archivedGoals {
+                                    if filter == .skippedSessions || filter == .archivedGoals || filter == .planned {
                                         let count = count(for: filter)
                                         HStack {
                                             Text(text)
@@ -351,7 +444,7 @@ struct ContentView: View {
             return sessions
         }
         
-        return sessions.filter { session in
+        let filtered = sessions.filter { session in
             let isArchived = session.goal.status == .archived
             let isSkipped = session.status == .skipped
             switch activeFilter {
@@ -365,9 +458,31 @@ struct ContentView: View {
                 return isArchived
             case .skippedSessions:
                 return isSkipped
+            case .planned:
+                return session.plannedStartTime != nil && !isArchived && !isSkipped
             case .theme(let goalTheme):
                 return session.goal.primaryTheme.theme.id == goalTheme.id && !isArchived && !isSkipped
- // TODO:
+            }
+        }
+        
+        // Sort by planned start time if available, otherwise by goal title
+        return filtered.sorted { session1, session2 in
+            // First, prioritize sessions with planned times
+            let has1 = session1.plannedStartTime != nil
+            let has2 = session2.plannedStartTime != nil
+            
+            if has1 && has2 {
+                // Both have planned times - sort by time
+                return session1.plannedStartTime! < session2.plannedStartTime!
+            } else if has1 {
+                // Only session1 has a planned time - it comes first
+                return true
+            } else if has2 {
+                // Only session2 has a planned time - it comes first
+                return false
+            } else {
+                // Neither has a planned time - sort by goal title
+                return session1.goal.title < session2.goal.title
             }
         }
     }
@@ -655,6 +770,91 @@ struct ContentView: View {
         healthKitObservers.removeAll()
     }
     
+    
+    // MARK: - AI Planning
+    
+    /// Generate a daily plan and create GoalSession objects
+    private func generateDailyPlan() async {
+        isPlanning = true
+        defer { isPlanning = false }
+        
+        // Provide haptic feedback
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
+        
+        do {
+            // Generate the plan using active goals
+            let activeGoals = goals.filter { $0.status == .active }
+            let plan = try await planner.generateDailyPlan(
+                for: activeGoals,
+                goalSessions: sessions,
+                currentDate: day.startDate,
+                userPreferences: plannerPreferences
+            )
+            
+            // Apply the plan by updating GoalSession statuses
+            await applyPlan(plan)
+            
+            // Show result
+            await MainActor.run {
+                showPlanningResult = true
+            }
+            
+        } catch {
+            print("Planning failed: \(error)")
+            
+            // Show error alert
+            #if os(iOS)
+            let errorGenerator = UINotificationFeedbackGenerator()
+            errorGenerator.notificationOccurred(.error)
+            #endif
+        }
+    }
+    
+    /// Apply the generated plan to GoalSessions
+    private func applyPlan(_ plan: DailyPlan) async {
+        await MainActor.run {
+            // First, clear all existing planning details
+            for session in sessions {
+                session.clearPlanningDetails()
+            }
+            
+            // Update sessions based on the plan
+            for plannedSession in plan.sessions {
+                // Find the corresponding GoalSession by matching the goal ID
+                if let goalID = UUID(uuidString: plannedSession.id),
+                   let session = sessions.first(where: { $0.goal.id == goalID }) {
+                    
+                    // Update planning details
+                    session.updatePlanningDetails(
+                        startTime: plannedSession.recommendedStartTime,
+                        duration: plannedSession.suggestedDuration,
+                        priority: plannedSession.priority,
+                        reasoning: plannedSession.reasoning
+                    )
+                    
+                    // Mark as active (unless it's been skipped by the user)
+                    if session.status != .skipped {
+                        session.status = .active
+                    }
+                }
+            }
+            
+            // Sessions not in the plan become suggestions
+            let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
+            for session in sessions {
+                if !plannedGoalIDs.contains(session.goal.id) && session.plannedStartTime == nil {
+                    // This session wasn't planned for today - mark as suggestion
+                    if session.status == .active {
+                        session.status = .suggestion
+                    }
+                }
+            }
+        }
+    }
+    
     // MARK: - Debug Helpers
     
     #if DEBUG
@@ -673,6 +873,37 @@ struct ContentView: View {
         }
     }
     #endif
+    
+    // MARK: - Helper Views
+    
+    /// Priority badge view for AI-planned sessions
+    @ViewBuilder
+    private func priorityBadge(for priority: Int) -> some View {
+        let (color, label) = priorityInfo(for: priority)
+        
+        Text(label)
+            .font(.caption2)
+            .fontWeight(.bold)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                Capsule()
+                    .fill(color.gradient)
+            )
+    }
+    
+    /// Get color and label for a priority level
+    private func priorityInfo(for priority: Int) -> (Color, String) {
+        switch priority {
+        case 1: return (.red, "Critical")
+        case 2: return (.orange, "High")
+        case 3: return (.blue, "Medium")
+        case 4: return (.green, "Low")
+        case 5: return (.gray, "Optional")
+        default: return (.gray, "Unknown")
+        }
+    }
 }
 
 // MARK: - Debug Goals
@@ -755,6 +986,111 @@ enum DebugGoals: String, CaseIterable, Identifiable {
     }
 }
 #endif
+
+// MARK: - All Goals View
+
+struct AllGoalsView: View {
+    @Environment(\.dismiss) private var dismiss
+    let goals: [Goal]
+    
+    var activeGoals: [Goal] {
+        goals.filter { $0.status == .active }
+    }
+    
+    var archivedGoals: [Goal] {
+        goals.filter { $0.status == .archived }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                if !activeGoals.isEmpty {
+                    Section("Active Goals") {
+                        ForEach(activeGoals) { goal in
+                            GoalRow(goal: goal)
+                        }
+                    }
+                }
+                
+                if !archivedGoals.isEmpty {
+                    Section("Archived Goals") {
+                        ForEach(archivedGoals) { goal in
+                            GoalRow(goal: goal)
+                        }
+                    }
+                }
+                
+                if goals.isEmpty {
+                    ContentUnavailableView(
+                        "No Goals",
+                        systemImage: "target",
+                        description: Text("Create your first goal to get started")
+                    )
+                }
+            }
+            .navigationTitle("All Goals")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct GoalRow: View {
+    let goal: Goal
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(goal.title)
+                    .font(.headline)
+                
+                HStack {
+                    Text(goal.primaryTheme.title)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(goal.primaryTheme.theme.light.opacity(0.2))
+                        )
+                        .foregroundStyle(goal.primaryTheme.theme.dark)
+                    
+                    if goal.notificationsEnabled {
+                        Image(systemName: "bell.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    if goal.healthKitSyncEnabled {
+                        Image(systemName: "heart.fill")
+                            .font(.caption)
+                            .foregroundStyle(.pink)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("\(Int(goal.weeklyTarget / 60)) min")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                
+                Text("weekly target")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
 
 #Preview {
     let store = GoalStore()

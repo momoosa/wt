@@ -25,13 +25,17 @@ public final class HealthKitManager {
     }
     
     /// Check if a specific metric has been authorized
+    /// Note: For read permissions, HealthKit doesn't provide a definitive status for privacy reasons.
+    /// This method returns true if we've successfully requested authorization before.
     public func isAuthorized(for metric: HealthKitMetric) -> Bool {
         guard isHealthKitAvailable else { return false }
         
         guard let sampleType = metric.sampleType else { return false }
         
-        let status = healthStore.authorizationStatus(for: sampleType)
-        return status == .sharingAuthorized
+        // For read permissions, we can't reliably determine authorization status
+        // Check if we've requested authorization by checking UserDefaults
+        let key = "HealthKitAuthorized_\(metric.rawValue)"
+        return UserDefaults.standard.bool(forKey: key)
     }
     
     /// Request authorization for the specified metrics
@@ -55,6 +59,13 @@ public final class HealthKitManager {
         
         do {
             try await healthStore.requestAuthorization(toShare: [], read: typesToRead)
+            
+            // Mark metrics as authorized in UserDefaults (for read-only access tracking)
+            for metric in metrics {
+                let key = "HealthKitAuthorized_\(metric.rawValue)"
+                UserDefaults.standard.set(true, forKey: key)
+            }
+            
             isAuthorized = true
         } catch {
             authorizationError = error

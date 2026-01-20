@@ -12,15 +12,18 @@ struct HealthKitConfigurationView: View {
     @Binding var selectedMetric: HealthKitMetric?
     @Binding var syncEnabled: Bool
     @State private var healthKitManager = HealthKitManager()
-    @State private var showingAuthorizationAlert = false
-    @State private var authorizationError: Error?
     
     var body: some View {
         Section {
             Toggle("Sync with HealthKit", isOn: $syncEnabled)
             
             if syncEnabled {
-                Picker("Health Metric", selection: $selectedMetric) {
+                Picker("Health Metric", selection: Binding(
+                    get: { selectedMetric },
+                    set: { newMetric in
+                        handleMetricSelection(newMetric)
+                    }
+                )) {
                     Text("None").tag(HealthKitMetric?.none)
                     ForEach(HealthKitMetric.allCases) { metric in
                         Label {
@@ -37,14 +40,8 @@ struct HealthKitConfigurationView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     
-                    // Show authorize button only if this specific metric isn't authorized
-                    if healthKitManager.isHealthKitAvailable && !healthKitManager.isAuthorized(for: selectedMetric) {
-                        Button {
-                            requestHealthKitAuthorization()
-                        } label: {
-                            Label("Authorize HealthKit", systemImage: "heart.text.square.fill")
-                        }
-                    } else if healthKitManager.isAuthorized(for: selectedMetric) {
+                    // Show authorization status
+                    if healthKitManager.isHealthKitAvailable && healthKitManager.isAuthorized(for: selectedMetric) {
                         Label {
                             Text("HealthKit Authorized")
                                 .foregroundStyle(.secondary)
@@ -63,33 +60,22 @@ struct HealthKitConfigurationView: View {
                 Text("Time tracked in HealthKit will be automatically added to your goal progress.")
             }
         }
-        .alert("HealthKit Authorization", isPresented: $showingAuthorizationAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            if let error = authorizationError {
-                Text(error.localizedDescription)
-            } else {
-                Text("HealthKit access granted successfully!")
-            }
-        }
     }
     
-    private func requestHealthKitAuthorization() {
-        guard let selectedMetric else { return }
+    private func handleMetricSelection(_ newMetric: HealthKitMetric?) {
+        // Simply set the metric
+        selectedMetric = newMetric
         
-        Task {
-            do {
-                try await healthKitManager.requestAuthorization(for: [selectedMetric])
+        guard let newMetric else { return }
+        
+        // Request authorization if not already authorized
+        if !healthKitManager.isAuthorized(for: newMetric) {
+            Task {
+                try? await healthKitManager.requestAuthorization(for: [newMetric])
+                
+                // Refresh the manager to update authorization status
                 await MainActor.run {
-                    // Force a refresh by creating a new manager instance
-                    // This will trigger the UI to re-evaluate authorization status
                     healthKitManager = HealthKitManager()
-                    showingAuthorizationAlert = true
-                }
-            } catch {
-                await MainActor.run {
-                    authorizationError = error
-                    showingAuthorizationAlert = true
                 }
             }
         }

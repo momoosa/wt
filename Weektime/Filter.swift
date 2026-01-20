@@ -23,6 +23,8 @@ extension ContentView {
                 "archivedGoals"
             case .skippedSessions:
                 "skippedSessions"
+            case .planned:
+                "planned"
             case .theme(let theme):
                 "theme_\(theme.id)"
             }
@@ -42,6 +44,9 @@ extension ContentView {
                 text = "Archived"
             case .skippedSessions:
                 text = "Skipped"
+            case .planned:
+                image = "sparkles"
+                text = "Planned"
             case .theme(let theme):
                 text = theme.title
             }
@@ -52,6 +57,8 @@ extension ContentView {
             switch self {
             case .activeToday, .recommendedGoals, .allGoals, .archivedGoals, .skippedSessions:
                 return themes.first(where: { $0.id == "blue "})?.dark ?? .blue // TODO:
+            case .planned:
+                return .purple
             case .theme(let goalTheme):
                 return goalTheme.theme.dark
             }
@@ -61,6 +68,7 @@ extension ContentView {
         case allGoals
         case archivedGoals
         case skippedSessions
+        case planned
         case theme(GoalTheme)
     }
 }

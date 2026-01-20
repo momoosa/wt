@@ -24,6 +24,20 @@ public final class GoalSession {
     /// Time tracked from HealthKit for this session (if enabled)
     public private(set) var healthKitTime: TimeInterval = 0
     
+    // MARK: - AI Planning Properties
+    
+    /// Recommended start time from AI planner (stored as time component like "09:30")
+    public var plannedStartTime: String?
+    
+    /// Suggested duration from AI planner in minutes
+    public var plannedDuration: Int?
+    
+    /// Priority assigned by AI planner (1-5, where 1 is highest)
+    public var plannedPriority: Int?
+    
+    /// AI reasoning for this session's scheduling
+    public var plannedReasoning: String?
+    
     public var dailyTarget: TimeInterval {
         return goal.weeklyTarget / 7
     }
@@ -73,5 +87,26 @@ public extension GoalSession {
     /// Update the HealthKit time for this session
     func updateHealthKitTime(_ time: TimeInterval) {
         healthKitTime = time
+    }
+    
+    /// Update planning details from AI planner
+    func updatePlanningDetails(
+        startTime: String,
+        duration: Int,
+        priority: Int,
+        reasoning: String
+    ) {
+        self.plannedStartTime = startTime
+        self.plannedDuration = duration
+        self.plannedPriority = priority
+        self.plannedReasoning = reasoning
+    }
+    
+    /// Clear planning details
+    func clearPlanningDetails() {
+        self.plannedStartTime = nil
+        self.plannedDuration = nil
+        self.plannedPriority = nil
+        self.plannedReasoning = nil
     }
 }

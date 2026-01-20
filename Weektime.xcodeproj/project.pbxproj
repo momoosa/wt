@@ -16,6 +16,10 @@
 		CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A02F1B817700A555D6 /* GoalSuggestions.json */; };
 		CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */; };
 		CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */; };
+		CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */; };
+		CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */; };
+		CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */; };
+		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
 		CD0668512E34C3620063AC1F /* WeektimeKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD0668502E34C3620063AC1F /* WeektimeKit */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
@@ -63,6 +67,10 @@
 		CD0085A02F1B817700A555D6 /* GoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = GoalSuggestions.json; sourceTree = "<group>"; };
 		CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSuggestionsModel.swift; sourceTree = "<group>"; };
 		CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ResourcesGoalSuggestions.json; sourceTree = "<group>"; };
+		CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSessionPlanner.swift; sourceTree = "<group>"; };
+		CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPlannerView.swift; sourceTree = "<group>"; };
+		CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerIntegrationExamples.swift; sourceTree = "<group>"; };
+		CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartNotificationScheduler.swift; sourceTree = "<group>"; };
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
@@ -203,6 +211,10 @@
 				CD0085A02F1B817700A555D6 /* GoalSuggestions.json */,
 				CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */,
 				CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */,
+				CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */,
+				CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */,
+				CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */,
+				CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */,
 			);
 			path = Weektime;
 			sourceTree = "<group>";
@@ -367,7 +379,10 @@
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
+				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
+				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
+				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
@@ -377,6 +392,7 @@
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
 				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
+				CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */,
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
