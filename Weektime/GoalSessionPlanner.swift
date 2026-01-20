@@ -119,7 +119,11 @@ public class GoalSessionPlanner: ObservableObject {
                 }
                 
                 do {
-                    let stream = session.streamResponse(generating: DailyPlan.self) {
+                    // Use higher temperature for faster generation
+                    let stream = session.streamResponse(
+                        generating: DailyPlan.self,
+                        options: GenerationOptions(temperature: 0.7) // Increased from 0.4
+                    ) {
                         prompt
                     }
                     
@@ -226,80 +230,22 @@ public class GoalSessionPlanner: ObservableObject {
         }
         
         let prompt = """
-        You are an AI planner helping a user optimize their daily schedule for personal goals.
+        Create a daily schedule for these goals. Today is \(dayName), \(currentTime).
         
-        Today is \(dayName), and the current time is \(currentTime).
-        
-        VALID GOAL IDS (use ONLY these exact IDs in your PlannedSession objects):
+        VALID IDS (copy exactly for each session):
         \(validGoalIDs.joined(separator: "\n"))
         
-        USER PREFERENCES:
-        - Planning Horizon: \(preferences.planningHorizon.description)
-        - Prefer Morning Sessions: \(preferences.preferMorningSessions ? "Yes" : "No")
-        - Avoid Evening Sessions: \(preferences.avoidEveningSessions ? "Yes" : "No")
-        - Maximum Sessions Per Day: \(preferences.maxSessionsPerDay)
-        - Minimum Break Between Sessions: \(preferences.minimumBreakMinutes) minutes
-        - Focus Mode: \(preferences.focusMode.description)
-        
-        ACTIVE GOALS:
+        GOALS:
         \(goalContexts.joined(separator: "\n\n"))
         
-        PLANNING GUIDELINES:
-        1. Prioritize goals based on:
-           - Remaining daily target (goals further from target get higher priority)
-           - Weekly progress (goals behind schedule get higher priority)
-           - Time of day preferences (if specified)
-           - Goal theme (wellness goals in morning, creative in afternoon, etc.)
+        RULES:
+        - Max \(preferences.maxSessionsPerDay) sessions
+        - \(preferences.minimumBreakMinutes)min breaks between sessions
+        - Don't schedule in the past
+        - Use exact UUID from VALID IDS for each PlannedSession "id" field
+        - Times as HH:mm (24hr), chronological order
         
-        2. Time allocation strategy:
-           - If a goal has already met its daily target, you can suggest skipping it or doing a short bonus session
-           - Distribute remaining time across goals that need it most
-           - Consider natural energy levels (high-energy activities in morning/afternoon)
-        
-        3. Scheduling rules:
-           - Respect minimum break times between sessions
-           - Don't schedule sessions in the past
-           - Consider typical work hours (9 AM - 5 PM on weekdays)
-           - Balance variety with focus time
-        
-        4. Priority scoring (1-5):
-           - 1 = Critical (far behind on target, high importance)
-           - 2 = High (behind on target)
-           - 3 = Medium (on track)
-           - 4 = Low (ahead of target)
-           - 5 = Optional (target already met, bonus session)
-        
-        5. Duration recommendations:
-           - Suggest realistic durations based on remaining time
-           - Break large sessions into smaller chunks if beneficial
-           - Consider the goal type (meditation: 10-20min, reading: 30-60min, exercise: 20-45min)
-        
-        6. Focus mode considerations:
-           - Deep Work: Fewer, longer sessions with more breaks
-           - Balanced: Mix of session lengths
-           - Flexible: Shorter, more frequent sessions
-        
-        CRITICAL INSTRUCTIONS FOR THE "id" FIELD:
-        - Each PlannedSession's "id" field MUST be one of the VALID GOAL IDS listed at the top
-        - Look at the "VALID GOAL IDS" list and choose the ID that matches the goal you're planning
-        - Match the goal by looking at its title in the "ACTIVE GOALS" section, then use its corresponding ID
-        - The "id" field must be an EXACT copy of one of the UUIDs from the VALID GOAL IDS list
-        - Do NOT create new IDs, do NOT simplify them, do NOT use "goal1" or "goal_001"
-        
-        TASK:
-        Create an optimized daily plan with recommended start times, durations, and priorities for each goal.
-        Provide clear reasoning for each scheduling decision.
-        Include an overall strategy summary explaining your approach for the day.
-        
-        For each PlannedSession:
-        1. Choose a goal from the ACTIVE GOALS section
-        2. Find that goal's ID in the VALID GOAL IDS list at the top
-        3. Copy that exact UUID string into the PlannedSession's "id" field
-        4. Set "goalTitle" to match the goal's title
-        5. Choose appropriate start time, duration, priority, and reasoning
-        
-        Format times as 24-hour HH:mm (e.g., "09:30", "14:00", "19:45").
-        Order sessions chronologically by recommended start time.
+        Focus on goals furthest from their daily target. Include brief reasoning for each session.
         """
         
         return prompt

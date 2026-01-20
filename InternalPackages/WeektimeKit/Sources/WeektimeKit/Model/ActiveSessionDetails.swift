@@ -54,6 +54,12 @@ public final class ActiveSessionDetails {
         return elapsed >= dailyTarget
     }
     
+    public var progress: Double {
+        guard let dailyTarget = dailyTarget, dailyTarget > 0 else { return 0 }
+        let elapsed = elapsedTime + Date.now.timeIntervalSince(startDate)
+        return min(elapsed / dailyTarget, 1.0)
+    }
+    
     public func startUITimer() {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { _ in

@@ -54,6 +54,7 @@ struct ContentView: View {
     @State private var plannerPreferences = PlannerPreferences.default
     @State private var isPlanning = false
     @State private var revealedSessionIDs: Set<UUID> = []
+    @State private var showNowPlaying = false
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
@@ -65,6 +66,28 @@ struct ContentView: View {
     var body: some View {
             List {
               filtersHeader
+                
+                if isPlanning && sessions.isEmpty {
+                    // Show loading state when planning and no sessions yet
+                    Section {
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .controlSize(.large)
+                            
+                            Text("Generating your plan...")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                            
+                            Text("Analyzing your goals and creating an optimized schedule")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .listRowBackground(Color.clear)
+                    }
+                }
                 
                 ForEach(filter(sessions: sessions, with: activeFilter)) { session in
                     Section {
@@ -83,12 +106,7 @@ struct ContentView: View {
                                         Text(session.goal.title)
                                             .fontWeight(.semibold)
                                             .foregroundStyle(.primary)
-                                        
-                                        // Show AI planning badge
-                                        if let priority = session.plannedPriority {
-                                            priorityBadge(for: priority)
-                                                .transition(.scale.combined(with: .opacity))
-                                        }
+                                                                            
                                     }
                                     
                                     HStack {
@@ -169,6 +187,7 @@ struct ContentView: View {
                             .overlay {
                                 if let _ = session.plannedStartTime, !revealedSessionIDs.contains(session.id) {
                                     ShimmerEffect()
+                                        .ignoresSafeArea()
                                         .allowsHitTesting(false)
                                 }
                             }
@@ -191,6 +210,59 @@ struct ContentView: View {
                 }
             }
             .animation(.spring(), value: goals)
+            .overlay(alignment: .bottom) {
+                // Floating Now Playing button
+                if let activeSession = activeSession,
+                   let session = sessions.first(where: { $0.id == activeSession.id }) {
+                    Button {
+                        showNowPlaying = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            // Animated pulse indicator
+                            Circle()
+                                .fill(session.goal.primaryTheme.theme.neon)
+                                .frame(width: 8, height: 8)
+                                .overlay {
+                                    Circle()
+                                        .stroke(session.goal.primaryTheme.theme.neon, lineWidth: 2)
+                                        .scaleEffect(1.5)
+                                        .opacity(0.6)
+                                }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(session.goal.title)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
+                                
+                                if let timeText = activeSession.timeText {
+                                    Text(timeText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .contentTransition(.numericText())
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.up")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.thinMaterial)
+                                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        )
+                        .padding(.horizontal)
+                        .padding(.bottom, 80) // Above the toolbar
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
 
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -333,6 +405,17 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
+        }
+        .fullScreenCover(isPresented: $showNowPlaying) {
+            if let activeSession = activeSession,
+               let session = sessions.first(where: { $0.id == activeSession.id }) {
+                NowPlayingView(
+                    session: session,
+                    activeSessionDetails: activeSession
+                ) {
+                    toggleTimer(for: session)
+                }
+            }
         }
     }
     
@@ -1089,37 +1172,6 @@ struct ContentView: View {
         }
     }
     #endif
-    
-    // MARK: - Helper Views
-    
-    /// Priority badge view for AI-planned sessions
-    @ViewBuilder
-    private func priorityBadge(for priority: Int) -> some View {
-        let (color, label) = priorityInfo(for: priority)
-        
-        Text(label)
-            .font(.caption2)
-            .fontWeight(.bold)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(
-                Capsule()
-                    .fill(color.gradient)
-            )
-    }
-    
-    /// Get color and label for a priority level
-    private func priorityInfo(for priority: Int) -> (Color, String) {
-        switch priority {
-        case 1: return (.red, "Critical")
-        case 2: return (.orange, "High")
-        case 3: return (.blue, "Medium")
-        case 4: return (.green, "Low")
-        case 5: return (.gray, "Optional")
-        default: return (.gray, "Unknown")
-        }
-    }
 }
 
 // MARK: - Shimmer Effect
