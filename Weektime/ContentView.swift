@@ -43,13 +43,21 @@ struct ContentView: View {
     @State private var activeSession: ActiveSessionDetails?
     @State private var now = Date()
     @State private var showPlanner = false
+    @State private var showPlannerSheet = false
+    @State private var selectedThemes: Set<String> = []
+    @State private var availableTimeMinutes: Int = 120
     @State private var showAllGoals = false
+    @State private var showSettings = false
     @State private var healthKitManager = HealthKitManager()
     @State private var healthKitObservers = [HKObserverQuery]()
     @State private var planner = GoalSessionPlanner()
     @State private var plannerPreferences = PlannerPreferences.default
     @State private var isPlanning = false
     @State private var showPlanningResult = false
+    @State private var revealedSessionIDs: Set<UUID> = []
+    @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
+    @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
+    @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
     // MARK: - UserDefaults Keys for Timer Persistence
     private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
     private let activeSessionStartDateKey = "ActiveSessionStartDateV1"
@@ -80,6 +88,7 @@ struct ContentView: View {
                                         // Show AI planning badge
                                         if let priority = session.plannedPriority {
                                             priorityBadge(for: priority)
+                                                .transition(.scale.combined(with: .opacity))
                                         }
                                     }
                                     
@@ -109,21 +118,7 @@ struct ContentView: View {
                                             }
                                         }
                                         
-                                        // Show planned start time
-                                        if let startTime = session.plannedStartTime {
-                                            Text("•")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                            
-                                            Label {
-                                                Text(startTime)
-                                            } icon: {
-                                                Image(systemName: "clock.fill")
-                                            }
-                                            .font(.caption2)
-                                            .foregroundStyle(.purple)
-                                        }
-                                        
+                                        // Show planned start time with animation
                                         Text(session.goal.primaryTheme.title)
                                             .font(.caption2)
                                             .padding(4)
@@ -140,12 +135,13 @@ struct ContentView: View {
                                     }
                                     .opacity(0.7)
                                     
-                                    // Show AI reasoning if available
+                                    // Show AI reasoning if available with animation
                                     if let reasoning = session.plannedReasoning, selectedSession == session {
                                         Text(reasoning)
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                             .padding(.top, 4)
+                                            .transition(.move(edge: .top).combined(with: .opacity))
                                     }
                                 }
                                 
@@ -165,9 +161,18 @@ struct ContentView: View {
                             .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
                             .listRowBackground(colorScheme == .dark ? session.goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
                             .onTapGesture {
-                                selectedSession = session
+                                withAnimation(.spring(response: 0.3)) {
+                                    selectedSession = session
+                                }
                             }
                             .matchedTransitionSource(id: session.id, in: animation)
+                            // Add shimmer effect for newly planned sessions
+                            .overlay {
+                                if let _ = session.plannedStartTime, !revealedSessionIDs.contains(session.id) {
+                                    ShimmerEffect()
+                                        .allowsHitTesting(false)
+                                }
+                            }
 
                         }
                         .swipeActions {
@@ -196,6 +201,12 @@ struct ContentView: View {
 #if os(iOS)
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 12) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                    
                     Button {
                         showAllGoals = true
                     } label: {
@@ -237,9 +248,7 @@ struct ContentView: View {
             ToolbarItem(placement: .bottomBar) {
                 // Planner button
                 Button {
-                    Task {
-                        await generateDailyPlan()
-                    }
+                    showPlannerSheet = true
                 } label: {
                     if isPlanning {
                         ProgressView()
@@ -249,6 +258,7 @@ struct ContentView: View {
                     }
                 }
                 .disabled(isPlanning)
+                .matchedTransitionSource(id: "plannerButton", in: animation)
             }
 
             ToolbarItem(placement: .bottomBar) {
@@ -305,6 +315,26 @@ struct ContentView: View {
         .sheet(isPresented: $showAllGoals) {
             AllGoalsView(goals: goals)
         }
+        .sheet(isPresented: $showPlannerSheet) {
+            PlannerConfigurationSheet(
+                selectedThemes: $selectedThemes,
+                availableTimeMinutes: $availableTimeMinutes,
+                allThemes: availableGoalThemes,
+                animation: animation
+            ) {
+                showPlannerSheet = false
+                Task {
+                    await generateDailyPlan()
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(20)
+            .presentationBackground(.thinMaterial)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
         .alert("Planning Complete", isPresented: .constant(planner.currentPlan != nil && isPlanning == false && showPlanningResult)) {
             Button("OK") {
                 showPlanningResult = false
@@ -314,6 +344,24 @@ struct ContentView: View {
                 Text("Created \(plan.sessions.count) planned session(s) for today.")
             }
         }
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var availableGoalThemes: [GoalTheme] {
+        let activeGoals = goals.filter { $0.status == .active }
+        var uniqueThemes: [GoalTheme] = []
+        var seenIDs: Set<String> = []
+        
+        for goal in activeGoals {
+            let themeID = goal.primaryTheme.theme.id
+            if !seenIDs.contains(themeID) {
+                uniqueThemes.append(goal.primaryTheme)
+                seenIDs.insert(themeID)
+            }
+        }
+        
+        return uniqueThemes
     }
     
     private func count(for filter: Filter) -> Int {
@@ -778,6 +826,9 @@ struct ContentView: View {
         isPlanning = true
         defer { isPlanning = false }
         
+        // Clear previous revealed sessions
+        revealedSessionIDs.removeAll()
+        
         // Provide haptic feedback
         #if os(iOS)
         let generator = UINotificationFeedbackGenerator()
@@ -786,16 +837,42 @@ struct ContentView: View {
         
         do {
             // Generate the plan using active goals
-            let activeGoals = goals.filter { $0.status == .active }
+            var activeGoals = goals.filter { $0.status == .active }
+            
+            // Filter by selected themes if any are selected
+            if !selectedThemes.isEmpty {
+                activeGoals = activeGoals.filter { goal in
+                    selectedThemes.contains(goal.primaryTheme.theme.id)
+                }
+            }
+            
+            // Set max sessions in planner preferences
+            var preferences = plannerPreferences
+            if !unlimitedPlannedSessions {
+                preferences.maxSessionsPerDay = maxPlannedSessions
+            } else {
+                preferences.maxSessionsPerDay = 100 // Effectively unlimited
+            }
+            
+            // Apply time-based limit (assuming ~30 minutes per session on average)
+            let timeBasedMaxSessions = availableTimeMinutes / 30
+            preferences.maxSessionsPerDay = min(
+                preferences.maxSessionsPerDay,
+                max(1, timeBasedMaxSessions)
+            )
+            
             let plan = try await planner.generateDailyPlan(
                 for: activeGoals,
                 goalSessions: sessions,
                 currentDate: day.startDate,
-                userPreferences: plannerPreferences
+                userPreferences: preferences
             )
             
             // Apply the plan by updating GoalSession statuses
             await applyPlan(plan)
+            
+            // Animate the reveal of planned sessions
+            await animatePlannedSessions(plan)
             
             // Show result
             await MainActor.run {
@@ -810,6 +887,84 @@ struct ContentView: View {
             let errorGenerator = UINotificationFeedbackGenerator()
             errorGenerator.notificationOccurred(.error)
             #endif
+        }
+    }
+    
+    /// Animate the reveal of planned sessions one by one
+    private func animatePlannedSessions(_ plan: DailyPlan) async {
+        // Check if animation should be skipped
+        if skipPlanningAnimation {
+            // Instant reveal - no animation
+            await MainActor.run {
+                withAnimation(.spring(response: 0.2)) {
+                    activeFilter = .planned
+                }
+                
+                // Mark all as revealed immediately
+                for plannedSession in plan.sessions {
+                    if let goalID = UUID(uuidString: plannedSession.id),
+                       let session = sessions.first(where: { $0.goal.id == goalID }) {
+                        revealedSessionIDs.insert(session.id)
+                    }
+                }
+                
+                // Single haptic for completion
+                #if os(iOS)
+                let impact = UINotificationFeedbackGenerator()
+                impact.notificationOccurred(.success)
+                #endif
+            }
+            return
+        }
+        
+        // Animated reveal (faster than before)
+        await MainActor.run {
+            withAnimation(.spring(response: 0.3)) {
+                activeFilter = .planned
+            }
+        }
+        
+        // Reduced delay - faster filter switch
+        try? await Task.sleep(for: .milliseconds(150))
+        
+        // Reveal each session one by one
+        for (index, plannedSession) in plan.sessions.enumerated() {
+            guard let goalID = UUID(uuidString: plannedSession.id),
+                  let session = sessions.first(where: { $0.goal.id == goalID }) else {
+                continue
+            }
+            
+            // Add session to revealed set with animation
+            await MainActor.run {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    revealedSessionIDs.insert(session.id)
+                }
+                
+                // Haptic feedback for each reveal (only for first 3 to avoid overload)
+                #if os(iOS)
+                if index < 3 {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                }
+                #endif
+            }
+            
+            // Much faster delays - start at 200ms, decrease by 40ms each time, min 50ms
+            let delay = max(50, 200 - (index * 40))
+            try? await Task.sleep(for: .milliseconds(delay))
+        }
+        
+        // Reduced final wait before clearing shimmer
+        try? await Task.sleep(for: .milliseconds(300))
+        
+        await MainActor.run {
+            // Mark all as revealed to remove shimmer effects
+            for plannedSession in plan.sessions {
+                if let goalID = UUID(uuidString: plannedSession.id),
+                   let session = sessions.first(where: { $0.goal.id == goalID }) {
+                    revealedSessionIDs.insert(session.id)
+                }
+            }
         }
     }
     
@@ -903,6 +1058,34 @@ struct ContentView: View {
         case 5: return (.gray, "Optional")
         default: return (.gray, "Unknown")
         }
+    }
+}
+
+// MARK: - Shimmer Effect
+
+struct ShimmerEffect: View {
+    @State private var phase: CGFloat = 0
+    
+    var body: some View {
+        GeometryReader { geometry in
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    .clear,
+                    Color.purple.opacity(0.3),
+                    .clear
+                ]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: geometry.size.width * 2)
+            .offset(x: phase * geometry.size.width * 2 - geometry.size.width)
+            .onAppear {
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
+        }
+        .clipped()
     }
 }
 

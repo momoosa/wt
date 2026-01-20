@@ -24,6 +24,11 @@
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
+		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
+		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
+		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
+		CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */; };
+		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
 		CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */; };
@@ -75,6 +80,11 @@
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
+		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
+		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
+		CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerConfigurationSheet.swift; sourceTree = "<group>"; };
+		CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNING_PERFORMANCE.md; sourceTree = "<group>"; };
 		CD75CC5B2E2FE5E600890F20 /* Weektime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Weektime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* WeektimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WeektimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* WeektimeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WeektimeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -190,6 +200,7 @@
 				CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */,
 				CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */,
 				CDEBAA292EE9FA1000C1C411 /* ContentView.swift */,
+				CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */,
 				CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */,
 				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
 				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
@@ -215,6 +226,10 @@
 				CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */,
 				CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */,
 				CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */,
+				CD713B162F200BDE003F901D /* SettingsView.swift */,
+				CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */,
+				CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */,
+				CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */,
 			);
 			path = Weektime;
 			sourceTree = "<group>";
@@ -345,10 +360,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */,
 				CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */,
 				CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */,
 				CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */,
+				CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */,
 				CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */,
+				CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -380,6 +398,7 @@
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
+				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
@@ -394,6 +413,7 @@
 				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
 				CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */,
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
+				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
