@@ -58,7 +58,9 @@ public final class GoalSession {
     }
     
     public var formattedTime: String {
-        return "\(Duration.seconds(elapsedTime).formatted())/\(Duration.seconds(dailyTarget).formatted(.time(pattern: .hourMinute)))"
+        let elapsedFormatted = Duration.seconds(elapsedTime).formatted(.time(pattern: .hourMinuteSecond))
+        let targetFormatted = Duration.seconds(dailyTarget).formatted(.time(pattern: .hourMinuteSecond))
+        return "\(elapsedFormatted)/\(targetFormatted)"
     }
 
     public var progress: Double {

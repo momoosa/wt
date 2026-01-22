@@ -46,18 +46,13 @@ struct ChecklistDetailView: View {
         List {
             // Progress Summary Card
             Section {
-                ProgressSummaryCard(
-                    goalTitle: session.goal.title,
-                    themeName: session.goal.primaryTheme.title,
-                    themeColors: session.goal.primaryTheme.theme,
-                    dailyProgress: session.progress,
-                    dailyElapsed: session.elapsedTime,
-                    dailyTarget: session.dailyTarget,
+                ProgressSummaryCardWrapper(
+                    session: session,
                     weeklyProgress: weeklyProgress,
-                    weeklyElapsed: weeklyElapsedTime,
-                    weeklyTarget: session.goal.weeklyTarget,
+                    weeklyElapsedTime: weeklyElapsedTime,
                     cardRotationY: $cardRotationY,
-                    shimmerOffset: $shimmerOffset
+                    shimmerOffset: $shimmerOffset,
+                    timerManager: timerManager
                 )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
@@ -450,7 +445,39 @@ struct ChecklistDetailView: View {
 //    }
 }
 
-// MARK: - Progress Summary Card
+// MARK: - Progress Summary Card Wrapper
+
+struct ProgressSummaryCardWrapper: View {
+    let session: GoalSession
+    let weeklyProgress: Double
+    let weeklyElapsedTime: TimeInterval
+    @Binding var cardRotationY: Double
+    @Binding var shimmerOffset: CGFloat
+    let timerManager: SessionTimerManager
+    
+    var isTimerActive: Bool {
+        timerManager.isActive(session)
+    }
+    
+    var body: some View {
+        ProgressSummaryCard(
+            goalTitle: session.goal.title,
+            themeName: session.goal.primaryTheme.title,
+            themeColors: session.goal.primaryTheme.theme,
+            dailyProgress: session.progress,
+            dailyElapsed: session.elapsedTime,
+            dailyTarget: session.dailyTarget,
+            weeklyProgress: weeklyProgress,
+            weeklyElapsed: weeklyElapsedTime,
+            weeklyTarget: session.goal.weeklyTarget,
+            shimmerOffset: $shimmerOffset,
+            isTimerActive: isTimerActive,
+            activeSessionDetails: timerManager.activeSession
+        )
+    }
+}
+
+ // MARK: - Progress Summary Card
 
 struct ProgressSummaryCard: View {
     let goalTitle: String
@@ -463,8 +490,23 @@ struct ProgressSummaryCard: View {
     let weeklyElapsed: TimeInterval
     let weeklyTarget: TimeInterval
     
-    @Binding var cardRotationY: Double
     @Binding var shimmerOffset: CGFloat
+    var isTimerActive: Bool = false
+    var activeSessionDetails: ActiveSessionDetails?
+    
+    // Computed property that accesses currentTime to ensure updates when timer is active
+    private var currentElapsed: TimeInterval {
+        if let activeSession = activeSessionDetails {
+            let _ = activeSession.currentTime // Force observation
+            return activeSession.elapsedTime + Date.now.timeIntervalSince(activeSession.startDate)
+        }
+        return dailyElapsed
+    }
+    
+    private var currentProgress: Double {
+        guard dailyTarget > 0 else { return 0 }
+        return min(currentElapsed / dailyTarget, 1.0)
+    }
     
     // Compute text color based on background luminance
     private var textColor: Color {
@@ -507,130 +549,183 @@ struct ProgressSummaryCard: View {
                 .offset(x: shimmerOffset, y: shimmerOffset)
                 .blur(radius: 20)
                 
-                // Card content
-                VStack(alignment: .leading, spacing: 20) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(goalTitle)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(textColor)
+                // Card content - changes based on timer state
+                if isTimerActive {
+                    // Active timer content
+                    VStack(alignment: .leading) {
+                        // Goal title
+                        VStack(spacing: 4) {
+                            Text(goalTitle)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(textColor)
+                            
+                        }
                         
-                        Text(themeName)
-                            .font(.subheadline)
-                            .foregroundStyle(textColor.opacity(0.8))
-                    }
-                    
-                    
-                    // Progress stats
-                    HStack(spacing: 30) {
-                        // Daily progress
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("TODAY")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(textColor.opacity(0.7))
+                        Spacer()
+                        
+                        HStack {
                             
-                            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(formatTime(dailyElapsed))
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .foregroundStyle(textColor)
+                            ZStack {
+                                // Background circle
+                                Circle()
+                                    .stroke(textColor.opacity(0.3), lineWidth: 12)
+                                    .frame(width: 120, height: 120)
                                 
-                                Text("/ \(formatTime(dailyTarget))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(textColor.opacity(0.7))
-                            }
-                            
-                            // Progress bar
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    Capsule()
-                                        .fill(textColor.opacity(0.3))
-                                        .frame(height: 6)
+                                // Progress circle
+                                Circle()
+                                    .trim(from: 0, to: currentProgress)
+                                    .stroke(
+                                        textColor,
+                                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                                    )
+                                    .frame(width: 120, height: 120)
+                                    .rotationEffect(.degrees(-90))
+                                    .animation(.spring(response: 0.6), value: currentProgress)
+                                
+                                // Time display in center
+                                VStack(spacing: 2) {
+                                    Text(formatTimeWithSeconds(currentElapsed))
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundStyle(textColor)
+                                        .contentTransition(.numericText())
                                     
-                                    Capsule()
-                                        .fill(textColor)
-                                        .frame(width: geo.size.width * min(dailyProgress, 1.0), height: 6)
-                                        .animation(.spring(response: 0.6), value: dailyProgress)
+                                    Text("of \(formatTimeWithSeconds(dailyTarget))")
+                                        .font(.caption2)
+                                        .foregroundStyle(textColor.opacity(0.7))
                                 }
                             }
-                            .frame(height: 6)
                             
-                            Text("\(Int(min(dailyProgress, 1.0) * 100))% complete")
-                                .font(.caption)
+                            Spacer()
+                            
+                            // Progress percentage and completion indicator
+                            VStack(spacing: 8) {
+                                Text("\(Int(currentProgress * 100))% complete")
+                                    .font(.headline)
+                                    .foregroundStyle(textColor.opacity(0.9))
+                                
+                                // Completion indicator
+                                if currentProgress >= 1.0 {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .symbolRenderingMode(.hierarchical)
+                                        Text("Daily Target Reached!")
+                                            .fontWeight(.semibold)
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(textColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(textColor.opacity(0.2))
+                                    )
+                                }
+                            }
+                        }
+                        // Progress circle
+                    }
+                    .padding(24)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                } else {
+                    // Normal progress summary content
+                    VStack(alignment: .leading) {
+                        // Header
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(goalTitle)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(textColor)
+                            
+                            Text(themeName)
+                                .font(.subheadline)
                                 .foregroundStyle(textColor.opacity(0.8))
                         }
                         
-                        // Weekly progress
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("THIS WEEK")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(textColor.opacity(0.7))
-                            
-                            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(formatTime(weeklyElapsed))
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .foregroundStyle(textColor)
-                                
-                                Text("/ \(formatTime(weeklyTarget))")
-                                    .font(.subheadline)
+                        // Progress stats
+                        HStack(spacing: 30) {
+                            // Daily progress
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("TODAY")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
                                     .foregroundStyle(textColor.opacity(0.7))
-                            }
-                            
-                            // Progress bar
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    Capsule()
-                                        .fill(textColor.opacity(0.3))
-                                        .frame(height: 6)
+                                
+                                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                    Text(formatTimeWithSeconds(dailyElapsed))
+                                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                                        .foregroundStyle(textColor)
+                                        .contentTransition(.numericText())
                                     
-                                    Capsule()
-                                        .fill(textColor)
-                                        .frame(width: geo.size.width * min(weeklyProgress, 1.0), height: 6)
-                                        .animation(.spring(response: 0.6), value: weeklyProgress)
+                                    Text("/ \(formatTimeWithSeconds(dailyTarget))")
+                                        .font(.subheadline)
+                                        .foregroundStyle(textColor.opacity(0.7))
                                 }
+                                
+                                // Progress bar
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        Capsule()
+                                            .fill(textColor.opacity(0.3))
+                                            .frame(height: 6)
+                                        
+                                        Capsule()
+                                            .fill(textColor)
+                                            .frame(width: geo.size.width * dailyProgress, height: 6)
+                                            .animation(.spring(response: 0.6), value: dailyProgress)
+                                    }
+                                }
+                                .frame(height: 6)
+                                
+                                Text("\(Int(dailyProgress * 100))% complete")
+                                    .font(.caption)
+                                    .foregroundStyle(textColor.opacity(0.8))
                             }
-                            .frame(height: 6)
                             
-                            Text("\(Int(min(weeklyProgress, 1.0) * 100))% complete")
-                                .font(.caption)
-                                .foregroundStyle(textColor.opacity(0.8))
+                            // Weekly progress
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("THIS WEEK")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(textColor.opacity(0.7))
+                                
+                                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                    Text(formatTime(weeklyElapsed))
+                                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                                        .foregroundStyle(textColor)
+                                    
+                                    Text("/ \(formatTime(weeklyTarget))")
+                                        .font(.subheadline)
+                                        .foregroundStyle(textColor.opacity(0.7))
+                                }
+                                
+                                // Progress bar
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        Capsule()
+                                            .fill(textColor.opacity(0.3))
+                                            .frame(height: 6)
+                                        
+                                        Capsule()
+                                            .fill(textColor)
+                                            .frame(width: geo.size.width * min(weeklyProgress, 1.0), height: 6)
+                                            .animation(.spring(response: 0.6), value: weeklyProgress)
+                                    }
+                                }
+                                .frame(height: 6)
+                                
+                                Text("\(Int(min(weeklyProgress, 1.0) * 100))% complete")
+                                    .font(.caption)
+                                    .foregroundStyle(textColor.opacity(0.8))
+                            }
                         }
                     }
+                    .padding(24)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
-                .padding(24)
             }
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .shadow(color: themeColors.dark.opacity(0.4), radius: 20, x: 0, y: 10)
-            .rotation3DEffect(
-                .degrees(cardRotationY),
-                axis: (x: 0, y: 1, z: 0)
-            )
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        // Calculate rotation based on horizontal drag only
-                        let maxRotation: Double = 15
-                        let width = geometry.size.width
-                        
-                        // Y-axis rotation (left-right tilt)
-                        let xOffset = value.location.x - width / 2
-                        let newRotationY = (xOffset / width) * maxRotation * 2
-                        
-                        // Animate rotation changes
-                        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.7)) {
-                            cardRotationY = newRotationY
-                            shimmerOffset = -200 + (value.location.x / width) * 400
-                        }
-                    }
-                    .onEnded { _ in
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                            cardRotationY = 0
-                            shimmerOffset = -200
-                        }
-                    }
-            )
             #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
                 // Add subtle animation when device orientation changes
@@ -649,6 +744,7 @@ struct ProgressSummaryCard: View {
         .frame(minHeight: 200)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isTimerActive)
     }
     
     private func formatTime(_ interval: TimeInterval) -> String {
@@ -659,6 +755,20 @@ struct ProgressSummaryCard: View {
             return "\(hours)h \(minutes)m"
         } else {
             return "\(minutes)m"
+        }
+    }
+    
+    private func formatTimeWithSeconds(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        let seconds = Int(interval) % 60
+        
+        if hours > 0 {
+            return "\(hours):\(String(format: "%02d", minutes)):\(String(format: "%02d", seconds))"
+        } else if minutes > 0 {
+            return "\(minutes):\(String(format: "%02d", seconds))"
+        } else {
+            return "0:\(String(format: "%02d", seconds))"
         }
     }
 }
