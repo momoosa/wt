@@ -7,7 +7,9 @@ struct ChecklistDetailView: View {
     var session: GoalSession
     @Environment(\.editMode) private var editMode
     @Environment(\.modelContext) private var context
+    @Environment(GoalStore.self) private var goalStore
     var animation: Namespace.ID
+    var timerManager: SessionTimerManager
     let historicalSessionLimit = 3
     @State var isShowingEditScreen = false
     @State private var isShowingIntervalsEditor = false
@@ -21,7 +23,6 @@ struct ChecklistDetailView: View {
     @State private var isShowingListsOverview = false
     
     // Card tilt and shimmer states
-    @State private var cardRotationX: Double = 0
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
 
@@ -31,14 +32,9 @@ struct ChecklistDetailView: View {
     
     // Weekly progress calculation
     var weeklyProgress: Double {
-        // Get all sessions for this goal in the current week
-        guard let weekStart = session.day.startDate.startOfWeek() else {
-            return session.progress
-        }
-        
-        // This would need access to all goal sessions in the week
-        // For now, we'll use the daily progress as a placeholder
-        return session.progress
+        let target = session.goal.weeklyTarget
+        guard target > 0 else { return 0 }
+        return weeklyElapsedTime / target
     }
     
     var weeklyElapsedTime: TimeInterval {
@@ -60,13 +56,80 @@ struct ChecklistDetailView: View {
                     weeklyProgress: weeklyProgress,
                     weeklyElapsed: weeklyElapsedTime,
                     weeklyTarget: session.goal.weeklyTarget,
-                    cardRotationX: $cardRotationX,
                     cardRotationY: $cardRotationY,
                     shimmerOffset: $shimmerOffset
                 )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
             }
+            
+            // Action Buttons
+            Section {
+                HStack(spacing: 12) {
+                    // Mark as Done button
+                    Button {
+                        markGoalAsDone()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                            Text("Done")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(tintColor.opacity(0.15))
+                        .foregroundStyle(tintColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Start/Stop button
+                    Button {
+                        timerManager.toggleTimer(for: session, in: session.day)
+                    } label: {
+                        let isActive = timerManager.isActive(session)
+                        VStack(spacing: 4) {
+                            Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                            Text(isActive ? "Pause" : "Start")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(tintColor.opacity(0.15))
+                        .foregroundStyle(tintColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Skip button
+                    Button {
+                        skipGoalForToday()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "forward.circle.fill")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                            Text("Skip")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.secondary.opacity(0.15))
+                        .foregroundStyle(.secondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+            .listRowBackground(Color.clear)
             
             // History section remains as-is
             Section {
@@ -332,6 +395,21 @@ struct ChecklistDetailView: View {
         context.insert(checklistSession)
     }
     
+    // MARK: - Goal Actions
+    
+    private func markGoalAsDone() {
+        timerManager.markGoalAsDone(session: session, day: session.day, context: context)
+    }
+    
+    private func skipGoalForToday() {
+        withAnimation {
+            // Mark session as skipped
+            session.status = .skipped
+        }
+        
+        try? context.save()
+    }
+    
     // MARK: - Notifications
     private func requestNotificationAuthorizationIfNeeded() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
@@ -385,7 +463,6 @@ struct ProgressSummaryCard: View {
     let weeklyElapsed: TimeInterval
     let weeklyTarget: TimeInterval
     
-    @Binding var cardRotationX: Double
     @Binding var cardRotationY: Double
     @Binding var shimmerOffset: CGFloat
     
@@ -415,6 +492,7 @@ struct ProgressSummaryCard: View {
                     endRadius: 300
                 )
                 .ignoresSafeArea()
+                .blur(radius: 40)
                 
                 // Shimmer overlay
                 LinearGradient(
@@ -443,7 +521,6 @@ struct ProgressSummaryCard: View {
                             .foregroundStyle(textColor.opacity(0.8))
                     }
                     
-                    Spacer()
                     
                     // Progress stats
                     HStack(spacing: 30) {
@@ -524,13 +601,8 @@ struct ProgressSummaryCard: View {
                 }
                 .padding(24)
             }
-            .frame(height: 240)
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .shadow(color: themeColors.dark.opacity(0.4), radius: 20, x: 0, y: 10)
-            .rotation3DEffect(
-                .degrees(cardRotationX),
-                axis: (x: 1, y: 0, z: 0)
-            )
             .rotation3DEffect(
                 .degrees(cardRotationY),
                 axis: (x: 0, y: 1, z: 0)
@@ -538,27 +610,22 @@ struct ProgressSummaryCard: View {
             .gesture(
                 DragGesture()
                     .onChanged { value in
-                        // Calculate rotation based on drag
+                        // Calculate rotation based on horizontal drag only
                         let maxRotation: Double = 15
                         let width = geometry.size.width
-                        let height: CGFloat = 240
                         
                         // Y-axis rotation (left-right tilt)
                         let xOffset = value.location.x - width / 2
-                        cardRotationY = (xOffset / width) * maxRotation * 2
+                        let newRotationY = (xOffset / width) * maxRotation * 2
                         
-                        // X-axis rotation (up-down tilt)
-                        let yOffset = value.location.y - height / 2
-                        cardRotationX = -(yOffset / height) * maxRotation * 2
-                        
-                        // Update shimmer position
-                        withAnimation(.linear(duration: 0.1)) {
+                        // Animate rotation changes
+                        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.7)) {
+                            cardRotationY = newRotationY
                             shimmerOffset = -200 + (value.location.x / width) * 400
                         }
                     }
                     .onEnded { _ in
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                            cardRotationX = 0
                             cardRotationY = 0
                             shimmerOffset = -200
                         }
@@ -579,7 +646,7 @@ struct ProgressSummaryCard: View {
             }
             #endif
         }
-        .frame(height: 240)
+        .frame(minHeight: 200)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }

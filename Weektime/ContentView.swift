@@ -40,7 +40,9 @@ struct ContentView: View {
         return filters
     }
     
-    @State private var activeSession: ActiveSessionDetails?
+    // Timer manager for session tracking
+    @State private var timerManager: SessionTimerManager?
+    
     @State private var now = Date()
     @State private var showPlanner = false
     @State private var showPlannerSheet = false
@@ -58,10 +60,6 @@ struct ContentView: View {
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
-    // MARK: - UserDefaults Keys for Timer Persistence
-    private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
-    private let activeSessionStartDateKey = "ActiveSessionStartDateV1"
-    private let activeSessionIDKey = "ActiveSessionIDV1"
     
     var body: some View {
             List {
@@ -93,8 +91,11 @@ struct ContentView: View {
                     Section {
                         ZStack {
                             NavigationLink {
-                                ChecklistDetailView(session: session, animation: animation)
-                                    .tint(session.goal.primaryTheme.theme.dark)
+                                if let timerManager {
+                                    ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
+                                        .tint(session.goal.primaryTheme.theme.dark)
+                                        .environment(goalStore)
+                                }
                             } label: {
                                 EmptyView()
                             }
@@ -110,7 +111,9 @@ struct ContentView: View {
                                     }
                                     
                                     HStack {
-                                        if let activeSession, activeSession.id == session.id, let timeText = activeSession.timeText {
+                                        if let activeSession = timerManager?.activeSession, 
+                                           activeSession.id == session.id, 
+                                           let timeText = activeSession.timeText {
                                             Text(timeText)
                                                 .contentTransition(.numericText())
                                                 .fontWeight(.semibold)
@@ -165,10 +168,11 @@ struct ContentView: View {
                                 Spacer()
                                 
                                 Button {
-                                    toggleTimer(for: session)
+                                    timerManager?.toggleTimer(for: session, in: day)
                                 } label: {
-                                    let image = session.id == activeSession?.id ? "stop.circle.fill" : "play.circle.fill"
-                                    GaugePlayIcon(isActive: session.id == activeSession?.id, imageName: image, progress: session.progress, color: session.goal.primaryTheme.theme.light, font: .title2, gaugeScale: 0.4)
+                                    let isActive = timerManager?.activeSession?.id == session.id
+                                    let image = isActive ? "stop.circle.fill" : "play.circle.fill"
+                                    GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTheme.theme.light, font: .title2, gaugeScale: 0.4)
                                         .contentTransition(.symbolEffect(.replace))
                                         .symbolRenderingMode(.hierarchical)
                                         .font(.title2)
@@ -212,7 +216,8 @@ struct ContentView: View {
             .animation(.spring(), value: goals)
             .overlay(alignment: .bottom) {
                 // Floating Now Playing button
-                if let activeSession = activeSession,
+                if let timerManager,
+                   let activeSession = timerManager.activeSession,
                    let session = sessions.first(where: { $0.id == activeSession.id }) {
                     Button {
                         showNowPlaying = true
@@ -305,7 +310,9 @@ struct ContentView: View {
             #endif
 #endif
             
-            if let activeSession = activeSession, let session = sessions.first(where: { $0.id == activeSession.id }) { // TODO: Combine with ActiveSessionDetails?
+            if let timerManager,
+               let activeSession = timerManager.activeSession, 
+               let session = sessions.first(where: { $0.id == activeSession.id }) {
                 ToolbarItem(placement: .bottomBar) {
                     
                     ActionView(session: session, details: activeSession) { event in
@@ -348,33 +355,34 @@ struct ContentView: View {
             )
         }
         .onAppear {
+            // Initialize timer manager if needed
+            if timerManager == nil {
+                timerManager = SessionTimerManager(goalStore: goalStore)
+            }
+            
             // Load saved timer states from UserDefaults
-            loadTimerState()
+            timerManager?.loadTimerState(sessions: sessions)
             
             refreshGoals()
             syncHealthKitData()
-            
-            if activeSession?.id != nil {
-                activeSession?.startUITimer()
-            }
         }
         .onChange(of: goals) { old, new in
             refreshGoals()
             syncHealthKitData()
         }
         .onDisappear {
-            activeSession?.stopUITimer()
+            timerManager?.activeSession?.stopUITimer()
         }
 #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             // Refresh UI timer update on foreground
-            if activeSession?.id != nil {
-                activeSession?.startUITimer()
+            if timerManager?.activeSession?.id != nil {
+                timerManager?.activeSession?.startUITimer()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
             // Stop UI timer updates on background
-            activeSession?.stopUITimer()
+            timerManager?.activeSession?.stopUITimer()
         }
 #endif
         .sheet(isPresented: $showingGoalEditor) {
@@ -407,13 +415,14 @@ struct ContentView: View {
             SettingsView()
         }
         .fullScreenCover(isPresented: $showNowPlaying) {
-            if let activeSession = activeSession,
+            if let timerManager,
+               let activeSession = timerManager.activeSession,
                let session = sessions.first(where: { $0.id == activeSession.id }) {
                 NowPlayingView(
                     session: session,
                     activeSessionDetails: activeSession
                 ) {
-                    toggleTimer(for: session)
+                    timerManager.toggleTimer(for: session, in: day)
                 }
             }
         }
@@ -608,80 +617,17 @@ struct ContentView: View {
         }
     }
     func handle(event: ActionView.Event) {
+        guard let timerManager else { return }
         switch event {
         case .stopTapped:
-            if let session = sessions.first(where: { $0.id == activeSession?.id }) {
-                toggleTimer(for: session)
+            if let session = sessions.first(where: { $0.id == timerManager.activeSession?.id }) {
+                timerManager.toggleTimer(for: session, in: day)
             }
         }
     }
     
     func timerText(for session: GoalSession) -> String {
-        if let activeSession, activeSession.id == session.id {
-            return activeSession.timerText()
-        } else {
-            return "TODO..." // TODO:
-        }
-    }
-    
-    private func toggleTimer(for session: GoalSession) {
-        if let activeSession, activeSession.id == session.id {
-            // Stopping timer - use medium impact haptic
-            #if os(iOS)
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            #endif
-            
-            goalStore.save(session: session, in: day, startDate: activeSession.startDate, endDate: .now)
-            // Stop the current active timer
-            activeSession.stopUITimer()
-            withAnimation {
-                self.activeSession = nil
-            }
-            saveTimerState()
-        } else {
-            // Starting timer - use success notification haptic (positive & encouraging!)
-            #if os(iOS)
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            #endif
-            
-            withAnimation {
-                activeSession = ActiveSessionDetails(id: session.id, startDate: .now, elapsedTime: session.elapsedTime, dailyTarget: session.dailyTarget)
-                saveTimerState()
-                activeSession?.startUITimer()
-            }
-        }
-    }
-        
-    // MARK: - Persistence Helpers
-    
-    private func saveTimerState() {
-        if let activeSession {
-            UserDefaults.standard.set(activeSession.id.uuidString, forKey: activeSessionIDKey)
-            UserDefaults.standard.set(activeSession.startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
-            UserDefaults.standard.set(activeSession.elapsedTime, forKey: activeSessionElapsedTimeKey)
-
-        } else {
-            UserDefaults.standard.removeObject(forKey: activeSessionStartDateKey)
-            UserDefaults.standard.removeObject(forKey: activeSessionIDKey)
-        }
- 
-    }
-    
-    private func loadTimerState() {
-        if let idString = UserDefaults.standard.string(forKey: activeSessionIDKey), let uuid = UUID(uuidString: idString) {
-            let timeInterval = UserDefaults.standard.double(forKey: activeSessionStartDateKey)
-            let elapsed = UserDefaults.standard.double(forKey: activeSessionElapsedTimeKey)
-            
-            // Find the session to get the daily target
-            let session = sessions.first(where: { $0.id == uuid })
-            let dailyTarget = session?.dailyTarget
-            
-            activeSession = ActiveSessionDetails(id: uuid, startDate: Date(timeIntervalSince1970: timeInterval), elapsedTime: elapsed, dailyTarget: dailyTarget)
-        } else {
-            activeSession = nil
-        }
+        return timerManager?.timerText(for: session) ?? "TODO..."
     }
     
     // MARK: - HealthKit Integration
