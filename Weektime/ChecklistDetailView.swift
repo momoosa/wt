@@ -19,13 +19,55 @@ struct ChecklistDetailView: View {
 
     @State private var selectedListID: String?
     @State private var isShowingListsOverview = false
+    
+    // Card tilt and shimmer states
+    @State private var cardRotationX: Double = 0
+    @State private var cardRotationY: Double = 0
+    @State private var shimmerOffset: CGFloat = -200
 
     var tintColor: Color {
         session.goal.primaryTheme.theme.dark
     }
     
+    // Weekly progress calculation
+    var weeklyProgress: Double {
+        // Get all sessions for this goal in the current week
+        guard let weekStart = session.day.startDate.startOfWeek() else {
+            return session.progress
+        }
+        
+        // This would need access to all goal sessions in the week
+        // For now, we'll use the daily progress as a placeholder
+        return session.progress
+    }
+    
+    var weeklyElapsedTime: TimeInterval {
+        // Placeholder - would need to sum all sessions in the week
+        return session.elapsedTime
+    }
+    
     var body: some View {
         List {
+            // Progress Summary Card
+            Section {
+                ProgressSummaryCard(
+                    goalTitle: session.goal.title,
+                    themeName: session.goal.primaryTheme.title,
+                    themeColors: session.goal.primaryTheme.theme,
+                    dailyProgress: session.progress,
+                    dailyElapsed: session.elapsedTime,
+                    dailyTarget: session.dailyTarget,
+                    weeklyProgress: weeklyProgress,
+                    weeklyElapsed: weeklyElapsedTime,
+                    weeklyTarget: session.goal.weeklyTarget,
+                    cardRotationX: $cardRotationX,
+                    cardRotationY: $cardRotationY,
+                    shimmerOffset: $shimmerOffset
+                )
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+            
             // History section remains as-is
             Section {
                 if !session.historicalSessions.isEmpty {
@@ -329,4 +371,259 @@ struct ChecklistDetailView: View {
 //        }
 //    }
 }
+
+// MARK: - Progress Summary Card
+
+struct ProgressSummaryCard: View {
+    let goalTitle: String
+    let themeName: String
+    let themeColors: Theme
+    let dailyProgress: Double
+    let dailyElapsed: TimeInterval
+    let dailyTarget: TimeInterval
+    let weeklyProgress: Double
+    let weeklyElapsed: TimeInterval
+    let weeklyTarget: TimeInterval
+    
+    @Binding var cardRotationX: Double
+    @Binding var cardRotationY: Double
+    @Binding var shimmerOffset: CGFloat
+    
+    // Compute text color based on background luminance
+    private var textColor: Color {
+        // Calculate average luminance of the gradient colors
+        let colors = [themeColors.light, themeColors.neon, themeColors.dark]
+        let luminances = colors.compactMap { $0.luminance }
+        let averageLuminance = luminances.isEmpty ? 0.5 : luminances.reduce(0, +) / Double(luminances.count)
+        
+        // Use black text if background is light (luminance > 0.5), white otherwise
+        return averageLuminance > 0.5 ? .black : .white
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Card background with radial gradient
+                RadialGradient(
+                    colors: [
+                        themeColors.light,
+                        themeColors.neon,
+                        themeColors.dark
+                    ],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 300
+                )
+                .ignoresSafeArea()
+                
+                // Shimmer overlay
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        .white.opacity(0.3),
+                        .clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .offset(x: shimmerOffset, y: shimmerOffset)
+                .blur(radius: 20)
+                
+                // Card content
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(goalTitle)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(textColor)
+                        
+                        Text(themeName)
+                            .font(.subheadline)
+                            .foregroundStyle(textColor.opacity(0.8))
+                    }
+                    
+                    Spacer()
+                    
+                    // Progress stats
+                    HStack(spacing: 30) {
+                        // Daily progress
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TODAY")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(textColor.opacity(0.7))
+                            
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text(formatTime(dailyElapsed))
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundStyle(textColor)
+                                
+                                Text("/ \(formatTime(dailyTarget))")
+                                    .font(.subheadline)
+                                    .foregroundStyle(textColor.opacity(0.7))
+                            }
+                            
+                            // Progress bar
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(textColor.opacity(0.3))
+                                        .frame(height: 6)
+                                    
+                                    Capsule()
+                                        .fill(textColor)
+                                        .frame(width: geo.size.width * min(dailyProgress, 1.0), height: 6)
+                                        .animation(.spring(response: 0.6), value: dailyProgress)
+                                }
+                            }
+                            .frame(height: 6)
+                            
+                            Text("\(Int(min(dailyProgress, 1.0) * 100))% complete")
+                                .font(.caption)
+                                .foregroundStyle(textColor.opacity(0.8))
+                        }
+                        
+                        // Weekly progress
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("THIS WEEK")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(textColor.opacity(0.7))
+                            
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text(formatTime(weeklyElapsed))
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundStyle(textColor)
+                                
+                                Text("/ \(formatTime(weeklyTarget))")
+                                    .font(.subheadline)
+                                    .foregroundStyle(textColor.opacity(0.7))
+                            }
+                            
+                            // Progress bar
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(textColor.opacity(0.3))
+                                        .frame(height: 6)
+                                    
+                                    Capsule()
+                                        .fill(textColor)
+                                        .frame(width: geo.size.width * min(weeklyProgress, 1.0), height: 6)
+                                        .animation(.spring(response: 0.6), value: weeklyProgress)
+                                }
+                            }
+                            .frame(height: 6)
+                            
+                            Text("\(Int(min(weeklyProgress, 1.0) * 100))% complete")
+                                .font(.caption)
+                                .foregroundStyle(textColor.opacity(0.8))
+                        }
+                    }
+                }
+                .padding(24)
+            }
+            .frame(height: 240)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .shadow(color: themeColors.dark.opacity(0.4), radius: 20, x: 0, y: 10)
+            .rotation3DEffect(
+                .degrees(cardRotationX),
+                axis: (x: 1, y: 0, z: 0)
+            )
+            .rotation3DEffect(
+                .degrees(cardRotationY),
+                axis: (x: 0, y: 1, z: 0)
+            )
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        // Calculate rotation based on drag
+                        let maxRotation: Double = 15
+                        let width = geometry.size.width
+                        let height: CGFloat = 240
+                        
+                        // Y-axis rotation (left-right tilt)
+                        let xOffset = value.location.x - width / 2
+                        cardRotationY = (xOffset / width) * maxRotation * 2
+                        
+                        // X-axis rotation (up-down tilt)
+                        let yOffset = value.location.y - height / 2
+                        cardRotationX = -(yOffset / height) * maxRotation * 2
+                        
+                        // Update shimmer position
+                        withAnimation(.linear(duration: 0.1)) {
+                            shimmerOffset = -200 + (value.location.x / width) * 400
+                        }
+                    }
+                    .onEnded { _ in
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                            cardRotationX = 0
+                            cardRotationY = 0
+                            shimmerOffset = -200
+                        }
+                    }
+            )
+            #if os(iOS)
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                // Add subtle animation when device orientation changes
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                    shimmerOffset = shimmerOffset == -200 ? 200 : -200
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                        shimmerOffset = -200
+                    }
+                }
+            }
+            #endif
+        }
+        .frame(height: 240)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+    
+    private func formatTime(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+}
+
+// MARK: - Color Luminance Extension
+
+extension Color {
+    /// Calculates the relative luminance of a color
+    /// Returns a value between 0 (darkest) and 1 (lightest)
+    var luminance: Double? {
+        #if os(iOS)
+        guard let components = UIColor(self).cgColor.components else { return nil }
+        #elseif os(macOS)
+        guard let components = NSColor(self).cgColor.components else { return nil }
+        #endif
+        
+        // Ensure we have RGB components
+        guard components.count >= 3 else { return nil }
+        
+        let r = components[0]
+        let g = components[1]
+        let b = components[2]
+        
+        // Calculate relative luminance using the standard formula
+        // https://www.w3.org/TR/WCAG20/#relativeluminancedef
+        let rsRGB = r <= 0.03928 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
+        let gsRGB = g <= 0.03928 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
+        let bsRGB = b <= 0.03928 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
+        
+        return 0.2126 * rsRGB + 0.7152 * gsRGB + 0.0722 * bsRGB
+    }
+}
+
+
 

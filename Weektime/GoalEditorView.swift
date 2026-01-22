@@ -88,6 +88,10 @@ struct GoalEditorView: View {
     enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
     @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = [.anytime]
     
+    // Custom theme selection
+    @State private var selectedTheme: Theme?
+    @State private var useCustomTheme: Bool = false
+    
     // Local alias map for suggestion autocomplete
     private let suggestionAliases: [String: [String]] = [
         // Keyed by canonical suggestion title (case-insensitive matching will be used)
@@ -320,6 +324,55 @@ struct GoalEditorView: View {
                                 .pickerStyle(.menu)
                             }
                             
+                            Section(header: Text("Theme")) {
+                                // Theme color grid
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    LazyHGrid(rows: [GridItem(.fixed(60)), GridItem(.fixed(60))], spacing: 12) {
+                                        ForEach(themes, id: \.id) { theme in
+                                            ThemeColorButton(
+                                                theme: theme,
+                                                isSelected: selectedTheme?.id == theme.id,
+                                                action: {
+                                                    withAnimation(.spring(response: 0.3)) {
+                                                        selectedTheme = theme
+                                                        useCustomTheme = true
+                                                    }
+                                                    
+                                                    #if os(iOS)
+                                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                                    generator.impactOccurred()
+                                                    #endif
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 8)
+                                }
+                                
+                                if let selectedTheme {
+                                    HStack {
+                                        Text("Selected:")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Text(selectedTheme.title)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(selectedTheme.dark)
+                                        Spacer()
+                                        Button("Reset to Auto") {
+                                            withAnimation {
+                                                self.selectedTheme = nil
+                                                useCustomTheme = false
+                                            }
+                                        }
+                                        .font(.caption)
+                                    }
+                                }
+                            }
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            
                             Section(header: Text("Notifications")) {
                                 Toggle("Notify when target is reached", isOn: $notificationsEnabled)
                             }
@@ -480,6 +533,10 @@ struct GoalEditorView: View {
         // Set duration
         durationInMinutes = template.duration
         
+        // Set theme based on template
+        selectedTheme = matchTheme(named: template.theme)
+        useCustomTheme = false // Allow user to see the auto-selected theme but can change it
+        
         // Set HealthKit metric if available
         if let metricRawValue = template.healthKitMetric,
            let metric = HealthKitMetric(rawValue: metricRawValue) {
@@ -579,17 +636,26 @@ struct GoalEditorView: View {
     func saveGoal() {
         let goal: Goal
         
-        // Determine theme title
-        let themeTitle: String
-        if let aiSuggestion {
-            themeTitle = aiSuggestion.suggestedTheme
-        } else if let selectedSuggestion, let themes = selectedSuggestion.themes, !themes.isEmpty {
-            themeTitle = themes[0]
+        // Determine theme based on user selection or suggestion
+        let finalTheme: Theme
+        if useCustomTheme, let customTheme = selectedTheme {
+            // User has explicitly selected a custom theme
+            finalTheme = customTheme
+        } else if let template = selectedTemplate {
+            // Use the template's theme
+            finalTheme = matchTheme(named: template.theme)
+        } else if let aiSuggestion {
+            // Use AI-suggested theme
+            finalTheme = matchTheme(named: aiSuggestion.suggestedTheme)
+        } else if let selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
+            // Use the first theme from generated suggestions
+            finalTheme = matchTheme(named: themeNames[0])
         } else {
-            themeTitle = ""
+            // Random fallback
+            finalTheme = themes.randomElement() ?? themes[0]
         }
         
-        let theme = GoalTheme(title: themeTitle, color: themes.randomElement()!)
+        let theme = GoalTheme(title: finalTheme.title, color: finalTheme)
         
         // Convert time of day selections to strings for storage
         let timePreferences = selectedSimpleTimes.map { $0.rawValue.lowercased() }
@@ -649,6 +715,43 @@ struct GoalEditorView: View {
 
     func prewarm() {
 //        session.prewarm()
+    }
+    
+    /// Match a theme name to an actual Theme from the themes array
+    func matchTheme(named themeName: String) -> Theme {
+        let normalizedThemeName = themeName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Try exact match first
+        if let exactMatch = themes.first(where: { $0.title.lowercased() == normalizedThemeName }) {
+            return exactMatch
+        }
+        
+        // Try partial match
+        if let partialMatch = themes.first(where: { $0.title.lowercased().contains(normalizedThemeName) }) {
+            return partialMatch
+        }
+        
+        // Keyword-based matching
+        let themeKeywords: [String: [String]] = [
+            "red": ["red", "cherry", "coral"],
+            "orange": ["orange", "tangerine", "peach"],
+            "yellow": ["yellow", "sunshine", "lemon", "gold"],
+            "green": ["green", "mint", "nature", "fitness", "wellness", "health"],
+            "blue": ["blue", "sky", "cyan", "teal", "productivity", "focus"],
+            "purple": ["purple", "lilac", "meditation", "mindfulness", "creative"],
+            "pink": ["pink", "rose"]
+        ]
+        
+        for (baseColor, keywords) in themeKeywords {
+            if keywords.contains(where: { normalizedThemeName.contains($0) }) {
+                if let match = themes.first(where: { $0.id.lowercased().contains(baseColor) }) {
+                    return match
+                }
+            }
+        }
+        
+        // Default fallback
+        return themes.randomElement() ?? themes[0]
     }
     
     func generateChecklist(for input: String) {
@@ -885,6 +988,61 @@ extension Color {
         
         // Use black text for light backgrounds, white text for dark backgrounds
         return luminance > 0.6 ? .black : .white
+    }
+}
+
+// MARK: - Theme Color Button
+
+struct ThemeColorButton: View {
+    let theme: Theme
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                // Color circle with gradient
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [theme.light, theme.neon, theme.dark],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: 30
+                            )
+                        )
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(isSelected ? theme.dark : Color.clear, lineWidth: 3)
+                        )
+                        .shadow(color: theme.dark.opacity(0.3), radius: 4, x: 0, y: 2)
+                    
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(.white)
+                            .background(
+                                Circle()
+                                    .fill(theme.dark)
+                                    .frame(width: 26, height: 26)
+                            )
+                    }
+                }
+                
+                // Theme name
+                Text(theme.title)
+                    .font(.caption2)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(isSelected ? theme.dark : .secondary)
+                    .lineLimit(1)
+                    .frame(width: 60)
+            }
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.1 : 1.0)
+        .animation(.spring(response: 0.3), value: isSelected)
     }
 }
 
