@@ -28,9 +28,6 @@ struct GoalEditorView: View {
     @State private var notificationsEnabled: Bool = false
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
-    @State private var isGeneratingSuggestions = false
-    @State private var aiSuggestedThemes: [Theme] = []
-    @State private var aiReasoning: String?
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
@@ -111,13 +108,14 @@ struct GoalEditorView: View {
     @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = [.anytime]
     
     // Custom theme selection
-    @State private var selectedTheme: Theme?
+    @State private var selectedGoalTheme: GoalTheme?
     @State private var useCustomTheme: Bool = false
     @State private var showingAddThemeSheet: Bool = false
     @State private var customThemeName: String = ""
-    @State private var customThemes: [Theme] = []
-    @State private var selectedThemes: [Theme] = [] // Track user's selected themes
+    @State private var customGoalThemes: [GoalTheme] = []
+    @State private var selectedGoalThemes: [GoalTheme] = [] // Track user's selected themes
     @State private var selectedBaseThemeForCustom: Theme? // For creating custom themes
+    @State private var isEditingThemes: Bool = false // Track edit mode for theme sheet
     
     // Track if user has made any changes
     private var hasUnsavedChanges: Bool {
@@ -272,7 +270,7 @@ struct GoalEditorView: View {
                         }
                         
                         if currentStage == .duration {
-                                                        
+                                                                                    
                             Section(header: Text("Weekly Goal")) {
                                 Picker("Duration (minutes)", selection: $durationInMinutes) {
                                     ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
@@ -338,13 +336,13 @@ struct GoalEditorView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     // Tag cloud with flow layout - show only selected themes
                                     TagFlowLayout(spacing: 8) {
-                                        ForEach(selectedThemes, id: \.id) { theme in
+                                        ForEach(selectedGoalThemes, id: \.title) { goalTheme in
                                             ThemeTagButton(
-                                                theme: theme,
-                                                isSelected: selectedTheme?.id == theme.id,
+                                                goalTheme: goalTheme,
+                                                isSelected: selectedGoalTheme?.title == goalTheme.title,
                                                 action: {
                                                     withAnimation(.spring(response: 0.3)) {
-                                                        selectedTheme = theme
+                                                        selectedGoalTheme = goalTheme
                                                         useCustomTheme = true
                                                     }
                                                     
@@ -356,7 +354,7 @@ struct GoalEditorView: View {
                                             )
                                             .contextMenu {
                                                 Button(role: .destructive) {
-                                                    removeTheme(theme)
+                                                    removeGoalTheme(goalTheme)
                                                 } label: {
                                                     Label("Remove", systemImage: "trash")
                                                 }
@@ -386,7 +384,7 @@ struct GoalEditorView: View {
                                     }
                                     .padding(.vertical, 8)
                                     
-                                    if selectedThemes.isEmpty {
+                                    if selectedGoalThemes.isEmpty {
                                         Text("Tap 'Add Theme' to choose a color theme for your goal")
                                             .font(.footnote)
                                             .foregroundStyle(.secondary)
@@ -415,26 +413,17 @@ struct GoalEditorView: View {
                     Button(action: {
                         handleButtonTap()
                     }) {
-                        HStack {
-                            if isGeneratingSuggestions {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .tint(.white)
-                                Text("Generating suggestions...")
-                            } else {
-                                Text(currentStage == .name ? "Next" : "Save")
+                        Text(currentStage == .name ? "Next" : "Save")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background {
+                                Capsule()
+                                    .fill(buttonEnabled ? Color.accentColor : Color.gray)
                             }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background {
-                            Capsule()
-                                .fill(buttonEnabled && !isGeneratingSuggestions ? Color.accentColor : Color.gray)
-                        }
-                        .foregroundStyle(.white)
-                        .cornerRadius(10)
+                            .foregroundStyle(.white)
+                            .cornerRadius(10)
                     }
-                    .disabled(!buttonEnabled || isGeneratingSuggestions)
+                    .disabled(!buttonEnabled)
                     .padding()
                 }
                 .background(Color(.systemBackground))
@@ -514,100 +503,138 @@ struct GoalEditorView: View {
         }
         .sheet(isPresented: $showingAddThemeSheet) {
             NavigationStack {
-                List {
-                    // Available themes section
-                    Section(header: Text("Available Themes")) {
-                        ForEach(allAvailableThemes.filter { theme in
-                            !selectedThemes.contains(where: { $0.id == theme.id })
-                        }, id: \.id) { theme in
-                            Button(action: {
-                                addThemeToSelected(theme)
-                            }) {
-                                HStack(spacing: 12) {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [theme.light, theme.dark],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(width: 40, height: 40)
-                                    
-                                    Text(theme.title)
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundStyle(theme.dark)
-                                }
-                                .padding(.vertical, 8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    
-                    // Create custom theme section
-                    Section(header: Text("Create Custom Theme")) {
-                        TextField("Theme name", text: $customThemeName)
-                        
-                        Text("Base Color")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(themes, id: \.id) { theme in
-                                    ThemeColorButton(
-                                        theme: theme,
-                                        isSelected: selectedBaseThemeForCustom?.id == theme.id,
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Category themes section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Category Themes")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            TagFlowLayout(spacing: 8) {
+                                ForEach(categoryGoalThemes.filter { goalTheme in
+                                    !selectedGoalThemes.contains(where: { $0.title == goalTheme.title })
+                                }, id: \.title) { goalTheme in
+                                    ThemeTagButton(
+                                        goalTheme: goalTheme,
+                                        isSelected: false,
                                         action: {
-                                            selectedBaseThemeForCustom = theme
-                                            
-                                            #if os(iOS)
-                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                            generator.impactOccurred()
-                                            #endif
+                                            addGoalThemeToSelected(goalTheme)
                                         }
                                     )
                                 }
                             }
-                            .padding(.vertical, 8)
+                            .padding(.horizontal)
                         }
-                        .listRowInsets(EdgeInsets())
                         
-                        Button(action: {
-                            createCustomTheme()
-                        }) {
-                            HStack {
-                                Image(systemName: "sparkles")
-                                Text("Create Custom Theme")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.accentColor)
-                            )
-                            .foregroundStyle(.white)
+                        // Other available themes
+                        let otherThemes = allAvailableGoalThemes.filter { goalTheme in
+                            !categoryGoalThemes.contains(where: { $0.title == goalTheme.title }) &&
+                            !selectedGoalThemes.contains(where: { $0.title == goalTheme.title })
                         }
-                        .buttonStyle(.plain)
-                        .disabled(customThemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedBaseThemeForCustom == nil)
+                        
+                        if !otherThemes.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Other Themes")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                
+                                TagFlowLayout(spacing: 8) {
+                                    ForEach(otherThemes, id: \.title) { goalTheme in
+                                        ThemeTagButton(
+                                            goalTheme: goalTheme,
+                                            isSelected: false,
+                                            action: {
+                                                addGoalThemeToSelected(goalTheme)
+                                            }
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                        
+                        // Create custom theme section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Create Custom Theme")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            VStack(spacing: 16) {
+                                TextField("Theme name", text: $customThemeName)
+                                    .textFieldStyle(.roundedBorder)
+                                    .padding(.horizontal)
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Base Color")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(themes, id: \.id) { theme in
+                                                ThemeColorButton(
+                                                    theme: theme,
+                                                    isSelected: selectedBaseThemeForCustom?.id == theme.id,
+                                                    action: {
+                                                        selectedBaseThemeForCustom = theme
+                                                        
+                                                        #if os(iOS)
+                                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                                        generator.impactOccurred()
+                                                        #endif
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                                
+                                Button(action: {
+                                    createCustomGoalTheme()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "sparkles")
+                                        Text("Create Custom Theme")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(customThemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedBaseThemeForCustom == nil ? Color.gray : Color.accentColor)
+                                    )
+                                    .foregroundStyle(.white)
+                                }
+                                .disabled(customThemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedBaseThemeForCustom == nil)
+                                .padding(.horizontal)
+                            }
+                        }
                     }
+                    .padding(.vertical)
                 }
                 .navigationTitle("Add Theme")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(isEditingThemes ? "Done" : "Edit") {
+                            withAnimation {
+                                isEditingThemes.toggle()
+                            }
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Dismiss") {
                             showingAddThemeSheet = false
+                            isEditingThemes = false
                         }
                     }
                 }
             }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .task {
             prewarm()
@@ -641,14 +668,13 @@ struct GoalEditorView: View {
         healthKitSyncEnabled = goal.healthKitSyncEnabled
         
         // Load theme
-        if let matchedTheme = themes.first(where: { $0.id == goal.primaryTheme.theme.id }) {
-            selectedTheme = matchedTheme
-            useCustomTheme = true
-            
-            // Add to selected themes
-            if !selectedThemes.contains(where: { $0.id == matchedTheme.id }) {
-                selectedThemes.append(matchedTheme)
-            }
+        let goalTheme = goal.primaryTheme
+        selectedGoalTheme = goalTheme
+        useCustomTheme = true
+        
+        // Add to selected themes
+        if !selectedGoalThemes.contains(where: { $0.title == goalTheme.title }) {
+            selectedGoalThemes.append(goalTheme)
         }
         
         // Load schedule
@@ -663,22 +689,38 @@ struct GoalEditorView: View {
         currentStage = .duration
     }
     
-    var allAvailableThemes: [Theme] {
-        return themes + customThemes
+    var allAvailableGoalThemes: [GoalTheme] {
+        // Create predefined GoalThemes based on suggestion categories
+        let categoryThemes = suggestionsData.categories.map { category in
+            let matchedTheme = matchTheme(named: category.name)
+            return GoalTheme(title: category.name, color: matchedTheme)
+        }
+        
+        // Also include all base themes as individual GoalThemes for custom selection
+        let individualThemes = themes.map { theme in
+            GoalTheme(title: theme.title, color: theme)
+        }
+        
+        return categoryThemes + individualThemes + customGoalThemes
+    }
+    
+    var categoryGoalThemes: [GoalTheme] {
+        return suggestionsData.categories.map { category in
+            let matchedTheme = matchTheme(named: category.name)
+            return GoalTheme(title: category.name, color: matchedTheme)
+        }
     }
     
     private func addCustomTheme(name: String, baseOn baseTheme: Theme) {
-        let newTheme = Theme(
-            id: "custom_\(UUID().uuidString)",
+        let newGoalTheme = GoalTheme(
             title: name,
-            light: baseTheme.light,
-            dark: baseTheme.dark, neon: baseTheme.neon
+            color: baseTheme
         )
-        customThemes.append(newTheme)
+        customGoalThemes.append(newGoalTheme)
         
         // Auto-select the new theme
         withAnimation(.spring(response: 0.3)) {
-            selectedTheme = newTheme
+            selectedGoalTheme = newGoalTheme
             useCustomTheme = true
         }
         
@@ -693,14 +735,17 @@ struct GoalEditorView: View {
     }
     
     /// Add a theme to the selected themes list
-    private func addThemeToSelected(_ theme: Theme) {
+    private func addGoalThemeToSelected(_ goalTheme: GoalTheme) {
         withAnimation(.spring(response: 0.3)) {
-            selectedThemes.append(theme)
-            selectedTheme = theme
+            selectedGoalThemes.append(goalTheme)
+            // Only auto-select if this is the first theme
+            if selectedGoalTheme == nil {
+                selectedGoalTheme = goalTheme
+            }
             useCustomTheme = true
         }
         
-        showingAddThemeSheet = false
+        // Don't dismiss the sheet - allow adding multiple themes
         
         #if os(iOS)
         let generator = UINotificationFeedbackGenerator()
@@ -709,24 +754,21 @@ struct GoalEditorView: View {
     }
     
     /// Create and add a custom theme
-    private func createCustomTheme() {
+    private func createCustomGoalTheme() {
         guard let baseTheme = selectedBaseThemeForCustom else { return }
         let name = customThemeName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
         
-        let newTheme = Theme(
-            id: "custom_\(UUID().uuidString)",
+        let newGoalTheme = GoalTheme(
             title: name,
-            light: baseTheme.light,
-            dark: baseTheme.dark,
-            neon: baseTheme.neon
+            color: baseTheme
         )
         
-        customThemes.append(newTheme)
+        customGoalThemes.append(newGoalTheme)
         
         withAnimation(.spring(response: 0.3)) {
-            selectedThemes.append(newTheme)
-            selectedTheme = newTheme
+            selectedGoalThemes.append(newGoalTheme)
+            selectedGoalTheme = newGoalTheme
             useCustomTheme = true
         }
         
@@ -742,13 +784,13 @@ struct GoalEditorView: View {
     }
     
     /// Remove a theme from the selected themes list
-    private func removeTheme(_ theme: Theme) {
+    private func removeGoalTheme(_ goalTheme: GoalTheme) {
         withAnimation(.spring(response: 0.3)) {
-            selectedThemes.removeAll(where: { $0.id == theme.id })
+            selectedGoalThemes.removeAll(where: { $0.title == goalTheme.title })
             
             // If we removed the currently selected theme, select the first available
-            if selectedTheme?.id == theme.id {
-                selectedTheme = selectedThemes.first
+            if selectedGoalTheme?.title == goalTheme.title {
+                selectedGoalTheme = selectedGoalThemes.first
             }
         }
         
@@ -813,13 +855,13 @@ struct GoalEditorView: View {
         switch currentStage {
         case .name:
             if let template = selectedTemplate {
-                // Prefill from template and go to duration
+                // Prefill from template and go to duration without AI
                 applyTemplate(template)
                 withAnimation {
                     currentStage = .duration
                 }
             } else {
-                // New goal: go to duration
+                // New goal: go to duration immediately, then start generating suggestions in background
                 withAnimation {
                     currentStage = .duration
                 }
@@ -837,19 +879,21 @@ struct GoalEditorView: View {
         // Set duration
         durationInMinutes = template.duration
         
-        // Set theme based on template
-        let matchedTheme = matchTheme(named: template.theme)
-        selectedTheme = matchedTheme
+        // Find the category this template belongs to
+        let categoryName = suggestionsData.categories.first { category in
+            category.suggestions.contains(where: { $0.id == template.id })
+        }?.name ?? template.theme
+        
+        // Create GoalTheme based on category name, not individual template theme
+        let matchedTheme = matchTheme(named: categoryName)
+        let goalTheme = GoalTheme(title: categoryName, color: matchedTheme)
+        selectedGoalTheme = goalTheme
         useCustomTheme = false
         
         // Add to selected themes if not already there
-        if !selectedThemes.contains(where: { $0.id == matchedTheme.id }) {
-            selectedThemes.append(matchedTheme)
+        if !selectedGoalThemes.contains(where: { $0.title == goalTheme.title }) {
+            selectedGoalThemes.append(goalTheme)
         }
-        
-        // Show it as an AI suggestion for consistency
-        aiSuggestedThemes = [matchedTheme]
-        aiReasoning = template.subtitle
         
         // Set HealthKit metric if available
         if let metricRawValue = template.healthKitMetric,
@@ -864,93 +908,8 @@ struct GoalEditorView: View {
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
         print("   Duration: \(template.duration) min")
-        print("   Theme: \(template.theme)")
+        print("   Category/Theme: \(categoryName)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
-    }
-    
-    /// Generate AI-powered theme suggestions based on the goal text
-    func generateAISuggestions() async {
-        guard !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            await MainActor.run { isGeneratingSuggestions = false }
-            return
-        }
-        
-        await MainActor.run {
-            isGeneratingSuggestions = true
-        }
-        
-        do {
-            let session = LanguageModelSession()
-            
-            // Get available theme names for the prompt
-            let themeNames = themes.map { $0.title }.joined(separator: ", ")
-            
-            let prompt = """
-            Analyze this goal activity: "\(userInput)"
-            
-            Suggest 2-3 most appropriate themes from this list: \(themeNames)
-            
-            Return themes that best match the activity type and vibe. For example:
-            - "meditate" → Wellness themes (Mint, Lavender, Sky)
-            - "run" → Fitness themes (Coral, Cherry, Tangerine)
-            - "read" → Learning themes (Sky, Mint, Lilac)
-            - "code" → Productivity themes (Sky, Mint)
-            - "paint" → Creative themes (Lilac, Rose, Tangerine)
-            
-            Provide a brief reasoning explaining why these themes fit.
-            """
-            
-            let response = try await session.respond(
-                to: Prompt(prompt),
-                generating: GoalThemeSuggestionsResponse.self,
-                options: GenerationOptions(temperature: 0.3)
-            )
-            
-            await MainActor.run {
-                let suggestion = response.content
-                
-                // Match suggested theme names to actual Theme objects
-                let matchedThemes = suggestion.suggestedThemes.compactMap { themeName in
-                    matchTheme(named: themeName)
-                }
-                
-                // Remove duplicates and limit to 3
-                var uniqueThemes: [Theme] = []
-                for theme in matchedThemes {
-                    if !uniqueThemes.contains(where: { $0.id == theme.id }) {
-                        uniqueThemes.append(theme)
-                    }
-                }
-                
-                self.aiSuggestedThemes = Array(uniqueThemes.prefix(3))
-                self.aiReasoning = suggestion.reasoning
-                
-                // Add AI-suggested themes to selected themes
-                for theme in uniqueThemes.prefix(3) {
-                    if !selectedThemes.contains(where: { $0.id == theme.id }) {
-                        selectedThemes.append(theme)
-                    }
-                }
-                
-                // Auto-select the first suggested theme if user hasn't picked one
-                if !useCustomTheme, let firstTheme = uniqueThemes.first {
-                    self.selectedTheme = firstTheme
-                }
-                
-                isGeneratingSuggestions = false
-                
-                print("🎨 AI Theme Suggestions:")
-                print("   Themes: \(uniqueThemes.map { $0.title }.joined(separator: ", "))")
-                if let reasoning = suggestion.reasoning {
-                    print("   Reasoning: \(reasoning)")
-                }
-            }
-        } catch {
-            await MainActor.run {
-                isGeneratingSuggestions = false
-                print("❌ Failed to generate AI theme suggestions: \(error)")
-            }
-        }
     }
     
     func saveGoal() {
@@ -958,22 +917,23 @@ struct GoalEditorView: View {
         let isEditing = existingGoal != nil
         
         // Determine theme based on user selection or suggestion
-        let finalTheme: Theme
-        if let customTheme = selectedTheme {
-            // User has selected a theme (either custom or from AI suggestions)
-            finalTheme = customTheme
+        let finalGoalTheme: GoalTheme
+        if let customGoalTheme = selectedGoalTheme {
+            // User has selected a theme (either custom or from suggestions)
+            finalGoalTheme = customGoalTheme
         } else if let template = selectedTemplate {
             // Use the template's theme
-            finalTheme = matchTheme(named: template.theme)
+            let matchedTheme = matchTheme(named: template.theme)
+            finalGoalTheme = GoalTheme(title: matchedTheme.title, color: matchedTheme)
         } else if let selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
-            finalTheme = matchTheme(named: themeNames[0])
+            let matchedTheme = matchTheme(named: themeNames[0])
+            finalGoalTheme = GoalTheme(title: matchedTheme.title, color: matchedTheme)
         } else {
             // Random fallback
-            finalTheme = themes.randomElement() ?? themes[0]
+            let randomTheme = themes.randomElement() ?? themes[0]
+            finalGoalTheme = GoalTheme(title: randomTheme.title, color: randomTheme)
         }
-        
-        let theme = GoalTheme(title: finalTheme.title, color: finalTheme)
         
         // Debug print day-time schedule
         if !dayTimePreferences.isEmpty {
@@ -989,7 +949,7 @@ struct GoalEditorView: View {
             // Update existing goal
             goal = existingGoal
             goal.title = userInput
-            goal.primaryTheme = theme
+            goal.primaryTheme = finalGoalTheme
             goal.weeklyTarget = TimeInterval(durationInMinutes * 60 * 7)
             goal.notificationsEnabled = notificationsEnabled
             goal.healthKitMetric = selectedHealthKitMetric
@@ -1002,7 +962,7 @@ struct GoalEditorView: View {
             if let selectedSuggestion, let title = selectedSuggestion.title {
                 goal = Goal(
                     title: title,
-                    primaryTheme: theme,
+                    primaryTheme: finalGoalTheme,
                     weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
                     notificationsEnabled: notificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
@@ -1011,7 +971,7 @@ struct GoalEditorView: View {
             } else {
                 goal = Goal(
                     title: userInput,
-                    primaryTheme: theme,
+                    primaryTheme: finalGoalTheme,
                     weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
                     notificationsEnabled: notificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
@@ -1072,6 +1032,26 @@ struct GoalEditorView: View {
             return reverseMatch
         }
         
+        // Category-based matching for suggestion categories
+        let categoryKeywords: [String: String] = [
+            "fitness": "exercise",
+            "wellness": "wellness",
+            "learning": "learning",
+            "creative": "creative",
+            "productivity": "productivity",
+            "lifestyle": "home",
+            "social": "social",
+            "personal growth": "growth"
+        ]
+        
+        for (category, themeId) in categoryKeywords {
+            if normalizedThemeName.contains(category) {
+                if let match = themes.first(where: { $0.id == themeId }) {
+                    return match
+                }
+            }
+        }
+        
         // Keyword-based matching for common activities
         let themeKeywords: [String: String] = [
             // Fitness
@@ -1081,7 +1061,6 @@ struct GoalEditorView: View {
             "gym": "strength",
             "workout": "exercise",
             "exercise": "exercise",
-            "fitness": "exercise",
             "strength": "strength",
             "yoga": "yoga",
             "sport": "sports",
@@ -1539,7 +1518,7 @@ struct SuggestedThemeCard: View {
 
 // MARK: - Theme Tag Button
 struct ThemeTagButton: View {
-    let theme: Theme
+    let goalTheme: GoalTheme
     let isSelected: Bool
     let action: () -> Void
     
@@ -1550,7 +1529,7 @@ struct ThemeTagButton: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [theme.light, theme.dark],
+                            colors: [goalTheme.theme.light, goalTheme.theme.dark],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -1558,10 +1537,10 @@ struct ThemeTagButton: View {
                     .frame(width: 20, height: 20)
                     .overlay(
                         Circle()
-                            .strokeBorder(isSelected ? theme.dark : Color.clear, lineWidth: 2)
+                            .strokeBorder(isSelected ? goalTheme.theme.dark : Color.clear, lineWidth: 2)
                     )
                 
-                Text(theme.title)
+                Text(goalTheme.title)
                     .font(.subheadline)
                     .fontWeight(isSelected ? .semibold : .regular)
             }
@@ -1569,13 +1548,13 @@ struct ThemeTagButton: View {
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? theme.light.opacity(0.3) : Color(.systemGray6))
+                    .fill(isSelected ? goalTheme.theme.light.opacity(0.3) : Color(.systemGray6))
             )
             .overlay(
                 Capsule()
-                    .strokeBorder(isSelected ? theme.dark : Color.clear, lineWidth: 2)
+                    .strokeBorder(isSelected ? goalTheme.theme.dark : Color.clear, lineWidth: 2)
             )
-            .foregroundStyle(isSelected ? theme.dark : .primary)
+            .foregroundStyle(isSelected ? goalTheme.theme.dark : .primary)
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)
