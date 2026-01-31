@@ -40,6 +40,17 @@ public class Theme: Identifiable {
         self.darkColorID = dark.toHex() ?? ""
         self.neonColorID = neon.toHex() ?? ""
     }
+    
+    public func color(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            light
+        case .dark:
+            dark
+        default:
+            light
+        }
+    }
 }
 
 

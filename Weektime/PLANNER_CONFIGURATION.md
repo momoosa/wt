@@ -141,9 +141,9 @@ private var availableGoalThemes: [GoalTheme] {
     var seenIDs: Set<String> = []
     
     for goal in activeGoals {
-        let themeID = goal.primaryTheme.theme.id
+        let themeID = goal.primaryTag.theme.id
         if !seenIDs.contains(themeID) {
-            uniqueThemes.append(goal.primaryTheme)
+            uniqueThemes.append(goal.primaryTag)
             seenIDs.insert(themeID)
         }
     }
@@ -163,7 +163,7 @@ When generating the plan:
 ```swift
 if !selectedThemes.isEmpty {
     activeGoals = activeGoals.filter { goal in
-        selectedThemes.contains(goal.primaryTheme.theme.id)
+        selectedThemes.contains(goal.primaryTag.theme.id)
     }
 }
 

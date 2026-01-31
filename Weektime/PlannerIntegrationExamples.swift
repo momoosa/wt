@@ -190,7 +190,7 @@ struct FilteredPlannerView: View {
     @State private var selectedTheme: String = "Wellness"
     
     var filteredGoals: [Goal] {
-        allGoals.filter { $0.primaryTheme.title == selectedTheme }
+        allGoals.filter { $0.primaryTag.title == selectedTheme }
     }
     
     var body: some View {

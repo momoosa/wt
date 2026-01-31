@@ -108,14 +108,16 @@ struct GoalEditorView: View {
     @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = [.anytime]
     
     // Custom theme selection
-    @State private var selectedGoalTheme: GoalTheme?
-    @State private var useCustomTheme: Bool = false
+    @State private var selectedGoalTheme: GoalTag?
     @State private var showingAddThemeSheet: Bool = false
     @State private var customThemeName: String = ""
-    @State private var customGoalThemes: [GoalTheme] = []
-    @State private var selectedGoalThemes: [GoalTheme] = [] // Track user's selected themes
     @State private var selectedBaseThemeForCustom: Theme? // For creating custom themes
     @State private var isEditingThemes: Bool = false // Track edit mode for theme sheet
+
+    @Query private var allTags: [GoalTag]
+    @State private var selectedTags: [GoalTag] = []
+    @State private var showingTagPicker: Bool = false
+    @State private var editingTag: GoalTag?
     
     // Track if user has made any changes
     private var hasUnsavedChanges: Bool {
@@ -296,7 +298,7 @@ struct GoalEditorView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     // Tag cloud with flow layout - show only selected themes
                                     TagFlowLayout(spacing: 8) {
-                                        ForEach(selectedGoalThemes, id: \.title) { goalTheme in
+                                        ForEach(selectedTags, id: \.title) { goalTheme in
                                             ThemeTagButton(
                                                 goalTheme: goalTheme,
                                                 isSelected: true,
@@ -335,7 +337,7 @@ struct GoalEditorView: View {
                                     }
                                     .padding(.vertical, 8)
                                     
-                                    if selectedGoalThemes.isEmpty {
+                                    if selectedTags.isEmpty {
                                         Text("Tap 'Add Theme' to choose a color theme for your goal")
                                             .font(.footnote)
                                             .foregroundStyle(.secondary)
@@ -443,8 +445,7 @@ struct GoalEditorView: View {
                             withAnimation {
                                 currentStage = .name
                                 // Reset theme selections when going back
-                                selectedGoalThemes.removeAll()
-                                selectedGoalTheme = nil
+                                selectedTags.removeAll()
                             }
                         } else {
                             dismiss()
@@ -460,189 +461,53 @@ struct GoalEditorView: View {
                 // Removed the trailing toolbar button since we have the bottom button now
             }
         }
-        .interactiveDismissDisabled(hasUnsavedChanges)
-        .sheet(item: $editingBucket) { key in
+        .sheet(isPresented: $showingTagPicker) {
             NavigationStack {
-                VStack {
-                    if tempTimes.isEmpty {
-                        Text("Add one or more exact times for this cell.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    List {
-                        ForEach(tempTimes.indices, id: \.self) { idx in
-                            DatePicker(
-                                "Time \(idx + 1)",
-                                selection: Binding(
-                                    get: { tempTimes[idx] },
-                                    set: { tempTimes[idx] = $0 }
-                                ),
-                                displayedComponents: .hourAndMinute
-                            )
-                            Button(role: .destructive) {
-                                tempTimes.remove(at: idx)
-                            } label: {
-                                Label("Remove", systemImage: "trash")
-                                    .foregroundStyle(.red)
+                List {
+                    // Existing
+                    if !allTags.isEmpty {
+                        Section("Existing Tags") {
+                            ForEach(allTags) { tag in
+                                HStack {
+                                    Image(systemName: tagIcon(for: tag))
+                                    Text(tag.title)
+                                    Spacer()
+                                    if selectedTags.contains(where: { $0.id == tag.id }) {
+                                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if let idx = selectedTags.firstIndex(where: { $0.id == tag.id }) {
+                                        selectedTags.remove(at: idx)
+                                    } else {
+                                        selectedTags.append(tag)
+                                    }
+                                }
                             }
                         }
+                    }
+                    Section("Create New Tag") {
                         Button {
-                            let base = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-                            tempTimes.append(base)
+                            let predefined = GoalTag.predefinedSmartTags(themes: themes)
+                            for tag in predefined {
+                                if !allTags.contains(where: { $0.title == tag.title }) {
+                                    modelContext.insert(tag)
+                                }
+                            }
                         } label: {
-                            Label("Add time", systemImage: "plus.circle")
+                            Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
                         }
                     }
                 }
-                .navigationTitle("Edit Times")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { editingBucket = nil }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            let comps = tempTimes.map { Calendar.current.dateComponents([.hour, .minute], from: $0) }
-                            bucketTimes[key] = comps
-                            editingBucket = nil
-                        }
-                    }
-                }
+                .navigationTitle("Add Tag")
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingTagPicker = false } } }
             }
         }
-        .sheet(isPresented: $showingAddThemeSheet) {
+        .sheet(item: $editingTag) { tag in
             NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Category themes section
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Category Themes")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            TagFlowLayout(spacing: 8) {
-                                ForEach(categoryGoalThemes.filter { goalTheme in
-                                    !selectedGoalThemes.contains(where: { $0.title == goalTheme.title })
-                                }, id: \.title) { goalTheme in
-                                    ThemeTagButton(
-                                        goalTheme: goalTheme,
-                                        isSelected: false,
-                                        action: {
-                                            addGoalThemeToSelected(goalTheme)
-                                        }
-                                    )
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                        
-                        // Other available themes
-                        let otherThemes = allAvailableGoalThemes.filter { goalTheme in
-                            !categoryGoalThemes.contains(where: { $0.title == goalTheme.title }) &&
-                            !selectedGoalThemes.contains(where: { $0.title == goalTheme.title })
-                        }
-                        
-                        if !otherThemes.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Other Themes")
-                                    .font(.headline)
-                                    .padding(.horizontal)
-                                
-                                TagFlowLayout(spacing: 8) {
-                                    ForEach(otherThemes, id: \.title) { goalTheme in
-                                        ThemeTagButton(
-                                            goalTheme: goalTheme,
-                                            isSelected: false,
-                                            action: {
-                                                addGoalThemeToSelected(goalTheme)
-                                            }
-                                        )
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                        
-                        // Create custom theme section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Create Custom Theme")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            VStack(spacing: 16) {
-                                TextField("Theme name", text: $customThemeName)
-                                    .textFieldStyle(.roundedBorder)
-                                    .padding(.horizontal)
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Base Color")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .padding(.horizontal)
-                                    
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
-                                            ForEach(themes, id: \.id) { theme in
-                                                ThemeColorButton(
-                                                    theme: theme,
-                                                    isSelected: selectedBaseThemeForCustom?.id == theme.id,
-                                                    action: {
-                                                        selectedBaseThemeForCustom = theme
-                                                        
-                                                        #if os(iOS)
-                                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                                        generator.impactOccurred()
-                                                        #endif
-                                                    }
-                                                )
-                                            }
-                                        }
-                                        .padding(.horizontal)
-                                    }
-                                }
-                                
-                                Button(action: {
-                                    createCustomGoalTheme()
-                                }) {
-                                    HStack {
-                                        Image(systemName: "sparkles")
-                                        Text("Create Custom Theme")
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(customThemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedBaseThemeForCustom == nil ? Color.gray : Color.accentColor)
-                                    )
-                                    .foregroundStyle(.white)
-                                }
-                                .disabled(customThemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedBaseThemeForCustom == nil)
-                                .padding(.horizontal)
-                            }
-                        }
-                    }
-                    .padding(.vertical)
-                }
-                .navigationTitle("Add Theme")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(isEditingThemes ? "Done" : "Edit") {
-                            withAnimation {
-                                isEditingThemes.toggle()
-                            }
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Dismiss") {
-                            showingAddThemeSheet = false
-                            isEditingThemes = false
-                        }
-                    }
-                }
+                GoalTagTriggersEditor(goalTag: tag)
             }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
         }
         .task {
             prewarm()
@@ -675,14 +540,12 @@ struct GoalEditorView: View {
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
         
-        // Load theme
-        let goalTheme = goal.primaryTheme
-        selectedGoalTheme = goalTheme
-        useCustomTheme = true
+        // Load tag/theme
+        selectedGoalTheme = goal.primaryTag
         
         // Add to selected themes
-        if !selectedGoalThemes.contains(where: { $0.title == goalTheme.title }) {
-            selectedGoalThemes.append(goalTheme)
+        if !selectedTags.contains(where: { $0.title == goal.primaryTag.title }) {
+            selectedTags.append(goal.primaryTag)
         }
         
         // Load schedule
@@ -692,113 +555,22 @@ struct GoalEditorView: View {
                 dayTimePreferences[weekday] = times
             }
         }
+
+        // TODO: Load tags from goal if supported (not implemented)
+        // selectedTags = goal.tagsArray (if Goal had a tags relation)
         
         // Go straight to duration stage when editing
         currentStage = .duration
     }
-    
-    var allAvailableGoalThemes: [GoalTheme] {
-        // Create predefined GoalThemes based on suggestion categories
-        let categoryThemes = suggestionsData.categories.map { category in
-            let matchedTheme = matchTheme(named: category.name)
-            return GoalTheme(title: category.name, color: matchedTheme)
-        }
-        
-        // Also include all base themes as individual GoalThemes for custom selection
-        let individualThemes = themes.map { theme in
-            GoalTheme(title: theme.title, color: theme)
-        }
-        
-        return categoryThemes + individualThemes + customGoalThemes
-    }
-    
-    var categoryGoalThemes: [GoalTheme] {
-        return suggestionsData.categories.map { category in
-            let matchedTheme = matchTheme(named: category.name)
-            return GoalTheme(title: category.name, color: matchedTheme)
-        }
-    }
-    
-    private func addCustomTheme(name: String, baseOn baseTheme: Theme) {
-        let newGoalTheme = GoalTheme(
-            title: name,
-            color: baseTheme
-        )
-        customGoalThemes.append(newGoalTheme)
-        
-        // Auto-select the new theme
-        withAnimation(.spring(response: 0.3)) {
-            selectedGoalTheme = newGoalTheme
-            useCustomTheme = true
-        }
-        
-        // Reset text field
-        customThemeName = ""
-        showingAddThemeSheet = false
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
-    }
-    
-    /// Add a theme to the selected themes list
-    private func addGoalThemeToSelected(_ goalTheme: GoalTheme) {
-        withAnimation(.spring(response: 0.3)) {
-            selectedGoalThemes.append(goalTheme)
-            // Only auto-select if this is the first theme
-            if selectedGoalTheme == nil {
-                selectedGoalTheme = goalTheme
-            }
-            useCustomTheme = true
-        }
-        
-        // Don't dismiss the sheet - allow adding multiple themes
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
-    }
-    
-    /// Create and add a custom theme
-    private func createCustomGoalTheme() {
-        guard let baseTheme = selectedBaseThemeForCustom else { return }
-        let name = customThemeName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        
-        let newGoalTheme = GoalTheme(
-            title: name,
-            color: baseTheme
-        )
-        
-        customGoalThemes.append(newGoalTheme)
-        
-        withAnimation(.spring(response: 0.3)) {
-            selectedGoalThemes.append(newGoalTheme)
-            selectedGoalTheme = newGoalTheme
-            useCustomTheme = true
-        }
-        
-        // Reset
-        customThemeName = ""
-        selectedBaseThemeForCustom = nil
-        showingAddThemeSheet = false
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
-    }
-    
+     
     /// Remove a theme from the selected themes list
-    private func removeGoalTheme(_ goalTheme: GoalTheme) {
+    private func removeGoalTheme(_ goalTheme: GoalTag) {
         withAnimation(.spring(response: 0.3)) {
-            selectedGoalThemes.removeAll(where: { $0.title == goalTheme.title })
+            selectedTags.removeAll(where: { $0.title == goalTheme.title })
             
             // If we removed the currently selected theme, select the first available
             if selectedGoalTheme?.title == goalTheme.title {
-                selectedGoalTheme = selectedGoalThemes.first
+                selectedGoalTheme = selectedTags.first
             }
         }
         
@@ -894,13 +666,12 @@ struct GoalEditorView: View {
         
         // Create GoalTheme based on category name, not individual template theme
         let matchedTheme = matchTheme(named: categoryName)
-        let goalTheme = GoalTheme(title: categoryName, color: matchedTheme)
+        let goalTheme = GoalTag(title: categoryName, color: matchedTheme)
         selectedGoalTheme = goalTheme
-        useCustomTheme = false
         
         // Add to selected themes if not already there
-        if !selectedGoalThemes.contains(where: { $0.title == goalTheme.title }) {
-            selectedGoalThemes.append(goalTheme)
+        if !selectedTags.contains(where: { $0.title == goalTheme.title }) {
+            selectedTags.append(goalTheme)
         }
         
         // Set HealthKit metric if available
@@ -925,22 +696,22 @@ struct GoalEditorView: View {
         let isEditing = existingGoal != nil
         
         // Determine theme based on user selection or suggestion
-        let finalGoalTheme: GoalTheme
-        if let customGoalTheme = selectedGoalTheme {
-            // User has selected a theme (either custom or from suggestions)
-            finalGoalTheme = customGoalTheme
+        let finalGoalTag: GoalTag
+        if let customGoalTag = selectedGoalTheme {
+            // User has selected a tag (either custom or from suggestions)
+            finalGoalTag = customGoalTag
         } else if let template = selectedTemplate {
-            // Use the template's theme
+            // Use the template's theme to create a tag
             let matchedTheme = matchTheme(named: template.theme)
-            finalGoalTheme = GoalTheme(title: matchedTheme.title, color: matchedTheme)
+            finalGoalTag = GoalTag(title: matchedTheme.title, color: matchedTheme)
         } else if let selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
             let matchedTheme = matchTheme(named: themeNames[0])
-            finalGoalTheme = GoalTheme(title: matchedTheme.title, color: matchedTheme)
+            finalGoalTag = GoalTag(title: matchedTheme.title, color: matchedTheme)
         } else {
             // Random fallback
             let randomTheme = themes.randomElement() ?? themes[0]
-            finalGoalTheme = GoalTheme(title: randomTheme.title, color: randomTheme)
+            finalGoalTag = GoalTag(title: randomTheme.title, color: randomTheme)
         }
         
         // Debug print day-time schedule
@@ -957,7 +728,7 @@ struct GoalEditorView: View {
             // Update existing goal
             goal = existingGoal
             goal.title = userInput
-            goal.primaryTheme = finalGoalTheme
+            goal.primaryTag = finalGoalTag
             goal.weeklyTarget = TimeInterval(durationInMinutes * 60 * 7)
             goal.notificationsEnabled = notificationsEnabled
             goal.healthKitMetric = selectedHealthKitMetric
@@ -970,7 +741,7 @@ struct GoalEditorView: View {
             if let selectedSuggestion, let title = selectedSuggestion.title {
                 goal = Goal(
                     title: title,
-                    primaryTheme: finalGoalTheme,
+                    primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
                     notificationsEnabled: notificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
@@ -979,7 +750,7 @@ struct GoalEditorView: View {
             } else {
                 goal = Goal(
                     title: userInput,
-                    primaryTheme: finalGoalTheme,
+                    primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
                     notificationsEnabled: notificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
@@ -992,6 +763,8 @@ struct GoalEditorView: View {
         for (weekday, times) in dayTimePreferences {
             goal.setTimes(times, forWeekday: weekday)
         }
+        
+        // TODO: Associate selectedTags to goal when Goal supports tags
         
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
         print(goal.scheduleSummary)
@@ -1194,6 +967,15 @@ struct GoalEditorView: View {
                 self.result = partialResponse.content
             }
         }
+    }
+    
+    private func tagIcon(for tag: GoalTag) -> String {
+        if let loc = tag.locationTypesTyped, loc.contains(.gym) { return "dumbbell.fill" }
+        if let loc = tag.locationTypesTyped, loc.contains(.outdoor) { return "tree.fill" }
+        if let times = tag.timeOfDayPreferencesTyped, times.contains(.morning) { return "sunrise.fill" }
+        if tag.requiresDaylight { return "sun.max.fill" }
+        if let weather = tag.weatherConditionsTyped, weather.contains(.rainy) { return "cloud.rain.fill" }
+        return "tag.fill"
     }
 }
 // MARK: - Category Suggestions View
@@ -1592,7 +1374,7 @@ struct SuggestedThemeCard: View {
 
 // MARK: - Theme Tag Button
 struct ThemeTagButton: View {
-    let goalTheme: GoalTheme
+    let goalTheme: GoalTag
     let isSelected: Bool
     let action: () -> Void
     var onRemove: (() -> Void)? = nil

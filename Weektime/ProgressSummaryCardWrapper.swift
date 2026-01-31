@@ -24,8 +24,8 @@ struct ProgressSummaryCardWrapper: View {
     var body: some View {
         ProgressSummaryCard(
             goalTitle: session.goal.title,
-            themeName: session.goal.primaryTheme.title,
-            themeColors: session.goal.primaryTheme.theme,
+            themeName: session.goal.primaryTag.title,
+            themeColors: session.goal.primaryTag.theme,
             dailyProgress: session.progress,
             dailyElapsed: session.elapsedTime,
             dailyTarget: session.dailyTarget,

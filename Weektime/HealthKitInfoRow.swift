@@ -95,23 +95,3 @@ struct HealthKitInfoRow: View {
     }
 }
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Goal.self, GoalSession.self, Day.self, configurations: config)
-    
-    let theme = GoalTheme(title: "Health", color: themes.first!)
-    let goal = Goal(
-        title: "Exercise",
-        primaryTheme: theme,
-        weeklyTarget: 210 * 60,
-        healthKitMetric: .appleExerciseTime,
-        healthKitSyncEnabled: true
-    )
-    let day = Day(start: Date().startOfDay()!, end: Date().endOfDay()!)
-    let session = GoalSession(title: "Exercise", goal: goal, day: day)
-    session.updateHealthKitTime(1200) // 20 minutes from HealthKit
-    
-    return HealthKitInfoRow(session: session)
-        .padding()
-        .modelContainer(container)
-}

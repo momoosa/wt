@@ -69,7 +69,7 @@ extension ContentView {
         case archivedGoals
         case skippedSessions
         case planned
-        case theme(GoalTheme)
+        case theme(GoalTag)
     }
 }
 

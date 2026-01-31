@@ -1,64 +1,220 @@
 {
+  "contextTags": [
+    {
+      "id": "outdoors",
+      "title": "Outdoors",
+      "colorThemeId": "green",
+      "icon": "tree.fill",
+      "triggers": {
+        "requires": {
+          "weather": ["clear", "partlyCloudy"],
+          "temperatureRange": { "min": 10, "max": 30 },
+          "locationTypes": ["outdoor"],
+          "requiresDaylight": true
+        },
+        "prefers": {}
+      },
+      "description": "Recommended when it's sunny and warm",
+      "hint": "Suggested when it's sunny, warm, and you're outside"
+    },
+    {
+      "id": "early_morning",
+      "title": "Early Morning",
+      "colorThemeId": "sunshine",
+      "icon": "sunrise.fill",
+      "triggers": {
+        "requires": {
+          "timeOfDay": ["morning"]
+        },
+        "prefers": {}
+      },
+      "description": "Best for morning routines",
+      "hint": "Suggested in the morning"
+    },
+    {
+      "id": "cozy_indoor",
+      "title": "Cozy Indoor",
+      "colorThemeId": "beige",
+      "icon": "house.fill",
+      "triggers": {
+        "requires": {
+          "weather": ["rainy", "snowy", "cloudy"],
+          "locationTypes": ["home"]
+        },
+        "prefers": {}
+      },
+      "description": "Perfect for rainy or snowy days",
+      "hint": "Suggested when it's rainy or snowy and you're at home"
+    },
+    {
+      "id": "energizing",
+      "title": "Energizing",
+      "colorThemeId": "orange",
+      "icon": "bolt.fill",
+      "triggers": {
+        "requires": {
+          "timeOfDay": ["morning", "midday"]
+        },
+        "prefers": {}
+      },
+      "description": "High energy activities",
+      "hint": "Suggested during the morning or midday"
+    },
+    {
+      "id": "evening_wind_down",
+      "title": "Evening Wind Down",
+      "colorThemeId": "purple",
+      "icon": "moon.stars.fill",
+      "triggers": {
+        "requires": {
+          "timeOfDay": ["evening"]
+        },
+        "prefers": {}
+      },
+      "description": "Relaxing evening activities",
+      "hint": "Suggested in the evening"
+    },
+    {
+      "id": "cold_weather",
+      "title": "Cold Weather",
+      "colorThemeId": "cyan",
+      "icon": "snowflake",
+      "triggers": {
+        "requires": {
+          "weather": ["snowy"],
+          "temperatureRange": { "min": -10, "max": 10 }
+        },
+        "prefers": {}
+      },
+      "description": "Winter activities",
+      "hint": "Suggested when it's snowy and cold"
+    },
+    {
+      "id": "warm_weather",
+      "title": "Warm Weather",
+      "colorThemeId": "coral",
+      "icon": "sun.max.fill",
+      "triggers": {
+        "requires": {
+          "weather": ["clear", "partlyCloudy"],
+          "temperatureRange": { "min": 20, "max": 35 }
+        },
+        "prefers": {}
+      },
+      "description": "Summer activities",
+      "hint": "Suggested when it's sunny and warm"
+    },
+    {
+      "id": "focus_time",
+      "title": "Focus Time",
+      "colorThemeId": "blue",
+      "icon": "brain.head.profile",
+      "triggers": {
+        "requires": {
+          "timeOfDay": ["morning", "midday", "afternoon"],
+          "locationTypes": ["home", "office"]
+        },
+        "prefers": {}
+      },
+      "description": "Deep work sessions",
+      "hint": "Suggested during work hours at home or the office"
+    },
+    {
+      "id": "social",
+      "title": "Social",
+      "colorThemeId": "pink0",
+      "icon": "person.2.fill",
+      "triggers": {
+        "requires": {
+          "timeOfDay": ["afternoon", "evening"]
+        },
+        "prefers": {}
+      },
+      "description": "Time with others",
+      "hint": "Suggested in the afternoon or evening"
+    },
+    {
+      "id": "gym",
+      "title": "Gym",
+      "colorThemeId": "red",
+      "icon": "dumbbell.fill",
+      "triggers": {
+        "requires": {
+          "locationTypes": ["gym"]
+        },
+        "prefers": {}
+      },
+      "description": "Gym workouts",
+      "hint": "Suggested when you're at the gym"
+    }
+  ],
   "categories": [
     {
       "id": "fitness",
       "name": "Fitness",
       "icon": "figure.run",
       "color": "red",
+      "suggestedTags": ["energizing"],
       "suggestions": [
         {
           "id": "run",
           "title": "Run",
           "subtitle": "Cardiovascular exercise",
           "duration": 30,
-          "theme": "Running",
+          "context": "Running",
           "healthKitMetric": "running",
-          "icon": "figure.run"
+          "icon": "figure.run",
+          "suggestedTags": ["outdoors", "energizing"]
         },
         {
           "id": "walk",
           "title": "Walk",
           "subtitle": "Low-impact cardio",
           "duration": 20,
-          "theme": "Exercise",
+          "context": "Exercise",
           "healthKitMetric": "walking",
-          "icon": "figure.walk"
+          "icon": "figure.walk",
+          "suggestedTags": ["outdoors"]
         },
         {
           "id": "strength",
           "title": "Strength Training",
           "subtitle": "Build muscle and endurance",
           "duration": 45,
-          "theme": "Strength",
+          "context": "Strength",
           "healthKitMetric": null,
-          "icon": "dumbbell.fill"
+          "icon": "dumbbell.fill",
+          "suggestedTags": ["gym", "energizing"]
         },
         {
           "id": "yoga",
           "title": "Yoga",
           "subtitle": "Mind and body practice",
           "duration": 30,
-          "theme": "Yoga",
+          "context": "Yoga",
           "healthKitMetric": null,
-          "icon": "figure.mind.and.body"
+          "icon": "figure.mind.and.body",
+          "suggestedTags": ["early_morning", "evening_wind_down"]
         },
         {
           "id": "cycling",
           "title": "Cycling",
           "subtitle": "Outdoor or indoor bike",
           "duration": 45,
-          "theme": "Cardio",
+          "context": "Cardio",
           "healthKitMetric": "cycling",
-          "icon": "bicycle"
+          "icon": "bicycle",
+          "suggestedTags": ["outdoors", "energizing"]
         },
         {
           "id": "swimming",
           "title": "Swimming",
           "subtitle": "Full-body workout",
           "duration": 30,
-          "theme": "Sports",
+          "context": "Sports",
           "healthKitMetric": "swimming",
-          "icon": "figure.pool.swim"
+          "icon": "figure.pool.swim",
+          "suggestedTags": ["gym"]
         }
       ]
     },
@@ -67,42 +223,47 @@
       "name": "Wellness",
       "icon": "heart.fill",
       "color": "purple",
+      "suggestedTags": ["cozy_indoor", "evening_wind_down"],
       "suggestions": [
         {
           "id": "meditation",
           "title": "Meditation",
           "subtitle": "Calm your mind",
           "duration": 10,
-          "theme": "Meditation",
+          "context": "Meditation",
           "healthKitMetric": "mindfulness",
-          "icon": "sparkles"
+          "icon": "sparkles",
+          "suggestedTags": ["early_morning", "evening_wind_down"]
         },
         {
           "id": "breathing",
           "title": "Breathing Exercises",
           "subtitle": "Reduce stress and anxiety",
           "duration": 5,
-          "theme": "Breathing",
+          "context": "Breathing",
           "healthKitMetric": null,
-          "icon": "wind"
+          "icon": "wind",
+          "suggestedTags": ["evening_wind_down"]
         },
         {
           "id": "stretching",
           "title": "Stretching",
           "subtitle": "Improve flexibility",
           "duration": 15,
-          "theme": "Wellness",
+          "context": "Wellness",
           "healthKitMetric": null,
-          "icon": "figure.flexibility"
+          "icon": "figure.flexibility",
+          "suggestedTags": ["early_morning"]
         },
         {
           "id": "sleep",
           "title": "Sleep",
           "subtitle": "Track quality rest",
           "duration": 480,
-          "theme": "Relaxation",
+          "context": "Relaxation",
           "healthKitMetric": "sleep",
-          "icon": "bed.double.fill"
+          "icon": "bed.double.fill",
+          "suggestedTags": ["evening_wind_down"]
         }
       ]
     },
@@ -111,51 +272,57 @@
       "name": "Learning",
       "icon": "book.fill",
       "color": "blue",
+      "suggestedTags": ["focus_time", "cozy_indoor"],
       "suggestions": [
         {
           "id": "reading",
           "title": "Reading",
           "subtitle": "Books, articles, or papers",
           "duration": 30,
-          "theme": "Reading",
+          "context": "Reading",
           "healthKitMetric": null,
-          "icon": "book.fill"
+          "icon": "book.fill",
+          "suggestedTags": ["cozy_indoor", "evening_wind_down"]
         },
         {
           "id": "writing",
           "title": "Writing",
           "subtitle": "Creative or professional",
           "duration": 30,
-          "theme": "Writing",
+          "context": "Writing",
           "healthKitMetric": null,
-          "icon": "pencil.and.scribble"
+          "icon": "pencil.and.scribble",
+          "suggestedTags": ["focus_time", "early_morning"]
         },
         {
           "id": "journaling",
           "title": "Journaling",
           "subtitle": "Reflect on your day",
           "duration": 15,
-          "theme": "Journal",
+          "context": "Journal",
           "healthKitMetric": null,
-          "icon": "book.pages"
+          "icon": "book.pages",
+          "suggestedTags": ["evening_wind_down", "early_morning"]
         },
         {
           "id": "language",
           "title": "Language Practice",
           "subtitle": "Learn a new language",
           "duration": 20,
-          "theme": "Learning",
+          "context": "Learning",
           "healthKitMetric": null,
-          "icon": "character.bubble.fill"
+          "icon": "character.bubble.fill",
+          "suggestedTags": ["focus_time"]
         },
         {
           "id": "study",
           "title": "Study",
           "subtitle": "Academic or professional",
           "duration": 60,
-          "theme": "Study",
+          "context": "Study",
           "healthKitMetric": null,
-          "icon": "graduationcap.fill"
+          "icon": "graduationcap.fill",
+          "suggestedTags": ["focus_time"]
         }
       ]
     },
@@ -164,51 +331,57 @@
       "name": "Creative",
       "icon": "paintbrush.fill",
       "color": "pink",
+      "suggestedTags": ["focus_time", "cozy_indoor"],
       "suggestions": [
         {
           "id": "drawing",
           "title": "Drawing",
           "subtitle": "Sketch and illustrate",
           "duration": 30,
-          "theme": "Art",
+          "context": "Art",
           "healthKitMetric": null,
-          "icon": "pencil.tip.crop.circle"
+          "icon": "pencil.tip.crop.circle",
+          "suggestedTags": ["focus_time", "cozy_indoor"]
         },
         {
           "id": "painting",
           "title": "Painting",
           "subtitle": "Express with colors",
           "duration": 45,
-          "theme": "Art",
+          "context": "Art",
           "healthKitMetric": null,
-          "icon": "paintbrush.fill"
+          "icon": "paintbrush.fill",
+          "suggestedTags": ["focus_time", "cozy_indoor"]
         },
         {
           "id": "music_practice",
           "title": "Music Practice",
           "subtitle": "Play an instrument",
           "duration": 30,
-          "theme": "Music",
+          "context": "Music",
           "healthKitMetric": null,
-          "icon": "music.note"
+          "icon": "music.note",
+          "suggestedTags": ["focus_time", "evening_wind_down"]
         },
         {
           "id": "photography",
           "title": "Photography",
           "subtitle": "Capture moments",
           "duration": 30,
-          "theme": "Creative",
+          "context": "Creative",
           "healthKitMetric": null,
-          "icon": "camera.fill"
+          "icon": "camera.fill",
+          "suggestedTags": ["outdoors", "warm_weather"]
         },
         {
           "id": "crafting",
           "title": "Crafting",
           "subtitle": "DIY projects",
           "duration": 45,
-          "theme": "Creative",
+          "context": "Creative",
           "healthKitMetric": null,
-          "icon": "scissors"
+          "icon": "scissors",
+          "suggestedTags": ["cozy_indoor"]
         }
       ]
     },
@@ -217,51 +390,57 @@
       "name": "Productivity",
       "icon": "checkmark.circle.fill",
       "color": "green",
+      "suggestedTags": ["focus_time"],
       "suggestions": [
         {
           "id": "focus_work",
           "title": "Focus Work",
           "subtitle": "Deep work session",
           "duration": 90,
-          "theme": "Focus",
+          "context": "Focus",
           "healthKitMetric": null,
-          "icon": "rectangle.on.rectangle"
+          "icon": "rectangle.on.rectangle",
+          "suggestedTags": ["focus_time", "early_morning"]
         },
         {
           "id": "planning",
           "title": "Planning",
           "subtitle": "Organize your week",
           "duration": 20,
-          "theme": "Planning",
+          "context": "Planning",
           "healthKitMetric": null,
-          "icon": "calendar"
+          "icon": "calendar",
+          "suggestedTags": ["early_morning"]
         },
         {
           "id": "email",
           "title": "Email",
           "subtitle": "Clear your inbox",
           "duration": 30,
-          "theme": "Work",
+          "context": "Work",
           "healthKitMetric": null,
-          "icon": "envelope.fill"
+          "icon": "envelope.fill",
+          "suggestedTags": ["focus_time"]
         },
         {
           "id": "meeting",
           "title": "Meeting",
           "subtitle": "Team collaboration",
           "duration": 60,
-          "theme": "Work",
+          "context": "Work",
           "healthKitMetric": null,
-          "icon": "person.3.fill"
+          "icon": "person.3.fill",
+          "suggestedTags": ["focus_time"]
         },
         {
           "id": "review",
           "title": "Weekly Review",
           "subtitle": "Reflect on progress",
           "duration": 30,
-          "theme": "Reflection",
+          "context": "Reflection",
           "healthKitMetric": null,
-          "icon": "chart.line.uptrend.xyaxis"
+          "icon": "chart.line.uptrend.xyaxis",
+          "suggestedTags": ["evening_wind_down"]
         }
       ]
     },
@@ -270,51 +449,57 @@
       "name": "Lifestyle",
       "icon": "house.fill",
       "color": "orange",
+      "suggestedTags": ["cozy_indoor"],
       "suggestions": [
         {
           "id": "cooking",
           "title": "Cooking",
           "subtitle": "Prepare healthy meals",
           "duration": 30,
-          "theme": "Cooking",
+          "context": "Cooking",
           "healthKitMetric": null,
-          "icon": "frying.pan.fill"
+          "icon": "frying.pan.fill",
+          "suggestedTags": ["cozy_indoor", "evening_wind_down"]
         },
         {
           "id": "cleaning",
           "title": "Cleaning",
           "subtitle": "Maintain your space",
           "duration": 30,
-          "theme": "Cleaning",
+          "context": "Cleaning",
           "healthKitMetric": null,
-          "icon": "sparkles"
+          "icon": "sparkles",
+          "suggestedTags": ["energizing"]
         },
         {
           "id": "gardening",
           "title": "Gardening",
           "subtitle": "Tend to plants",
           "duration": 45,
-          "theme": "Gardening",
+          "context": "Gardening",
           "healthKitMetric": null,
-          "icon": "leaf.fill"
+          "icon": "leaf.fill",
+          "suggestedTags": ["outdoors", "warm_weather"]
         },
         {
           "id": "organizing",
           "title": "Organizing",
           "subtitle": "Declutter and tidy",
           "duration": 30,
-          "theme": "Organizing",
+          "context": "Organizing",
           "healthKitMetric": null,
-          "icon": "square.stack.3d.up.fill"
+          "icon": "square.stack.3d.up.fill",
+          "suggestedTags": ["cozy_indoor"]
         },
         {
           "id": "errands",
           "title": "Errands",
           "subtitle": "Complete tasks",
           "duration": 60,
-          "theme": "Home",
+          "context": "Home",
           "healthKitMetric": null,
-          "icon": "cart.fill"
+          "icon": "cart.fill",
+          "suggestedTags": []
         }
       ]
     },
@@ -323,42 +508,47 @@
       "name": "Social",
       "icon": "person.2.fill",
       "color": "yellow",
+      "suggestedTags": ["social"],
       "suggestions": [
         {
           "id": "family_time",
           "title": "Family Time",
           "subtitle": "Quality time together",
           "duration": 60,
-          "theme": "Family",
+          "context": "Family",
           "healthKitMetric": null,
-          "icon": "figure.2.and.child.holdinghands"
+          "icon": "figure.2.and.child.holdinghands",
+          "suggestedTags": ["social"]
         },
         {
           "id": "friends",
           "title": "Meet Friends",
           "subtitle": "Social connection",
           "duration": 90,
-          "theme": "Friends",
+          "context": "Friends",
           "healthKitMetric": null,
-          "icon": "person.3.fill"
+          "icon": "person.3.fill",
+          "suggestedTags": ["social"]
         },
         {
           "id": "phone_call",
           "title": "Phone Call",
           "subtitle": "Catch up with someone",
           "duration": 20,
-          "theme": "Social",
+          "context": "Social",
           "healthKitMetric": null,
-          "icon": "phone.fill"
+          "icon": "phone.fill",
+          "suggestedTags": ["social"]
         },
         {
           "id": "volunteering",
           "title": "Volunteering",
           "subtitle": "Give back to community",
           "duration": 120,
-          "theme": "Community",
+          "context": "Community",
           "healthKitMetric": null,
-          "icon": "heart.circle.fill"
+          "icon": "heart.circle.fill",
+          "suggestedTags": ["social", "outdoors"]
         }
       ]
     },
@@ -367,42 +557,47 @@
       "name": "Personal Growth",
       "icon": "chart.line.uptrend.xyaxis",
       "color": "teal",
+      "suggestedTags": ["focus_time", "evening_wind_down"],
       "suggestions": [
         {
           "id": "goal_setting",
           "title": "Goal Setting",
           "subtitle": "Define objectives",
           "duration": 30,
-          "theme": "Goals",
+          "context": "Goals",
           "healthKitMetric": null,
-          "icon": "target"
+          "icon": "target",
+          "suggestedTags": ["focus_time"]
         },
         {
           "id": "habit_tracking",
           "title": "Habit Tracking",
           "subtitle": "Monitor progress",
           "duration": 10,
-          "theme": "Habits",
+          "context": "Habits",
           "healthKitMetric": null,
-          "icon": "checkmark.circle.fill"
+          "icon": "checkmark.circle.fill",
+          "suggestedTags": ["evening_wind_down"]
         },
         {
           "id": "self_reflection",
           "title": "Self Reflection",
           "subtitle": "Personal insights",
           "duration": 20,
-          "theme": "Reflection",
+          "context": "Reflection",
           "healthKitMetric": null,
-          "icon": "brain.head.profile"
+          "icon": "brain.head.profile",
+          "suggestedTags": ["evening_wind_down"]
         },
         {
           "id": "gratitude",
           "title": "Gratitude Practice",
           "subtitle": "Appreciate the good",
           "duration": 10,
-          "theme": "Growth",
+          "context": "Growth",
           "healthKitMetric": null,
-          "icon": "star.fill"
+          "icon": "star.fill",
+          "suggestedTags": ["evening_wind_down", "early_morning"]
         }
       ]
     }

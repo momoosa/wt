@@ -28,7 +28,7 @@ struct ChecklistDetailView: View {
     @State private var shimmerOffset: CGFloat = -200
 
     var tintColor: Color {
-        colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark
+        colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark
     }
     
     // Weekly progress calculation
@@ -224,7 +224,7 @@ struct ChecklistDetailView: View {
                         .foregroundStyle(Color(.systemBackground))
                         .padding(4)
                         .frame(minWidth: 20)
-                        .background(Capsule().fill(session.goal.primaryTheme.theme.dark))
+                        .background(Capsule().fill(session.goal.primaryTag.theme.dark))
                     Spacer()
                     Button { } label: { Image(systemName: "plus.circle.fill").symbolRenderingMode(.hierarchical) }
                 }
@@ -279,7 +279,7 @@ struct ChecklistDetailView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(session.goal.primaryTheme.theme.dark.opacity(0.1))
+        .background(session.goal.primaryTag.theme.dark.opacity(0.1))
         .navigationTitle(session.goal.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -365,7 +365,7 @@ struct ChecklistDetailView: View {
 //                    GeometryReader { geo in
 //                        let width = geo.size.width * progress
 //                        Rectangle()
-//                            .fill(session.goal.primaryTheme.theme.light.opacity(0.25))
+//                            .fill(session.goal.primaryTag.theme.light.opacity(0.25))
 //                            .frame(width: width)
 //                            .animation(.easeInOut(duration: 0.2), value: progress)
 //                    }
@@ -423,7 +423,7 @@ struct ChecklistDetailView: View {
 //                    .foregroundStyle(Color(.systemBackground))
 //                    .padding(4)
 //                    .background(Capsule()
-//                        .fill(session.goal.primaryTheme.theme.dark))
+//                        .fill(session.goal.primaryTag.theme.dark))
 //                Spacer()
 //                Button {
 //                    addChecklistItem(to: session)

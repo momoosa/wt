@@ -63,7 +63,7 @@ struct TagFlowLayout: Layout {
 
 // MARK: - ThemeTag
 struct ThemeTag: View {
-    let theme: GoalTheme
+    let theme: GoalTag
     let isSelected: Bool
     let action: () -> Void
     
@@ -92,7 +92,7 @@ struct PlannerConfigurationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedThemes: Set<String>
     @Binding var availableTimeMinutes: Int
-    let allThemes: [GoalTheme]
+    let allThemes: [GoalTag]
     let animation: Namespace.ID
     let onConfirm: () -> Void
     

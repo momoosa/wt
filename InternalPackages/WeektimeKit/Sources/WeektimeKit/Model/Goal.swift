@@ -7,13 +7,15 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 public final class Goal {
     public private(set) var id: UUID
     public var title: String
     public var status: Status
-    public var primaryTheme: GoalTheme
+    public var primaryTag: GoalTag // Optional tag that provides both theme and smart triggers
+    public var otherTags: [GoalTag]
     public var weeklyTarget: TimeInterval // Target duration in seconds for the week
     public var notificationsEnabled: Bool // Whether to send notifications when target is reached
     
@@ -32,16 +34,19 @@ public final class Goal {
     @Relationship public var checklistItems: [ChecklistItem] = []
     @Relationship public var intervalLists: [IntervalList] = []
 
-    public init(title: String, primaryTheme: GoalTheme, weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
+    public init(title: String, primaryTag: GoalTag, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
         self.title = title
         self.status = .active
-        self.primaryTheme = primaryTheme
+        self.primaryTag = primaryTag
+        self.otherTags = otherTags
         self.weeklyTarget = weeklyTarget
         self.notificationsEnabled = notificationsEnabled
         self.healthKitMetricRawValue = healthKitMetric?.rawValue
         self.healthKitSyncEnabled = healthKitSyncEnabled
     }
+    
+
 }
 
 public extension Goal {
@@ -113,39 +118,9 @@ public extension Goal {
         return summaries.joined(separator: "\n")
     }
 }
-// MARK: - TimeOfDay Enum
 
-public enum TimeOfDay: String, CaseIterable, Codable, Hashable, Comparable {
-    case morning
-    case midday
-    case afternoon
-    case evening
-    
-    public var displayName: String {
-        switch self {
-        case .morning: return "Morning"
-        case .midday: return "Midday"
-        case .afternoon: return "Afternoon"
-        case .evening: return "Evening"
-        }
-    }
-    
-    public var icon: String {
-        switch self {
-        case .morning: return "sunrise.fill"
-        case .midday: return "sun.max.fill"
-        case .afternoon: return "sun.haze.fill"
-        case .evening: return "moon.stars.fill"
-        }
-    }
-    
-    public static func < (lhs: TimeOfDay, rhs: TimeOfDay) -> Bool {
-        let order: [TimeOfDay] = [.morning, .midday, .afternoon, .evening]
-        guard let lhsIndex = order.firstIndex(of: lhs),
-              let rhsIndex = order.firstIndex(of: rhs) else {
-            return false
-        }
-        return lhsIndex < rhsIndex
+public extension Goal {
+    func tintColor(for colorScheme: ColorScheme) -> Color {
+        return primaryTag.theme.dark
     }
 }
-

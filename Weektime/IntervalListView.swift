@@ -87,7 +87,7 @@ struct IntervalListView: View {
                                 GeometryReader { geo in
                                     let width = geo.size.width * progress
                                     Rectangle()
-                                        .fill(listSession.list.goal?.primaryTheme.theme.light.opacity(0.25) ?? .blue.opacity(0.25))
+                                        .fill(listSession.list.goal?.primaryTag.theme.light.opacity(0.25) ?? .blue.opacity(0.25))
                                         .frame(width: width)
                                         .animation(.easeInOut(duration: 0.2), value: progress)
                                 }

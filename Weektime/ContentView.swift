@@ -93,7 +93,7 @@ struct ContentView: View {
                             NavigationLink {
                                 if let timerManager {
                                     ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
-                                        .tint(session.goal.primaryTheme.theme.dark)
+                                        .tint(session.goal.primaryTag.theme.dark)
                                         .environment(goalStore)
                                 }
                             } label: {
@@ -139,11 +139,11 @@ struct ContentView: View {
                                         }
                                         
                                         // Show planned start time with animation
-                                        Text(session.goal.primaryTheme.title)
+                                        Text(session.goal.primaryTag.title)
                                             .font(.caption2)
                                             .padding(4)
                                             .background(Capsule()
-                                                .fill(session.goal.primaryTheme.theme.light.opacity(0.15)))
+                                                .fill(session.goal.primaryTag.theme.light.opacity(0.15)))
                                         
                                         HealthKitBadge(
                                             metric: session.goal.healthKitMetric,
@@ -154,7 +154,7 @@ struct ContentView: View {
                                         
                                     }
                                     .opacity(0.7)
-                                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
+                                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark)
 
                                     // Show AI reasoning if available with animation
                                     if let reasoning = session.plannedReasoning, selectedSession == session {
@@ -173,16 +173,16 @@ struct ContentView: View {
                                 } label: {
                                     let isActive = timerManager?.activeSession?.id == session.id
                                     let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                                    GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTheme.theme.light, font: .title2, gaugeScale: 0.4)
+                                    GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTag.theme.light, font: .title2, gaugeScale: 0.4)
                                         .contentTransition(.symbolEffect(.replace))
                                         .symbolRenderingMode(.hierarchical)
                                         .font(.title2)
                                 }
-                                .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark) // TODO: Extension
+                                .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark) // TODO: Extension
 
                             }
                             .buttonStyle(.plain)
-                            .listRowBackground(colorScheme == .dark ? session.goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
+                            .listRowBackground(colorScheme == .dark ? session.goal.primaryTag.theme.light.opacity(0.03) : Color(.systemBackground))
                             .onTapGesture {
                                 withAnimation(.spring(response: 0.3)) {
                                     selectedSession = session
@@ -407,15 +407,15 @@ struct ContentView: View {
     
     // MARK: - Computed Properties
     
-    private var availableGoalThemes: [GoalTheme] {
+    private var availableGoalThemes: [GoalTag] {
         let activeGoals = goals.filter { $0.status == .active }
-        var uniqueThemes: [GoalTheme] = []
+        var uniqueThemes: [GoalTag] = []
         var seenIDs: Set<String> = []
         
         for goal in activeGoals {
-            let themeID = goal.primaryTheme.theme.id
+            let themeID = goal.primaryTag.theme.id
             if !seenIDs.contains(themeID) {
-                uniqueThemes.append(goal.primaryTheme)
+                uniqueThemes.append(goal.primaryTag)
                 seenIDs.insert(themeID)
             }
         }
@@ -441,7 +441,7 @@ struct ContentView: View {
         case .planned:
             return sessions.filter { $0.plannedStartTime != nil && $0.goal.status != .archived && $0.status != .skipped }.count
         case .theme(let goalTheme):
-            return sessions.filter { $0.goal.primaryTheme.theme.id == goalTheme.id && $0.goal.status != .archived && $0.status != .skipped }.count
+            return sessions.filter { $0.goal.primaryTag.theme.id == goalTheme.id && $0.goal.status != .archived && $0.status != .skipped }.count
         }
     }
     
@@ -536,15 +536,6 @@ struct ContentView: View {
         }
     }
     
-    private func addItem() {
-        let newItem = GoalTheme(title: "Health", color: themes.randomElement()! ) // TOOD:
-        let goal = Goal(title: "New goal", primaryTheme: newItem)
-        withAnimation {
-            modelContext.insert(goal)
-        }
-    }
-    
-    
     func skip(session: GoalSession) {
         withAnimation {
             session.status = session.status == .skipped ? .active : .skipped
@@ -573,7 +564,7 @@ struct ContentView: View {
             case .planned:
                 return session.plannedStartTime != nil && !isArchived && !isSkipped
             case .theme(let goalTheme):
-                return session.goal.primaryTheme.theme.id == goalTheme.id && !isArchived && !isSkipped
+                return session.goal.primaryTag.theme.id == goalTheme.id && !isArchived && !isSkipped
             }
         }
         
@@ -852,7 +843,7 @@ struct ContentView: View {
             // Filter by selected themes if any are selected
             if !selectedThemes.isEmpty {
                 activeGoals = activeGoals.filter { goal in
-                    selectedThemes.contains(goal.primaryTheme.theme.id)
+                    selectedThemes.contains(goal.primaryTag.theme.id)
                 }
             }
             
@@ -1086,10 +1077,10 @@ struct ContentView: View {
     
     #if DEBUG
     private func addDebugGoal(_ debugGoal: DebugGoals) {
-        let theme = GoalTheme(title: debugGoal.themeTitle, color: debugGoal.theme)
+        let theme = GoalTag(title: debugGoal.themeTitle, color: debugGoal.theme)
         let goal = Goal(
             title: debugGoal.title,
-            primaryTheme: theme,
+            primaryTag: theme,
             weeklyTarget: TimeInterval(debugGoal.weeklyTargetMinutes * 60),
             notificationsEnabled: debugGoal.notificationsEnabled,
             healthKitMetric: debugGoal.healthKitMetric,
@@ -1275,15 +1266,15 @@ struct GoalRow: View {
                     .font(.headline)
                 
                 HStack {
-                    Text(goal.primaryTheme.title)
+                    Text(goal.primaryTag.title)
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(goal.primaryTheme.theme.light.opacity(0.2))
+                                .fill(goal.primaryTag.theme.light.opacity(0.2))
                         )
-                        .foregroundStyle(goal.primaryTheme.theme.dark)
+                        .foregroundStyle(goal.primaryTag.theme.dark)
                     
                     if goal.notificationsEnabled {
                         Image(systemName: "bell.fill")

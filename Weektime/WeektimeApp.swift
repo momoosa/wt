@@ -14,7 +14,7 @@ struct WeektimeApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Goal.self,
-            GoalTheme.self,
+            GoalTag.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

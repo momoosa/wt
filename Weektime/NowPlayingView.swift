@@ -19,8 +19,8 @@ struct NowPlayingView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    session.goal.primaryTheme.theme.light,
-                    session.goal.primaryTheme.theme.dark
+                    session.goal.primaryTag.theme.light,
+                    session.goal.primaryTag.theme.dark
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -70,7 +70,7 @@ struct NowPlayingView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
                     
-                    Text(session.goal.primaryTheme.title)
+                    Text(session.goal.primaryTag.title)
                         .font(.title3)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -92,7 +92,7 @@ struct NowPlayingView: View {
                             AngularGradient(
                                 gradient: Gradient(colors: [
                                     .white,
-                                    session.goal.primaryTheme.theme.neon,
+                                    session.goal.primaryTag.theme.neon,
                                     .white
                                 ]),
                                 center: .center,
@@ -157,7 +157,7 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(session.goal.primaryTheme.theme.dark)
+                            .foregroundStyle(session.goal.primaryTag.theme.dark)
                             .frame(width: 80, height: 80)
                             .background(
                                 Circle()
@@ -201,8 +201,9 @@ struct NowPlayingView: View {
 }
 
 #Preview {
-    let theme = GoalTheme(title: "Wellness", color: themes.first(where: { $0.id == "purple" })!)
-    let goal = Goal(title: "Meditation", primaryTheme: theme, weeklyTarget: 3600)
+    
+    let theme = GoalTag(title: "Wellness", color: themes.first(where: { $0.id == "purple" })!)
+    let goal = Goal(title: "Meditation", primaryTag: theme, weeklyTarget: 3600)
     let day = Day(start: Date(), end: Date())
     let session = GoalSession(title: "Meditation", goal: goal, day: day)
     let details = ActiveSessionDetails(id: session.id, startDate: Date().addingTimeInterval(-600), elapsedTime: 600, dailyTarget: 1200)

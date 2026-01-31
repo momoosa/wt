@@ -209,7 +209,7 @@ public class GoalSessionPlanner: ObservableObject {
             - Remaining Time: \(formatDuration(remainingTime))
             - Daily Progress: \(String(format: "%.0f", progress))%
             - Weekly Progress: \(String(format: "%.0f", weeklyProgress))%
-            - Theme: \(goal.primaryTheme.title)
+            - Theme: \(goal.primaryTag.title)
             - Notifications Enabled: \(goal.notificationsEnabled ? "Yes" : "No")
             """
             

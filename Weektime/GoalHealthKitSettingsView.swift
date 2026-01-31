@@ -39,7 +39,7 @@ struct GoalHealthKitSettingsView: View {
                     if let metric = goal.healthKitMetric {
                         HStack {
                             Image(systemName: metric.symbolName)
-                                .foregroundStyle(goal.primaryTheme.theme.dark)
+                                .foregroundStyle(goal.primaryTag.theme.dark)
                             Text(metric.description)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -209,10 +209,10 @@ struct HealthKitPrivacyInfoView: View {
 
 #Preview("Settings View") {
     NavigationStack {
-        let theme = GoalTheme(title: "Health", color: themes.first!)
+        let theme = GoalTag(title: "Health", color: themes.first!)
         let goal = Goal(
             title: "Exercise",
-            primaryTheme: theme,
+            primaryTag: theme,
             weeklyTarget: 210 * 60,
             healthKitMetric: .appleExerciseTime,
             healthKitSyncEnabled: true

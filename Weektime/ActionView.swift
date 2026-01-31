@@ -13,6 +13,7 @@ struct ActionView: View {
     enum Event {
         case stopTapped
     }
+    @Environment(\.colorScheme) var colorScheme
     let session: GoalSession
     @Bindable var details: ActiveSessionDetails
     let eventHandler: (Event) -> Void
@@ -33,13 +34,13 @@ struct ActionView: View {
             Button {
                 eventHandler(.stopTapped)
             } label: {
-                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.goal.primaryTheme.theme.light, font: .title2, gaugeScale: 0.5)
+                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.goal.tintColor(for: colorScheme), font: .title2, gaugeScale: 0.5)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolRenderingMode(.hierarchical)
                     .font(.title2)
             }
         }
-        .foregroundStyle(session.goal.primaryTheme.theme.dark)
+        .foregroundStyle(session.goal.tintColor(for: colorScheme))
     }
 }
 
