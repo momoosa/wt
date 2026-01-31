@@ -18,6 +18,7 @@ public final class ActiveSessionDetails {
     public private(set) var timeText: String?
     public var dailyTarget: TimeInterval? // Add daily target
     public var onTargetReached: (() -> Void)? // Callback when target is reached
+    public private(set) var tickCount: Int = 0 // Increments every second to trigger UI updates
     private var timer: Timer?
     let timerInterval: TimeInterval = 1.0
     private var hasNotifiedTargetReached = false // Track if we've already sent the notification
@@ -37,15 +38,35 @@ public final class ActiveSessionDetails {
     
     public func timerText(currentTime: Date = .now) -> String {
         let elapsed = elapsedTime + currentTime.timeIntervalSince(startDate)
-        let elapsedFormatted = Duration.seconds(elapsed).formatted(.time(pattern: .hourMinuteSecond))
+        let elapsedFormatted = formatTimeWithUnits(elapsed)
         
-        // If we have a daily target, show it in the format "0:10:01/0:12:00"
+        // If we have a daily target, show it in the format "31m 6s/1h 30m"
         if let dailyTarget = dailyTarget {
-            let targetFormatted = Duration.seconds(dailyTarget).formatted(.time(pattern: .hourMinuteSecond))
+            let targetFormatted = formatTimeWithUnits(dailyTarget)
             return "\(elapsedFormatted)/\(targetFormatted)"
         } else {
             return elapsedFormatted
         }
+    }
+    
+    private func formatTimeWithUnits(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        let seconds = Int(interval) % 60
+        
+        var components: [String] = []
+        
+        if hours > 0 {
+            components.append("\(hours)h")
+        }
+        if minutes > 0 {
+            components.append("\(minutes)m")
+        }
+        if seconds > 0 || components.isEmpty {
+            components.append("\(seconds)s")
+        }
+        
+        return components.joined(separator: " ")
     }
     
     public var hasMetDailyTarget: Bool {
@@ -64,6 +85,7 @@ public final class ActiveSessionDetails {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { _ in
             withAnimation {
+                self.tickCount += 1
                 self.timeText = self.timerText()
                 self.currentTime = Date()
                 

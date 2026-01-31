@@ -58,9 +58,29 @@ public final class GoalSession {
     }
     
     public var formattedTime: String {
-        let elapsedFormatted = Duration.seconds(elapsedTime).formatted(.time(pattern: .hourMinuteSecond))
-        let targetFormatted = Duration.seconds(dailyTarget).formatted(.time(pattern: .hourMinuteSecond))
+        let elapsedFormatted = formatTimeWithUnits(elapsedTime)
+        let targetFormatted = formatTimeWithUnits(dailyTarget)
         return "\(elapsedFormatted)/\(targetFormatted)"
+    }
+    
+    private func formatTimeWithUnits(_ interval: TimeInterval) -> String {
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        let seconds = Int(interval) % 60
+        
+        var components: [String] = []
+        
+        if hours > 0 {
+            components.append("\(hours)h")
+        }
+        if minutes > 0 {
+            components.append("\(minutes)m")
+        }
+        if seconds > 0 || components.isEmpty {
+            components.append("\(seconds)s")
+        }
+        
+        return components.joined(separator: " ")
     }
 
     public var progress: Double {

@@ -8,7 +8,7 @@ import SwiftUI
 import WeektimeKit
 
 // MARK: - FlowLayout
-struct FlowLayout: Layout {
+struct TagFlowLayout: Layout {
     var spacing: CGFloat = 8
     
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -101,31 +101,6 @@ struct PlannerConfigurationSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header with sparkles icon
-                    VStack(spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .fill(.purple.gradient)
-                                .frame(width: 60, height: 60)
-                            
-                            Image(systemName: "sparkles")
-                                .font(.title)
-                                .foregroundStyle(.white)
-                        }
-                        .matchedTransitionSource(id: "plannerButton", in: animation)
-                        
-                        Text("Plan Your Day")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Text("Choose themes to focus on and set your available time")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top)
-                    
                     // Available Time Picker
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Available Time", systemImage: "clock.fill")
@@ -278,7 +253,6 @@ struct PlannerConfigurationSheet: View {
                     .padding(.horizontal)
                     
                     Spacer()
-                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

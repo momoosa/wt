@@ -33,7 +33,7 @@ public class Theme: Identifiable {
         }
     }
     
-    init(id: String, title: String, light: Color, dark: Color, neon: Color) {
+    public init(id: String, title: String, light: Color, dark: Color, neon: Color) {
         self.id = id
         self.title = title
         self.lightColorID = light.toHex() ?? ""

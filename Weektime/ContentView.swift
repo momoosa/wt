@@ -154,7 +154,8 @@ struct ContentView: View {
                                         
                                     }
                                     .opacity(0.7)
-                                    
+                                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
+
                                     // Show AI reasoning if available with animation
                                     if let reasoning = session.plannedReasoning, selectedSession == session {
                                         Text(reasoning)
@@ -177,9 +178,10 @@ struct ContentView: View {
                                         .symbolRenderingMode(.hierarchical)
                                         .font(.title2)
                                 }
+                                .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark) // TODO: Extension
+
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(colorScheme == .dark ? session.goal.primaryTheme.theme.neon : session.goal.primaryTheme.theme.dark)
                             .listRowBackground(colorScheme == .dark ? session.goal.primaryTheme.theme.light.opacity(0.03) : Color(.systemBackground))
                             .onTapGesture {
                                 withAnimation(.spring(response: 0.3)) {
@@ -214,60 +216,6 @@ struct ContentView: View {
                 }
             }
             .animation(.spring(), value: goals)
-            .overlay(alignment: .bottom) {
-                // Floating Now Playing button
-                if let timerManager,
-                   let activeSession = timerManager.activeSession,
-                   let session = sessions.first(where: { $0.id == activeSession.id }) {
-                    Button {
-                        showNowPlaying = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            // Animated pulse indicator
-                            Circle()
-                                .fill(session.goal.primaryTheme.theme.neon)
-                                .frame(width: 8, height: 8)
-                                .overlay {
-                                    Circle()
-                                        .stroke(session.goal.primaryTheme.theme.neon, lineWidth: 2)
-                                        .scaleEffect(1.5)
-                                        .opacity(0.6)
-                                }
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(session.goal.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.primary)
-                                
-                                if let timeText = activeSession.timeText {
-                                    Text(timeText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.up")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.thinMaterial)
-                                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        )
-                        .padding(.horizontal)
-                        .padding(.bottom, 80) // Above the toolbar
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
 
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
@@ -318,6 +266,9 @@ struct ContentView: View {
                     ActionView(session: session, details: activeSession) { event in
                         handle(event: event)
                     }
+                    .onTapGesture {
+                        showNowPlaying = true
+                    }
                     .frame(minWidth: 180.0)
                 }
             }
@@ -363,12 +314,38 @@ struct ContentView: View {
             // Load saved timer states from UserDefaults
             timerManager?.loadTimerState(sessions: sessions)
             
-            refreshGoals()
-            syncHealthKitData()
+            // Use Task to ensure proper async data loading
+            Task {
+                refreshGoals()
+                syncHealthKitData()
+            }
         }
         .onChange(of: goals) { old, new in
-            refreshGoals()
-            syncHealthKitData()
+            Task {
+                refreshGoals()
+                
+                // Check if any new goals have HealthKit metrics that need authorization
+                let newHealthKitGoals = new.filter { newGoal in
+                    newGoal.healthKitSyncEnabled &&
+                    newGoal.healthKitMetric != nil &&
+                    !old.contains(where: { $0.id == newGoal.id })
+                }
+                
+                // If there are new HealthKit goals, request authorization immediately
+                if !newHealthKitGoals.isEmpty {
+                    let newMetrics = newHealthKitGoals.compactMap { $0.healthKitMetric }
+                    if !newMetrics.isEmpty {
+                        do {
+                            try await healthKitManager.requestAuthorization(for: newMetrics)
+                        } catch {
+                            print("HealthKit authorization failed for new goals: \(error)")
+                        }
+                    }
+                }
+                
+                // Always sync to ensure data is up to date
+                syncHealthKitData()
+            }
         }
         .onDisappear {
             timerManager?.activeSession?.stopUITimer()
@@ -551,6 +528,11 @@ struct ContentView: View {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
                 modelContext.insert(session)
             }
+        }
+        
+        // Save changes if there were any insertions
+        if modelContext.hasChanges {
+            try? modelContext.save()
         }
     }
     

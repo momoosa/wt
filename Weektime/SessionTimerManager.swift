@@ -30,12 +30,14 @@ public final class SessionTimerManager {
     
     /// Starts or stops the timer for a given session
     public func toggleTimer(for session: GoalSession, in day: Day) {
-        if let activeSession, activeSession.id == session.id {
-            // Stop the timer
-            stopTimer(for: session, in: day)
-        } else {
-            // Start the timer
-            startTimer(for: session)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            if let activeSession, activeSession.id == session.id {
+                // Stop the timer
+                stopTimer(for: session, in: day)
+            } else {
+                // Start the timer
+                startTimer(for: session)
+            }
         }
     }
     
