@@ -129,6 +129,65 @@ struct ChecklistDetailView: View {
             }
             .listRowBackground(Color.clear)
             
+            // Schedule Display
+            if session.goal.hasSchedule {
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Compact weekly schedule grid
+                        VStack(spacing: 8) {
+                            // Header row
+                            HStack(spacing: 4) {
+                                Text("")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .frame(width: 35, alignment: .leading)
+                                
+                                ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
+                                    Image(systemName: timeOfDay.icon)
+                                        .font(.caption2)
+                                        .frame(maxWidth: .infinity)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            
+                            // Day rows
+                            let weekdays: [(Int, String)] = [
+                                (2, "Mon"), (3, "Tue"), (4, "Wed"),
+                                (5, "Thu"), (6, "Fri"), (7, "Sat"), (1, "Sun")
+                            ]
+                            
+                            ForEach(weekdays, id: \.0) { weekday, name in
+                                HStack(spacing: 4) {
+                                    Text(name)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .frame(width: 35, alignment: .leading)
+                                        .foregroundStyle(.secondary)
+                                    
+                                    ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
+                                        let isScheduled = session.goal.isScheduled(weekday: weekday, time: timeOfDay)
+                                        Circle()
+                                            .fill(isScheduled ? tintColor : Color.secondary.opacity(0.2))
+                                            .frame(maxWidth: .infinity)
+                                            .aspectRatio(1, contentMode: .fit)
+                                            .frame(maxHeight: 20)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                } header: {
+                    HStack {
+                        Text("Schedule")
+                        Spacer()
+                        Text(currentDayTimeStatus)
+                            .font(.caption)
+                            .foregroundStyle(isCurrentlyScheduled ? tintColor : .secondary)
+                    }
+                }
+            }
+            
             // History section remains as-is
             Section {
                 if !session.historicalSessions.isEmpty {
@@ -268,6 +327,9 @@ struct ChecklistDetailView: View {
             let list = IntervalList(name: "", goal: session.goal)
             IntervalsEditorView(list: list, goalSession: session)
         }
+        .sheet(isPresented: $isShowingEditScreen) {
+            GoalEditorView(existingGoal: session.goal)
+        }
         .onDisappear {
             let emptyItems = session.checklist.filter { $0.checklistItem.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             for item in emptyItems {
@@ -391,6 +453,56 @@ struct ChecklistDetailView: View {
         let checklistSession = ChecklistItemSession(checklistItem: item, isCompleted: false, session: session)
         session.checklist.append(checklistSession)
         context.insert(checklistSession)
+    }
+    
+    // MARK: - Schedule Helpers
+    
+    /// Check if the goal is currently scheduled based on current day and time
+    private var isCurrentlyScheduled: Bool {
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+        let hour = calendar.component(.hour, from: now)
+        
+        let currentTime: TimeOfDay = {
+            switch hour {
+            case 6..<11: return .morning
+            case 11..<14: return .midday
+            case 14..<17: return .afternoon
+            default: return .evening
+            }
+        }()
+        
+        return session.goal.isScheduled(weekday: weekday, time: currentTime)
+    }
+    
+    /// Get a human-readable status of current schedule
+    private var currentDayTimeStatus: String {
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+        let hour = calendar.component(.hour, from: now)
+        
+        let currentTime: TimeOfDay = {
+            switch hour {
+            case 6..<11: return .morning
+            case 11..<14: return .midday
+            case 14..<17: return .afternoon
+            default: return .evening
+            }
+        }()
+        
+        if session.goal.isScheduled(weekday: weekday, time: currentTime) {
+            return "Active now"
+        } else {
+            // Find next scheduled time
+            let times = session.goal.timesForWeekday(weekday)
+            if !times.isEmpty {
+                return "Scheduled today"
+            } else {
+                return "Not today"
+            }
+        }
     }
     
     // MARK: - Goal Actions

@@ -11,44 +11,13 @@ struct GoalThemeSuggestionsResponse: Codable {
     var reasoning: String? // optional explanation
 }
 
-// MARK: - Time of Day Types
-enum TimeOfDay: String, CaseIterable, Codable, Hashable {
-    case morning
-    case midday
-    case afternoon
-    case evening
-    
-    var displayName: String {
-        switch self {
-        case .morning: return "Morning"
-        case .midday: return "Midday"
-        case .afternoon: return "Afternoon"
-        case .evening: return "Evening"
-        }
-    }
-    
-    var shortName: String {
-        switch self {
-        case .morning: return "🌅"
-        case .midday: return "☀️"
-        case .afternoon: return "🌤️"
-        case .evening: return "🌙"
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .morning: return "sunrise.fill"
-        case .midday: return "sun.max.fill"
-        case .afternoon: return "sun.haze.fill"
-        case .evening: return "moon.stars.fill"
-        }
-    }
-}
-
 struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    
+    // Optional existing goal for editing
+    var existingGoal: Goal?
+    
     @State private var userInput: String = ""
     @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     @State private var errorMessage: String?
@@ -66,7 +35,14 @@ struct GoalEditorView: View {
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
     @State private var scrollProxy: ScrollViewProxy?
-    @State private var dayTimePreferences: [Int: Set<TimeOfDay>] = [:]
+    @State private var dayTimePreferences: [Int: Set<TimeOfDay>] = {
+        // Initialize with all time slots enabled by default
+        var preferences: [Int: Set<TimeOfDay>] = [:]
+        for weekday in 1...7 {
+            preferences[weekday] = Set(TimeOfDay.allCases)
+        }
+        return preferences
+    }()
     
     // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
     private let weekdays: [(Int, String)] = [
@@ -140,6 +116,28 @@ struct GoalEditorView: View {
     @State private var showingAddThemeSheet: Bool = false
     @State private var customThemeName: String = ""
     @State private var customThemes: [Theme] = []
+    @State private var selectedThemes: [Theme] = [] // Track user's selected themes
+    @State private var selectedBaseThemeForCustom: Theme? // For creating custom themes
+    
+    // Track if user has made any changes
+    private var hasUnsavedChanges: Bool {
+        // Check if user has entered text
+        if !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        
+        // Check if user selected a template
+        if selectedTemplate != nil {
+            return true
+        }
+        
+        // Check if in duration stage (means they pressed Next)
+        if currentStage == .duration {
+            return true
+        }
+        
+        return false
+    }
     
     // Local alias map for suggestion autocomplete
     private let suggestionAliases: [String: [String]] = [
@@ -274,68 +272,7 @@ struct GoalEditorView: View {
                         }
                         
                         if currentStage == .duration {
-                            
-                            // Skip suggestions while generating
-                            if isGeneratingSuggestions {
-                                Section {
-                                    HStack {
-                                        ProgressView()
-                                            .progressViewStyle(.circular)
-                                        Text("Analyzing your goal...")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .padding(.vertical, 8)
-                                }
-                            }
-                            
-                            // Show AI suggested themes if available
-                            if !aiSuggestedThemes.isEmpty {
-                                Section {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        HStack(alignment: .top, spacing: 8) {
-                                            Image(systemName: "sparkles")
-                                                .foregroundStyle(.purple)
-                                                .font(.title3)
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text("Suggested Themes")
-                                                    .font(.headline)
-                                                    .fontWeight(.semibold)
-                                                if let reasoning = aiReasoning {
-                                                    Text(reasoning)
-                                                        .font(.caption)
-                                                        .foregroundStyle(.secondary)
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Theme suggestions as tappable cards
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack(spacing: 12) {
-                                                ForEach(aiSuggestedThemes, id: \.id) { theme in
-                                                    SuggestedThemeCard(
-                                                        theme: theme,
-                                                        isSelected: selectedTheme?.id == theme.id,
-                                                        action: {
-                                                            withAnimation(.spring(response: 0.3)) {
-                                                                selectedTheme = theme
-                                                                useCustomTheme = true
-                                                            }
-                                                            
-                                                            #if os(iOS)
-                                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                                            generator.impactOccurred()
-                                                            #endif
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
-                            
+                                                        
                             Section(header: Text("Weekly Goal")) {
                                 Picker("Duration (minutes)", selection: $durationInMinutes) {
                                     ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
@@ -397,66 +334,11 @@ struct GoalEditorView: View {
                             }
                             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                             
-                            Section(header: Text("Quick Presets")) {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        QuickPresetButton(
-                                            title: "Weekday Mornings",
-                                            icon: "sunrise.fill",
-                                            action: {
-                                                applyPreset(.weekdayMornings)
-                                            }
-                                        )
-                                        
-                                        QuickPresetButton(
-                                            title: "Every Evening",
-                                            icon: "moon.stars.fill",
-                                            action: {
-                                                applyPreset(.everyEvening)
-                                            }
-                                        )
-                                        
-                                        QuickPresetButton(
-                                            title: "Weekends",
-                                            icon: "calendar",
-                                            action: {
-                                                applyPreset(.weekends)
-                                            }
-                                        )
-                                        
-                                        QuickPresetButton(
-                                            title: "Every Day",
-                                            icon: "checkmark.circle.fill",
-                                            action: {
-                                                applyPreset(.everyDay)
-                                            }
-                                        )
-                                        
-                                        QuickPresetButton(
-                                            title: "Clear All",
-                                            icon: "xmark.circle",
-                                            isDestructive: true,
-                                            action: {
-                                                dayTimePreferences.removeAll()
-                                            }
-                                        )
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 8)
-                                }
-                                
-                                Text("Tap a preset to quickly fill the schedule, then customize as needed")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            
                             Section(header: Text("Theme")) {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    // Tag cloud with flow layout
+                                    // Tag cloud with flow layout - show only selected themes
                                     TagFlowLayout(spacing: 8) {
-                                        ForEach(allAvailableThemes, id: \.id) { theme in
+                                        ForEach(selectedThemes, id: \.id) { theme in
                                             ThemeTagButton(
                                                 theme: theme,
                                                 isSelected: selectedTheme?.id == theme.id,
@@ -472,9 +354,16 @@ struct GoalEditorView: View {
                                                     #endif
                                                 }
                                             )
+                                            .contextMenu {
+                                                Button(role: .destructive) {
+                                                    removeTheme(theme)
+                                                } label: {
+                                                    Label("Remove", systemImage: "trash")
+                                                }
+                                            }
                                         }
                                         
-                                        // Add custom theme button
+                                        // Add theme button
                                         Button(action: {
                                             showingAddThemeSheet = true
                                         }) {
@@ -496,6 +385,13 @@ struct GoalEditorView: View {
                                         .buttonStyle(.plain)
                                     }
                                     .padding(.vertical, 8)
+                                    
+                                    if selectedThemes.isEmpty {
+                                        Text("Tap 'Add Theme' to choose a color theme for your goal")
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .padding(.top, 4)
+                                    }
                                 }
                             }
                             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
@@ -543,28 +439,31 @@ struct GoalEditorView: View {
                 }
                 .background(Color(.systemBackground))
             }
-            .navigationTitle(currentStage == .name ? "Goal Editor" : "Set Duration")
+            .navigationTitle(currentStage == .name ? (existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        if currentStage == .duration {
-                            // Go back to name stage
+                        if currentStage == .duration && existingGoal == nil {
+                            // Only allow going back to name stage if creating new goal
                             withAnimation {
                                 currentStage = .name
                             }
                         } else {
-                            // Dismiss the view
                             dismiss()
                         }
                     } label: {
-                        Image(systemName: currentStage == .name ? "xmark" : "chevron.left")
+                        // Show X when editing, or when on name stage
+                        // Show back arrow only when on duration stage of new goal
+                        
+                        Image(systemName: (currentStage == .name || existingGoal != nil) ? "xmark" : "chevron.left")
                     }
 
                 }
                 // Removed the trailing toolbar button since we have the bottom button now
             }
         }
+        .interactiveDismissDisabled(hasUnsavedChanges)
         .sheet(item: $editingBucket) { key in
             NavigationStack {
                 VStack {
@@ -614,19 +513,111 @@ struct GoalEditorView: View {
             }
         }
         .sheet(isPresented: $showingAddThemeSheet) {
-            AddCustomThemeSheet(
-                themeName: $customThemeName,
-                onSave: { name, baseTheme in
-                    addCustomTheme(name: name, baseOn: baseTheme)
+            NavigationStack {
+                List {
+                    // Available themes section
+                    Section(header: Text("Available Themes")) {
+                        ForEach(allAvailableThemes.filter { theme in
+                            !selectedThemes.contains(where: { $0.id == theme.id })
+                        }, id: \.id) { theme in
+                            Button(action: {
+                                addThemeToSelected(theme)
+                            }) {
+                                HStack(spacing: 12) {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [theme.light, theme.dark],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 40, height: 40)
+                                    
+                                    Text(theme.title)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(theme.dark)
+                                }
+                                .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    
+                    // Create custom theme section
+                    Section(header: Text("Create Custom Theme")) {
+                        TextField("Theme name", text: $customThemeName)
+                        
+                        Text("Base Color")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(themes, id: \.id) { theme in
+                                    ThemeColorButton(
+                                        theme: theme,
+                                        isSelected: selectedBaseThemeForCustom?.id == theme.id,
+                                        action: {
+                                            selectedBaseThemeForCustom = theme
+                                            
+                                            #if os(iOS)
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                            generator.impactOccurred()
+                                            #endif
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        
+                        Button(action: {
+                            createCustomTheme()
+                        }) {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                Text("Create Custom Theme")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.accentColor)
+                            )
+                            .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(customThemeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedBaseThemeForCustom == nil)
+                    }
                 }
-            )
+                .navigationTitle("Add Theme")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            showingAddThemeSheet = false
+                        }
+                    }
+                }
+            }
         }
         .task {
             prewarm()
-            if userInput.isEmpty {
+            
+            // Load existing goal data if editing
+            if let existingGoal {
+                loadGoalData(from: existingGoal)
+            } else if userInput.isEmpty {
                 generateChecklist(for: "")
             }
-
         }
     }
     
@@ -640,6 +631,37 @@ struct GoalEditorView: View {
     }
     
     // MARK: - Helper Functions
+    
+    /// Load existing goal data for editing
+    private func loadGoalData(from goal: Goal) {
+        userInput = goal.title
+        durationInMinutes = Int(goal.weeklyTarget / 60 / 7) // Convert weekly back to daily
+        notificationsEnabled = goal.notificationsEnabled
+        selectedHealthKitMetric = goal.healthKitMetric
+        healthKitSyncEnabled = goal.healthKitSyncEnabled
+        
+        // Load theme
+        if let matchedTheme = themes.first(where: { $0.id == goal.primaryTheme.theme.id }) {
+            selectedTheme = matchedTheme
+            useCustomTheme = true
+            
+            // Add to selected themes
+            if !selectedThemes.contains(where: { $0.id == matchedTheme.id }) {
+                selectedThemes.append(matchedTheme)
+            }
+        }
+        
+        // Load schedule
+        for weekday in 1...7 {
+            let times = goal.timesForWeekday(weekday)
+            if !times.isEmpty {
+                dayTimePreferences[weekday] = times
+            }
+        }
+        
+        // Go straight to duration stage when editing
+        currentStage = .duration
+    }
     
     var allAvailableThemes: [Theme] {
         return themes + customThemes
@@ -667,6 +689,72 @@ struct GoalEditorView: View {
         #if os(iOS)
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
+        #endif
+    }
+    
+    /// Add a theme to the selected themes list
+    private func addThemeToSelected(_ theme: Theme) {
+        withAnimation(.spring(response: 0.3)) {
+            selectedThemes.append(theme)
+            selectedTheme = theme
+            useCustomTheme = true
+        }
+        
+        showingAddThemeSheet = false
+        
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
+    }
+    
+    /// Create and add a custom theme
+    private func createCustomTheme() {
+        guard let baseTheme = selectedBaseThemeForCustom else { return }
+        let name = customThemeName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        
+        let newTheme = Theme(
+            id: "custom_\(UUID().uuidString)",
+            title: name,
+            light: baseTheme.light,
+            dark: baseTheme.dark,
+            neon: baseTheme.neon
+        )
+        
+        customThemes.append(newTheme)
+        
+        withAnimation(.spring(response: 0.3)) {
+            selectedThemes.append(newTheme)
+            selectedTheme = newTheme
+            useCustomTheme = true
+        }
+        
+        // Reset
+        customThemeName = ""
+        selectedBaseThemeForCustom = nil
+        showingAddThemeSheet = false
+        
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
+    }
+    
+    /// Remove a theme from the selected themes list
+    private func removeTheme(_ theme: Theme) {
+        withAnimation(.spring(response: 0.3)) {
+            selectedThemes.removeAll(where: { $0.id == theme.id })
+            
+            // If we removed the currently selected theme, select the first available
+            if selectedTheme?.id == theme.id {
+                selectedTheme = selectedThemes.first
+            }
+        }
+        
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
         #endif
     }
     
@@ -725,17 +813,16 @@ struct GoalEditorView: View {
         switch currentStage {
         case .name:
             if let template = selectedTemplate {
-                // Prefill from template and go to duration without AI
+                // Prefill from template and go to duration
                 applyTemplate(template)
                 withAnimation {
                     currentStage = .duration
                 }
             } else {
-                // New goal: go to duration immediately, then start generating suggestions in background
+                // New goal: go to duration
                 withAnimation {
                     currentStage = .duration
                 }
-                Task { await generateAISuggestions() }
             }
         case .duration:
             saveGoal()
@@ -754,6 +841,11 @@ struct GoalEditorView: View {
         let matchedTheme = matchTheme(named: template.theme)
         selectedTheme = matchedTheme
         useCustomTheme = false
+        
+        // Add to selected themes if not already there
+        if !selectedThemes.contains(where: { $0.id == matchedTheme.id }) {
+            selectedThemes.append(matchedTheme)
+        }
         
         // Show it as an AI suggestion for consistency
         aiSuggestedThemes = [matchedTheme]
@@ -833,6 +925,13 @@ struct GoalEditorView: View {
                 self.aiSuggestedThemes = Array(uniqueThemes.prefix(3))
                 self.aiReasoning = suggestion.reasoning
                 
+                // Add AI-suggested themes to selected themes
+                for theme in uniqueThemes.prefix(3) {
+                    if !selectedThemes.contains(where: { $0.id == theme.id }) {
+                        selectedThemes.append(theme)
+                    }
+                }
+                
                 // Auto-select the first suggested theme if user hasn't picked one
                 if !useCustomTheme, let firstTheme = uniqueThemes.first {
                     self.selectedTheme = firstTheme
@@ -856,6 +955,7 @@ struct GoalEditorView: View {
     
     func saveGoal() {
         let goal: Goal
+        let isEditing = existingGoal != nil
         
         // Determine theme based on user selection or suggestion
         let finalTheme: Theme
@@ -875,22 +975,6 @@ struct GoalEditorView: View {
         
         let theme = GoalTheme(title: finalTheme.title, color: finalTheme)
         
-        // Convert day-time preferences to a serializable format
-        var scheduledTimes: [[String: Any]] = []
-        for (weekday, times) in dayTimePreferences where !times.isEmpty {
-            scheduledTimes.append([
-                "weekday": weekday,
-                "times": times.map { $0.rawValue }
-            ])
-        }
-        
-        // Also keep the simple time preferences for backward compatibility
-        let timePreferences = selectedSimpleTimes.map { $0.rawValue.lowercased() }
-        
-        if !selectedSimpleTimes.isEmpty {
-            print("Simple Time of Day:", selectedSimpleTimes.map { $0.rawValue }.sorted().joined(separator: ", "))
-        }
-        
         // Debug print day-time schedule
         if !dayTimePreferences.isEmpty {
             print("\n📅 Day-Time Schedule:")
@@ -901,44 +985,59 @@ struct GoalEditorView: View {
             }
         }
       
-        if let selectedSuggestion, let title = selectedSuggestion.title {
-            goal = Goal(
-                title: title,
-                primaryTheme: theme,
-                weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
-                notificationsEnabled: notificationsEnabled,
-                healthKitMetric: selectedHealthKitMetric,
-                healthKitSyncEnabled: healthKitSyncEnabled
-            )
-            goal.preferredTimesOfDay = timePreferences
+        if let existingGoal {
+            // Update existing goal
+            goal = existingGoal
+            goal.title = userInput
+            goal.primaryTheme = theme
+            goal.weeklyTarget = TimeInterval(durationInMinutes * 60 * 7)
+            goal.notificationsEnabled = notificationsEnabled
+            goal.healthKitMetric = selectedHealthKitMetric
+            goal.healthKitSyncEnabled = healthKitSyncEnabled
+            
+            // Clear existing schedule and set new one
+            goal.dayTimeSchedule.removeAll()
         } else {
-            goal = Goal(
-                title: userInput,
-                primaryTheme: theme,
-                weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
-                notificationsEnabled: notificationsEnabled,
-                healthKitMetric: selectedHealthKitMetric,
-                healthKitSyncEnabled: healthKitSyncEnabled
-            )
-            goal.preferredTimesOfDay = timePreferences
-        }
-        
-        // TODO: Persist scheduling to the Goal model when supported
-        // Debug print for current schedule
-        let calendar = Calendar.current
-        for weekday in 1...7 {
-            if let sched = weeklySchedule[weekday], sched.enabled {
-                let comps = calendar.dateComponents([.hour, .minute], from: sched.time)
-                print("Schedule for weekday \(weekday): \(sched.relation.rawValue) \(String(format: "%02d:%02d", comps.hour ?? 0, comps.minute ?? 0))")
+            // Create new goal
+            if let selectedSuggestion, let title = selectedSuggestion.title {
+                goal = Goal(
+                    title: title,
+                    primaryTheme: theme,
+                    weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
+                    notificationsEnabled: notificationsEnabled,
+                    healthKitMetric: selectedHealthKitMetric,
+                    healthKitSyncEnabled: healthKitSyncEnabled
+                )
+            } else {
+                goal = Goal(
+                    title: userInput,
+                    primaryTheme: theme,
+                    weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
+                    notificationsEnabled: notificationsEnabled,
+                    healthKitMetric: selectedHealthKitMetric,
+                    healthKitSyncEnabled: healthKitSyncEnabled
+                )
             }
         }
+        
+        // ✅ Save the day-time schedule using the convenience method
+        for (weekday, times) in dayTimePreferences {
+            goal.setTimes(times, forWeekday: weekday)
+        }
+        
+        print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
+        print(goal.scheduleSummary)
         
         // Request notification permissions if enabled
         if notificationsEnabled {
             requestNotificationPermissions()
         }
         
-        modelContext.insert(goal)
+        // Only insert if creating new goal
+        if !isEditing {
+            modelContext.insert(goal)
+        }
+        
         dismiss()
     }
     
@@ -968,27 +1067,94 @@ struct GoalEditorView: View {
             return partialMatch
         }
         
-        // Keyword-based matching
-        let themeKeywords: [String: [String]] = [
-            "red": ["red", "cherry", "coral"],
-            "orange": ["orange", "tangerine", "peach"],
-            "yellow": ["yellow", "sunshine", "lemon", "gold"],
-            "green": ["green", "mint", "nature", "fitness", "wellness", "health"],
-            "blue": ["blue", "sky", "cyan", "teal", "productivity", "focus"],
-            "purple": ["purple", "lilac", "meditation", "mindfulness", "creative"],
-            "pink": ["pink", "rose"]
+        // Try reverse match (theme name contains the search term)
+        if let reverseMatch = themes.first(where: { normalizedThemeName.contains($0.title.lowercased()) }) {
+            return reverseMatch
+        }
+        
+        // Keyword-based matching for common activities
+        let themeKeywords: [String: String] = [
+            // Fitness
+            "run": "running",
+            "jog": "running",
+            "cardio": "cardio",
+            "gym": "strength",
+            "workout": "exercise",
+            "exercise": "exercise",
+            "fitness": "exercise",
+            "strength": "strength",
+            "yoga": "yoga",
+            "sport": "sports",
+            
+            // Wellness
+            "meditate": "meditation",
+            "meditation": "meditation",
+            "mindful": "mindfulness",
+            "wellness": "wellness",
+            "relax": "relaxation",
+            "breathe": "breathing",
+            "breath": "breathing",
+            
+            // Learning
+            "read": "reading",
+            "book": "reading",
+            "write": "writing",
+            "journal": "journal",
+            "learn": "learning",
+            "study": "study",
+            "practice": "practice",
+            "art": "art",
+            "paint": "art",
+            "draw": "art",
+            "music": "music",
+            "instrument": "music",
+            "creative": "creative",
+            "create": "creative",
+            
+            // Productivity
+            "work": "work",
+            "focus": "focus",
+            "productive": "productivity",
+            "productivity": "productivity",
+            "plan": "planning",
+            
+            // Lifestyle
+            "cook": "cooking",
+            "clean": "cleaning",
+            "garden": "gardening",
+            "organize": "organizing",
+            "home": "home",
+            
+            // Social
+            "social": "social",
+            "family": "family",
+            "friend": "friends",
+            "community": "community",
+            
+            // Personal Growth
+            "grow": "growth",
+            "growth": "growth",
+            "habit": "habits",
+            "goal": "goals",
+            "reflect": "reflection",
+            
+            // Misc
+            "adventure": "adventure",
+            "nature": "nature",
+            "travel": "travel",
+            "hobby": "hobby"
         ]
         
-        for (baseColor, keywords) in themeKeywords {
-            if keywords.contains(where: { normalizedThemeName.contains($0) }) {
-                if let match = themes.first(where: { $0.id.lowercased().contains(baseColor) }) {
+        for (keyword, themeId) in themeKeywords {
+            if normalizedThemeName.contains(keyword) {
+                if let match = themes.first(where: { $0.id == themeId }) {
                     return match
                 }
             }
         }
         
-        // Default fallback
-        return themes.randomElement() ?? themes[0]
+        // Default fallback - use "general" theme
+        return themes.first(where: { $0.id == "general" }) ?? themes[0]
     }
     
     func generateChecklist(for input: String) {
@@ -1041,33 +1207,6 @@ struct GoalEditorView: View {
                 self.result = partialResponse.content
             }
         }
-//        let stream = try await session.streamResponse(
-//            to: Prompt("Come up with up to three separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instea of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument."),
-//            generating: GoalEditorSuggestionsResult.self,
-//            includeSchemaInPrompt: false,
-//            options: GenerationOptions(temperature: 0.5)
-//        )
-        
-//        for try await partialResponse in stream {
-//            result = partialResponse
-//        }
-
-//        return goalsResult.content
-
-//        let session = LanguageModelSession()
-//
-//        let stream = try await session.streamResponse(
-//            generating: [GoalSugg].self,
-//            options: GenerationOptions(),
-//            includeSchemaInPrompt: false
-//        ) {
-//            "Please generate a report about SwiftUI views."
-//        }
-//
-//        for try await partial in stream {
-//            // `partial` is a MyStruct.PartiallyGenerated
-//            updateUI(with: partial)
-//        }
     }
 }
 // MARK: - Category Suggestions View
@@ -1291,7 +1430,7 @@ struct TimeSlotButton: View {
     
     var body: some View {
         Button(action: action) {
-            RoundedRectangle(cornerRadius: 8)
+            Circle()
                 .fill(isSelected ? Color.accentColor : Color(.systemGray5))
                 .frame(height: 44)
                 .overlay(

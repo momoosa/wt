@@ -1,0 +1,410 @@
+{
+  "categories": [
+    {
+      "id": "fitness",
+      "name": "Fitness",
+      "icon": "figure.run",
+      "color": "red",
+      "suggestions": [
+        {
+          "id": "run",
+          "title": "Run",
+          "subtitle": "Cardiovascular exercise",
+          "duration": 30,
+          "theme": "Running",
+          "healthKitMetric": "running",
+          "icon": "figure.run"
+        },
+        {
+          "id": "walk",
+          "title": "Walk",
+          "subtitle": "Low-impact cardio",
+          "duration": 20,
+          "theme": "Exercise",
+          "healthKitMetric": "walking",
+          "icon": "figure.walk"
+        },
+        {
+          "id": "strength",
+          "title": "Strength Training",
+          "subtitle": "Build muscle and endurance",
+          "duration": 45,
+          "theme": "Strength",
+          "healthKitMetric": null,
+          "icon": "dumbbell.fill"
+        },
+        {
+          "id": "yoga",
+          "title": "Yoga",
+          "subtitle": "Mind and body practice",
+          "duration": 30,
+          "theme": "Yoga",
+          "healthKitMetric": null,
+          "icon": "figure.mind.and.body"
+        },
+        {
+          "id": "cycling",
+          "title": "Cycling",
+          "subtitle": "Outdoor or indoor bike",
+          "duration": 45,
+          "theme": "Cardio",
+          "healthKitMetric": "cycling",
+          "icon": "bicycle"
+        },
+        {
+          "id": "swimming",
+          "title": "Swimming",
+          "subtitle": "Full-body workout",
+          "duration": 30,
+          "theme": "Sports",
+          "healthKitMetric": "swimming",
+          "icon": "figure.pool.swim"
+        }
+      ]
+    },
+    {
+      "id": "wellness",
+      "name": "Wellness",
+      "icon": "heart.fill",
+      "color": "purple",
+      "suggestions": [
+        {
+          "id": "meditation",
+          "title": "Meditation",
+          "subtitle": "Calm your mind",
+          "duration": 10,
+          "theme": "Meditation",
+          "healthKitMetric": "mindfulness",
+          "icon": "sparkles"
+        },
+        {
+          "id": "breathing",
+          "title": "Breathing Exercises",
+          "subtitle": "Reduce stress and anxiety",
+          "duration": 5,
+          "theme": "Breathing",
+          "healthKitMetric": null,
+          "icon": "wind"
+        },
+        {
+          "id": "stretching",
+          "title": "Stretching",
+          "subtitle": "Improve flexibility",
+          "duration": 15,
+          "theme": "Wellness",
+          "healthKitMetric": null,
+          "icon": "figure.flexibility"
+        },
+        {
+          "id": "sleep",
+          "title": "Sleep",
+          "subtitle": "Track quality rest",
+          "duration": 480,
+          "theme": "Relaxation",
+          "healthKitMetric": "sleep",
+          "icon": "bed.double.fill"
+        }
+      ]
+    },
+    {
+      "id": "learning",
+      "name": "Learning",
+      "icon": "book.fill",
+      "color": "blue",
+      "suggestions": [
+        {
+          "id": "reading",
+          "title": "Reading",
+          "subtitle": "Books, articles, or papers",
+          "duration": 30,
+          "theme": "Reading",
+          "healthKitMetric": null,
+          "icon": "book.fill"
+        },
+        {
+          "id": "writing",
+          "title": "Writing",
+          "subtitle": "Creative or professional",
+          "duration": 30,
+          "theme": "Writing",
+          "healthKitMetric": null,
+          "icon": "pencil.and.scribble"
+        },
+        {
+          "id": "journaling",
+          "title": "Journaling",
+          "subtitle": "Reflect on your day",
+          "duration": 15,
+          "theme": "Journal",
+          "healthKitMetric": null,
+          "icon": "book.pages"
+        },
+        {
+          "id": "language",
+          "title": "Language Practice",
+          "subtitle": "Learn a new language",
+          "duration": 20,
+          "theme": "Learning",
+          "healthKitMetric": null,
+          "icon": "character.bubble.fill"
+        },
+        {
+          "id": "study",
+          "title": "Study",
+          "subtitle": "Academic or professional",
+          "duration": 60,
+          "theme": "Study",
+          "healthKitMetric": null,
+          "icon": "graduationcap.fill"
+        }
+      ]
+    },
+    {
+      "id": "creative",
+      "name": "Creative",
+      "icon": "paintbrush.fill",
+      "color": "pink",
+      "suggestions": [
+        {
+          "id": "drawing",
+          "title": "Drawing",
+          "subtitle": "Sketch and illustrate",
+          "duration": 30,
+          "theme": "Art",
+          "healthKitMetric": null,
+          "icon": "pencil.tip.crop.circle"
+        },
+        {
+          "id": "painting",
+          "title": "Painting",
+          "subtitle": "Express with colors",
+          "duration": 45,
+          "theme": "Art",
+          "healthKitMetric": null,
+          "icon": "paintbrush.fill"
+        },
+        {
+          "id": "music_practice",
+          "title": "Music Practice",
+          "subtitle": "Play an instrument",
+          "duration": 30,
+          "theme": "Music",
+          "healthKitMetric": null,
+          "icon": "music.note"
+        },
+        {
+          "id": "photography",
+          "title": "Photography",
+          "subtitle": "Capture moments",
+          "duration": 30,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "camera.fill"
+        },
+        {
+          "id": "crafting",
+          "title": "Crafting",
+          "subtitle": "DIY projects",
+          "duration": 45,
+          "theme": "Creative",
+          "healthKitMetric": null,
+          "icon": "scissors"
+        }
+      ]
+    },
+    {
+      "id": "productivity",
+      "name": "Productivity",
+      "icon": "checkmark.circle.fill",
+      "color": "green",
+      "suggestions": [
+        {
+          "id": "focus_work",
+          "title": "Focus Work",
+          "subtitle": "Deep work session",
+          "duration": 90,
+          "theme": "Focus",
+          "healthKitMetric": null,
+          "icon": "rectangle.on.rectangle"
+        },
+        {
+          "id": "planning",
+          "title": "Planning",
+          "subtitle": "Organize your week",
+          "duration": 20,
+          "theme": "Planning",
+          "healthKitMetric": null,
+          "icon": "calendar"
+        },
+        {
+          "id": "email",
+          "title": "Email",
+          "subtitle": "Clear your inbox",
+          "duration": 30,
+          "theme": "Work",
+          "healthKitMetric": null,
+          "icon": "envelope.fill"
+        },
+        {
+          "id": "meeting",
+          "title": "Meeting",
+          "subtitle": "Team collaboration",
+          "duration": 60,
+          "theme": "Work",
+          "healthKitMetric": null,
+          "icon": "person.3.fill"
+        },
+        {
+          "id": "review",
+          "title": "Weekly Review",
+          "subtitle": "Reflect on progress",
+          "duration": 30,
+          "theme": "Reflection",
+          "healthKitMetric": null,
+          "icon": "chart.line.uptrend.xyaxis"
+        }
+      ]
+    },
+    {
+      "id": "lifestyle",
+      "name": "Lifestyle",
+      "icon": "house.fill",
+      "color": "orange",
+      "suggestions": [
+        {
+          "id": "cooking",
+          "title": "Cooking",
+          "subtitle": "Prepare healthy meals",
+          "duration": 30,
+          "theme": "Cooking",
+          "healthKitMetric": null,
+          "icon": "frying.pan.fill"
+        },
+        {
+          "id": "cleaning",
+          "title": "Cleaning",
+          "subtitle": "Maintain your space",
+          "duration": 30,
+          "theme": "Cleaning",
+          "healthKitMetric": null,
+          "icon": "sparkles"
+        },
+        {
+          "id": "gardening",
+          "title": "Gardening",
+          "subtitle": "Tend to plants",
+          "duration": 45,
+          "theme": "Gardening",
+          "healthKitMetric": null,
+          "icon": "leaf.fill"
+        },
+        {
+          "id": "organizing",
+          "title": "Organizing",
+          "subtitle": "Declutter and tidy",
+          "duration": 30,
+          "theme": "Organizing",
+          "healthKitMetric": null,
+          "icon": "square.stack.3d.up.fill"
+        },
+        {
+          "id": "errands",
+          "title": "Errands",
+          "subtitle": "Complete tasks",
+          "duration": 60,
+          "theme": "Home",
+          "healthKitMetric": null,
+          "icon": "cart.fill"
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "name": "Social",
+      "icon": "person.2.fill",
+      "color": "yellow",
+      "suggestions": [
+        {
+          "id": "family_time",
+          "title": "Family Time",
+          "subtitle": "Quality time together",
+          "duration": 60,
+          "theme": "Family",
+          "healthKitMetric": null,
+          "icon": "figure.2.and.child.holdinghands"
+        },
+        {
+          "id": "friends",
+          "title": "Meet Friends",
+          "subtitle": "Social connection",
+          "duration": 90,
+          "theme": "Friends",
+          "healthKitMetric": null,
+          "icon": "person.3.fill"
+        },
+        {
+          "id": "phone_call",
+          "title": "Phone Call",
+          "subtitle": "Catch up with someone",
+          "duration": 20,
+          "theme": "Social",
+          "healthKitMetric": null,
+          "icon": "phone.fill"
+        },
+        {
+          "id": "volunteering",
+          "title": "Volunteering",
+          "subtitle": "Give back to community",
+          "duration": 120,
+          "theme": "Community",
+          "healthKitMetric": null,
+          "icon": "heart.circle.fill"
+        }
+      ]
+    },
+    {
+      "id": "personal",
+      "name": "Personal Growth",
+      "icon": "chart.line.uptrend.xyaxis",
+      "color": "teal",
+      "suggestions": [
+        {
+          "id": "goal_setting",
+          "title": "Goal Setting",
+          "subtitle": "Define objectives",
+          "duration": 30,
+          "theme": "Goals",
+          "healthKitMetric": null,
+          "icon": "target"
+        },
+        {
+          "id": "habit_tracking",
+          "title": "Habit Tracking",
+          "subtitle": "Monitor progress",
+          "duration": 10,
+          "theme": "Habits",
+          "healthKitMetric": null,
+          "icon": "checkmark.circle.fill"
+        },
+        {
+          "id": "self_reflection",
+          "title": "Self Reflection",
+          "subtitle": "Personal insights",
+          "duration": 20,
+          "theme": "Reflection",
+          "healthKitMetric": null,
+          "icon": "brain.head.profile"
+        },
+        {
+          "id": "gratitude",
+          "title": "Gratitude Practice",
+          "subtitle": "Appreciate the good",
+          "duration": 10,
+          "theme": "Growth",
+          "healthKitMetric": null,
+          "icon": "star.fill"
+        }
+      ]
+    }
+  ]
+}

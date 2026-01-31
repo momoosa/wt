@@ -24,6 +24,9 @@ public final class Goal {
     // Time of Day Preferences (for AI planner)
     public var preferredTimesOfDay: [String] = [] // e.g., ["morning", "afternoon", "evening", "night"]
     
+    // Detailed day-time schedule: weekday (1-7) → times of day
+    public var dayTimeSchedule: [String: [String]] = [:] // e.g., ["2": ["morning", "afternoon"], "6": ["evening"]]
+    
     @Relationship
     var goalSessions: [GoalSession] = []
     @Relationship public var checklistItems: [ChecklistItem] = []
@@ -58,4 +61,91 @@ public extension Goal {
             healthKitMetricRawValue = newValue?.rawValue
         }
     }
+    
+    // MARK: - Day-Time Schedule Convenience Methods
+    
+    /// Get times of day for a specific weekday (1 = Sunday, 2 = Monday, etc.)
+    func timesForWeekday(_ weekday: Int) -> Set<TimeOfDay> {
+        guard let timeStrings = dayTimeSchedule[String(weekday)] else {
+            return []
+        }
+        return Set(timeStrings.compactMap { TimeOfDay(rawValue: $0) })
+    }
+    
+    /// Set times of day for a specific weekday
+    func setTimes(_ times: Set<TimeOfDay>, forWeekday weekday: Int) {
+        if times.isEmpty {
+            dayTimeSchedule.removeValue(forKey: String(weekday))
+        } else {
+            dayTimeSchedule[String(weekday)] = times.map { $0.rawValue }.sorted()
+        }
+    }
+    
+    /// Check if goal has any scheduled times
+    var hasSchedule: Bool {
+        !dayTimeSchedule.isEmpty
+    }
+    
+    /// Get all weekdays that have scheduled times
+    var scheduledWeekdays: [Int] {
+        dayTimeSchedule.keys.compactMap { Int($0) }.sorted()
+    }
+    
+    /// Check if a specific day and time is scheduled
+    func isScheduled(weekday: Int, time: TimeOfDay) -> Bool {
+        timesForWeekday(weekday).contains(time)
+    }
+    
+    /// Get a human-readable schedule summary
+    var scheduleSummary: String {
+        guard hasSchedule else { return "Anytime" }
+        
+        let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        var summaries: [String] = []
+        
+        for weekday in scheduledWeekdays {
+            let times = timesForWeekday(weekday)
+            let dayName = weekdayNames[weekday]
+            let timeNames = times.sorted(by: { $0.rawValue < $1.rawValue }).map { $0.displayName }
+            summaries.append("\(dayName): \(timeNames.joined(separator: ", "))")
+        }
+        
+        return summaries.joined(separator: "\n")
+    }
 }
+// MARK: - TimeOfDay Enum
+
+public enum TimeOfDay: String, CaseIterable, Codable, Hashable, Comparable {
+    case morning
+    case midday
+    case afternoon
+    case evening
+    
+    public var displayName: String {
+        switch self {
+        case .morning: return "Morning"
+        case .midday: return "Midday"
+        case .afternoon: return "Afternoon"
+        case .evening: return "Evening"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .morning: return "sunrise.fill"
+        case .midday: return "sun.max.fill"
+        case .afternoon: return "sun.haze.fill"
+        case .evening: return "moon.stars.fill"
+        }
+    }
+    
+    public static func < (lhs: TimeOfDay, rhs: TimeOfDay) -> Bool {
+        let order: [TimeOfDay] = [.morning, .midday, .afternoon, .evening]
+        guard let lhsIndex = order.firstIndex(of: lhs),
+              let rhsIndex = order.firstIndex(of: rhs) else {
+            return false
+        }
+        return lhsIndex < rhsIndex
+    }
+}
+
