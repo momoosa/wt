@@ -38,10 +38,14 @@ public struct PlannedSession: Codable, Identifiable {
 public struct DailyPlan: Codable {
     public var sessions: [PlannedSession]
     public var overallStrategy: String? // High-level planning insight
+    public var topThreeRecommendations: [String]? // Top 3 goal IDs to do right now
+    public var recommendationReasoning: String? // Why these 3 are recommended now
     
-    public init(sessions: [PlannedSession], overallStrategy: String? = nil) {
+    public init(sessions: [PlannedSession], overallStrategy: String? = nil, topThreeRecommendations: [String]? = nil, recommendationReasoning: String? = nil) {
         self.sessions = sessions
         self.overallStrategy = overallStrategy
+        self.topThreeRecommendations = topThreeRecommendations
+        self.recommendationReasoning = recommendationReasoning
     }
 }
 
@@ -158,7 +162,9 @@ public class GoalSessionPlanner: ObservableObject {
                             if !fullyGeneratedSessions.isEmpty {
                                 currentPlan = DailyPlan(
                                     sessions: fullyGeneratedSessions,
-                                    overallStrategy: partialResponse.content.overallStrategy ?? nil
+                                    overallStrategy: partialResponse.content.overallStrategy ?? nil,
+                                    topThreeRecommendations: partialResponse.content.topThreeRecommendations ?? nil,
+                                    recommendationReasoning: partialResponse.content.recommendationReasoning ?? nil
                                 )
                             }
                         }
@@ -169,6 +175,110 @@ public class GoalSessionPlanner: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Session Scoring
+    
+    /// Get the top 3 recommended sessions from the current plan
+    /// Returns nil if no plan exists or plan doesn't have recommendations
+    public func getRecommendedSessionsFromPlan(allSessions: [GoalSession]) -> [GoalSession]? {
+        guard let plan = currentPlan,
+              let topThreeIDs = plan.topThreeRecommendations,
+              !topThreeIDs.isEmpty else {
+            return nil
+        }
+        
+        // Map IDs to sessions
+        let recommended = topThreeIDs.compactMap { goalIDString -> GoalSession? in
+            guard let goalID = UUID(uuidString: goalIDString) else { return nil }
+            return allSessions.first { $0.goal.id == goalID }
+        }
+        
+        return recommended.isEmpty ? nil : recommended
+    }
+    
+    /// Score a single session for how recommended it is at a given time
+    /// Higher scores mean more recommended
+    public func scoreSession(
+        for goal: Goal,
+        session: GoalSession? = nil,
+        at time: Date = Date(),
+        preferences: PlannerPreferences = .default
+    ) -> Double {
+        var score = 0.0
+        
+        // 1. Progress-based scoring (0-40 points)
+        // Goals that are furthest behind get higher scores
+        let dailyTarget = goal.weeklyTarget / 7
+        let weeklyProgress = calculateWeeklyProgress(for: goal, currentDate: time)
+        
+        // Inverse progress: the lower the progress, the higher the score
+        let progressScore = max(0, 40 * (1 - weeklyProgress / 100))
+        score += progressScore
+        
+        // 2. Time of day matching (0-30 points)
+        let currentHour = Calendar.current.component(.hour, from: time)
+        let currentWeekday = Calendar.current.component(.weekday, from: time)
+        
+        // Check if current time matches preferred times
+        let preferredTimes = goal.timesForWeekday(currentWeekday)
+        if !preferredTimes.isEmpty {
+            let matchesPreferredTime = preferredTimes.contains { timeOfDay in
+                switch timeOfDay {
+                case .morning: return currentHour >= 6 && currentHour < 10
+                case .midday: return currentHour >= 10 && currentHour < 14
+                case .afternoon: return currentHour >= 14 && currentHour < 17
+                case .evening: return currentHour >= 17 && currentHour < 21
+                case .night: return currentHour >= 21 || currentHour < 6
+                }
+            }
+            score += matchesPreferredTime ? 30 : 0
+        } else {
+            // No preference set, give moderate score
+            score += 15
+        }
+        
+        // 3. Focus mode adjustment (0-20 points)
+        switch preferences.focusMode {
+        case .deepWork:
+            // Favor goals with higher weekly targets (longer sessions)
+            let targetMinutes = goal.weeklyTarget / 60
+            score += min(20, targetMinutes / 50)
+        case .balanced:
+            score += 10 // Neutral bonus
+        case .flexible:
+            // Favor goals with lower targets (shorter sessions)
+            let targetMinutes = goal.weeklyTarget / 60
+            score += max(0, 20 - (targetMinutes / 50))
+        }
+        
+        // 4. Planned time bonus (0-25 points)
+        // Give significant bonus if this session is planned for around now
+        if let session = session, let plannedStartTime = session.plannedStartTime {
+            let timeDifference = abs(plannedStartTime.timeIntervalSince(time))
+            let minutesDifference = timeDifference / 60
+            
+            if minutesDifference <= 15 {
+                // Within 15 minutes of planned time - highest bonus
+                score += 25
+            } else if minutesDifference <= 30 {
+                // Within 30 minutes - good bonus
+                score += 20
+            } else if minutesDifference <= 60 {
+                // Within 1 hour - moderate bonus
+                score += 10
+            } else if minutesDifference <= 120 {
+                // Within 2 hours - small bonus
+                score += 5
+            }
+        }
+        
+        // 5. Notification preference bonus (0-10 points)
+        if goal.notificationsEnabled {
+            score += 10
+        }
+        
+        return score
     }
     
     // MARK: - Prompt Building
@@ -246,6 +356,15 @@ public class GoalSessionPlanner: ObservableObject {
         - Times as HH:mm (24hr), chronological order
         
         Focus on goals furthest from their daily target. Include brief reasoning for each session.
+        
+        IMPORTANT: Also provide "topThreeRecommendations" - an array of exactly 3 goal IDs that should be worked on RIGHT NOW (at \(currentTime)).
+        Consider:
+        - Which goals are most behind their targets
+        - Which goals match the current time of day
+        - Urgency and priority
+        - Current energy levels typical for \(currentTime)
+        
+        Also provide "recommendationReasoning" - a brief explanation of why these 3 goals are recommended right now.
         """
         
         return prompt

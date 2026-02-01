@@ -16,8 +16,23 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
     case appleMoveTime = "apple_move_time"
     case mindfulMinutes = "mindful_minutes"
     case workoutTime = "workout_time"
+    case weightLiftingTime = "weight_lifting_time"
+    case ellipticalTime = "elliptical_time"
+    case rowingTime = "rowing_time"
     
     public var id: String { rawValue }
+    
+    /// Whether this metric can be written to (logged by the app)
+    public var supportsWrite: Bool {
+        switch self {
+        case .appleExerciseTime, .appleStandTime, .appleMoveTime:
+            return false // Read-only, calculated by Apple Watch
+        case .mindfulMinutes:
+            return true // Can log meditation sessions
+        case .workoutTime, .weightLiftingTime, .ellipticalTime, .rowingTime:
+            return true // Can create workout sessions
+        }
+    }
     
     /// Display name for the metric
     public var displayName: String {
@@ -27,6 +42,9 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .appleMoveTime: return "Apple Move Minutes"
         case .mindfulMinutes: return "Mindful Minutes"
         case .workoutTime: return "Workout Duration"
+        case .weightLiftingTime: return "Weight Lifting Duration"
+        case .ellipticalTime: return "Elliptical Duration"
+        case .rowingTime: return "Rowing Duration"
         }
     }
     
@@ -38,6 +56,9 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .appleMoveTime: return "flame.fill"
         case .mindfulMinutes: return "brain.head.profile"
         case .workoutTime: return "figure.mixed.cardio"
+        case .weightLiftingTime: return "figure.strengthtraining.traditional"
+        case .ellipticalTime: return "figure.elliptical"
+        case .rowingTime: return "figure.rower"
         }
     }
     
@@ -49,6 +70,9 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .appleMoveTime: return .appleMoveTime
         case .mindfulMinutes: return nil // Uses category type instead
         case .workoutTime: return .appleExerciseTime // Workouts use exercise time
+        case .weightLiftingTime: return nil // Uses workout type instead
+        case .ellipticalTime: return nil // Uses workout type instead
+        case .rowingTime: return nil // Uses workout type instead
         }
     }
     
@@ -80,7 +104,7 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
     /// The unit to use when querying this metric
     public var unit: HKUnit {
         switch self {
-        case .appleExerciseTime, .appleStandTime, .appleMoveTime, .mindfulMinutes, .workoutTime:
+        case .appleExerciseTime, .appleStandTime, .appleMoveTime, .mindfulMinutes, .workoutTime, .weightLiftingTime, .ellipticalTime, .rowingTime:
             return .minute()
         }
     }
@@ -98,6 +122,12 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
             return "Track mindfulness session duration"
         case .workoutTime:
             return "Track total workout duration"
+        case .weightLiftingTime:
+            return "Track traditional strength training and weight lifting workouts"
+        case .ellipticalTime:
+            return "Track elliptical trainer workouts"
+        case .rowingTime:
+            return "Track rowing machine workouts"
         }
     }
 }

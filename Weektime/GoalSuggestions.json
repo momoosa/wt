@@ -70,6 +70,15 @@
           "icon": "flame.fill"
         },
         {
+          "id": "weight_workout",
+          "title": "Weight Lifting",
+          "subtitle": "",
+          "duration": 20,
+          "theme": "Fitness",
+          "healthKitMetric": "weight_lifting_time",
+          "icon": "figure.strengthtraining.traditional"
+        },
+        {
           "id": "pilates",
           "title": "Pilates",
           "subtitle": "Core strength & flexibility",
@@ -86,6 +95,24 @@
           "theme": "Fitness",
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.flexibility"
+        },
+        {
+          "id": "elliptical",
+          "title": "Elliptical",
+          "subtitle": "Low-impact cardio",
+          "duration": 30,
+          "theme": "Fitness",
+          "healthKitMetric": "elliptical_time",
+          "icon": "figure.elliptical"
+        },
+        {
+          "id": "rowing_machine",
+          "title": "Rowing Machine",
+          "subtitle": "Full-body cardio",
+          "duration": 25,
+          "theme": "Fitness",
+          "healthKitMetric": "rowing_time",
+          "icon": "figure.rower"
         },
         {
           "id": "dance",
@@ -504,15 +531,6 @@
           "theme": "Wellness",
           "healthKitMetric": null,
           "icon": "iphone.slash"
-        },
-        {
-          "id": "reading_bed",
-          "title": "Reading in Bed",
-          "subtitle": "Calm your mind with a book",
-          "duration": 20,
-          "theme": "Wellness",
-          "healthKitMetric": null,
-          "icon": "book.fill"
         },
         {
           "id": "sleep_sounds",

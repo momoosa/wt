@@ -18,8 +18,6 @@ public struct GaugePlayIcon: View {
         Image(systemName: imageName)
             .contentTransition(.symbolEffect(.replace))
             .font(font)
-            .symbolRenderingMode(.hierarchical)
-
             .background {
                 if isActive {
                  

@@ -51,6 +51,11 @@ public final class HealthKitManager {
             if let sampleType = metric.sampleType {
                 typesToRead.insert(sampleType)
             }
+            
+            // Add workout type for workout-based metrics
+            if metric == .weightLiftingTime || metric == .ellipticalTime || metric == .rowingTime {
+                typesToRead.insert(HKObjectType.workoutType())
+            }
         }
         
         guard !typesToRead.isEmpty else {
@@ -78,6 +83,18 @@ public final class HealthKitManager {
     public func fetchDuration(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> TimeInterval {
         guard isHealthKitAvailable else {
             throw HealthKitError.notAvailable
+        }
+        
+        // Handle workout-based metrics (like weight lifting, elliptical, rowing)
+        switch metric {
+        case .weightLiftingTime:
+            return try await fetchWorkoutDuration(workoutType: .traditionalStrengthTraining, from: startDate, to: endDate)
+        case .ellipticalTime:
+            return try await fetchWorkoutDuration(workoutType: .elliptical, from: startDate, to: endDate)
+        case .rowingTime:
+            return try await fetchWorkoutDuration(workoutType: .rowing, from: startDate, to: endDate)
+        default:
+            break
         }
         
         // Handle quantity types (like exercise time, stand time)
@@ -156,6 +173,42 @@ public final class HealthKitManager {
         }
     }
     
+    /// Fetch duration for workout-based metrics (like weight lifting)
+    private func fetchWorkoutDuration(workoutType: HKWorkoutActivityType, from startDate: Date, to endDate: Date) async throws -> TimeInterval {
+        let workoutPredicate = HKQuery.predicateForWorkouts(with: workoutType)
+        let datePredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [workoutPredicate, datePredicate])
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: compoundPredicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                guard let workouts = samples as? [HKWorkout] else {
+                    continuation.resume(returning: 0)
+                    return
+                }
+                
+                // Sum up the duration of all workouts
+                let totalDuration = workouts.reduce(0.0) { total, workout in
+                    return total + workout.duration
+                }
+                
+                continuation.resume(returning: totalDuration)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
     /// Fetch duration for a metric for today
     public func fetchTodayDuration(for metric: HealthKitMetric) async throws -> TimeInterval {
         let calendar = Calendar.current
@@ -212,6 +265,18 @@ public final class HealthKitManager {
         
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        
+        // Handle workout-based metrics
+        switch metric {
+        case .weightLiftingTime:
+            return try await fetchWorkoutSamples(workoutType: .traditionalStrengthTraining, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        case .ellipticalTime:
+            return try await fetchWorkoutSamples(workoutType: .elliptical, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        case .rowingTime:
+            return try await fetchWorkoutSamples(workoutType: .rowing, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        default:
+            break
+        }
         
         // Handle quantity types
         if let quantityType = metric.quantityType {
@@ -298,6 +363,45 @@ public final class HealthKitManager {
                         duration: sample.endDate.timeIntervalSince(sample.startDate),
                         metric: metric,
                         sourceName: sample.sourceRevision.source.name
+                    )
+                }
+                
+                continuation.resume(returning: healthKitSamples)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    private func fetchWorkoutSamples(workoutType: HKWorkoutActivityType, metric: HealthKitMetric, predicate: NSPredicate, sortDescriptor: NSSortDescriptor) async throws -> [HealthKitSample] {
+        let workoutPredicate = HKQuery.predicateForWorkouts(with: workoutType)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [workoutPredicate, predicate])
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: compoundPredicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                guard let workouts = samples as? [HKWorkout] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                
+                let healthKitSamples = workouts.map { workout in
+                    HealthKitSample(
+                        id: workout.uuid.uuidString,
+                        startDate: workout.startDate,
+                        endDate: workout.endDate,
+                        duration: workout.duration,
+                        metric: metric,
+                        sourceName: workout.sourceRevision.source.name
                     )
                 }
                 

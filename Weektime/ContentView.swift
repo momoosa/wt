@@ -57,6 +57,7 @@ struct ContentView: View {
     @State private var isPlanning = false
     @State private var revealedSessionIDs: Set<UUID> = []
     @State private var showNowPlaying = false
+    @State private var sessionToLogManually: GoalSession?
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
@@ -87,140 +88,47 @@ struct ContentView: View {
                     }
                 }
                 
-                ForEach(filter(sessions: sessions, with: activeFilter)) { session in
+                // Recommended Sessions Section (Top 3)
+                let recommendedSessions = getRecommendedSessions()
+                if !recommendedSessions.isEmpty {
                     Section {
-                        ZStack {
-                            NavigationLink {
-                                if let timerManager {
-                                    ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
-                                        .tint(session.goal.primaryTag.theme.dark)
-                                        .environment(goalStore)
-                                }
-                            } label: {
-                                EmptyView()
-                            }
-                            .opacity(0)
-                            
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    HStack {
-                                        Text(session.goal.title)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(.primary)
-                                                                            
-                                    }
-                                    
-                                    HStack {
-                                        if let activeSession = timerManager?.activeSession, 
-                                           activeSession.id == session.id, 
-                                           let timeText = activeSession.timeText {
-                                            Text(timeText)
-                                                .contentTransition(.numericText())
-                                                .fontWeight(.semibold)
-                                                .font(.footnote)
-                                            
-                                            if activeSession.hasMetDailyTarget {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .symbolRenderingMode(.hierarchical)
-                                                    .foregroundStyle(.green)
-                                                    .font(.footnote)
-                                            }
-                                        } else {
-                                            Text(session.formattedTime)
-                                                .fontWeight(.semibold)
-                                                .font(.footnote)
-                                            
-                                            if session.hasMetDailyTarget {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .symbolRenderingMode(.hierarchical)
-                                                    .foregroundStyle(.green)
-                                                    .font(.footnote)
-                                            }
-                                        }
-                                        
-                                        // Show planned start time with animation
-                                        Text(session.goal.primaryTag.title)
-                                            .font(.caption2)
-                                            .padding(4)
-                                            .background(Capsule()
-                                                .fill(session.goal.primaryTag.theme.light.opacity(0.15)))
-                                        
-                                        HealthKitBadge(
-                                            metric: session.goal.healthKitMetric,
-                                            isEnabled: session.goal.healthKitSyncEnabled
-                                        )
-                                        
-                                        Spacer()
-                                        
-                                    }
-                                    .opacity(0.7)
-                                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark)
-
-                                    // Show AI reasoning if available with animation
-                                    if let reasoning = session.plannedReasoning, selectedSession == session {
-                                        Text(reasoning)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .padding(.top, 4)
-                                            .transition(.move(edge: .top).combined(with: .opacity))
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Button {
-                                    timerManager?.toggleTimer(for: session, in: day)
-                                } label: {
-                                    let isActive = timerManager?.activeSession?.id == session.id
-                                    let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                                    GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTag.theme.light, font: .title2, gaugeScale: 0.4)
-                                        .contentTransition(.symbolEffect(.replace))
-                                        .symbolRenderingMode(.hierarchical)
-                                        .font(.title2)
-                                }
-                                .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark) // TODO: Extension
-
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(colorScheme == .dark ? session.goal.primaryTag.theme.light.opacity(0.03) : Color(.systemBackground))
-                            .onTapGesture {
-                                withAnimation(.spring(response: 0.3)) {
-                                    selectedSession = session
-                                }
-                            }
-                            .matchedTransitionSource(id: session.id, in: animation)
-                            // Add shimmer effect for newly planned sessions
-                            .overlay {
-                                if let _ = session.plannedStartTime, !revealedSessionIDs.contains(session.id) {
-                                    ShimmerEffect()
-                                        .ignoresSafeArea()
-                                        .allowsHitTesting(false)
-                                }
-                            }
-
+                        ForEach(recommendedSessions) { session in
+                            sessionRow(for: session)
                         }
-                        .swipeActions {
-                            Button {
-                                skip(session: session)
-                            } label: {
-                                Label {
-                                    Text(session.status == .skipped ? "Reactivate" : "Skip")
-                                } icon: {
-                                    Image(systemName: "xmark.circle.fill")
-                                }
-                            }
-                            .tint(.orange)
+                    } header: {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(.yellow)
+                            Text("Recommended Now")
+                                .font(.headline)
                         }
                     }
                     .listSectionSpacing(.compact)
                 }
+                
+                // Later Sessions (All other sessions)
+                let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
+                let laterSessions = filter(sessions: sessions, with: activeFilter)
+                    .filter { !recommendedSessionIDs.contains($0.id) }
+                
+                if !laterSessions.isEmpty {
+                    Section {
+                        ForEach(laterSessions) { session in
+                            sessionRow(for: session)
+                        }
+                    } header: {
+                        Text("Later")
+                            .font(.headline)
+                    }
+                    .listSectionSpacing(.compact)
+                }
             }
-            .animation(.spring(), value: goals)
+        .animation(.spring(), value: goals)
 
 #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
-            
+        
         .toolbar {
 #if os(iOS)
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -391,6 +299,11 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
+        .sheet(item: $sessionToLogManually) { session in
+            ManualLogSheet(session: session, day: day)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
         .fullScreenCover(isPresented: $showNowPlaying) {
             if let timerManager,
                let activeSession = timerManager.activeSession,
@@ -558,6 +471,204 @@ struct ContentView: View {
             return true
         } catch {
             return false
+        }
+    }
+    
+    // MARK: - Recommendations
+    
+    /// Get recommended sessions for right now (top 3)
+    private func getRecommendedSessions() -> [GoalSession] {
+        let filtered = filter(sessions: sessions, with: activeFilter)
+        
+        // First, try to get AI-generated recommendations from the daily plan
+        if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: filtered),
+           !aiRecommendations.isEmpty {
+            // Use AI recommendations (hard refresh)
+            return Array(aiRecommendations.prefix(3))
+        }
+        
+        // Fallback: Use scoring algorithm (soft refresh)
+        let scored = filtered.compactMap { session -> (GoalSession, Double)? in
+            guard isGoalValid(session) else { return nil }
+            
+            let score = planner.scoreSession(
+                for: session.goal,
+                session: session,
+                at: Date(),
+                preferences: plannerPreferences
+            )
+            return (session, score)
+        }
+        
+        // Sort by score and take top 3
+        return scored
+            .sorted { $0.1 > $1.1 }
+            .prefix(3)
+            .map { $0.0 }
+    }
+    
+    // MARK: - Session Row
+    
+    @ViewBuilder
+    private func sessionRow(for session: GoalSession) -> some View {
+        ZStack {
+            NavigationLink {
+                if let timerManager {
+                    ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
+                        .tint(session.goal.primaryTag.theme.dark)
+                        .environment(goalStore)
+                }
+            } label: {
+                EmptyView()
+            }
+            .opacity(0)
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text(session.goal.title)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                    }
+                    
+                    HStack {
+                        if let activeSession = timerManager?.activeSession,
+                           activeSession.id == session.id,
+                           let timeText = activeSession.timeText {
+                            Text(timeText)
+                                .contentTransition(.numericText())
+                                .fontWeight(.semibold)
+                                .font(.footnote)
+                            
+                            if activeSession.hasMetDailyTarget {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(.green)
+                                    .font(.footnote)
+                            }
+                        } else {
+                            Text(session.formattedTime)
+                                .fontWeight(.semibold)
+                                .font(.footnote)
+                            
+                            if session.hasMetDailyTarget {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(.green)
+                                    .font(.footnote)
+                            }
+                        }
+                        
+                        // Show planned start time with animation
+                        Text(session.goal.primaryTag.title)
+                            .font(.caption2)
+                            .padding(4)
+                            .background(Capsule()
+                                .fill(session.goal.primaryTag.theme.light.opacity(0.15)))
+                        
+                        HealthKitBadge(
+                            metric: session.goal.healthKitMetric,
+                            isEnabled: session.goal.healthKitSyncEnabled
+                        )
+                        
+                        Spacer()
+                    }
+                    .opacity(0.7)
+                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark)
+                    
+                    // Show AI reasoning if available with animation
+                    if let reasoning = session.plannedReasoning, selectedSession == session {
+                        Text(reasoning)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+                
+                Spacer()
+                
+                // Differentiate HealthKit-synced goals from manual tracking goals
+                if session.goal.healthKitSyncEnabled && session.goal.healthKitMetric != nil {
+                    let metric = session.goal.healthKitMetric!
+                    
+                    if metric.supportsWrite {
+                        // HealthKit metric that supports writing: Show BOTH play button AND log button
+                        HStack(spacing: 12) {
+                            // Play button for live tracking (writes to HealthKit when stopped)
+                            Button {
+                                timerManager?.toggleTimer(for: session, in: day)
+                            } label: {
+                                let isActive = timerManager?.activeSession?.id == session.id
+                                let image = isActive ? "stop.circle.fill" : "play.circle.fill"
+                                Image(systemName: image)
+                                    .font(.title2)
+                                    .symbolRenderingMode(.hierarchical)
+                            }
+                            
+                            // Log button for manual entry
+                            Button {
+                                sessionToLogManually = session
+                            } label: {
+                                Image(systemName: "pencil.circle.fill")
+                                    .font(.title3)
+                            }
+                            .opacity(0.6)
+                        }
+                        .foregroundStyle(session.goal.primaryTag.theme.color(for: colorScheme))
+                    } else {
+                        // Read-only HealthKit metric: Show only log button
+                        Button {
+                            sessionToLogManually = session
+                        } label: {
+                            Image(systemName: "pencil.circle.fill")
+                                .font(.title3)
+                        }
+                        .foregroundStyle(session.goal.primaryTag.theme.color(for: colorScheme))
+                        .opacity(0.6)
+                    }
+                } else {
+                    // Regular goal: Show standard play/stop button (live tracking)
+                    Button {
+                        timerManager?.toggleTimer(for: session, in: day)
+                    } label: {
+                        let isActive = timerManager?.activeSession?.id == session.id
+                        let image = isActive ? "stop.circle.fill" : "play.circle.fill"
+                        GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTag.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                            .contentTransition(.symbolEffect(.replace))
+                            .font(.title2)
+                    }
+                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark)
+                }
+            }
+            .buttonStyle(.plain)
+            .listRowBackground(colorScheme == .dark ? session.goal.primaryTag.theme.light.opacity(0.03) : Color(.systemBackground))
+            .onTapGesture {
+                withAnimation(.spring(response: 0.3)) {
+                    selectedSession = session
+                }
+            }
+            .matchedTransitionSource(id: session.id, in: animation)
+            // Add shimmer effect for newly planned sessions
+            .overlay {
+                if let _ = session.plannedStartTime, !revealedSessionIDs.contains(session.id) {
+                    ShimmerEffect()
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+        .swipeActions {
+            Button {
+                skip(session: session)
+            } label: {
+                Label {
+                    Text(session.status == .skipped ? "Reactivate" : "Skip")
+                } icon: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+            }
+            .tint(.orange)
         }
     }
     
@@ -837,6 +948,24 @@ struct ContentView: View {
     
     // MARK: - AI Planning
     
+    /// Parse a time string (e.g., "09:30") and combine it with a date to create a full Date object
+    private func parseTimeString(_ timeString: String, for date: Date) -> Date? {
+        let components = timeString.split(separator: ":")
+        guard components.count == 2,
+              let hours = Int(components[0]),
+              let minutes = Int(components[1]) else {
+            return nil
+        }
+        
+        var calendar = Calendar.current
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        dateComponents.hour = hours
+        dateComponents.minute = minutes
+        dateComponents.second = 0
+        
+        return calendar.date(from: dateComponents)
+    }
+    
     /// Generate a daily plan and create GoalSession objects
     private func generateDailyPlan() async {
         isPlanning = true
@@ -1066,24 +1195,30 @@ struct ContentView: View {
                 // Check if a session already exists for this goal
                 if let existingSession = sessions.first(where: { $0.goal.id == matchedGoal.id }) {
                     // Update existing session's planning details
-                    existingSession.updatePlanningDetails(
-                        startTime: plannedSession.recommendedStartTime,
-                        duration: plannedSession.suggestedDuration,
-                        priority: plannedSession.priority,
-                        reasoning: plannedSession.reasoning
-                    )
+                    // Convert time string (e.g., "09:30") to Date for today
+                    if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {
+                        existingSession.updatePlanningDetails(
+                            startTime: startTime,
+                            duration: plannedSession.suggestedDuration,
+                            priority: plannedSession.priority,
+                            reasoning: plannedSession.reasoning
+                        )
+                    }
                     existingSession.status = .active
                 } else {
                     // Create a new GoalSession only if one doesn't exist
                     let session = GoalSession(title: matchedGoal.title, goal: matchedGoal, day: day)
                     
                     // Apply planning details
-                    session.updatePlanningDetails(
-                        startTime: plannedSession.recommendedStartTime,
-                        duration: plannedSession.suggestedDuration,
-                        priority: plannedSession.priority,
-                        reasoning: plannedSession.reasoning
-                    )
+                    // Convert time string (e.g., "09:30") to Date for today
+                    if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {
+                        session.updatePlanningDetails(
+                            startTime: startTime,
+                            duration: plannedSession.suggestedDuration,
+                            priority: plannedSession.priority,
+                            reasoning: plannedSession.reasoning
+                        )
+                    }
                     
                     // Mark as active
                     session.status = .active
@@ -1395,6 +1530,98 @@ struct GoalRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Manual Log Sheet
+
+struct ManualLogSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    
+    let session: GoalSession
+    let day: Day
+    
+    @State private var startDate = Date()
+    @State private var duration: TimeInterval = 1800 // Default 30 minutes
+    @State private var notes: String = ""
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker("Start Time", selection: $startDate, in: day.startDate...day.endDate)
+                    
+                    Picker("Duration", selection: $duration) {
+                        Text("5 min").tag(TimeInterval(300))
+                        Text("10 min").tag(TimeInterval(600))
+                        Text("15 min").tag(TimeInterval(900))
+                        Text("20 min").tag(TimeInterval(1200))
+                        Text("30 min").tag(TimeInterval(1800))
+                        Text("45 min").tag(TimeInterval(2700))
+                        Text("1 hour").tag(TimeInterval(3600))
+                        Text("1.5 hours").tag(TimeInterval(5400))
+                        Text("2 hours").tag(TimeInterval(7200))
+                    }
+                } header: {
+                    Text("Activity Details")
+                } footer: {
+                    Text("Log time you spent on this goal that wasn't captured by HealthKit")
+                }
+                
+                Section("Notes (Optional)") {
+                    TextField("Add any notes...", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+            }
+            .navigationTitle("Log \(session.goal.title)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveManualLog()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func saveManualLog() {
+        // Create a historical session for this manual entry
+        let endDate = startDate.addingTimeInterval(duration)
+        
+        let historicalSession = HistoricalSession(
+            id: UUID().uuidString,
+            title: "\(session.goal.title) - Manual Entry",
+            start: startDate,
+            end: endDate,
+            healthKitType: nil, // Manual entry, not from HealthKit
+            needsHealthKitRecord: false
+        )
+        historicalSession.goalIDs.append(session.goal.id.uuidString)
+        
+        if !notes.isEmpty {
+            // TODO: Add notes property to HistoricalSession if needed
+        }
+        
+        // Add to day
+        day.add(historicalSession: historicalSession)
+        modelContext.insert(historicalSession)
+        
+        // Save context
+        try? modelContext.save()
+        
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
     }
 }
 

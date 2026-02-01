@@ -26,8 +26,8 @@ public final class GoalSession {
     
     // MARK: - AI Planning Properties
     
-    /// Recommended start time from AI planner (stored as time component like "09:30")
-    public var plannedStartTime: String?
+    /// Recommended start time from AI planner
+    public var plannedStartTime: Date?
     
     /// Suggested duration from AI planner in minutes
     public var plannedDuration: Int?
@@ -87,6 +87,15 @@ public final class GoalSession {
         elapsedTime / dailyTarget
     }
     
+    /// Formatted planned start time (e.g., "9:30 AM")
+    public var formattedPlannedStartTime: String? {
+        guard let startTime = plannedStartTime else { return nil }
+        
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: startTime)
+    }
+    
     public init(title: String, goal: Goal, day: Day) {
         self.id = UUID()
         self.title = title
@@ -113,7 +122,7 @@ public extension GoalSession {
     
     /// Update planning details from AI planner
     func updatePlanningDetails(
-        startTime: String,
+        startTime: Date,
         duration: Int,
         priority: Int,
         reasoning: String
