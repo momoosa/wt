@@ -14,6 +14,7 @@ struct GoalThemeSuggestionsResponse: Codable {
 struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     
     // Optional existing goal for editing
     var existingGoal: Goal?
@@ -170,10 +171,10 @@ struct GoalEditorView: View {
     // Computed property for the active theme color
     private var activeThemeColor: Color {
         if let selectedTheme = selectedGoalTheme {
-            return selectedTheme.theme.dark
+            return selectedTheme.theme.color(for: colorScheme)
         } else if let template = selectedTemplate {
             let matchedTheme = matchTheme(named: template.theme)
-            return matchedTheme.dark
+            return matchedTheme.color(for: colorScheme)
         }
         return .accentColor
     }
@@ -292,7 +293,6 @@ struct GoalEditorView: View {
                                 }
                                 .pickerStyle(.menu)
                             }                            
-                            
                             
                             Section(header: Text("Theme")) {
                                 VStack(alignment: .leading, spacing: 12) {
@@ -1342,12 +1342,15 @@ struct SuggestedThemeCard: View {
 
 // MARK: - Theme Tag Button
 struct ThemeTagButton: View {
+    @Environment(\.colorScheme) var colorScheme
     let goalTheme: GoalTag
     let isSelected: Bool
     let action: () -> Void
     var onRemove: (() -> Void)? = nil
     
     var body: some View {
+        let themeColor = goalTheme.theme.color(for: colorScheme)
+        let backgroundColor = colorScheme == .dark ? goalTheme.theme.dark : goalTheme.theme.light
         Button(action: action) {
             HStack(spacing: 8) {
                 // Color indicator
@@ -1362,7 +1365,7 @@ struct ThemeTagButton: View {
                     .frame(width: 20, height: 20)
                     .overlay(
                         Circle()
-                            .strokeBorder(isSelected ? goalTheme.theme.dark : Color.clear, lineWidth: 2)
+                            .strokeBorder(isSelected ? themeColor : Color.clear, lineWidth: 2)
                     )
                 
                 Text(goalTheme.title)
@@ -1385,13 +1388,13 @@ struct ThemeTagButton: View {
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? goalTheme.theme.light.opacity(0.3) : Color(.systemGray6))
+                    .fill(isSelected ? backgroundColor.opacity(0.3) : Color(.systemGray6))
             )
             .overlay(
                 Capsule()
-                    .strokeBorder(isSelected ? goalTheme.theme.dark : Color.clear, lineWidth: 2)
+                    .strokeBorder(isSelected ? themeColor : Color.clear, lineWidth: 2)
             )
-            .foregroundStyle(isSelected ? goalTheme.theme.dark : .primary)
+            .foregroundStyle(isSelected ? themeColor : .primary)
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)

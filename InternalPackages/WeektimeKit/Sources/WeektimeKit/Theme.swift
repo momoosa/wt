@@ -44,9 +44,9 @@ public class Theme: Identifiable {
     public func color(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            light
-        case .dark:
             dark
+        case .dark:
+            neon
         default:
             light
         }

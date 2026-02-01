@@ -523,6 +523,13 @@ struct ContentView: View {
     }
     
     private func refreshGoals() {
+        // First, clean up any sessions whose goals have been deleted
+        let orphanedSessions = sessions.filter { !isGoalValid($0) }
+        for session in orphanedSessions {
+            modelContext.delete(session)
+        }
+        
+        // Then create sessions for goals that don't have them
         for goal in goals {
             if !sessions.contains(where: { $0.goal == goal }) {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
@@ -530,7 +537,7 @@ struct ContentView: View {
             }
         }
         
-        // Save changes if there were any insertions
+        // Save changes if there were any insertions or deletions
         if modelContext.hasChanges {
             try? modelContext.save()
         }
@@ -542,12 +549,29 @@ struct ContentView: View {
         }
     }
     
+    /// Check if a session's goal is still valid (not deleted)
+    private func isGoalValid(_ session: GoalSession) -> Bool {
+        // Try to access the goal's ID - if it throws or fails, the goal was deleted
+        do {
+            _ = session.goal.id
+            _ = session.goal.title
+            return true
+        } catch {
+            return false
+        }
+    }
+    
     private func filter(sessions: [GoalSession], with filter: Filter?) -> [GoalSession] {
         guard let filter else {
-            return sessions
+            return sessions.filter { isGoalValid($0) }
         }
         
         let filtered = sessions.filter { session in
+            // Filter out sessions with deleted goals
+            guard isGoalValid(session) else {
+                return false
+            }
+            
             let isArchived = session.goal.status == .archived
             let isSkipped = session.status == .skipped
             switch activeFilter {
@@ -1206,7 +1230,11 @@ enum DebugGoals: String, CaseIterable, Identifiable {
 
 struct AllGoalsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     let goals: [Goal]
+    
+    @State private var goalToDelete: Goal?
+    @State private var showingDeleteConfirmation = false
     
     var activeGoals: [Goal] {
         goals.filter { $0.status == .active }
@@ -1223,6 +1251,14 @@ struct AllGoalsView: View {
                     Section("Active Goals") {
                         ForEach(activeGoals) { goal in
                             GoalRow(goal: goal)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        goalToDelete = goal
+                                        showingDeleteConfirmation = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                 }
@@ -1231,6 +1267,14 @@ struct AllGoalsView: View {
                     Section("Archived Goals") {
                         ForEach(archivedGoals) { goal in
                             GoalRow(goal: goal)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        goalToDelete = goal
+                                        showingDeleteConfirmation = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                 }
@@ -1252,6 +1296,53 @@ struct AllGoalsView: View {
                     }
                 }
             }
+            .confirmationDialog(
+                "Delete Goal",
+                isPresented: $showingDeleteConfirmation,
+                presenting: goalToDelete
+            ) { goal in
+                Button("Delete \"\(goal.title)\"", role: .destructive) {
+                    deleteGoal(goal)
+                }
+                Button("Cancel", role: .cancel) {
+                    goalToDelete = nil
+                }
+            } message: { goal in
+                Text("Are you sure you want to delete \"\(goal.title)\"? This action cannot be undone.")
+            }
+        }
+    }
+    
+    private func deleteGoal(_ goal: Goal) {
+        withAnimation {
+            // First, clean up any related data
+            // Delete all sessions for this goal
+            for session in goal.goalSessions {
+                modelContext.delete(session)
+            }
+            
+            // Delete all checklist items
+            for item in goal.checklistItems {
+                modelContext.delete(item)
+            }
+            
+            // Delete all interval lists
+            for list in goal.intervalLists {
+                modelContext.delete(list)
+            }
+            
+            // Now delete the goal itself
+            modelContext.delete(goal)
+            
+            // Save the context to ensure deletion is persisted
+            try? modelContext.save()
+            
+            goalToDelete = nil
+            
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            #endif
         }
     }
 }

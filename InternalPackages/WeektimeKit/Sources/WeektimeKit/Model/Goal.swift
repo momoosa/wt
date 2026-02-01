@@ -29,10 +29,12 @@ public final class Goal {
     // Detailed day-time schedule: weekday (1-7) → times of day
     public var dayTimeSchedule: [String: [String]] = [:] // e.g., ["2": ["morning", "afternoon"], "6": ["evening"]]
     
-    @Relationship
-    var goalSessions: [GoalSession] = []
-    @Relationship public var checklistItems: [ChecklistItem] = []
-    @Relationship public var intervalLists: [IntervalList] = []
+    @Relationship(deleteRule: .cascade)
+    public var goalSessions: [GoalSession] = []
+    @Relationship(deleteRule: .cascade) 
+    public var checklistItems: [ChecklistItem] = []
+    @Relationship(deleteRule: .cascade) 
+    public var intervalLists: [IntervalList] = []
 
     public init(title: String, primaryTag: GoalTag, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
