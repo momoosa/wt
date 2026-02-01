@@ -461,48 +461,16 @@ struct GoalEditorView: View {
                 // Removed the trailing toolbar button since we have the bottom button now
             }
         }
-        .sheet(isPresented: $showingTagPicker) {
-            NavigationStack {
-                List {
-                    // Existing
-                    if !allTags.isEmpty {
-                        Section("Existing Tags") {
-                            ForEach(allTags) { tag in
-                                HStack {
-                                    Image(systemName: tagIcon(for: tag))
-                                    Text(tag.title)
-                                    Spacer()
-                                    if selectedTags.contains(where: { $0.id == tag.id }) {
-                                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if let idx = selectedTags.firstIndex(where: { $0.id == tag.id }) {
-                                        selectedTags.remove(at: idx)
-                                    } else {
-                                        selectedTags.append(tag)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Section("Create New Tag") {
-                        Button {
-                            let predefined = GoalTag.predefinedSmartTags(themes: themes)
-                            for tag in predefined {
-                                if !allTags.contains(where: { $0.title == tag.title }) {
-                                    modelContext.insert(tag)
-                                }
-                            }
-                        } label: {
-                            Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
-                        }
-                    }
-                }
-                .navigationTitle("Add Tag")
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingTagPicker = false } } }
-            }
+        .sheet(isPresented: $showingAddThemeSheet) {
+            TagSelectionSheet(
+                allTags: allTags,
+                selectedTags: $selectedTags,
+                selectedGoalTheme: $selectedGoalTheme,
+                modelContext: modelContext,
+                editingTag: $editingTag
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(item: $editingTag) { tag in
             NavigationStack {
@@ -544,7 +512,7 @@ struct GoalEditorView: View {
         selectedGoalTheme = goal.primaryTag
         
         // Add to selected themes
-        if !selectedTags.contains(where: { $0.title == goal.primaryTag.title }) {
+        if !selectedTags.contains(where: { $0.id == goal.primaryTag.id }) {
             selectedTags.append(goal.primaryTag)
         }
         
@@ -1424,6 +1392,204 @@ struct ThemeTagButton: View {
                     .strokeBorder(isSelected ? goalTheme.theme.dark : Color.clear, lineWidth: 2)
             )
             .foregroundStyle(isSelected ? goalTheme.theme.dark : .primary)
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.spring(response: 0.3), value: isSelected)
+    }
+}
+
+// MARK: - Tag Selection Sheet
+
+struct TagSelectionSheet: View {
+    let allTags: [GoalTag]
+    @Binding var selectedTags: [GoalTag]
+    @Binding var selectedGoalTheme: GoalTag?
+    let modelContext: ModelContext
+    @Binding var editingTag: GoalTag?
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if allTags.isEmpty {
+                        // Empty state
+                        VStack(spacing: 16) {
+                            Image(systemName: "tag.slash")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.secondary)
+                            
+                            Text("No Tags Available")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                            
+                            Text("Load predefined tags or create your own")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                            
+                            Button {
+                                let predefined = GoalTag.predefinedSmartTags(themes: themes)
+                                for tag in predefined {
+                                    if !allTags.contains(where: { $0.title == tag.title }) {
+                                        modelContext.insert(tag)
+                                    }
+                                }
+                            } label: {
+                                Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(Color.accentColor)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(10)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 60)
+                    } else {
+                        // Tags grid
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Select Tags")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            TagFlowLayout(spacing: 8) {
+                                ForEach(allTags, id: \.id) { tag in
+                                    TagButton(
+                                        tag: tag,
+                                        isSelected: selectedTags.contains(where: { $0.id == tag.id }),
+                                        onSelect: {
+                                            toggleTagSelection(tag)
+                                        },
+                                        onEdit: {
+                                            editingTag = tag
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                        .padding(.top)
+                        
+                        // Action buttons
+                        VStack(spacing: 12) {
+                            Button {
+                                let predefined = GoalTag.predefinedSmartTags(themes: themes)
+                                for tag in predefined {
+                                    if !allTags.contains(where: { $0.title == tag.title }) {
+                                        modelContext.insert(tag)
+                                    }
+                                }
+                            } label: {
+                                Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(10)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Future: Add custom tag creation button
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("Add Theme")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func toggleTagSelection(_ tag: GoalTag) {
+        if let index = selectedTags.firstIndex(where: { $0.id == tag.id }) {
+            // Deselect
+            withAnimation(.spring(response: 0.3)) {
+                selectedTags.remove(at: index)
+                
+                // If this was the selected theme, update it
+                if selectedGoalTheme?.id == tag.id {
+                    selectedGoalTheme = selectedTags.first
+                }
+            }
+        } else {
+            // Select
+            withAnimation(.spring(response: 0.3)) {
+                selectedTags.append(tag)
+                
+                // If no theme is selected, make this the selected theme
+                if selectedGoalTheme == nil {
+                    selectedGoalTheme = tag
+                }
+            }
+        }
+        
+        #if os(iOS)
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        #endif
+    }
+}
+
+// MARK: - Tag Button
+
+struct TagButton: View { // TODO: Combine with theme
+    let tag: GoalTag
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onEdit: () -> Void
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 8) {
+                // Color indicator
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [tag.theme.light, tag.theme.dark],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(isSelected ? tag.theme.dark : Color.clear, lineWidth: 2)
+                    )
+                
+                Text(tag.title)
+                    .font(.footnote)
+                    .fontWeight(.semibold)
+                    .fontWeight(isSelected ? .semibold : .regular)
+             
+                // Edit button
+                Button(action: onEdit) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(isSelected ? tag.theme.light.opacity(0.3) : Color(.systemGray6))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(isSelected ? tag.theme.dark : Color.clear, lineWidth: 2)
+            )
+            .foregroundStyle(isSelected ? tag.theme.dark : .primary)
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)

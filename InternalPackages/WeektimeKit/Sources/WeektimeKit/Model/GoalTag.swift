@@ -206,24 +206,294 @@ public extension GoalTag {
     /// Predefined smart tags with intelligent triggers
     static func predefinedSmartTags(themes: [Theme]) -> [GoalTag] {
         return [
-            // Outdoor activities
+            // MARK: - Fitness & Movement
+            
+            // Outdoor Running/Walking
             GoalTag(
-                title: "Outdoors",
-                color: themes.first(where: { $0.id == "green" }) ?? themes[0],
+                title: "Outdoor Cardio",
+                color: themes.first(where: { $0.id == "red" }) ?? themes[0],
                 weatherConditions: [.clear, .partlyCloudy],
-                temperatureRange: 10...30, // 50-86°F
+                temperatureRange: 10...28,
+                timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.outdoor],
                 requiresDaylight: true
             ),
             
-            // Early morning activities
+            // Gym Workouts
+            GoalTag(
+                title: "Gym Session",
+                color: themes.first(where: { $0.id == "red" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .afternoon, .evening],
+                locationTypes: [.gym]
+            ),
+            
+            // Home Workouts
+            GoalTag(
+                title: "Home Fitness",
+                color: themes.first(where: { $0.id == "orange" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .evening],
+                locationTypes: [.home]
+            ),
+            
+            // Yoga & Stretching
+            GoalTag(
+                title: "Yoga & Stretch",
+                color: themes.first(where: { $0.id == "mint" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .evening],
+                locationTypes: [.home, .outdoor]
+            ),
+            
+            // Outdoor Activities
+            GoalTag(
+                title: "Outdoors",
+                color: themes.first(where: { $0.id == "green" }) ?? themes[0],
+                weatherConditions: [.clear, .partlyCloudy],
+                temperatureRange: 10...30,
+                locationTypes: [.outdoor],
+                requiresDaylight: true
+            ),
+            
+            // MARK: - Mindfulness & Wellness
+            
+            // Morning Meditation
+            GoalTag(
+                title: "Morning Meditation",
+                color: themes.first(where: { $0.id == "purple" }) ?? themes[0],
+                timeOfDayPreferences: [.morning],
+                locationTypes: [.home]
+            ),
+            
+            // Evening Meditation
+            GoalTag(
+                title: "Evening Calm",
+                color: themes.first(where: { $0.id == "purple" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
+            ),
+            
+            // Mindfulness Practice
+            GoalTag(
+                title: "Mindfulness",
+                color: themes.first(where: { $0.id == "lilac" }) ?? themes[0],
+                locationTypes: [.home, .outdoor]
+            ),
+            
+            // Breathing Exercises
+            GoalTag(
+                title: "Breathwork",
+                color: themes.first(where: { $0.id == "cyan" }) ?? themes[0],
+                locationTypes: [.anywhere]
+            ),
+            
+            // MARK: - Creativity & Arts
+            
+            // Creative Work
+            GoalTag(
+                title: "Creative Time",
+                color: themes.first(where: { $0.id == "pink0" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.home, .office]
+            ),
+            
+            // Music Practice
+            GoalTag(
+                title: "Music Practice",
+                color: themes.first(where: { $0.id == "plum" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.home]
+            ),
+            
+            // Art & Drawing
+            GoalTag(
+                title: "Art & Drawing",
+                color: themes.first(where: { $0.id == "coral" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.home],
+                requiresDaylight: true
+            ),
+            
+            // Writing
+            GoalTag(
+                title: "Writing",
+                color: themes.first(where: { $0.id == "beige" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .afternoon],
+                locationTypes: [.home, .office]
+            ),
+            
+            // Photography
+            GoalTag(
+                title: "Photography",
+                color: themes.first(where: { $0.id == "gold" }) ?? themes[0],
+                weatherConditions: [.clear, .partlyCloudy],
+                locationTypes: [.outdoor],
+                requiresDaylight: true
+            ),
+            
+            // MARK: - Learning & Reading
+            
+            // Reading
+            GoalTag(
+                title: "Reading",
+                color: themes.first(where: { $0.id == "blue" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
+            ),
+            
+            // Language Learning
+            GoalTag(
+                title: "Language Learning",
+                color: themes.first(where: { $0.id == "sky_blue" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .afternoon],
+                locationTypes: [.home, .commute]
+            ),
+            
+            // Study & Focus
+            GoalTag(
+                title: "Study Time",
+                color: themes.first(where: { $0.id == "grey_blue" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .midday, .afternoon],
+                locationTypes: [.home, .office]
+            ),
+            
+            // Online Courses
+            GoalTag(
+                title: "Online Learning",
+                color: themes.first(where: { $0.id == "teal" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.home]
+            ),
+            
+            // MARK: - Productivity & Work
+            
+            // Deep Work
+            GoalTag(
+                title: "Deep Work",
+                color: themes.first(where: { $0.id == "blue" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .midday],
+                locationTypes: [.home, .office]
+            ),
+            
+            // Quick Tasks
+            GoalTag(
+                title: "Quick Tasks",
+                color: themes.first(where: { $0.id == "cyan" }) ?? themes[0],
+                timeOfDayPreferences: [.midday, .afternoon],
+                locationTypes: [.home, .office]
+            ),
+            
+            // Planning & Organization
+            GoalTag(
+                title: "Planning",
+                color: themes.first(where: { $0.id == "mint_blue" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .evening],
+                locationTypes: [.home, .office]
+            ),
+            
+            // Email & Communication
+            GoalTag(
+                title: "Communication",
+                color: themes.first(where: { $0.id == "silver0" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .afternoon],
+                locationTypes: [.office, .home]
+            ),
+            
+            // MARK: - Home & Lifestyle
+            
+            // Cooking
+            GoalTag(
+                title: "Cooking",
+                color: themes.first(where: { $0.id == "orange" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.home]
+            ),
+            
+            // Cleaning & Organizing
+            GoalTag(
+                title: "Cleaning",
+                color: themes.first(where: { $0.id == "mint" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .midday],
+                locationTypes: [.home]
+            ),
+            
+            // Gardening
+            GoalTag(
+                title: "Gardening",
+                color: themes.first(where: { $0.id == "lime" }) ?? themes[0],
+                weatherConditions: [.clear, .partlyCloudy],
+                timeOfDayPreferences: [.morning, .afternoon],
+                locationTypes: [.outdoor],
+                requiresDaylight: true
+            ),
+            
+            // DIY Projects
+            GoalTag(
+                title: "DIY Projects",
+                color: themes.first(where: { $0.id == "burnt_orange" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon],
+                locationTypes: [.home],
+                requiresDaylight: true
+            ),
+            
+            // MARK: - Social & Family
+            
+            // Family Time
+            GoalTag(
+                title: "Family Time",
+                color: themes.first(where: { $0.id == "hot_pink" }) ?? themes[0],
+                timeOfDayPreferences: [.evening],
+                locationTypes: [.home]
+            ),
+            
+            // Social Activities
+            GoalTag(
+                title: "Social",
+                color: themes.first(where: { $0.id == "pink0" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.anywhere]
+            ),
+            
+            // Phone Calls
+            GoalTag(
+                title: "Calls & Catchup",
+                color: themes.first(where: { $0.id == "peach" }) ?? themes[0],
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.anywhere]
+            ),
+            
+            // MARK: - Time of Day Specific
+            
+            // Early Morning Routine
             GoalTag(
                 title: "Early Morning",
                 color: themes.first(where: { $0.id == "sunshine" }) ?? themes[0],
                 timeOfDayPreferences: [.morning]
             ),
             
-            // Cozy indoor activities (perfect for bad weather)
+            // Midday Break
+            GoalTag(
+                title: "Lunch Break",
+                color: themes.first(where: { $0.id == "yellow" }) ?? themes[0],
+                timeOfDayPreferences: [.midday]
+            ),
+            
+            // Evening Wind Down
+            GoalTag(
+                title: "Evening Wind Down",
+                color: themes.first(where: { $0.id == "mauve" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
+            ),
+            
+            // Weekend Activities
+            GoalTag(
+                title: "Weekend Special",
+                color: themes.first(where: { $0.id == "tangerine" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .midday, .afternoon]
+            ),
+            
+            // MARK: - Weather Specific
+            
+            // Rainy Day Activities
             GoalTag(
                 title: "Cozy Indoor",
                 color: themes.first(where: { $0.id == "beige" }) ?? themes[0],
@@ -231,56 +501,123 @@ public extension GoalTag {
                 locationTypes: [.home]
             ),
             
-            // Energizing activities
+            // Sunny Day Activities
+            GoalTag(
+                title: "Sunny Day",
+                color: themes.first(where: { $0.id == "lemon" }) ?? themes[0],
+                weatherConditions: [.clear],
+                locationTypes: [.outdoor],
+                requiresDaylight: true
+            ),
+            
+            // Cold Weather Activities
+            GoalTag(
+                title: "Winter Activity",
+                color: themes.first(where: { $0.id == "cyan" }) ?? themes[0],
+                weatherConditions: [.snowy],
+                temperatureRange: -10...10
+            ),
+            
+            // Warm Weather Activities
+            GoalTag(
+                title: "Summer Activity",
+                color: themes.first(where: { $0.id == "coral" }) ?? themes[0],
+                weatherConditions: [.clear, .partlyCloudy],
+                temperatureRange: 20...35
+            ),
+            
+            // MARK: - Energy Level
+            
+            // High Energy
             GoalTag(
                 title: "Energizing",
                 color: themes.first(where: { $0.id == "orange" }) ?? themes[0],
                 timeOfDayPreferences: [.morning, .midday]
             ),
             
-            // Relaxing evening activities
+            // Low Energy / Relaxing
             GoalTag(
-                title: "Evening Wind Down",
-                color: themes.first(where: { $0.id == "purple" }) ?? themes[0],
-                timeOfDayPreferences: [.evening]
+                title: "Low Key",
+                color: themes.first(where: { $0.id == "seafoam" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
             ),
             
-            // Cold weather activities
+            // MARK: - Journaling & Reflection
+            
+            // Morning Pages
             GoalTag(
-                title: "Cold Weather",
-                color: themes.first(where: { $0.id == "cyan" }) ?? themes[0],
-                weatherConditions: [.snowy],
-                temperatureRange: -10...10
+                title: "Morning Journal",
+                color: themes.first(where: { $0.id == "lemon" }) ?? themes[0],
+                timeOfDayPreferences: [.morning],
+                locationTypes: [.home]
             ),
             
-            // Warm weather activities
+            // Evening Reflection
             GoalTag(
-                title: "Warm Weather",
-                color: themes.first(where: { $0.id == "coral" }) ?? themes[0],
-                weatherConditions: [.clear, .partlyCloudy],
-                temperatureRange: 20...35
+                title: "Evening Reflection",
+                color: themes.first(where: { $0.id == "grape" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
             ),
             
-            // Focus work (quiet, daytime)
+            // Gratitude Practice
             GoalTag(
-                title: "Focus Time",
-                color: themes.first(where: { $0.id == "blue" }) ?? themes[0],
-                timeOfDayPreferences: [.morning, .midday, .afternoon],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Social activities (flexible timing)
-            GoalTag(
-                title: "Social",
+                title: "Gratitude",
                 color: themes.first(where: { $0.id == "pink0" }) ?? themes[0],
-                timeOfDayPreferences: [.afternoon, .evening]
+                timeOfDayPreferences: [.evening],
+                locationTypes: [.home]
             ),
             
-            // Gym workouts
+            // MARK: - Commute & Travel
+            
+            // Commute Time
             GoalTag(
-                title: "Gym",
-                color: themes.first(where: { $0.id == "red" }) ?? themes[0],
-                locationTypes: [.gym]
+                title: "Commute Activity",
+                color: themes.first(where: { $0.id == "grey_blue" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .evening],
+                locationTypes: [.commute]
+            ),
+            
+            // Podcast Listening
+            GoalTag(
+                title: "Podcast Time",
+                color: themes.first(where: { $0.id == "teal" }) ?? themes[0],
+                locationTypes: [.commute, .home]
+            ),
+            
+            // Audiobook
+            GoalTag(
+                title: "Audiobook",
+                color: themes.first(where: { $0.id == "blue" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home, .commute]
+            ),
+            
+            // MARK: - Self-Care
+            
+            // Skincare Routine
+            GoalTag(
+                title: "Skincare",
+                color: themes.first(where: { $0.id == "seafoam" }) ?? themes[0],
+                timeOfDayPreferences: [.morning, .night],
+                locationTypes: [.home]
+            ),
+            
+            // Bath & Relaxation
+            GoalTag(
+                title: "Self-Care",
+                color: themes.first(where: { $0.id == "lilac" }) ?? themes[0],
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
+            ),
+            
+            // Nap Time
+            GoalTag(
+                title: "Power Nap",
+                color: themes.first(where: { $0.id == "mauve" }) ?? themes[0],
+                timeOfDayPreferences: [.midday, .afternoon],
+                locationTypes: [.home]
             )
         ]
     }
