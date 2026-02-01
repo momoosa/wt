@@ -16,7 +16,16 @@ struct WeektimeApp: App {
             Goal.self,
             GoalTag.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        
+        // Use App Group container for widget access
+        let appGroupIdentifier = "group.com.yourcompany.weektime" // TODO: Replace with your actual App Group ID
+        
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            fatalError("App Group container not found. Make sure '\(appGroupIdentifier)' is configured.")
+        }
+        
+        let storeURL = containerURL.appendingPathComponent("default.store")
+        let modelConfiguration = ModelConfiguration(url: storeURL)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])

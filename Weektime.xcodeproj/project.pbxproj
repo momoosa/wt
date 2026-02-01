@@ -25,6 +25,11 @@
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
+		CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2C2F2F633800F7265A /* WidgetKit.framework */; };
+		CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2E2F2F633800F7265A /* SwiftUI.framework */; };
+		CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CD39BD462F2F641000F7265A /* GoalSessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */; };
+		CD39BD482F2F64B600F7265A /* WeektimeKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD472F2F64B600F7265A /* WeektimeKit */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
@@ -49,6 +54,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CD39BD3E2F2F633A00F7265A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD39BD2A2F2F633800F7265A;
+			remoteInfo = MomentumWidgetExtension;
+		};
 		CD75CC6D2E2FE5E700890F20 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
@@ -64,6 +76,20 @@
 			remoteInfo = Weektime;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CD39BD412F2F633A00F7265A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
@@ -84,6 +110,9 @@
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
+		CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
@@ -112,7 +141,25 @@
 		CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CD39BD442F2F633A00F7265A /* Exceptions for "MomentumWidget" folder in "MomentumWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CD39BD302F2F633800F7265A /* MomentumWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CD39BD442F2F633A00F7265A /* Exceptions for "MomentumWidget" folder in "MomentumWidgetExtension" target */,
+			);
+			path = MomentumWidget;
+			sourceTree = "<group>";
+		};
 		CD75CC6F2E2FE5E700890F20 /* WeektimeTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = WeektimeTests;
@@ -126,6 +173,16 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CD39BD282F2F633800F7265A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD39BD482F2F64B600F7265A /* WeektimeKit in Frameworks */,
+				CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */,
+				CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD75CC582E2FE5E600890F20 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -162,6 +219,8 @@
 		CD06684F2E34C3620063AC1F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CD39BD2C2F2F633800F7265A /* WidgetKit.framework */,
+				CD39BD2E2F2F633800F7265A /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -181,6 +240,7 @@
 				CDEBAA342EE9FA1000C1C411 /* Weektime */,
 				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
 				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
+				CD39BD302F2F633800F7265A /* MomentumWidget */,
 				CD06684F2E34C3620063AC1F /* Frameworks */,
 				CD75CC5C2E2FE5E600890F20 /* Products */,
 			);
@@ -192,6 +252,7 @@
 				CD75CC5B2E2FE5E600890F20 /* Weektime.app */,
 				CD75CC6C2E2FE5E700890F20 /* WeektimeTests.xctest */,
 				CD75CC762E2FE5E800890F20 /* WeektimeUITests.xctest */,
+				CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -254,6 +315,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD39BD452F2F633A00F7265A /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */;
+			buildPhases = (
+				CD39BD272F2F633800F7265A /* Sources */,
+				CD39BD282F2F633800F7265A /* Frameworks */,
+				CD39BD292F2F633800F7265A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CD39BD302F2F633800F7265A /* MomentumWidget */,
+			);
+			name = MomentumWidgetExtension;
+			packageProductDependencies = (
+				CD39BD472F2F64B600F7265A /* WeektimeKit */,
+			);
+			productName = MomentumWidgetExtension;
+			productReference = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		CD75CC5A2E2FE5E600890F20 /* Weektime */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CD75CC7F2E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "Weektime" */;
@@ -261,10 +345,12 @@
 				CD75CC572E2FE5E600890F20 /* Sources */,
 				CD75CC582E2FE5E600890F20 /* Frameworks */,
 				CD75CC592E2FE5E600890F20 /* Resources */,
+				CD39BD412F2F633A00F7265A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CD39BD3F2F2F633A00F7265A /* PBXTargetDependency */,
 			);
 			name = Weektime;
 			packageProductDependencies = (
@@ -327,9 +413,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					CD39BD2A2F2F633800F7265A = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					CD75CC5A2E2FE5E600890F20 = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -360,11 +449,19 @@
 				CD75CC5A2E2FE5E600890F20 /* Weektime */,
 				CD75CC6B2E2FE5E700890F20 /* WeektimeTests */,
 				CD75CC752E2FE5E800890F20 /* WeektimeUITests */,
+				CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CD39BD292F2F633800F7265A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD75CC592E2FE5E600890F20 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -396,6 +493,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CD39BD272F2F633800F7265A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD39BD462F2F641000F7265A /* GoalSessionPlanner.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CD75CC572E2FE5E600890F20 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -451,6 +556,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CD39BD3F2F2F633A00F7265A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */;
+			targetProxy = CD39BD3E2F2F633A00F7265A /* PBXContainerItemProxy */;
+		};
 		CD75CC6E2E2FE5E700890F20 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CD75CC5A2E2FE5E600890F20 /* Weektime */;
@@ -464,6 +574,75 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CD39BD422F2F633A00F7265A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CD39BD432F2F633A00F7265A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		CD75CC802E2FE5E800890F20 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -773,6 +952,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CD39BD452F2F633A00F7265A /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD39BD422F2F633A00F7265A /* Debug */,
+				CD39BD432F2F633A00F7265A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CD75CC562E2FE5E600890F20 /* Build configuration list for PBXProject "Weektime" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -813,6 +1001,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		CD0668502E34C3620063AC1F /* WeektimeKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WeektimeKit;
+		};
+		CD39BD472F2F64B600F7265A /* WeektimeKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WeektimeKit;
 		};
