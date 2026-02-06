@@ -63,248 +63,314 @@ struct ContentView: View {
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
     
     var body: some View {
-            List {
-              filtersHeader
+        mainListView
+            .animation(.spring(), value: goals)
+            .toolbar {
+                toolbarContent
+            }
+            .onAppear {
+                setupOnAppear()
+            }
+            .onDisappear {
+                timerManager?.activeSession?.stopUITimer()
+            }
+            .onChange(of: goals) { old, new in
+                handleGoalsChange(old: old, new: new)
+            }
+#if os(iOS)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                // Check for external changes when coming back to foreground
+                timerManager?.checkForExternalChanges()
                 
-                if isPlanning && sessions.isEmpty {
-                    // Show loading state when planning and no sessions yet
-                    Section {
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .controlSize(.large)
-                            
-                            Text("Generating your plan...")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("Analyzing your goals and creating an optimized schedule")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                        .listRowBackground(Color.clear)
-                    }
-                }
-                
-                // Recommended Sessions Section (Top 3)
-                let recommendedSessions = getRecommendedSessions()
-                if !recommendedSessions.isEmpty {
-                    Section {
-                        ForEach(recommendedSessions) { session in
-                            sessionRow(for: session)
-                        }
-                    } header: {
-                        HStack {
-                            Image(systemName: "star.fill")
-                                .foregroundStyle(.yellow)
-                            Text("Recommended Now")
-                                .font(.headline)
-                        }
-                    }
-                    .listSectionSpacing(.compact)
-                }
-                
-                // Later Sessions (All other sessions)
-                let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-                let laterSessions = filter(sessions: sessions, with: activeFilter)
-                    .filter { !recommendedSessionIDs.contains($0.id) }
-                
-                if !laterSessions.isEmpty {
-                    Section {
-                        ForEach(laterSessions) { session in
-                            sessionRow(for: session)
-                        }
-                    } header: {
-                        Text("Later")
-                            .font(.headline)
-                    }
-                    .listSectionSpacing(.compact)
+                if timerManager?.activeSession?.id != nil {
+                    timerManager?.activeSession?.startUITimer()
                 }
             }
-        .animation(.spring(), value: goals)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                timerManager?.activeSession?.stopUITimer()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                // Also check when app becomes active (e.g., after widget interaction)
+                timerManager?.checkForExternalChanges()
+            }
+#endif
+            .sheet(isPresented: $showPlannerSheet) {
+                plannerSheet
+            }
+            .sheet(item: $selectedSession) { session in
+                sessionDetailSheet(for: session)
+            }
+            .sheet(isPresented: $showingGoalEditor) {
+                goalEditorSheet
+            }
+            .sheet(isPresented: $showAllGoals) {
+                allGoalsSheet
+            }
+            .fullScreenCover(isPresented: $showNowPlaying) {
+                nowPlayingView
+            }
+            .sheet(isPresented: $showSettings) {
+                settingsSheet
+            }
+            .sheet(item: $sessionToLogManually) { session in
+                manualLogSheet(for: session)
+            }
+    }
+    
+    // MARK: - Main List View
+    
+    private var mainListView: some View {
+        List {
+            filtersHeader
+            
+            if isPlanning && sessions.isEmpty {
+                planningLoadingSection
+            }
+            
+            let recommendedSessions = getRecommendedSessions()
+            if !recommendedSessions.isEmpty {
+                recommendedSection(sessions: recommendedSessions)
+            }
+            
+            let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
+            let laterSessions = filter(sessions: sessions, with: activeFilter)
+                .filter { !recommendedSessionIDs.contains($0.id) }
+            
+            if !laterSessions.isEmpty {
+                laterSection(sessions: laterSessions)
+            }
+        }
 
 #if os(macOS)
-        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+#endif
+    }
+    
+    private var planningLoadingSection: some View {
+        Section {
+            VStack(spacing: 16) {
+                ProgressView()
+                    .controlSize(.large)
+                
+                Text("Generating your plan...")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                
+                Text("Analyzing your goals and creating an optimized schedule")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+            .listRowBackground(Color.clear)
+        }
+    }
+    
+    private func recommendedSection(sessions: [GoalSession]) -> some View {
+        Section {
+            ForEach(sessions) { session in
+                sessionRow(for: session)
+            }
+        } header: {
+            HStack {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(.yellow)
+                Text("Recommended Now")
+                    .font(.headline)
+            }
+        }
+        .listSectionSpacing(.compact)
+    }
+    
+    private func laterSection(sessions: [GoalSession]) -> some View {
+        Section {
+            ForEach(sessions) { session in
+                sessionRow(for: session)
+            }
+        } header: {
+            Text("Later")
+                .font(.headline)
+        }
+        .listSectionSpacing(.compact)
+    }
+    
+    // MARK: - Toolbar
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+#if os(iOS)
+        ToolbarItem(placement: .navigationBarTrailing) {
+            HStack(spacing: 12) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gear")
+                }
+                
+                Button {
+                    showAllGoals = true
+                } label: {
+                    Image(systemName: "list.bullet")
+                }
+                
+                EditButton()
+            }
+        }
+        
+        #if DEBUG
+        ToolbarItem(placement: .navigationBarLeading) {
+            Menu {
+                ForEach(DebugGoals.allCases) { debugGoal in
+                    Button {
+                        addDebugGoal(debugGoal)
+                    } label: {
+                        Label(debugGoal.title, systemImage: "plus.circle")
+                    }
+                }
+            } label: {
+                Image(systemName: "hammer.fill")
+            }
+        }
+        #endif
 #endif
         
-        .toolbar {
-#if os(iOS)
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 12) {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gear")
+        if let timerManager,
+           let activeSession = timerManager.activeSession,
+           let session = sessions.first(where: { $0.id == activeSession.id }) {
+            ToolbarItem(placement: .bottomBar) {
+                ActionView(session: session, details: activeSession) { event in
+                    handle(event: event)
+                }
+                .onTapGesture {
+                    showNowPlaying = true
+                }
+                .frame(minWidth: 180.0)
+            }
+        }
+        
+        ToolbarItem(placement: .bottomBar) {
+            Spacer()
+        }
+        
+        ToolbarItem(placement: .bottomBar) {
+            Button {
+                showPlannerSheet = true
+            } label: {
+                if isPlanning {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Label("Plan Day", systemImage: "sparkles")
+                }
+            }
+            .disabled(isPlanning)
+            .matchedTransitionSource(id: "plannerButton", in: animation)
+        }
+        
+        ToolbarItem(placement: .bottomBar) {
+            Button(action: { showingGoalEditor = true }) {
+                Label("Add Item", systemImage: "plus")
+            }
+            .overlay {
+                Color.clear
+            }
+            .matchedTransitionSource(id: "info", in: animation)
+        }
+    }
+    
+    // MARK: - Setup Methods
+    
+    private func setupOnAppear() {
+        // Initialize timer manager if needed
+        if timerManager == nil {
+            let manager = SessionTimerManager(goalStore: goalStore)
+            
+            // Set up callback for external changes (e.g., widget stopping timer)
+            manager.onExternalChange = { [weak manager] in
+                // Note: SwiftData automatically tracks changes from other contexts
+                // We just need to reload the timer state to sync with UserDefaults
+                manager?.loadTimerState(sessions: sessions)
+            }
+            
+            timerManager = manager
+        }
+        
+        // Load saved timer states from UserDefaults
+        timerManager?.loadTimerState(sessions: sessions)
+        
+        // Use Task to ensure proper async data loading
+        Task {
+            refreshGoals()
+            syncHealthKitData()
+        }
+    }
+    
+    private func handleGoalsChange(old: [Goal], new: [Goal]) {
+        Task {
+            refreshGoals()
+            
+            // Check if any new goals have HealthKit metrics that need authorization
+            let newHealthKitGoals = new.filter { newGoal in
+                newGoal.healthKitSyncEnabled &&
+                newGoal.healthKitMetric != nil &&
+                !old.contains(where: { $0.id == newGoal.id })
+            }
+            
+            // If there are new HealthKit goals, request authorization immediately
+            if !newHealthKitGoals.isEmpty {
+                let newMetrics = newHealthKitGoals.compactMap { $0.healthKitMetric }
+                if !newMetrics.isEmpty {
+                    do {
+                        try await healthKitManager.requestAuthorization(for: newMetrics)
+                    } catch {
+                        print("HealthKit authorization failed for new goals: \(error)")
                     }
-                    
-                    Button {
-                        showAllGoals = true
-                    } label: {
-                        Image(systemName: "list.bullet")
-                    }
-                    
-                    EditButton()
                 }
             }
             
-            #if DEBUG
-            ToolbarItem(placement: .navigationBarLeading) {
-                Menu {
-                    ForEach(DebugGoals.allCases) { debugGoal in
-                        Button {
-                            addDebugGoal(debugGoal)
-                        } label: {
-                            Label(debugGoal.title, systemImage: "plus.circle")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "hammer.fill")
-                }
+            // Always sync to ensure data is up to date
+            syncHealthKitData()
+        }
+    }
+    
+    // MARK: - Sheet Views
+    
+    private var plannerSheet: some View {
+        PlannerConfigurationSheet(
+            selectedThemes: $selectedThemes,
+            availableTimeMinutes: $availableTimeMinutes,
+            allThemes: availableGoalThemes,
+            animation: animation
+        ) {
+            showPlannerSheet = false
+            Task {
+                await generateDailyPlan()
             }
-            #endif
-#endif
-            
-            if let timerManager,
-               let activeSession = timerManager.activeSession, 
-               let session = sessions.first(where: { $0.id == activeSession.id }) {
-                ToolbarItem(placement: .bottomBar) {
-                    
-                    ActionView(session: session, details: activeSession) { event in
-                        handle(event: event)
-                    }
-                    .onTapGesture {
-                        showNowPlaying = true
-                    }
-                    .frame(minWidth: 180.0)
-                }
-            }
-            ToolbarSpacer(.fixed, placement: .bottomBar)
-
-            ToolbarItem(placement: .bottomBar) {
-                // Planner button
-                Button {
-                    showPlannerSheet = true
-                } label: {
-                    if isPlanning {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Label("Plan Day", systemImage: "sparkles")
-                    }
-                }
-                .disabled(isPlanning)
-                .matchedTransitionSource(id: "plannerButton", in: animation)
-            }
-
-            ToolbarItem(placement: .bottomBar) {
-                // Plus button with overlay of active timer above it
-                Button(action: { showingGoalEditor = true }) {
-                    Label("Add Item", systemImage: "plus")
-                }
-                .overlay {
-                    // Empty overlay here to ensure plus button remains tappable underneath active timers view.
-                    // The actual active timers view is moved above using the ZStack.
-                    Color.clear
-                }
-            }
-            .matchedTransitionSource(
-                id: "info", in: animation
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(20)
+        .presentationBackground(.thinMaterial)
+    }
+    
+    private func sessionDetailSheet(for session: GoalSession) -> some View {
+        EmptyView() // This appears to be missing in the original
+    }
+    
+    private var goalEditorSheet: some View {
+        GoalEditorView()
+            .navigationTransition(
+                .zoom(sourceID: "info", in: animation)
             )
-        }
-        .onAppear {
-            // Initialize timer manager if needed
-            if timerManager == nil {
-                timerManager = SessionTimerManager(goalStore: goalStore)
-            }
-            
-            // Load saved timer states from UserDefaults
-            timerManager?.loadTimerState(sessions: sessions)
-            
-            // Use Task to ensure proper async data loading
-            Task {
-                refreshGoals()
-                syncHealthKitData()
-            }
-        }
-        .onChange(of: goals) { old, new in
-            Task {
-                refreshGoals()
-                
-                // Check if any new goals have HealthKit metrics that need authorization
-                let newHealthKitGoals = new.filter { newGoal in
-                    newGoal.healthKitSyncEnabled &&
-                    newGoal.healthKitMetric != nil &&
-                    !old.contains(where: { $0.id == newGoal.id })
-                }
-                
-                // If there are new HealthKit goals, request authorization immediately
-                if !newHealthKitGoals.isEmpty {
-                    let newMetrics = newHealthKitGoals.compactMap { $0.healthKitMetric }
-                    if !newMetrics.isEmpty {
-                        do {
-                            try await healthKitManager.requestAuthorization(for: newMetrics)
-                        } catch {
-                            print("HealthKit authorization failed for new goals: \(error)")
-                        }
-                    }
-                }
-                
-                // Always sync to ensure data is up to date
-                syncHealthKitData()
-            }
-        }
-        .onDisappear {
-            timerManager?.activeSession?.stopUITimer()
-        }
-#if os(iOS)
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Refresh UI timer update on foreground
-            if timerManager?.activeSession?.id != nil {
-                timerManager?.activeSession?.startUITimer()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-            // Stop UI timer updates on background
-            timerManager?.activeSession?.stopUITimer()
-        }
-#endif
-        .sheet(isPresented: $showingGoalEditor) {
-            GoalEditorView()
-                .navigationTransition(
-                    .zoom(sourceID: "info", in: animation)
-                )
-        }
-        .sheet(isPresented: $showAllGoals) {
-            AllGoalsView(goals: goals)
-        }
-        .sheet(isPresented: $showPlannerSheet) {
-            PlannerConfigurationSheet(
-                selectedThemes: $selectedThemes,
-                availableTimeMinutes: $availableTimeMinutes,
-                allThemes: availableGoalThemes,
-                animation: animation
-            ) {
-                showPlannerSheet = false
-                Task {
-                    await generateDailyPlan()
-                }
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(20)
-            .presentationBackground(.thinMaterial)
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-        }
-        .sheet(item: $sessionToLogManually) { session in
-            ManualLogSheet(session: session, day: day)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
-        .fullScreenCover(isPresented: $showNowPlaying) {
+    }
+    
+    private var allGoalsSheet: some View {
+        AllGoalsView(goals: goals)
+    }
+    
+    private var nowPlayingView: some View {
+        Group {
             if let timerManager,
                let activeSession = timerManager.activeSession,
                let session = sessions.first(where: { $0.id == activeSession.id }) {
@@ -316,6 +382,16 @@ struct ContentView: View {
                 }
             }
         }
+    }
+    
+    private var settingsSheet: some View {
+        SettingsView()
+    }
+    
+    private func manualLogSheet(for session: GoalSession) -> some View {
+        ManualLogSheet(session: session, day: day)
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
     }
     
     // MARK: - Computed Properties
@@ -359,69 +435,62 @@ struct ContentView: View {
     }
     
     var filtersHeader: some View {
-            Section {
-                
-            } header: {
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
-                        ForEach(dynamicAvailableFilters, id: \.self) { filter in
-                            HStack(spacing: 4) {
-                                if let image = filter.label.imageName {
-                                    Image(systemName: image)
-                                }
-                                if let text = filter.label.text {
-                                    if filter == .skippedSessions || filter == .archivedGoals || filter == .planned {
-                                        let count = count(for: filter)
-                                        HStack {
-                                            Text(text)
-                                                .font(.footnote)
-                                            Text("\(count)")
-                                                .foregroundStyle(Color(.systemBackground))
-                                                .font(.caption2)
-                                                .padding(4)
-                                                .background {
-                                                    if count > 9 {
-                                                        Capsule()
-                                                            .fill(.primary)
-                                                    } else {
-                                                        Circle()
-                                                            .fill(.primary)
-                                                    }
-                                                }
-                                        }
-                                        
-                                    } else {
-                                        Text(text)
-                                            .font(.footnote)
-
-                                    }
-                                }
-                            }
-                            .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
-                            .fontWeight(.semibold)
-                            .padding([.top, .bottom], 6)
-                            .padding([.leading, .trailing], 10)
-                            .frame(minWidth: 60.0)
-                            .background {
-                                Capsule()
-                                    .fill(filter.id == activeFilter.id ? filter.tintColor.opacity(0.4) : Color(.systemGray5))
-                            }
-                            .onTapGesture {
-                                withAnimation {
-                                    activeFilter = filter
-                                }
-                            }
-                        }
+        Section {
+            
+        } header: {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack {
+                    ForEach(dynamicAvailableFilters, id: \.self) { filter in
+                        filterChip(for: filter)
                     }
-                    .padding([.leading, .trailing])
-
                 }
-
+                .padding([.leading, .trailing])
             }
-            .listRowInsets(EdgeInsets())
-        
-            .listSectionMargins(.horizontal, 0) // Space around sections. (Requires iOS 26)
+        }
+        .listRowInsets(EdgeInsets())
+        .listSectionMargins(.horizontal, 0)
+    }
+    
+    private func filterChip(for filter: Filter) -> some View {
+        HStack(spacing: 4) {
+            if let image = filter.label.imageName {
+                Image(systemName: image)
+            }
+            if let text = filter.label.text {
+                filterText(for: filter, text: text)
+            }
+        }
+        .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
+        .fontWeight(.semibold)
+        .padding([.top, .bottom], 6)
+        .padding([.leading, .trailing], 10)
+        .frame(minWidth: 60.0)
+        .background {
+            Capsule()
+                .fill(filter.id == activeFilter.id ? filter.tintColor.opacity(0.4) : Color(.systemGray5))
+        }
+        .onTapGesture {
+            withAnimation {
+                activeFilter = filter
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func filterText(for filter: Filter, text: String) -> some View {
+        if filter == .skippedSessions || filter == .archivedGoals || filter == .planned {
+            let count = count(for: filter)
+            HStack {
+                Text(text)
+                    .font(.footnote)
+                Text("\(count)")
+                    .foregroundStyle(.secondary)
+                    .font(.caption2)
+            }
+        } else {
+            Text(text)
+                .font(.footnote)
+        }
     }
     
     init(day: Day) {

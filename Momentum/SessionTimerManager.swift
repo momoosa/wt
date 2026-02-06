@@ -8,9 +8,14 @@
 import SwiftUI
 import SwiftData
 import MomentumKit
+import Foundation
 
 #if canImport(WidgetKit)
 import WidgetKit
+#endif
+
+#if canImport(UIKit)
+import UIKit
 #endif
 
 /// Manages timer state and historical session creation for goal sessions
@@ -19,7 +24,11 @@ public final class SessionTimerManager {
     /// The currently active session being timed
     public private(set) var activeSession: ActiveSessionDetails?
     
+    /// Callback when external changes are detected (e.g., widget stopped the timer)
+    public var onExternalChange: (() -> Void)?
+    
     private let goalStore: GoalStore
+    private var userDefaultsObserver: NSObjectProtocol?
     
     // MARK: - UserDefaults Keys for Timer Persistence
     private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
@@ -36,6 +45,62 @@ public final class SessionTimerManager {
     
     public init(goalStore: GoalStore) {
         self.goalStore = goalStore
+        setupUserDefaultsObservation()
+    }
+    
+    deinit {
+        if let observer = userDefaultsObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
+    // MARK: - UserDefaults Observation
+    
+    /// Sets up observation of UserDefaults changes from widgets
+    private func setupUserDefaultsObservation() {
+        // UserDefaults.didChangeNotification doesn't work across processes
+        // Instead, we'll check for changes when the app becomes active
+        #if os(iOS)
+        userDefaultsObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.checkForExternalChanges()
+        }
+        #endif
+    }
+    
+    /// Checks if timer state was changed externally (e.g., by widget) and syncs
+    public func checkForExternalChanges() {
+        guard let defaults = sharedDefaults else { return }
+        
+        let storedSessionID = defaults.string(forKey: activeSessionIDKey)
+        let currentSessionID = activeSession?.id.uuidString
+        
+        // If states don't match, something changed externally
+        if storedSessionID != currentSessionID {
+            print("🔄 SessionTimerManager: Detected external state change")
+            print("   Current: \(currentSessionID ?? "none"), Stored: \(storedSessionID ?? "none")")
+            
+            // Stop current timer if we have one but shouldn't
+            if let activeSession, storedSessionID == nil {
+                print("   → Stopping timer (was stopped externally)")
+                activeSession.stopUITimer()
+                self.activeSession = nil
+            }
+            // Or if the session ID changed
+            else if let activeSession, let storedID = storedSessionID, storedID != activeSession.id.uuidString {
+                print("   → Stopping timer (different session started externally)")
+                activeSession.stopUITimer()
+                self.activeSession = nil
+            }
+            
+            // Notify that external change occurred so UI can refresh
+            DispatchQueue.main.async {
+                self.onExternalChange?()
+            }
+        }
     }
     
     // MARK: - Timer Control
@@ -137,6 +202,9 @@ public final class SessionTimerManager {
             defaults.removeObject(forKey: activeSessionIDKey)
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
         }
+        
+        // Force synchronization of UserDefaults
+        defaults.synchronize()
         
         // Reload widgets when timer state changes
         #if canImport(WidgetKit)

@@ -87,26 +87,42 @@ public struct ToggleTimerIntent: AppIntent {
         }
         
         // Check if timer is currently running by reading from UserDefaults
-        let defaults = UserDefaults(suiteName: appGroupIdentifier)
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            print("❌ Intent: Failed to access UserDefaults for app group")
+            throw IntentError.containerError
+        }
+        
         let activeSessionIDKey = "ActiveSessionIDV1"
         let activeSessionStartDateKey = "ActiveSessionStartDateV1"
         let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
         
-        let currentActiveSessionID = defaults?.string(forKey: activeSessionIDKey)
+        let currentActiveSessionID = defaults.string(forKey: activeSessionIDKey)
         let isCurrentlyActive = currentActiveSessionID == sessionID
+        
+        print("📊 Intent: Current active session: \(currentActiveSessionID ?? "none"), target session: \(sessionID)")
         
         if isCurrentlyActive {
             // Stop the timer
             print("⏹️ Intent: Stopping timer for session \(session.title)")
             
             // Get start date and calculate duration
-            let startTimeInterval = defaults?.double(forKey: activeSessionStartDateKey) ?? Date().timeIntervalSince1970
+            let startTimeInterval = defaults.double(forKey: activeSessionStartDateKey)
+            guard startTimeInterval > 0 else {
+                print("⚠️ Intent: No valid start time found, clearing state")
+                defaults.removeObject(forKey: activeSessionIDKey)
+                defaults.removeObject(forKey: activeSessionStartDateKey)
+                defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+                defaults.synchronize()
+                throw IntentError.invalidTimerState
+            }
+            
             let startDate = Date(timeIntervalSince1970: startTimeInterval)
             let endDate = Date()
             let duration = endDate.timeIntervalSince(startDate)
             
-            // Get the initial elapsed time
-            let initialElapsed = defaults?.double(forKey: activeSessionElapsedTimeKey) ?? 0
+            // Note: initialElapsed is stored for reference but not used in historical session creation
+            // The historical session duration is calculated from start/end times
+            _ = defaults.double(forKey: activeSessionElapsedTimeKey)
             
             // Create historical session
             let historicalSession = HistoricalSession(
@@ -122,9 +138,12 @@ public struct ToggleTimerIntent: AppIntent {
             context.insert(historicalSession)
             
             // Clear timer state
-            defaults?.removeObject(forKey: activeSessionIDKey)
-            defaults?.removeObject(forKey: activeSessionStartDateKey)
-            defaults?.removeObject(forKey: activeSessionElapsedTimeKey)
+            defaults.removeObject(forKey: activeSessionIDKey)
+            defaults.removeObject(forKey: activeSessionStartDateKey)
+            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+            
+            // Force synchronization of UserDefaults
+            defaults.synchronize()
             
             try? context.save()
             
@@ -139,21 +158,25 @@ public struct ToggleTimerIntent: AppIntent {
                 print("⚠️ Intent: Stopping existing timer for session \(existingSessionID)")
                 // We could stop and save the existing timer here, but for simplicity
                 // we'll just overwrite it. In production, you might want to save it first.
-                defaults?.removeObject(forKey: activeSessionIDKey)
-                defaults?.removeObject(forKey: activeSessionStartDateKey)
-                defaults?.removeObject(forKey: activeSessionElapsedTimeKey)
+                defaults.removeObject(forKey: activeSessionIDKey)
+                defaults.removeObject(forKey: activeSessionStartDateKey)
+                defaults.removeObject(forKey: activeSessionElapsedTimeKey)
             }
             
             // Start new timer
             let startDate = Date()
-            defaults?.set(sessionID, forKey: activeSessionIDKey)
-            defaults?.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
-            defaults?.set(session.elapsedTime, forKey: activeSessionElapsedTimeKey)
+            defaults.set(sessionID, forKey: activeSessionIDKey)
+            defaults.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
+            defaults.set(session.elapsedTime, forKey: activeSessionElapsedTimeKey)
+            
+            // Force synchronization of UserDefaults
+            defaults.synchronize()
             
             print("✅ Intent: Timer started at \(startDate)")
         }
         
-        // Reload all widgets
+        // Give UserDefaults a moment to sync, then reload widgets
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         WidgetCenter.shared.reloadAllTimelines()
         
         return .result()
@@ -165,6 +188,7 @@ public struct ToggleTimerIntent: AppIntent {
         case invalidSessionID
         case sessionNotFound
         case dayNotFound
+        case invalidTimerState
         
         var localizedStringResource: LocalizedStringResource {
             switch self {
@@ -178,6 +202,8 @@ public struct ToggleTimerIntent: AppIntent {
                 return "Session not found"
             case .dayNotFound:
                 return "Day not found"
+            case .invalidTimerState:
+                return "Timer state is invalid"
             }
         }
     }
