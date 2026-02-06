@@ -314,9 +314,9 @@ public class GoalSessionPlanner: ObservableObject {
             var context = """
             Goal: "\(goal.title)"
             - ID: \(goal.id.uuidString)
-            - Daily Target: \(formatDuration(dailyTarget))
-            - Time Completed Today: \(formatDuration(elapsedTime))
-            - Remaining Time: \(formatDuration(remainingTime))
+            - Daily Target: \(dailyTarget.formatted(style: .hourMinute))
+            - Time Completed Today: \(elapsedTime.formatted(style: .hourMinute))
+            - Remaining Time: \(remainingTime.formatted(style: .hourMinute))
             - Daily Progress: \(String(format: "%.0f", progress))%
             - Weekly Progress: \(String(format: "%.0f", weeklyProgress))%
             - Theme: \(goal.primaryTag.title)
@@ -377,18 +377,6 @@ public class GoalSessionPlanner: ObservableObject {
         // TODO: Implement actual weekly progress calculation
         // This would query all sessions for the current week
         return 0.0
-    }
-    
-    /// Format time interval as human-readable duration
-    private func formatDuration(_ interval: TimeInterval) -> String {
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
     }
 }
 

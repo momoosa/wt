@@ -121,11 +121,9 @@ struct NowPlayingView: View {
                             .foregroundStyle(.white.opacity(0.8))
                         
                         // Daily target info
-                        if let dailyTarget = activeSessionDetails.dailyTarget {
-                            Text("of \(formatDuration(dailyTarget))")
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.6))
-                        }
+                        Text("of \(activeSessionDetails.dailyTarget.formatted(style: .hourMinute))")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
                     }
                 }
                 .padding(.vertical, 40)
@@ -188,16 +186,7 @@ struct NowPlayingView: View {
         .preferredColorScheme(.dark)
     }
     
-    private func formatDuration(_ interval: TimeInterval) -> String {
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
-    }
+
 }
 
 #Preview {

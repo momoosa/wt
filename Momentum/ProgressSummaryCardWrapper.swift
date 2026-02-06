@@ -125,13 +125,7 @@ struct ProgressSummaryCard: View {
     
     // Compute text color based on background luminance
     private var textColor: Color {
-        // Calculate average luminance of the gradient colors
-        let colors = [themeColors.light, themeColors.neon, themeColors.dark]
-        let luminances = colors.compactMap { $0.luminance }
-        let averageLuminance = luminances.isEmpty ? 0.5 : luminances.reduce(0, +) / Double(luminances.count)
-        
-        // Use black text if background is light (luminance > 0.5), white otherwise
-        return averageLuminance > 0.5 ? .black : .white
+        themeColors.textColor
     }
     
     var body: some View {
@@ -167,11 +161,11 @@ struct ProgressSummaryCard: View {
                                 .foregroundStyle(textColor)
 
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(formatTimeWithSeconds(currentElapsed))
+                                Text(currentElapsed.formatted(style: .hmmss))
                                     .foregroundStyle(textColor)
                                     .contentTransition(.numericText())
                                 
-                                Text("/ \(formatTimeWithSeconds(dailyTarget))")
+                                Text("/ \(dailyTarget.formatted(style: .hmmss))")
                                     .foregroundStyle(textColor.opacity(0.7))
                                 if currentProgress >= 1.0 {
                                     Image(systemName: "checkmark.circle.fill")
@@ -207,9 +201,7 @@ struct ProgressSummaryCard: View {
                 ))
             }
             
-            .glassEffect(in: RoundedRectangle(cornerRadius: 20))
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(color: themeColors.neon.opacity(0.4), radius: 20, x: 0, y: 10)
+            .glassCardStyle(shadowColor: themeColors.neon)
             #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
                 // Add subtle animation when device orientation changes
@@ -226,57 +218,5 @@ struct ProgressSummaryCard: View {
             #endif
     }
     
-    private func formatTime(_ interval: TimeInterval) -> String {
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
-    }
-    
-    private func formatTimeWithSeconds(_ interval: TimeInterval) -> String {
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
-        let seconds = Int(interval) % 60
-        
-        if hours > 0 {
-            return "\(hours):\(String(format: "%02d", minutes)):\(String(format: "%02d", seconds))"
-        } else if minutes > 0 {
-            return "\(minutes):\(String(format: "%02d", seconds))"
-        } else {
-            return "0:\(String(format: "%02d", seconds))"
-        }
-    }
 }
 
-// MARK: - Color Luminance Extension
-
-extension Color {
-    /// Calculates the relative luminance of a color
-    /// Returns a value between 0 (darkest) and 1 (lightest)
-    var luminance: Double? {
-        #if os(iOS)
-        guard let components = UIColor(self).cgColor.components else { return nil }
-        #elseif os(macOS)
-        guard let components = NSColor(self).cgColor.components else { return nil }
-        #endif
-        
-        // Ensure we have RGB components
-        guard components.count >= 3 else { return nil }
-        
-        let r = components[0]
-        let g = components[1]
-        let b = components[2]
-        
-        // Calculate relative luminance using the standard formula
-        // https://www.w3.org/TR/WCAG20/#relativeluminancedef
-        let rsRGB = r <= 0.03928 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
-        let gsRGB = g <= 0.03928 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
-        let bsRGB = b <= 0.03928 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
-        
-        return 0.2126 * rsRGB + 0.7152 * gsRGB + 0.0722 * bsRGB
-    }
-}

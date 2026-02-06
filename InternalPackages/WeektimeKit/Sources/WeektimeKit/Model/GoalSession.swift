@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 @Model
-public final class GoalSession {
+public final class GoalSession: SessionProgressProvider {
     public var id: UUID
     public var title: String
     public var status: Status
@@ -53,38 +53,10 @@ public final class GoalSession {
         return totalTime
     }
     
-    public var hasMetDailyTarget: Bool {
-        return elapsedTime >= dailyTarget
-    }
-    
     public var formattedTime: String {
-        let elapsedFormatted = formatTimeWithUnits(elapsedTime)
-        let targetFormatted = formatTimeWithUnits(dailyTarget)
+        let elapsedFormatted = elapsedTime.formatted(style: .components)
+        let targetFormatted = dailyTarget.formatted(style: .components)
         return "\(elapsedFormatted)/\(targetFormatted)"
-    }
-    
-    private func formatTimeWithUnits(_ interval: TimeInterval) -> String {
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
-        let seconds = Int(interval) % 60
-        
-        var components: [String] = []
-        
-        if hours > 0 {
-            components.append("\(hours)h")
-        }
-        if minutes > 0 {
-            components.append("\(minutes)m")
-        }
-        if seconds > 0 || components.isEmpty {
-            components.append("\(seconds)s")
-        }
-        
-        return components.joined(separator: " ")
-    }
-
-    public var progress: Double {
-        elapsedTime / dailyTarget
     }
     
     /// Formatted planned start time (e.g., "9:30 AM")

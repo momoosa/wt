@@ -46,4 +46,29 @@ extension Color {
                         lroundf(b * 255))
         }
       }
+    
+    /// Calculates the relative luminance of a color
+    /// Returns a value between 0 (darkest) and 1 (lightest)
+    public var luminance: Double? {
+        #if os(iOS)
+        guard let components = UIColor(self).cgColor.components else { return nil }
+        #elseif os(macOS)
+        guard let components = NSColor(self).cgColor.components else { return nil }
+        #endif
+        
+        // Ensure we have RGB components
+        guard components.count >= 3 else { return nil }
+        
+        let r = components[0]
+        let g = components[1]
+        let b = components[2]
+        
+        // Calculate relative luminance using the standard formula
+        // https://www.w3.org/TR/WCAG20/#relativeluminancedef
+        let rsRGB = r <= 0.03928 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
+        let gsRGB = g <= 0.03928 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
+        let bsRGB = b <= 0.03928 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
+        
+        return 0.2126 * rsRGB + 0.7152 * gsRGB + 0.0722 * bsRGB
+    }
 }

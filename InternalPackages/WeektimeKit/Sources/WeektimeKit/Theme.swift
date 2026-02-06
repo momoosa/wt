@@ -126,6 +126,66 @@ public let themePresets: [ThemePreset] = [
     
 ]
 
+// MARK: - Theme Extensions
+
+public extension Theme {
+    /// Calculates optimal text color (black/white) based on background luminance
+    var textColor: Color {
+        let colors = [light, neon, dark]
+        let luminances = colors.compactMap { $0.luminance }
+        let averageLuminance = luminances.isEmpty ? 0.5 : luminances.reduce(0, +) / Double(luminances.count)
+        return averageLuminance > 0.5 ? .black : .white
+    }
+    
+    /// Creates a standard linear gradient for this theme
+    var gradient: LinearGradient {
+        LinearGradient(
+            colors: [neon, dark],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    /// Creates a radial gradient for backgrounds
+    var radialGradient: RadialGradient {
+        RadialGradient(
+            colors: [light, neon, dark],
+            center: .center,
+            startRadius: 0,
+            endRadius: 100
+        )
+    }
+    
+    /// Creates an angular gradient for circular progress indicators
+    var angularGradient: AngularGradient {
+        AngularGradient(
+            gradient: Gradient(colors: [.white, neon, .white]),
+            center: .center,
+            startAngle: .degrees(0),
+            endAngle: .degrees(360)
+        )
+    }
+}
+
+public extension ThemePreset {
+    /// Calculates optimal text color (black/white) based on background luminance
+    var textColor: Color {
+        let colors = [light, neon, dark]
+        let luminances = colors.compactMap { $0.luminance }
+        let averageLuminance = luminances.isEmpty ? 0.5 : luminances.reduce(0, +) / Double(luminances.count)
+        return averageLuminance > 0.5 ? .black : .white
+    }
+    
+    /// Creates a standard linear gradient for this theme
+    var gradient: LinearGradient {
+        LinearGradient(
+            colors: [neon, dark],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 
 #Preview {
     ScrollView {

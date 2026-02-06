@@ -34,36 +34,6 @@
             endingLineNumber = "112"
             landmarkName = "makeInterval(name:seconds:kind:list:session:)"
             landmarkType = "9">
-            <Locations>
-               <Location
-                  uuid = "9EC73E6C-5AB2-4A3E-ABA5-620487ACD644 - 57d0f689261dd56d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "makeInterval(name: Swift.String, seconds: Swift.Int, kind: MomentumKit.Interval.Kind, list: Swift.Optional&lt;MomentumKit.IntervalList&gt;, session: Swift.Optional&lt;MomentumKit.IntervalListSession&gt;) -&gt; ()"
-                  moduleName = "Momentum.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mo/Developer/iOS/wt/InternalPackages/WeektimeKit/Sources/WeektimeKit/Model/IntervalsEditorView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "112"
-                  endingLineNumber = "112">
-               </Location>
-               <Location
-                  uuid = "9EC73E6C-5AB2-4A3E-ABA5-620487ACD644 - 57d0f689261dd56d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "makeInterval(name: Swift.String, seconds: Swift.Int, kind: MomentumKit.Interval.Kind, list: Swift.Optional&lt;MomentumKit.IntervalList&gt;, session: Swift.Optional&lt;MomentumKit.IntervalListSession&gt;) -&gt; ()"
-                  moduleName = "Momentum.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mo/Developer/iOS/wt/InternalPackages/WeektimeKit/Sources/WeektimeKit/Model/IntervalsEditorView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "112"
-                  endingLineNumber = "112">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -80,36 +50,6 @@
             endingLineNumber = "106"
             landmarkName = "body"
             landmarkType = "24">
-            <Locations>
-               <Location
-                  uuid = "AAD1661F-40A4-4835-9C81-CFD997CB0EA5 - 57a41bd6e90dd50e"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #2 () -&gt; Swift.Optional&lt;SwiftUI.Text&gt; in closure #1 () -&gt; SwiftUI.Section&lt;SwiftUI.EmptyView, SwiftUI.ForEach&lt;Swift.Array&lt;WeektimeKit.IntervalSession&gt;, Swift.String, &lt;&lt;opaque return type of SwiftUI.View.onTapGesture(count: Swift.Int, perform: () -&gt; ()) -&gt; some&gt;&gt;.0&gt;, Swift.Optional&lt;SwiftUI.Text&gt;&gt; in Weektime.IntervalListView.body.getter : some"
-                  moduleName = "Weektime.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mo/Developer/iOS/wt/Weektime/IntervalListView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "106"
-                  endingLineNumber = "106">
-               </Location>
-               <Location
-                  uuid = "AAD1661F-40A4-4835-9C81-CFD997CB0EA5 - 57a41bd6e90dd50e"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #2 () -&gt; Swift.Optional&lt;SwiftUI.Text&gt; in closure #1 () -&gt; SwiftUI.Section&lt;SwiftUI.EmptyView, SwiftUI.ForEach&lt;Swift.Array&lt;WeektimeKit.IntervalSession&gt;, Swift.String, &lt;&lt;opaque return type of SwiftUI.View.onTapGesture(count: Swift.Int, perform: () -&gt; ()) -&gt; some&gt;&gt;.0&gt;, Swift.Optional&lt;SwiftUI.Text&gt;&gt; in Weektime.IntervalListView.body.getter : some"
-                  moduleName = "Weektime.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mo/Developer/iOS/wt/Weektime/IntervalListView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "106"
-                  endingLineNumber = "106">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
