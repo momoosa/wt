@@ -101,8 +101,30 @@ struct PlannerConfigurationSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                    // Available Time Picker
-                    VStack(alignment: .leading, spacing: 12) {
+                VStack(spacing: 24) {
+                    timePickerSection
+                    themeSelectionSection
+                    Spacer()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                confirmButton
+            }
+        }
+    }
+    
+    // MARK: - Subviews
+    
+    private var timePickerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
                         Label("Available Time", systemImage: "clock.fill")
                             .font(.headline)
                             .foregroundStyle(.purple)
@@ -189,9 +211,10 @@ struct PlannerConfigurationSheet: View {
                         }
                     }
                     .padding(.horizontal)
-                    
-                    // Theme Selection
-                    VStack(alignment: .leading, spacing: 12) {
+    }
+    
+    private var themeSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Label("Focus Themes", systemImage: "tag.fill")
                                 .font(.headline)
@@ -251,20 +274,10 @@ struct PlannerConfigurationSheet: View {
                         }
                     }
                     .padding(.horizontal)
-                    
-                    Spacer()
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                // Confirm button at bottom
-                Button {
+    }
+    
+    private var confirmButton: some View {
+        Button {
                     #if os(iOS)
                     let impact = UINotificationFeedbackGenerator()
                     impact.notificationOccurred(.success)
@@ -287,8 +300,6 @@ struct PlannerConfigurationSheet: View {
                 }
                 .padding()
                 .background(.thinMaterial)
-            }
-        }
     }
     
     private func formatTime(_ minutes: Int) -> String {

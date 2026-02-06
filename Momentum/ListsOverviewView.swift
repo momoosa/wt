@@ -27,13 +27,3 @@ struct ListsOverviewView: View {
     }
 
 }
-
-/*
-#Preview {
-    // Replace the below with appropriate mock models as needed
-    // struct MockGoalSession: GoalSession { ... }
-    // @State static var selectedListID: PersistentIdentifier? = nil
-    // ListsOverviewView(session: mockSession, selectedListID: $selectedListID, tintColor: .blue)
-    Text("Preview not available")
-}
-*/
