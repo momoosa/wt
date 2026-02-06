@@ -11,7 +11,7 @@ import WidgetKit
 import MomentumKit
 
 struct MomentumWidgetControl: ControlWidget {
-    static let kind: String = "com.moosa.ios.weektime.MomentumWidget"
+    static let kind: String = "com.moosa.ios.momentum.MomentumWidget"
 
     var body: some ControlWidgetConfiguration {
         AppIntentControlConfiguration(

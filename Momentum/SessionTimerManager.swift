@@ -18,6 +18,10 @@ import WidgetKit
 import UIKit
 #endif
 
+#if canImport(ActivityKit)
+import ActivityKit
+#endif
+
 /// Manages timer state and historical session creation for goal sessions
 @Observable
 public final class SessionTimerManager {
@@ -29,6 +33,11 @@ public final class SessionTimerManager {
     
     private let goalStore: GoalStore
     private var userDefaultsObserver: NSObjectProtocol?
+    
+    #if canImport(ActivityKit)
+    private var liveActivity: Activity<MomentumWidgetAttributes>?
+    private var liveActivityUpdateCounter: Int = 0
+    #endif
     
     // MARK: - UserDefaults Keys for Timer Persistence
     private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
@@ -138,7 +147,16 @@ public final class SessionTimerManager {
         
         activeSession = newActiveSession
         saveTimerState()
+        
+        // Wire up the onTick callback to update Live Activity
+        newActiveSession.onTick = { [weak self] in
+            self?.updateFromActiveSession()
+        }
+        
         newActiveSession.startUITimer()
+        
+        // Start Live Activity
+        startLiveActivity(for: session, activeSession: newActiveSession)
         
         #if os(iOS)
         // Success haptic feedback
@@ -163,6 +181,9 @@ public final class SessionTimerManager {
         activeSession.stopUITimer()
         self.activeSession = nil
         saveTimerState()
+        
+        // End Live Activity
+        endLiveActivity()
         
         #if os(iOS)
         // Medium impact haptic feedback
@@ -243,6 +264,12 @@ public final class SessionTimerManager {
         }
         
         activeSession = restoredSession
+        
+        // Wire up the onTick callback to update Live Activity
+        restoredSession.onTick = { [weak self] in
+            self?.updateFromActiveSession()
+        }
+        
         restoredSession.startUITimer()
     }
     
@@ -290,5 +317,123 @@ public final class SessionTimerManager {
         
         // Could also schedule a notification here
         print("🎯 Target reached for session: \(session.title)")
+    }
+    
+    // MARK: - Live Activity Management
+    
+    #if canImport(ActivityKit)
+    private func startLiveActivity(for session: GoalSession, activeSession: ActiveSessionDetails) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            print("⚠️ Live Activities are not enabled")
+            return
+        }
+        
+        // End any existing activity
+        endLiveActivity()
+        
+        let attributes = MomentumWidgetAttributes(
+            sessionID: session.id.uuidString,
+            goalTitle: session.goal.title,
+            dailyTarget: session.dailyTarget,
+            themeLight: session.goal.primaryTag.theme.light.toHex(),
+            themeDark: session.goal.primaryTag.theme.dark.toHex(),
+            themeNeon: session.goal.primaryTag.theme.neon.toHex()
+        )
+        
+        let contentState = MomentumWidgetAttributes.ContentState(
+            elapsedTime: activeSession.elapsedTime,
+            startDate: activeSession.startDate,
+            isActive: true
+        )
+        
+        do {
+            liveActivity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: contentState, staleDate: nil),
+                pushType: nil
+            )
+            print("✅ Live Activity started: \(session.goal.title)")
+            
+            // Set up observation of ActiveSessionDetails timer
+            setupLiveActivityObservation()
+        } catch {
+            print("❌ Failed to start Live Activity: \(error)")
+        }
+    }
+    
+    private func setupLiveActivityObservation() {
+        // Reset update counter
+        liveActivityUpdateCounter = 0
+        
+        // The ActiveSessionDetails timer already fires every second
+        // We'll update Live Activity every 5 ticks (5 seconds)
+        // This happens automatically through observation in updateFromActiveSession()
+    }
+    
+    /// Call this method from the ActiveSessionDetails timer callback
+    public func updateFromActiveSession() {
+        guard let activeSession = activeSession else { 
+            print("⚠️ updateFromActiveSession called but no active session")
+            return 
+        }
+        
+        #if canImport(ActivityKit)
+        // Update Live Activity every second for responsive updates
+        updateLiveActivity(
+            elapsedTime: activeSession.elapsedTime,
+            startDate: activeSession.startDate,
+            isActive: true
+        )
+        print("🔄 Updated Live Activity: \(activeSession.elapsedTime)s")
+        #endif
+    }
+    
+    private func updateLiveActivity(elapsedTime: TimeInterval, startDate: Date, isActive: Bool) {
+        guard let activity = liveActivity else { return }
+        
+        Task {
+            let contentState = MomentumWidgetAttributes.ContentState(
+                elapsedTime: elapsedTime,
+                startDate: startDate,
+                isActive: isActive
+            )
+            
+            // Set staleDate to 1 second in the future to encourage frequent updates
+            let staleDate = Date.now.addingTimeInterval(1)
+            await activity.update(.init(state: contentState, staleDate: staleDate))
+        }
+    }
+    
+    private func endLiveActivity() {
+        guard let activity = liveActivity else { return }
+        
+        // Reset update counter
+        liveActivityUpdateCounter = 0
+        
+        Task {
+            await activity.end(
+                .init(state: activity.content.state, staleDate: nil),
+                dismissalPolicy: .immediate
+            )
+            liveActivity = nil
+            print("✅ Live Activity ended")
+        }
+    }
+    #endif
+}
+
+// MARK: - Color Extension
+
+extension Color {
+    func toHex() -> String {
+        #if canImport(UIKit)
+        guard let components = UIColor(self).cgColor.components else { return "#000000" }
+        let r = components[0]
+        let g = components.count > 1 ? components[1] : r
+        let b = components.count > 2 ? components[2] : r
+        return String(format: "#%02lX%02lX%02lX", lroundf(Float(r * 255)), lroundf(Float(g * 255)), lroundf(Float(b * 255)))
+        #else
+        return "#000000"
+        #endif
     }
 }

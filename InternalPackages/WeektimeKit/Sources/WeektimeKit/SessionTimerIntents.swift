@@ -9,6 +9,44 @@ import AppIntents
 import SwiftData
 import WidgetKit
 
+#if canImport(ActivityKit)
+import ActivityKit
+
+// MARK: - Live Activity Attributes
+
+public struct MomentumWidgetAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        // Dynamic stateful properties
+        public var elapsedTime: TimeInterval
+        public var startDate: Date
+        public var isActive: Bool
+        
+        public init(elapsedTime: TimeInterval, startDate: Date, isActive: Bool) {
+            self.elapsedTime = elapsedTime
+            self.startDate = startDate
+            self.isActive = isActive
+        }
+    }
+
+    // Fixed non-changing properties
+    public var sessionID: String
+    public var goalTitle: String
+    public var dailyTarget: TimeInterval
+    public var themeLight: String  // Store as hex string
+    public var themeDark: String   // Store as hex string
+    public var themeNeon: String   // Store as hex string
+    
+    public init(sessionID: String, goalTitle: String, dailyTarget: TimeInterval, themeLight: String, themeDark: String, themeNeon: String) {
+        self.sessionID = sessionID
+        self.goalTitle = goalTitle
+        self.dailyTarget = dailyTarget
+        self.themeLight = themeLight
+        self.themeDark = themeDark
+        self.themeNeon = themeNeon
+    }
+}
+#endif
+
 /// App Intent to toggle (start/stop) a timer for a goal session from widgets
 public struct ToggleTimerIntent: AppIntent {
     public static let title: LocalizedStringResource = "Toggle Timer"

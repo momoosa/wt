@@ -18,6 +18,7 @@ public final class ActiveSessionDetails: SessionProgressProvider {
     public private(set) var timeText: String?
     public var dailyTarget: TimeInterval = 0 // Changed from optional to required for protocol
     public var onTargetReached: (() -> Void)? // Callback when target is reached
+    public var onTick: (() -> Void)? // Callback on every timer tick
     public private(set) var tickCount: Int = 0 // Increments every second to trigger UI updates
     private var timer: Timer?
     let timerInterval: TimeInterval = 1.0
@@ -64,6 +65,9 @@ public final class ActiveSessionDetails: SessionProgressProvider {
                         self.onTargetReached?()
                     }
                 }
+                
+                // Call tick callback for external updates (e.g., Live Activity)
+                self.onTick?()
             }
         }
     }

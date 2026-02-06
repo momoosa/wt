@@ -97,9 +97,7 @@ struct ContentView: View {
             .sheet(isPresented: $showPlannerSheet) {
                 plannerSheet
             }
-            .sheet(item: $selectedSession) { session in
-                sessionDetailSheet(for: session)
-            }
+        
             .sheet(isPresented: $showingGoalEditor) {
                 goalEditorSheet
             }
@@ -189,8 +187,12 @@ struct ContentView: View {
                 sessionRow(for: session)
             }
         } header: {
-            Text("Later")
-                .font(.headline)
+            // Only show "Later" title if there are more than 4 total sessions
+            // (which means recommended section is shown)
+            if self.sessions.count > 4 {
+                Text("Later")
+                    .font(.headline)
+            }
         }
         .listSectionSpacing(.compact)
     }
@@ -352,10 +354,6 @@ struct ContentView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(20)
         .presentationBackground(.thinMaterial)
-    }
-    
-    private func sessionDetailSheet(for session: GoalSession) -> some View {
-        EmptyView() // This appears to be missing in the original
     }
     
     private var goalEditorSheet: some View {
@@ -547,6 +545,9 @@ struct ContentView: View {
     
     /// Get recommended sessions for right now (top 3)
     private func getRecommendedSessions() -> [GoalSession] {
+        guard sessions.count > 4 else {
+            return []
+        }
         let filtered = filter(sessions: sessions, with: activeFilter)
         
         // First, try to get AI-generated recommendations from the daily plan
@@ -593,12 +594,10 @@ struct ContentView: View {
             .opacity(0)
             
             HStack {
-                VStack(alignment: .leading) {
-                    HStack {
+                VStack(alignment: .leading, spacing: 0) {
                         Text(session.goal.title)
                             .fontWeight(.semibold)
                             .foregroundStyle(.primary)
-                    }
                     
                     HStack {
                         if let activeSession = timerManager?.activeSession,
@@ -622,7 +621,6 @@ struct ContentView: View {
                             
                             if session.hasMetDailyTarget {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .symbolRenderingMode(.hierarchical)
                                     .foregroundStyle(.green)
                                     .font(.footnote)
                             }
@@ -672,17 +670,7 @@ struct ContentView: View {
                                 let image = isActive ? "stop.circle.fill" : "play.circle.fill"
                                 Image(systemName: image)
                                     .font(.title2)
-                                    .symbolRenderingMode(.hierarchical)
                             }
-                            
-                            // Log button for manual entry
-                            Button {
-                                sessionToLogManually = session
-                            } label: {
-                                Image(systemName: "pencil.circle.fill")
-                                    .font(.title3)
-                            }
-                            .opacity(0.6)
                         }
                         .foregroundStyle(session.goal.primaryTag.themePreset.color(for: colorScheme))
                     } else {

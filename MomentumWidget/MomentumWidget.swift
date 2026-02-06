@@ -114,21 +114,27 @@ struct Provider: AppIntentTimelineProvider {
         let planner = GoalSessionPlanner()
         let preferences = PlannerPreferences.default
         
-        let scored = activeSessions.compactMap { session -> (GoalSession, Double)? in
+        let scored = activeSessions.compactMap { session -> (GoalSession, Double, Bool)? in
             let score = planner.scoreSession(
                 for: session.goal,
                 session: session,
                 at: now,
                 preferences: preferences
             )
-            return (session, score)
+            return (session, score, session.hasMetDailyTarget)
         }
         
-        // Get top 3
-        let top3 = scored
-            .sorted { $0.1 > $1.1 }
-            .prefix(3)
-            .map { session, _ in
+        // Separate incomplete and complete sessions
+        let incomplete = scored.filter { !$0.2 }.sorted { $0.1 > $1.1 }
+        let complete = scored.filter { $0.2 }.sorted { $0.1 > $1.1 }
+        
+        // Prioritize incomplete sessions, then complete ones
+        let prioritized = incomplete + complete
+        
+        // Get top 6 for widgets
+        let topSessions = prioritized
+            .prefix(6)
+            .map { session, _, _ in
                 let isActive = activeTimerSessionID == session.id.uuidString
                 return RecommendedSession(
                     id: session.id,
@@ -142,7 +148,7 @@ struct Provider: AppIntentTimelineProvider {
                 )
             }
         
-        return Array(top3)
+        return Array(topSessions)
     }
 }
 
@@ -187,43 +193,53 @@ struct SmallWidgetView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
-                    .font(.caption2)
-                Text("Now")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-            }
-            
-            if let first = entry.recommendations.first {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(first.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                    
-                    HStack(spacing: 4) {
-                        Text(first.formattedTime)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        if first.hasMetTarget {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                        }
-                    }
-                }
-            } else {
+         
+            if entry.recommendations.isEmpty {
                 Text("No goals today")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(entry.recommendations.prefix(3)) { session in
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(session.theme.light)
+                                .frame(width: 6, height: 6)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(session.title)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1)
+                                    .strikethrough(session.hasMetTarget, color: .secondary)
+                                
+                                HStack(spacing: 4) {
+                                    if session.isTimerActive {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 4, height: 4)
+                                    }
+                                    
+                                    Text(session.formattedTime)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    
+                                    if session.hasMetTarget {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 8))
+                                            .foregroundStyle(.green)
+                                    }
+                                }
+                            }
+                            
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
             }
             
             Spacer()
         }
-        .padding()
     }
 }
 
@@ -233,78 +249,65 @@ struct MediumWidgetView: View {
     let entry: Provider.Entry
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
-                Text("Recommended Now")
-                    .font(.headline)
-            }
+        VStack(alignment: .leading, spacing: 8) {
             
             if entry.recommendations.isEmpty {
                 Text("No active goals")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(entry.recommendations.prefix(2)) { session in
-                    HStack(spacing: 12) {
-                        // Play/Stop Button
-                        Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
-                            ZStack {
-                                Circle()
-                                    .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
-                                    .frame(width: 32, height: 32)
-                                
-                                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(session.title)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .lineLimit(1)
-                            
-                            HStack(spacing: 4) {
-                                if session.isTimerActive {
+                VStack(spacing: 6) {
+                    ForEach(entry.recommendations.prefix(6)) { session in
+                        HStack(spacing: 8) {
+                            // Play/Stop Button
+                            Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                                ZStack {
                                     Circle()
-                                        .fill(.red)
-                                        .frame(width: 6, height: 6)
-                                    Text("Recording")
-                                        .font(.caption2)
-                                        .foregroundStyle(.red)
-                                } else {
-                                    Text(session.formattedTime)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                                if session.hasMetTarget {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.caption2)
-                                        .foregroundStyle(.green)
+                                        .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(.white)
                                 }
                             }
+                            .buttonStyle(.plain)
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(session.title)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1)
+                                    .strikethrough(session.hasMetTarget, color: .secondary)
+                                
+                                HStack(spacing: 3) {
+                                    if session.isTimerActive {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 4, height: 4)
+                                    }
+                                    
+                                    Text(session.formattedTime)
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.secondary)
+                                    
+                                    if session.hasMetTarget {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 8))
+                                            .foregroundStyle(.green)
+                                    }
+                                }
+                            }
+                            
+                            Spacer()
+                         
                         }
-                        
-                        Spacer()
-                        
-                        // Progress indicator
-                        Circle()
-                            .trim(from: 0, to: session.progress)
-                            .stroke(session.theme.light, lineWidth: 3)
-                            .frame(width: 24, height: 24)
-                            .rotationEffect(.degrees(-90))
                     }
                 }
             }
             
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding()
     }
 }
 
@@ -315,13 +318,6 @@ struct LargeWidgetView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
-                Text("Recommended Now")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-            }
             
             if entry.recommendations.isEmpty {
                 ContentUnavailableView {
