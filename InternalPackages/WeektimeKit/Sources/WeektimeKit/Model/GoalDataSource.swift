@@ -1,6 +1,6 @@
 //
 //  GoalDataSource.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Mo Moosa on 26/07/2025.
 //

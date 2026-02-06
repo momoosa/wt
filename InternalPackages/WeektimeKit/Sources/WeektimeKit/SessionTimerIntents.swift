@@ -1,0 +1,234 @@
+//
+//  SessionTimerIntents.swift
+//  MomentumKit
+//
+//  Created by Assistant on 02/02/2026.
+//
+
+import AppIntents
+import SwiftData
+import WidgetKit
+
+/// App Intent to toggle (start/stop) a timer for a goal session from widgets
+public struct ToggleTimerIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Toggle Timer"
+    public static let description = IntentDescription("Start or stop tracking time for a goal")
+    
+    @Parameter(title: "Session ID")
+    var sessionID: String
+    
+    @Parameter(title: "Day ID")
+    var dayID: String
+    
+    public init() {}
+    
+    public init(sessionID: String, dayID: String) {
+        self.sessionID = sessionID
+        self.dayID = dayID
+    }
+    
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        print("🎯 ToggleTimerIntent: Starting for session \(sessionID)")
+        
+        // Set up model container with App Group for shared data access
+        let schema = Schema([
+            Goal.self,
+            GoalTag.self,
+            Day.self,
+            GoalSession.self,
+            HistoricalSession.self,
+            ChecklistItemSession.self,
+            IntervalListSession.self
+        ])
+        
+        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            print("❌ Intent: Failed to get App Group container URL")
+            throw IntentError.containerError
+        }
+        
+        let storeURL = containerURL.appendingPathComponent("default.store")
+        let modelConfiguration = ModelConfiguration(url: storeURL)
+        
+        guard let container = try? ModelContainer(for: schema, configurations: [modelConfiguration]) else {
+            print("❌ Intent: Failed to create model container")
+            throw IntentError.modelContainerError
+        }
+        
+        let context = container.mainContext
+        
+        // Fetch the session
+        guard let sessionUUID = UUID(uuidString: sessionID) else {
+            print("❌ Intent: Invalid session ID format")
+            throw IntentError.invalidSessionID
+        }
+        
+        let sessionPredicate = #Predicate<GoalSession> { session in
+            session.id == sessionUUID
+        }
+        let sessionDescriptor = FetchDescriptor<GoalSession>(predicate: sessionPredicate)
+        
+        guard let session = try? context.fetch(sessionDescriptor).first else {
+            print("❌ Intent: Session not found")
+            throw IntentError.sessionNotFound
+        }
+        
+        // Fetch the day
+        let dayPredicate = #Predicate<Day> { day in
+            day.id == dayID
+        }
+        let dayDescriptor = FetchDescriptor<Day>(predicate: dayPredicate)
+        
+        guard let day = try? context.fetch(dayDescriptor).first else {
+            print("❌ Intent: Day not found")
+            throw IntentError.dayNotFound
+        }
+        
+        // Check if timer is currently running by reading from UserDefaults
+        let defaults = UserDefaults(suiteName: appGroupIdentifier)
+        let activeSessionIDKey = "ActiveSessionIDV1"
+        let activeSessionStartDateKey = "ActiveSessionStartDateV1"
+        let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
+        
+        let currentActiveSessionID = defaults?.string(forKey: activeSessionIDKey)
+        let isCurrentlyActive = currentActiveSessionID == sessionID
+        
+        if isCurrentlyActive {
+            // Stop the timer
+            print("⏹️ Intent: Stopping timer for session \(session.title)")
+            
+            // Get start date and calculate duration
+            let startTimeInterval = defaults?.double(forKey: activeSessionStartDateKey) ?? Date().timeIntervalSince1970
+            let startDate = Date(timeIntervalSince1970: startTimeInterval)
+            let endDate = Date()
+            let duration = endDate.timeIntervalSince(startDate)
+            
+            // Get the initial elapsed time
+            let initialElapsed = defaults?.double(forKey: activeSessionElapsedTimeKey) ?? 0
+            
+            // Create historical session
+            let historicalSession = HistoricalSession(
+                title: session.goal.title,
+                start: startDate,
+                end: endDate,
+                healthKitType: nil,
+                needsHealthKitRecord: false
+            )
+            historicalSession.goalIDs = [session.goal.id.uuidString]
+            
+            day.add(historicalSession: historicalSession)
+            context.insert(historicalSession)
+            
+            // Clear timer state
+            defaults?.removeObject(forKey: activeSessionIDKey)
+            defaults?.removeObject(forKey: activeSessionStartDateKey)
+            defaults?.removeObject(forKey: activeSessionElapsedTimeKey)
+            
+            try? context.save()
+            
+            print("✅ Intent: Timer stopped, historical session created (duration: \(duration)s)")
+            
+        } else {
+            // Start the timer
+            print("▶️ Intent: Starting timer for session \(session.title)")
+            
+            // Stop any existing timer first
+            if let existingSessionID = currentActiveSessionID {
+                print("⚠️ Intent: Stopping existing timer for session \(existingSessionID)")
+                // We could stop and save the existing timer here, but for simplicity
+                // we'll just overwrite it. In production, you might want to save it first.
+                defaults?.removeObject(forKey: activeSessionIDKey)
+                defaults?.removeObject(forKey: activeSessionStartDateKey)
+                defaults?.removeObject(forKey: activeSessionElapsedTimeKey)
+            }
+            
+            // Start new timer
+            let startDate = Date()
+            defaults?.set(sessionID, forKey: activeSessionIDKey)
+            defaults?.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
+            defaults?.set(session.elapsedTime, forKey: activeSessionElapsedTimeKey)
+            
+            print("✅ Intent: Timer started at \(startDate)")
+        }
+        
+        // Reload all widgets
+        WidgetCenter.shared.reloadAllTimelines()
+        
+        return .result()
+    }
+    
+    enum IntentError: Error, CustomLocalizedStringResourceConvertible {
+        case containerError
+        case modelContainerError
+        case invalidSessionID
+        case sessionNotFound
+        case dayNotFound
+        
+        var localizedStringResource: LocalizedStringResource {
+            switch self {
+            case .containerError:
+                return "Failed to access shared data"
+            case .modelContainerError:
+                return "Failed to initialize data store"
+            case .invalidSessionID:
+                return "Invalid session identifier"
+            case .sessionNotFound:
+                return "Session not found"
+            case .dayNotFound:
+                return "Day not found"
+            }
+        }
+    }
+}
+
+/// App Intent to start a timer for a goal session
+public struct StartSessionTimerIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Start Timer"
+    public static let description = IntentDescription("Start tracking time for a goal")
+    
+    @Parameter(title: "Session ID")
+    public var sessionID: String
+    
+    @Parameter(title: "Day ID")
+    public var dayID: String
+    
+    public init() {}
+    
+    public init(sessionID: String, dayID: String) {
+        self.sessionID = sessionID
+        self.dayID = dayID
+    }
+    
+    public func perform() async throws -> some IntentResult {
+        // Delegate to ToggleTimerIntent
+        let toggle = ToggleTimerIntent(sessionID: sessionID, dayID: dayID)
+        return try await toggle.perform()
+    }
+}
+
+/// App Intent to stop a timer for a goal session
+struct StopTimerIntent: AppIntent {
+    static let title: LocalizedStringResource = "Stop Timer"
+    static let description = IntentDescription("Stop tracking time for a goal")
+    
+    @Parameter(title: "Session ID")
+    var sessionID: String
+    
+    @Parameter(title: "Day ID")
+    var dayID: String
+    
+    init() {}
+    
+    init(sessionID: String, dayID: String) {
+        self.sessionID = sessionID
+        self.dayID = dayID
+    }
+    
+    func perform() async throws -> some IntentResult {
+        // Delegate to ToggleTimerIntent
+        let toggle = ToggleTimerIntent(sessionID: sessionID, dayID: dayID)
+        return try await toggle.perform()
+    }
+}

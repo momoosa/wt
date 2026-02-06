@@ -4,24 +4,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "WeektimeKit",
+    name: "MomentumKit",
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "WeektimeKit",
-            targets: ["WeektimeKit"]
+            name: "MomentumKit",
+            targets: ["MomentumKit"]
         ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "WeektimeKit"
+            name: "MomentumKit"
         ),
         .testTarget(
-            name: "WeektimeKitTests",
-            dependencies: ["WeektimeKit"]
+            name: "MomentumKitTests",
+            dependencies: ["MomentumKit"]
         ),
     ]
 )

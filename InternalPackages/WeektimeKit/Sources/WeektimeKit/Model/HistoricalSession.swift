@@ -1,6 +1,6 @@
 //
 //  HistoricalSession.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Mo Moosa on 27/07/2025.
 //
@@ -8,7 +8,7 @@
 
 //
 //  HistoricalSession.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Mo Moosa on 13/10/2023.
 //

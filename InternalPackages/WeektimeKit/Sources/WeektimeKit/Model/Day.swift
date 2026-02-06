@@ -1,6 +1,6 @@
 //
 //  Day.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Mo Moosa on 27/07/2025.
 //

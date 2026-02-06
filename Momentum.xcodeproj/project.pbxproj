@@ -1,0 +1,1018 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */; };
+		CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */; };
+		CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */; };
+		CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */ = {isa = PBXBuildFile; fileRef = CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */; };
+		CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */; };
+		CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */; };
+		CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A02F1B817700A555D6 /* GoalSuggestions.json */; };
+		CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */; };
+		CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */; };
+		CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */; };
+		CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */; };
+		CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */; };
+		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
+		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
+		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
+		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
+		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
+		CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2C2F2F633800F7265A /* WidgetKit.framework */; };
+		CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2E2F2F633800F7265A /* SwiftUI.framework */; };
+		CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CD39BD462F2F641000F7265A /* GoalSessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */; };
+		CD39BD4A2F2F66E600F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD492F2F66E600F7265A /* MomentumKit */; };
+		CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD4B2F2F66EF00F7265A /* MomentumKit */; };
+		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
+		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
+		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
+		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
+		CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */; };
+		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
+		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
+		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
+		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
+		CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */; };
+		CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */; };
+		CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA292EE9FA1000C1C411 /* ContentView.swift */; };
+		CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */; };
+		CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */; };
+		CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */; };
+		CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */; };
+		CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */; };
+		CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */; };
+		CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA312EE9FA1000C1C411 /* Item.swift */; };
+		CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */; };
+		CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CD39BD3E2F2F633A00F7265A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD39BD2A2F2F633800F7265A;
+			remoteInfo = MomentumWidgetExtension;
+		};
+		CD75CC6D2E2FE5E700890F20 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD75CC5A2E2FE5E600890F20;
+			remoteInfo = Weektime;
+		};
+		CD75CC772E2FE5E800890F20 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD75CC5A2E2FE5E600890F20;
+			remoteInfo = Weektime;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CD39BD412F2F633A00F7265A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitConfigurationView.swift; sourceTree = "<group>"; };
+		CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitBadge.swift; sourceTree = "<group>"; };
+		CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-HealthKit.plist"; sourceTree = "<group>"; };
+		CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitInfoRow.swift; sourceTree = "<group>"; };
+		CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalHealthKitSettingsView.swift; sourceTree = "<group>"; };
+		CD0085A02F1B817700A555D6 /* GoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = GoalSuggestions.json; sourceTree = "<group>"; };
+		CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSuggestionsModel.swift; sourceTree = "<group>"; };
+		CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ResourcesGoalSuggestions.json; sourceTree = "<group>"; };
+		CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSessionPlanner.swift; sourceTree = "<group>"; };
+		CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPlannerView.swift; sourceTree = "<group>"; };
+		CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerIntegrationExamples.swift; sourceTree = "<group>"; };
+		CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartNotificationScheduler.swift; sourceTree = "<group>"; };
+		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
+		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
+		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
+		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
+		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
+		CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		CD39BD4D2F2F677200F7265A /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
+		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
+		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
+		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
+		CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerConfigurationSheet.swift; sourceTree = "<group>"; };
+		CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNING_PERFORMANCE.md; sourceTree = "<group>"; };
+		CD713B202F20261B003F901D /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
+		CD75CC5B2E2FE5E600890F20 /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
+		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
+		CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistDetailView.swift; sourceTree = "<group>"; };
+		CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistRow.swift; sourceTree = "<group>"; };
+		CDEBAA292EE9FA1000C1C411 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Filter.swift; sourceTree = "<group>"; };
+		CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaugePlayIcon.swift; sourceTree = "<group>"; };
+		CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorSuggestionsResult.swift; sourceTree = "<group>"; };
+		CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorView.swift; sourceTree = "<group>"; };
+		CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSuggestion.swift; sourceTree = "<group>"; };
+		CDEBAA2F2EE9FA1000C1C411 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListView.swift; sourceTree = "<group>"; };
+		CDEBAA312EE9FA1000C1C411 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
+		CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeektimeApp.swift; sourceTree = "<group>"; };
+		CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHandler.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CD39BD442F2F633A00F7265A /* Exceptions for "MomentumWidget" folder in "MomentumWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CD39BD302F2F633800F7265A /* MomentumWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CD39BD442F2F633A00F7265A /* Exceptions for "MomentumWidget" folder in "MomentumWidgetExtension" target */,
+			);
+			path = MomentumWidget;
+			sourceTree = "<group>";
+		};
+		CD75CC6F2E2FE5E700890F20 /* WeektimeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WeektimeTests;
+			sourceTree = "<group>";
+		};
+		CD75CC792E2FE5E800890F20 /* WeektimeUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WeektimeUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CD39BD282F2F633800F7265A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */,
+				CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */,
+				CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC582E2FE5E600890F20 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD39BD4A2F2F66E600F7265A /* MomentumKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC692E2FE5E700890F20 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC732E2FE5E800890F20 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CD06684D2E34B5D90063AC1F /* InternalPackages */ = {
+			isa = PBXGroup;
+			children = (
+				CD06684E2E34B5FC0063AC1F /* WeektimeKit */,
+			);
+			path = InternalPackages;
+			sourceTree = "<group>";
+		};
+		CD06684F2E34C3620063AC1F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CD39BD2C2F2F633800F7265A /* WidgetKit.framework */,
+				CD39BD2E2F2F633800F7265A /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		CD5601642EEB2FC4001D0BB0 /* Screentime */ = {
+			isa = PBXGroup;
+			children = (
+				CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */,
+			);
+			path = Screentime;
+			sourceTree = "<group>";
+		};
+		CD75CC522E2FE5E600890F20 = {
+			isa = PBXGroup;
+			children = (
+				CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */,
+				CD06684D2E34B5D90063AC1F /* InternalPackages */,
+				CDEBAA342EE9FA1000C1C411 /* Momentum */,
+				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
+				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
+				CD39BD302F2F633800F7265A /* MomentumWidget */,
+				CD06684F2E34C3620063AC1F /* Frameworks */,
+				CD75CC5C2E2FE5E600890F20 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CD75CC5C2E2FE5E600890F20 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CD75CC5B2E2FE5E600890F20 /* Momentum.app */,
+				CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */,
+				CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */,
+				CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CDEBAA342EE9FA1000C1C411 /* Momentum */ = {
+			isa = PBXGroup;
+			children = (
+				CD5601642EEB2FC4001D0BB0 /* Screentime */,
+				CDEBAA442EE9FA2400C1C411 /* Configuration */,
+				CDEBAA252EE9FA1000C1C411 /* ActionView.swift */,
+				CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */,
+				CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */,
+				CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */,
+				CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */,
+				CDEBAA292EE9FA1000C1C411 /* ContentView.swift */,
+				CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */,
+				CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */,
+				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
+				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
+				CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */,
+				CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */,
+				CDEBAA2F2EE9FA1000C1C411 /* Info.plist */,
+				CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */,
+				CD39BD4D2F2F677200F7265A /* Momentum.entitlements */,
+				CDEBAA312EE9FA1000C1C411 /* Item.swift */,
+				CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */,
+				CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */,
+				CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */,
+				CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */,
+				CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */,
+				CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */,
+				CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */,
+				CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */,
+				CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */,
+				CD0085A02F1B817700A555D6 /* GoalSuggestions.json */,
+				CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */,
+				CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */,
+				CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */,
+				CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */,
+				CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */,
+				CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */,
+				CD713B162F200BDE003F901D /* SettingsView.swift */,
+				CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */,
+				CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */,
+				CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */,
+				CD713B202F20261B003F901D /* NowPlayingView.swift */,
+				CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */,
+			);
+			path = Momentum;
+			sourceTree = "<group>";
+		};
+		CDEBAA442EE9FA2400C1C411 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD39BD452F2F633A00F7265A /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */;
+			buildPhases = (
+				CD39BD272F2F633800F7265A /* Sources */,
+				CD39BD282F2F633800F7265A /* Frameworks */,
+				CD39BD292F2F633800F7265A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CD39BD302F2F633800F7265A /* MomentumWidget */,
+			);
+			name = MomentumWidgetExtension;
+			packageProductDependencies = (
+				CD39BD4B2F2F66EF00F7265A /* MomentumKit */,
+			);
+			productName = MomentumWidgetExtension;
+			productReference = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		CD75CC5A2E2FE5E600890F20 /* Momentum */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD75CC7F2E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "Momentum" */;
+			buildPhases = (
+				CD75CC572E2FE5E600890F20 /* Sources */,
+				CD75CC582E2FE5E600890F20 /* Frameworks */,
+				CD75CC592E2FE5E600890F20 /* Resources */,
+				CD39BD412F2F633A00F7265A /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD39BD3F2F2F633A00F7265A /* PBXTargetDependency */,
+			);
+			name = Momentum;
+			packageProductDependencies = (
+				CD39BD492F2F66E600F7265A /* MomentumKit */,
+			);
+			productName = Weektime;
+			productReference = CD75CC5B2E2FE5E600890F20 /* Momentum.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CD75CC6B2E2FE5E700890F20 /* MomentumTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD75CC842E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "MomentumTests" */;
+			buildPhases = (
+				CD75CC682E2FE5E700890F20 /* Sources */,
+				CD75CC692E2FE5E700890F20 /* Frameworks */,
+				CD75CC6A2E2FE5E700890F20 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD75CC6E2E2FE5E700890F20 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
+			);
+			name = MomentumTests;
+			packageProductDependencies = (
+			);
+			productName = WeektimeTests;
+			productReference = CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CD75CC752E2FE5E800890F20 /* MomentumUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD75CC872E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "MomentumUITests" */;
+			buildPhases = (
+				CD75CC722E2FE5E800890F20 /* Sources */,
+				CD75CC732E2FE5E800890F20 /* Frameworks */,
+				CD75CC742E2FE5E800890F20 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD75CC782E2FE5E800890F20 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
+			);
+			name = MomentumUITests;
+			packageProductDependencies = (
+			);
+			productName = WeektimeUITests;
+			productReference = CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CD75CC532E2FE5E600890F20 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					CD39BD2A2F2F633800F7265A = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					CD75CC5A2E2FE5E600890F20 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					CD75CC6B2E2FE5E700890F20 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = CD75CC5A2E2FE5E600890F20;
+					};
+					CD75CC752E2FE5E800890F20 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = CD75CC5A2E2FE5E600890F20;
+					};
+				};
+			};
+			buildConfigurationList = CD75CC562E2FE5E600890F20 /* Build configuration list for PBXProject "Momentum" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CD75CC522E2FE5E600890F20;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CD75CC5C2E2FE5E600890F20 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CD75CC5A2E2FE5E600890F20 /* Momentum */,
+				CD75CC6B2E2FE5E700890F20 /* MomentumTests */,
+				CD75CC752E2FE5E800890F20 /* MomentumUITests */,
+				CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CD39BD292F2F633800F7265A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC592E2FE5E600890F20 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */,
+				CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */,
+				CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */,
+				CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */,
+				CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */,
+				CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */,
+				CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC6A2E2FE5E700890F20 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC742E2FE5E800890F20 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CD39BD272F2F633800F7265A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD39BD462F2F641000F7265A /* GoalSessionPlanner.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC572E2FE5E600890F20 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
+				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
+				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
+				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
+				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
+				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
+				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
+				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
+				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
+				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
+				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
+				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
+				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
+				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
+				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
+				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
+				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
+				CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */,
+				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
+				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
+				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
+				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
+				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
+				CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */,
+				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
+				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
+				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
+				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
+				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
+				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
+				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC682E2FE5E700890F20 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD75CC722E2FE5E800890F20 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CD39BD3F2F2F633A00F7265A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */;
+			targetProxy = CD39BD3E2F2F633A00F7265A /* PBXContainerItemProxy */;
+		};
+		CD75CC6E2E2FE5E700890F20 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD75CC5A2E2FE5E600890F20 /* Momentum */;
+			targetProxy = CD75CC6D2E2FE5E700890F20 /* PBXContainerItemProxy */;
+		};
+		CD75CC782E2FE5E800890F20 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD75CC5A2E2FE5E600890F20 /* Momentum */;
+			targetProxy = CD75CC772E2FE5E800890F20 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CD39BD422F2F633A00F7265A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MomentumWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CD39BD432F2F633A00F7265A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MomentumWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MomentumWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum.MomentumWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CD75CC802E2FE5E800890F20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Momentum/Momentum.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Momentum/Info.plist;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Needed to create goals linked to Apple Health.";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		CD75CC812E2FE5E800890F20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Momentum/Momentum.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Momentum/Info.plist;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Needed to create goals linked to Apple Health.";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.ios.momentum;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		CD75CC822E2FE5E800890F20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CD75CC832E2FE5E800890F20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		CD75CC852E2FE5E800890F20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.WeektimeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Momentum.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Momentum";
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		CD75CC862E2FE5E800890F20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.WeektimeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Momentum.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Momentum";
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		CD75CC882E2FE5E800890F20 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.WeektimeUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = Weektime;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		CD75CC892E2FE5E800890F20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.WeektimeUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = Weektime;
+				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CD39BD452F2F633A00F7265A /* Build configuration list for PBXNativeTarget "MomentumWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD39BD422F2F633A00F7265A /* Debug */,
+				CD39BD432F2F633A00F7265A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CD75CC562E2FE5E600890F20 /* Build configuration list for PBXProject "Momentum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD75CC822E2FE5E800890F20 /* Debug */,
+				CD75CC832E2FE5E800890F20 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CD75CC7F2E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "Momentum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD75CC802E2FE5E800890F20 /* Debug */,
+				CD75CC812E2FE5E800890F20 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CD75CC842E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "MomentumTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD75CC852E2FE5E800890F20 /* Debug */,
+				CD75CC862E2FE5E800890F20 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CD75CC872E2FE5E800890F20 /* Build configuration list for PBXNativeTarget "MomentumUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD75CC882E2FE5E800890F20 /* Debug */,
+				CD75CC892E2FE5E800890F20 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CD39BD492F2F66E600F7265A /* MomentumKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MomentumKit;
+		};
+		CD39BD4B2F2F66EF00F7265A /* MomentumKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MomentumKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = CD75CC532E2FE5E600890F20 /* Project object */;
+}

@@ -8,6 +8,7 @@
 import AppIntents
 import SwiftUI
 import WidgetKit
+import MomentumKit
 
 struct MomentumWidgetControl: ControlWidget {
     static let kind: String = "com.moosa.ios.weektime.MomentumWidget"
@@ -20,7 +21,7 @@ struct MomentumWidgetControl: ControlWidget {
             ControlWidgetToggle(
                 "Start Timer",
                 isOn: value.isRunning,
-                action: StartTimerIntent(value.name)
+                action: ControlSessionTimerIntent(value.name)
             ) { isRunning in
                 Label(isRunning ? "On" : "Off", systemImage: "timer")
             }
@@ -55,7 +56,7 @@ struct TimerConfiguration: ControlConfigurationIntent {
     var timerName: String
 }
 
-struct StartTimerIntent: SetValueIntent {
+struct ControlSessionTimerIntent: SetValueIntent {
     static let title: LocalizedStringResource = "Start a timer"
 
     @Parameter(title: "Timer Name")
@@ -68,6 +69,7 @@ struct StartTimerIntent: SetValueIntent {
 
     init(_ name: String) {
         self.name = name
+        self.value = false
     }
 
     func perform() async throws -> some IntentResult {

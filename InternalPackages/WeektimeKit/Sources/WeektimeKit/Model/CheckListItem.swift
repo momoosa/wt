@@ -1,5 +1,5 @@
 // ChecklistItem.swift
-// WeektimeKit
+// MomentumKit
 //
 // Created by Mo Moosa on 09/08/2025.
 

@@ -1,6 +1,6 @@
 //
 //  GoalStore.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Mo Moosa on 20/08/2025.
 //
@@ -8,7 +8,7 @@
 
 //
 //  ContentViewModel.swift
-//  Weektime
+//  Momentum
 //
 //  Created by Mo Moosa on 20/08/2025.
 //

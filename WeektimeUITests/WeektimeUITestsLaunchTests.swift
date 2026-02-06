@@ -1,13 +1,13 @@
 //
-//  WeektimeUITestsLaunchTests.swift
-//  WeektimeUITests
+//  MomentumUITestsLaunchTests.swift
+//  MomentumUITests
 //
 //  Created by Mo Moosa on 22/07/2025.
 //
 
 import XCTest
 
-final class WeektimeUITestsLaunchTests: XCTestCase {
+final class MomentumUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

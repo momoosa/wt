@@ -1,13 +1,13 @@
 //
-//  WeektimeUITests.swift
-//  WeektimeUITests
+//  MomentumUITests.swift
+//  MomentumUITests
 //
 //  Created by Mo Moosa on 22/07/2025.
 //
 
 import XCTest
 
-final class WeektimeUITests: XCTestCase {
+final class MomentumUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

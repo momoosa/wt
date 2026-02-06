@@ -1,6 +1,6 @@
 //
 //  IntervalSession.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by [Your Name] on [Date].
 //

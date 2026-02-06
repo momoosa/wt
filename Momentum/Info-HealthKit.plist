@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Momentum needs access to your health data to automatically track time spent on activities like exercise and mindfulness.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Momentum may update your health data with tracked activities.</string>
+</dict>
+</plist>

@@ -1,6 +1,6 @@
 //
 //  GoalTag.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Assistant on 31/01/2026.
 //
@@ -13,7 +13,17 @@ import WeatherKit
 @Model
 public final class GoalTag {
     public var title: String
-    public private(set) var theme: Theme
+    public var themeID: String
+    
+    // Computed property to get the theme preset (lightweight)
+    public var themePreset: ThemePreset {
+        themePresets.first(where: { $0.id == themeID }) ?? themePresets[0]
+    }
+    
+    // Computed property to get the theme (creates instance - use sparingly)
+    public var theme: Theme {
+        themePreset.toTheme()
+    }
     
     // Smart Triggers (optional - nil means no constraint)
     public var weatherConditions: [String]? // WeatherCondition raw values
@@ -37,7 +47,7 @@ public final class GoalTag {
         requiresDaylight: Bool = false
     ) {
         self.title = title
-        self.theme = color
+        self.themeID = color.id
         self.weatherConditions = weatherConditions?.map { $0.rawValue }
         self.minTemperature = temperatureRange?.lowerBound
         self.maxTemperature = temperatureRange?.upperBound

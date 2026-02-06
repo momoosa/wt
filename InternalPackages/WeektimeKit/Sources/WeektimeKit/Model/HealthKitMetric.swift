@@ -1,6 +1,6 @@
 //
 //  HealthKitMetric.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by Mo Moosa on 16/01/2026.
 //

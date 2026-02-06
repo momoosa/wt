@@ -8,7 +8,8 @@
 import WidgetKit
 import SwiftUI
 import SwiftData
-import WeektimeKit
+import MomentumKit
+import AppIntents
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
@@ -41,7 +42,7 @@ struct Provider: AppIntentTimelineProvider {
         
         // Use App Group container for shared data access
         // You need to configure this App Group in your target settings
-        let appGroupIdentifier = "group.com.yourcompany.weektime" // TODO: Replace with your actual App Group ID
+        let appGroupIdentifier = "group.com.moosa.ios.momentum"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
             print("❌ Widget: Failed to get App Group container URL")
@@ -105,6 +106,10 @@ struct Provider: AppIntentTimelineProvider {
         
         print("✅ Widget: \(activeSessions.count) active sessions")
         
+        // Check for active timer from UserDefaults
+        let defaults = UserDefaults(suiteName: appGroupIdentifier)
+        let activeTimerSessionID = defaults?.string(forKey: "ActiveSessionIDV1")
+        
         // Score and rank sessions
         let planner = GoalSessionPlanner()
         let preferences = PlannerPreferences.default
@@ -124,13 +129,16 @@ struct Provider: AppIntentTimelineProvider {
             .sorted { $0.1 > $1.1 }
             .prefix(3)
             .map { session, _ in
-                RecommendedSession(
+                let isActive = activeTimerSessionID == session.id.uuidString
+                return RecommendedSession(
                     id: session.id,
                     title: session.goal.title,
                     theme: session.goal.primaryTag.theme,
                     progress: session.progress,
                     formattedTime: session.formattedTime,
-                    hasMetTarget: session.hasMetDailyTarget
+                    hasMetTarget: session.hasMetDailyTarget,
+                    dayID: day.id,
+                    isTimerActive: isActive
                 )
             }
         
@@ -145,6 +153,8 @@ struct RecommendedSession: Identifiable {
     let progress: Double
     let formattedTime: String
     let hasMetTarget: Bool
+    let dayID: String
+    let isTimerActive: Bool
 }
 
 struct SimpleEntry: TimelineEntry {
@@ -236,21 +246,41 @@ struct MediumWidgetView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(entry.recommendations.prefix(3)) { session in
-                    HStack {
-                        Circle()
-                            .fill(session.theme.light)
-                            .frame(width: 8, height: 8)
+                ForEach(entry.recommendations.prefix(2)) { session in
+                    HStack(spacing: 12) {
+                        // Play/Stop Button
+                        Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                            ZStack {
+                                Circle()
+                                    .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
+                                    .frame(width: 32, height: 32)
+                                
+                                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .buttonStyle(.plain)
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text(session.title)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
+                                .lineLimit(1)
                             
                             HStack(spacing: 4) {
-                                Text(session.formattedTime)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                if session.isTimerActive {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 6, height: 6)
+                                    Text("Recording")
+                                        .font(.caption2)
+                                        .foregroundStyle(.red)
+                                } else {
+                                    Text(session.formattedTime)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
                                 
                                 if session.hasMetTarget {
                                     Image(systemName: "checkmark.circle.fill")
@@ -301,39 +331,66 @@ struct LargeWidgetView: View {
                 }
             } else {
                 ForEach(entry.recommendations) { session in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(session.title)
-                                .font(.headline)
-                            
-                            Spacer()
-                            
-                            if session.hasMetTarget {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
+                    HStack(spacing: 12) {
+                        // Play/Stop Button
+                        Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                            ZStack {
+                                Circle()
+                                    .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
+                                    .frame(width: 44, height: 44)
+                                
+                                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(.white)
                             }
                         }
+                        .buttonStyle(.plain)
                         
-                        HStack {
-                            Text(session.formattedTime)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            
-                            Spacer()
-                            
-                            // Progress bar
-                            GeometryReader { geometry in
-                                ZStack(alignment: .leading) {
-                                    Rectangle()
-                                        .fill(session.theme.light.opacity(0.2))
-                                    
-                                    Rectangle()
-                                        .fill(session.theme.light)
-                                        .frame(width: geometry.size.width * session.progress)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(session.title)
+                                    .font(.headline)
+                                
+                                Spacer()
+                                
+                                if session.hasMetTarget {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
                                 }
                             }
-                            .frame(height: 4)
-                            .cornerRadius(2)
+                            
+                            HStack {
+                                if session.isTimerActive {
+                                    HStack(spacing: 4) {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 8, height: 8)
+                                        Text("Recording")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.red)
+                                    }
+                                } else {
+                                    Text(session.formattedTime)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                // Progress bar
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        Rectangle()
+                                            .fill(session.theme.light.opacity(0.2))
+                                        
+                                        Rectangle()
+                                            .fill(session.theme.light)
+                                            .frame(width: geometry.size.width * session.progress)
+                                    }
+                                }
+                                .frame(height: 4)
+                                .cornerRadius(2)
+                            }
                         }
                     }
                     .padding()
@@ -369,10 +426,12 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themes.first(where: { $0.id == "blue" })!,
+            theme: themePresets.first(where: { $0.id == "blue" })!.toTheme(),
             progress: 0.5,
             formattedTime: "15m / 30m",
-            hasMetTarget: false
+            hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: false
         )
     ])
 }
@@ -384,26 +443,32 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themes.first(where: { $0.id == "blue" })!,
+            theme: themePresets.first(where: { $0.id == "blue" })!.toTheme(),
             progress: 0.5,
             formattedTime: "15m / 30m",
-            hasMetTarget: false
+            hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: true
         ),
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themes.first(where: { $0.id == "red" })!,
+            theme: themePresets.first(where: { $0.id == "red" })!.toTheme(),
             progress: 0.75,
             formattedTime: "20m / 25m",
-            hasMetTarget: false
+            hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: false
         ),
         RecommendedSession(
             id: UUID(),
             title: "Meditation",
-            theme: themes.first(where: { $0.id == "purple" })!,
+            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
             progress: 1.0,
             formattedTime: "10m / 10m",
-            hasMetTarget: true
+            hasMetTarget: true,
+            dayID: "2026-02-02",
+            isTimerActive: false
         )
     ])
 }
@@ -414,26 +479,32 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themes.first(where: { $0.id == "blue" })!,
+            theme: themePresets.first(where: { $0.id == "blue" })!.toTheme(),
             progress: 0.5,
             formattedTime: "15m / 30m",
-            hasMetTarget: false
+            hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: false
         ),
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themes.first(where: { $0.id == "red" })!,
+            theme: themePresets.first(where: { $0.id == "red" })!.toTheme(),
             progress: 0.75,
             formattedTime: "20m / 25m",
-            hasMetTarget: false
+            hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: true
         ),
         RecommendedSession(
             id: UUID(),
             title: "Meditation",
-            theme: themes.first(where: { $0.id == "purple" })!,
+            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
             progress: 1.0,
             formattedTime: "10m / 10m",
-            hasMetTarget: true
+            hasMetTarget: true,
+            dayID: "2026-02-02",
+            isTimerActive: false
         )
     ])
 }

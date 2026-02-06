@@ -1,6 +1,6 @@
 //
 //  IntervalSection.swift
-//  WeektimeKit
+//  MomentumKit
 //
 //  Created by [Your Name] on 2025-11-07.
 //
