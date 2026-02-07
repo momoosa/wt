@@ -37,6 +37,7 @@
 		CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */; };
 		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
+		CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436B2F372DB600DE984B /* SessionRowView.swift */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
 		CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */; };
@@ -125,6 +126,7 @@
 		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
+		CDA4436B2F372DB600DE984B /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
 		CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistDetailView.swift; sourceTree = "<group>"; };
@@ -302,6 +304,7 @@
 				CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */,
 				CD713B202F20261B003F901D /* NowPlayingView.swift */,
 				CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */,
+				CDA4436B2F372DB600DE984B /* SessionRowView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -513,6 +516,7 @@
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
+				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
