@@ -66,6 +66,8 @@ struct ContentView: View {
     var body: some View {
         mainListView
             .animation(.spring(), value: goals)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sessions.count)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: getRecommendedSessions().map { $0.id })
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -209,6 +211,10 @@ struct ContentView: View {
                 )
             }
             .listSectionSpacing(.compact)
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.8).combined(with: .opacity),
+                removal: .opacity
+            ))
         }
     }
     
@@ -630,7 +636,16 @@ struct ContentView: View {
         let validSessions = sessions.filter { (try? $0.persistentModelID) != nil }
         let filtered = filter(sessions: validSessions, with: activeFilter)
         
-        // First, try to get AI-generated recommendations from the daily plan
+        // During planning or if we have planned sessions, show top 3 with planning details as recommended
+        let plannedSessions = filtered
+            .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
+            .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
+        
+        if !plannedSessions.isEmpty {
+            return Array(plannedSessions.prefix(3))
+        }
+        
+        // Fallback: try to get AI-generated recommendations from the daily plan
         if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: filtered),
            !aiRecommendations.isEmpty {
             // Use AI recommendations - filter to only show ones with recommendation reasons
