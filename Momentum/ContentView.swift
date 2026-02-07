@@ -58,6 +58,7 @@ struct ContentView: View {
     @State private var revealedSessionIDs: Set<UUID> = []
     @State private var showNowPlaying = false
     @State private var sessionToLogManually: GoalSession?
+    @State private var cachedThemes: [GoalTag] = []
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
@@ -65,6 +66,22 @@ struct ContentView: View {
     var body: some View {
         mainListView
             .animation(.spring(), value: goals)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(spacing: 0) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(dynamicAvailableFilters, id: \.self) { filter in
+                                filterChip(for: filter)
+                            }
+                        }
+                        .padding([.leading, .trailing])
+                        .padding([.top, .bottom], 8)
+                    }
+                    .background(.ultraThinMaterial)
+                    
+                    Divider()
+                }
+            }
             .toolbar {
                 toolbarContent
             }
@@ -119,8 +136,6 @@ struct ContentView: View {
     
     private var mainListView: some View {
         List {
-            filtersHeader
-            
             if isPlanning && sessions.isEmpty {
                 planningLoadingSection
             }
@@ -138,9 +153,8 @@ struct ContentView: View {
                 laterSection(sessions: laterSessions)
             }
         }
-
 #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
     }
     
@@ -257,6 +271,8 @@ struct ContentView: View {
         
         ToolbarItem(placement: .bottomBar) {
             Button {
+                // Cache themes before showing sheet to avoid SwiftData faults
+                cachedThemes = availableGoalThemes
                 showPlannerSheet = true
             } label: {
                 if isPlanning {
@@ -342,7 +358,7 @@ struct ContentView: View {
         PlannerConfigurationSheet(
             selectedThemes: $selectedThemes,
             availableTimeMinutes: $availableTimeMinutes,
-            allThemes: availableGoalThemes,
+            allThemes: cachedThemes,
             animation: animation
         ) {
             showPlannerSheet = false
@@ -354,6 +370,10 @@ struct ContentView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(20)
         .presentationBackground(.thinMaterial)
+        .onAppear {
+            // Cache themes when sheet appears to avoid SwiftData faults
+            cachedThemes = availableGoalThemes
+        }
     }
     
     private var goalEditorSheet: some View {
@@ -432,22 +452,6 @@ struct ContentView: View {
         }
     }
     
-    var filtersHeader: some View {
-        Section {
-            
-        } header: {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack {
-                    ForEach(dynamicAvailableFilters, id: \.self) { filter in
-                        filterChip(for: filter)
-                    }
-                }
-                .padding([.leading, .trailing])
-            }
-        }
-        .listRowInsets(EdgeInsets())
-        .listSectionMargins(.horizontal, 0)
-    }
     
     private func filterChip(for filter: Filter) -> some View {
         HStack(spacing: 4) {
@@ -531,10 +535,12 @@ struct ContentView: View {
     
     /// Check if a session's goal is still valid (not deleted)
     private func isGoalValid(_ session: GoalSession) -> Bool {
-        // Try to access the goal's ID - if it throws or fails, the goal was deleted
+        // Try to access the session and goal properties - if it throws or fails, they were deleted
         do {
+            _ = session.status
             _ = session.goal.id
             _ = session.goal.title
+            _ = session.goal.status
             return true
         } catch {
             return false
@@ -706,14 +712,7 @@ struct ContentView: View {
                 }
             }
             .matchedTransitionSource(id: session.id, in: animation)
-            // Add shimmer effect for newly planned sessions
-            .overlay {
-                if let _ = session.plannedStartTime, !revealedSessionIDs.contains(session.id) {
-                    ShimmerEffect()
-                        .ignoresSafeArea()
-                        .allowsHitTesting(false)
-                }
-            }
+
         }
         .swipeActions {
             Button {
@@ -740,8 +739,18 @@ struct ContentView: View {
                 return false
             }
             
-            let isArchived = session.goal.status == .archived
-            let isSkipped = session.status == .skipped
+            // Safely access status properties that might be faults
+            let isArchived: Bool
+            let isSkipped: Bool
+            
+            do {
+                isArchived = session.goal.status == .archived
+                isSkipped = session.status == .skipped
+            } catch {
+                // If we can't access the status, assume it's not valid
+                return false
+            }
+            
             switch activeFilter {
             case .activeToday:
                 return !isArchived && !isSkipped
@@ -1025,20 +1034,32 @@ struct ContentView: View {
     
     /// Generate a daily plan and create GoalSession objects
     private func generateDailyPlan() async {
-        isPlanning = true
-        defer { isPlanning = false }
-        
-        // Clear previous revealed sessions
-        revealedSessionIDs.removeAll()
-        
-        // Delete all existing GoalSession objects for this day
         await MainActor.run {
-            for session in sessions {
+            isPlanning = true
+            // Clear previous revealed sessions
+            revealedSessionIDs.removeAll()
+        }
+        defer { 
+            Task { @MainActor in
+                isPlanning = false
+            }
+        }
+        
+        // Delete sessions in a way that avoids view access during deletion
+        await MainActor.run {
+            // Create array copy to avoid query updates during iteration
+            let sessionsToDelete = sessions.map { $0 }
+            
+            for session in sessionsToDelete {
                 modelContext.delete(session)
             }
-            // Save the deletion
+            
+            // Save immediately
             try? modelContext.save()
         }
+        
+        // Brief pause to let SwiftUI process the deletion
+        try? await Task.sleep(nanoseconds: 50_000_000)
         
         // Provide haptic feedback
         #if os(iOS)
@@ -1307,34 +1328,6 @@ struct ContentView: View {
         }
     }
     #endif
-}
-
-// MARK: - Shimmer Effect
-
-struct ShimmerEffect: View {
-    @State private var phase: CGFloat = 0
-    
-    var body: some View {
-        GeometryReader { geometry in
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    .clear,
-                    Color.purple.opacity(0.3),
-                    .clear
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .frame(width: geometry.size.width * 2)
-            .offset(x: phase * geometry.size.width * 2 - geometry.size.width)
-            .onAppear {
-                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                    phase = 1
-                }
-            }
-        }
-        .clipped()
-    }
 }
 
 // MARK: - Debug Goals
