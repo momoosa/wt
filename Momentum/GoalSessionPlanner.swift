@@ -197,6 +197,13 @@ public class GoalSessionPlanner: ObservableObject {
         return recommended.isEmpty ? nil : recommended
     }
     
+    /// Get the PlannedSession for a given GoalSession
+    /// Returns nil if no plan exists or session is not in the plan
+    public func getPlannedSession(for session: GoalSession) -> PlannedSession? {
+        guard let plan = currentPlan else { return nil }
+        return plan.sessions.first { $0.id == session.goal.id.uuidString }
+    }
+    
     /// Score a single session for how recommended it is at a given time
     /// Higher scores mean more recommended
     public func scoreSession(
@@ -355,7 +362,15 @@ public class GoalSessionPlanner: ObservableObject {
         - Use exact UUID from VALID IDS for each PlannedSession "id" field
         - Times as HH:mm (24hr), chronological order
         
-        Focus on goals furthest from their daily target. Include brief reasoning for each session.
+        Focus on goals furthest from their daily target.
+        
+        REASONING GUIDELINES:
+        For each session's "reasoning" field, provide a concise explanation (1-2 sentences) that mentions:
+        - Why this time is optimal (e.g., "Morning energy best for creative work", "Matches your preferred afternoon slot")
+        - Progress status if relevant (e.g., "Behind on weekly target", "Quick session to maintain streak")
+        - Any other contextual factors (e.g., "Short duration fits before evening", "High priority goal")
+        
+        Make reasoning actionable and human-readable, avoiding generic phrases like "follows goal X" or numbered references.
         
         IMPORTANT: Also provide "topThreeRecommendations" - an array of exactly 3 goal IDs that should be worked on RIGHT NOW (at \(currentTime)).
         Consider:

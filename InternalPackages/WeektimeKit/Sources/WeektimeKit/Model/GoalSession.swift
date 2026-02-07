@@ -8,6 +8,61 @@
 import Foundation
 import SwiftData
 
+/// Reasons why a goal session is recommended
+public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
+    case weeklyProgress = "weekly_progress"      // Behind on weekly target for the day of week
+    case userPriority = "user_priority"          // User has set this as high priority
+    case weather = "weather"                     // Weather matches goal preferences
+    case availableTime = "available_time"        // Fits in user's available time
+    case plannedTheme = "planned_theme"          // Matches theme selected in planner
+    case quickFinish = "quick_finish"            // Close to completing (< 25% remaining)
+    case preferredTime = "preferred_time"        // Matches user's preferred time of day
+    case energyLevel = "energy_level"            // Optimal for current time's energy level
+    case usualTime = "usual_time"                // Based on historical usage patterns
+    
+    public var displayName: String {
+        switch self {
+        case .weeklyProgress: return "Behind Schedule"
+        case .userPriority: return "High Priority"
+        case .weather: return "Good Weather"
+        case .availableTime: return "Fits Schedule"
+        case .plannedTheme: return "Planned Theme"
+        case .quickFinish: return "Quick Finish"
+        case .preferredTime: return "Preferred Time"
+        case .energyLevel: return "Peak Energy"
+        case .usualTime: return "Usual Time"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .weeklyProgress: return "chart.line.uptrend.xyaxis"
+        case .userPriority: return "star.fill"
+        case .weather: return "cloud.sun.fill"
+        case .availableTime: return "clock.fill"
+        case .plannedTheme: return "tag.fill"
+        case .quickFinish: return "flag.checkered"
+        case .preferredTime: return "calendar"
+        case .energyLevel: return "bolt.fill"
+        case .usualTime: return "clock.arrow.circlepath"
+        }
+    }
+    
+    public var description: String {
+        switch self {
+        case .weeklyProgress: return "You're behind on your weekly target"
+        case .userPriority: return "You marked this as important"
+        case .weather: return "Current weather is ideal"
+        case .availableTime: return "Fits your available time"
+        case .plannedTheme: return "Matches your focus area"
+        case .quickFinish: return "Almost done - finish it now"
+        case .preferredTime: return "Your preferred time slot"
+        case .energyLevel: return "Best time for focus"
+        case .usualTime: return "You often work on this now"
+        }
+    }
+}
+
 @Model
 public final class GoalSession: SessionProgressProvider {
     public var id: UUID
@@ -37,6 +92,9 @@ public final class GoalSession: SessionProgressProvider {
     
     /// AI reasoning for this session's scheduling
     public var plannedReasoning: String?
+    
+    /// Structured recommendation reasons
+    public var recommendationReasons: [RecommendationReason] = []
     
     public var dailyTarget: TimeInterval {
         return goal.weeklyTarget / 7
@@ -97,12 +155,14 @@ public extension GoalSession {
         startTime: Date,
         duration: Int,
         priority: Int,
-        reasoning: String
+        reasoning: String,
+        reasons: [RecommendationReason] = []
     ) {
         self.plannedStartTime = startTime
         self.plannedDuration = duration
         self.plannedPriority = priority
         self.plannedReasoning = reasoning
+        self.recommendationReasons = reasons
     }
     
     /// Clear planning details
@@ -111,5 +171,6 @@ public extension GoalSession {
         self.plannedDuration = nil
         self.plannedPriority = nil
         self.plannedReasoning = nil
+        self.recommendationReasons = []
     }
 }

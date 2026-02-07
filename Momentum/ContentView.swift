@@ -179,11 +179,10 @@ struct ContentView: View {
         }
     }
     
+    @ViewBuilder
     private func recommendedSection(sessions: [GoalSession]) -> some View {
+        // Header section
         Section {
-            ForEach(sessions) { session in
-                sessionRow(for: session)
-            }
         } header: {
             HStack {
                 Image(systemName: "star.fill")
@@ -193,6 +192,22 @@ struct ContentView: View {
             }
         }
         .listSectionSpacing(.compact)
+        
+        // Individual card for each recommended session
+        ForEach(sessions) { session in
+            Section {
+                RecommendedSessionRowView(
+                    session: session,
+                    day: day,
+                    timerManager: timerManager,
+                    animation: animation,
+                    selectedSession: $selectedSession,
+                    sessionToLogManually: $sessionToLogManually,
+                    onSkip: skip
+                )
+            }
+            .listSectionSpacing(.compact)
+        }
     }
     
     private func laterSection(sessions: [GoalSession]) -> some View {
@@ -559,16 +574,21 @@ struct ContentView: View {
     
     /// Get recommended sessions for right now (top 3)
     private func getRecommendedSessions() -> [GoalSession] {
-        guard sessions.count > 4 else {
-            return []
-        }
         let filtered = filter(sessions: sessions, with: activeFilter)
         
         // First, try to get AI-generated recommendations from the daily plan
         if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: filtered),
            !aiRecommendations.isEmpty {
-            // Use AI recommendations (hard refresh)
-            return Array(aiRecommendations.prefix(3))
+            // Use AI recommendations - filter to only show ones with recommendation reasons
+            let recommendationsWithReasons = aiRecommendations.filter { !$0.recommendationReasons.isEmpty }
+            if !recommendationsWithReasons.isEmpty {
+                return Array(recommendationsWithReasons.prefix(3))
+            }
+        }
+        
+        // Only show fallback recommendations if we have enough sessions
+        guard sessions.count > 4 else {
+            return []
         }
         
         // Fallback: Use scoring algorithm (soft refresh)
@@ -1044,7 +1064,7 @@ struct ContentView: View {
             // Instant reveal - no animation
             await MainActor.run {
                 withAnimation(.spring(response: 0.2)) {
-                    activeFilter = .planned
+                    activeFilter = .activeToday  // Show all active sessions including recommendations
                 }
                 
                 // Mark all as revealed immediately
@@ -1067,7 +1087,7 @@ struct ContentView: View {
         // Animated reveal (faster than before)
         await MainActor.run {
             withAnimation(.spring(response: 0.3)) {
-                activeFilter = .planned
+                activeFilter = .activeToday  // Show all active sessions including recommendations
             }
         }
         
@@ -1115,6 +1135,84 @@ struct ContentView: View {
         }
     }
     
+    /// Analyze historical sessions to find usage patterns for a goal
+    private func analyzeUsagePattern(for goal: Goal, session: GoalSession, currentHour: Int) -> Bool {
+        // Get historical sessions for this specific GoalSession
+        let historicalSessions = session.historicalSessions
+        
+        // Filter to sessions in the past 2 weeks
+        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+        let recentSessions = historicalSessions.filter { $0.startDate >= twoWeeksAgo }
+        
+        // Count how many times this goal was worked on in the current hour (+/- 1 hour window)
+        let sessionsInTimeWindow = recentSessions.filter { histSession in
+            let sessionHour = Calendar.current.component(.hour, from: histSession.startDate)
+            return abs(sessionHour - currentHour) <= 1
+        }
+        
+        // If this goal has been worked on 3+ times in this time window over the past 2 weeks, consider it a pattern
+        return sessionsInTimeWindow.count >= 3
+    }
+    
+    /// Calculate recommendation reasons for a session
+    private func calculateRecommendationReasons(for session: GoalSession, goal: Goal) -> [RecommendationReason] {
+        var reasons: [RecommendationReason] = []
+        
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: Date())
+        let currentWeekday = calendar.component(.weekday, from: Date())
+        
+        // 1. Weekly Progress - check if behind for the day of week
+        let dailyTarget = goal.weeklyTarget / 7
+        let weeklyTarget = goal.weeklyTarget
+        let daysIntoWeek = currentWeekday // Sunday = 1, Saturday = 7
+        let expectedProgress = (weeklyTarget / 7) * TimeInterval(daysIntoWeek)
+        // This would need actual weekly data - for now use daily as proxy
+        if session.elapsedTime < dailyTarget * 0.5 && daysIntoWeek >= 4 { // Less than 50% and past Wednesday
+            reasons.append(.weeklyProgress)
+        }
+        
+        // 2. Quick Finish - less than 25% remaining
+        let remaining = dailyTarget - session.elapsedTime
+        if remaining > 0 && remaining < dailyTarget * 0.25 {
+            reasons.append(.quickFinish)
+        }
+        
+        // 3. Preferred Time - matches user's preferred time of day
+        let preferredTimes = goal.timesForWeekday(currentWeekday)
+        if !preferredTimes.isEmpty {
+            let matchesPreferred = preferredTimes.contains { timeOfDay in
+                switch timeOfDay {
+                case .morning: return currentHour >= 6 && currentHour < 10
+                case .midday: return currentHour >= 10 && currentHour < 14
+                case .afternoon: return currentHour >= 14 && currentHour < 18
+                case .evening: return currentHour >= 18 && currentHour < 22
+                case .night: return currentHour >= 22 || currentHour < 6
+                }
+            }
+            if matchesPreferred {
+                reasons.append(.preferredTime)
+            }
+        }
+        
+        // 4. Energy Level - morning/early afternoon are typically high energy
+        if (6...9).contains(currentHour) || (13...15).contains(currentHour) {
+            reasons.append(.energyLevel)
+        }
+        
+        // 5. Planned Theme - check if matches selected themes
+        if selectedThemes.contains(goal.primaryTag.themeID) {
+            reasons.append(.plannedTheme)
+        }
+        
+        // 6. Usual Time - based on historical usage patterns
+        if analyzeUsagePattern(for: goal, session: session, currentHour: currentHour) {
+            reasons.append(.usualTime)
+        }
+        
+        return reasons
+    }
+    
     /// Apply the generated plan by creating GoalSession objects
     @MainActor
     private func applyPlan(_ plan: DailyPlan) async {
@@ -1153,11 +1251,13 @@ struct ContentView: View {
                     // Update existing session's planning details
                     // Convert time string (e.g., "09:30") to Date for today
                     if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {
+                        let reasons = calculateRecommendationReasons(for: existingSession, goal: matchedGoal)
                         existingSession.updatePlanningDetails(
                             startTime: startTime,
                             duration: plannedSession.suggestedDuration,
                             priority: plannedSession.priority,
-                            reasoning: plannedSession.reasoning
+                            reasoning: plannedSession.reasoning,
+                            reasons: reasons
                         )
                     }
                     existingSession.status = .active
@@ -1168,11 +1268,13 @@ struct ContentView: View {
                     // Apply planning details
                     // Convert time string (e.g., "09:30") to Date for today
                     if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {
+                        let reasons = calculateRecommendationReasons(for: session, goal: matchedGoal)
                         session.updatePlanningDetails(
                             startTime: startTime,
                             duration: plannedSession.suggestedDuration,
                             priority: plannedSession.priority,
-                            reasoning: plannedSession.reasoning
+                            reasoning: plannedSession.reasoning,
+                            reasons: reasons
                         )
                     }
                     
