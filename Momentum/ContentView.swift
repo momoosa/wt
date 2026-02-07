@@ -55,6 +55,7 @@ struct ContentView: View {
     @State private var planner = GoalSessionPlanner()
     @State private var plannerPreferences = PlannerPreferences.default
     @State private var isPlanning = false
+    @State private var showPlanningComplete = false
     @State private var revealedSessionIDs: Set<UUID> = []
     @State private var showNowPlaying = false
     @State private var sessionToLogManually: GoalSession?
@@ -138,22 +139,20 @@ struct ContentView: View {
     
     private var mainListView: some View {
         List {
-            if isPlanning && sessions.isEmpty {
-                planningLoadingSection
-            }
-            
-            if !sessions.isEmpty {
+            if !sessions.isEmpty || isPlanning || showPlanningComplete {
                 let recommendedSessions = getRecommendedSessions()
-                if !recommendedSessions.isEmpty {
+                if !recommendedSessions.isEmpty || isPlanning || showPlanningComplete {
                     recommendedSection(sessions: recommendedSessions)
                 }
                 
-                let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-                let laterSessions = filter(sessions: sessions, with: activeFilter)
-                    .filter { !recommendedSessionIDs.contains($0.id) }
-                
-                if !laterSessions.isEmpty {
-                    laterSection(sessions: laterSessions)
+                if !sessions.isEmpty {
+                    let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
+                    let laterSessions = filter(sessions: sessions, with: activeFilter)
+                        .filter { !recommendedSessionIDs.contains($0.id) }
+                    
+                    if !laterSessions.isEmpty {
+                        laterSection(sessions: laterSessions)
+                    }
                 }
             }
         }
@@ -162,27 +161,7 @@ struct ContentView: View {
 #endif
     }
     
-    private var planningLoadingSection: some View {
-        Section {
-            VStack(spacing: 16) {
-                ProgressView()
-                    .controlSize(.large)
-                
-                Text("Generating your plan...")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                
-                Text("Analyzing your goals and creating an optimized schedule")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
-            .listRowBackground(Color.clear)
-        }
-    }
-    
+
     @ViewBuilder
     private func recommendedSection(sessions: [GoalSession]) -> some View {
         // Header section
@@ -215,6 +194,32 @@ struct ContentView: View {
                 insertion: .scale(scale: 0.8).combined(with: .opacity),
                 removal: .opacity
             ))
+        }
+        
+        // Loading indicator during planning
+        if isPlanning || showPlanningComplete {
+            Section {
+                HStack {
+                    if isPlanning {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Generating plan...")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else if showPlanningComplete {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .imageScale(.small)
+                        Text("All done")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+            }
+            .listSectionSpacing(.compact)
+            .transition(.opacity)
         }
     }
     
@@ -1013,12 +1018,20 @@ struct ContentView: View {
     private func generateDailyPlan() async {
         await MainActor.run {
             isPlanning = true
+            showPlanningComplete = false
             // Clear previous revealed sessions
             revealedSessionIDs.removeAll()
         }
         defer { 
             Task { @MainActor in
                 isPlanning = false
+                
+                // Show completion state
+                showPlanningComplete = true
+                
+                // Hide completion state after 1.5 seconds
+                try? await Task.sleep(for: .seconds(1.5))
+                showPlanningComplete = false
             }
         }
         
@@ -1125,53 +1138,13 @@ struct ContentView: View {
     
     /// Animate the reveal of planned sessions one by one
     private func animatePlannedSessions(_ plan: DailyPlan) async {
-        
-        // Animated reveal (faster than before)
+        // Provide haptic feedback for completion
+        #if os(iOS)
         await MainActor.run {
-            withAnimation(.spring(response: 0.3)) {
-                activeFilter = .activeToday  // Show all active sessions including recommendations
-            }
+            let impact = UINotificationFeedbackGenerator()
+            impact.notificationOccurred(.success)
         }
-                
-        // Reveal each session one by one
-        for (index, plannedSession) in plan.sessions.enumerated() {
-            guard let goalID = UUID(uuidString: plannedSession.id),
-                  let session = sessions.first(where: { $0.goal.id == goalID }) else {
-                continue
-            }
-            
-            // Add session to revealed set with animation
-            await MainActor.run {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    revealedSessionIDs.insert(session.id)
-                }
-                
-                // Haptic feedback for each reveal (only for first 3 to avoid overload)
-                #if os(iOS)
-                if index < 3 {
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
-                }
-                #endif
-            }
-            
-            // Much faster delays - start at 200ms, decrease by 40ms each time, min 50ms
-            let delay = max(50, 200 - (index * 40))
-            try? await Task.sleep(for: .milliseconds(delay))
-        }
-        
-        // Reduced final wait before clearing shimmer
-        try? await Task.sleep(for: .milliseconds(300))
-        
-        await MainActor.run {
-            // Mark all as revealed to remove shimmer effects
-            for plannedSession in plan.sessions {
-                if let goalID = UUID(uuidString: plannedSession.id),
-                   let session = sessions.first(where: { $0.goal.id == goalID }) {
-                    revealedSessionIDs.insert(session.id)
-                }
-            }
-        }
+        #endif
     }
     
     /// Analyze historical sessions to find usage patterns for a goal

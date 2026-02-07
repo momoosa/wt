@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import Foundation
+import AVFoundation
 
 #if canImport(WidgetKit)
 import WidgetKit
@@ -186,6 +187,9 @@ public final class SessionTimerManager {
         endLiveActivity()
         
         #if os(iOS)
+        // Play completion sound
+        playCompletionSound()
+        
         // Medium impact haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
@@ -418,6 +422,27 @@ public final class SessionTimerManager {
             liveActivity = nil
             print("✅ Live Activity ended")
         }
+    }
+    #endif
+    
+    // MARK: - Sound Effects
+    
+    #if os(iOS)
+    /// Plays a completion sound when a session ends
+    private func playCompletionSound() {
+        // Use system sound for session completion
+        // You can replace this with a custom sound file by adding it to your project
+        // and using: AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+        
+        // For a custom sound file, use this approach:
+        // if let soundURL = Bundle.main.url(forResource: "completion", withExtension: "mp3") {
+        //     var soundID: SystemSoundID = 0
+        //     AudioServicesCreateSystemSoundID(soundURL as CFURL, &soundID)
+        //     AudioServicesPlaySystemSound(soundID)
+        // }
+        
+        // Using system sound for now (Glass tone)
+        AudioServicesPlaySystemSound(1057)
     }
     #endif
 }
