@@ -62,7 +62,6 @@ struct ContentView: View {
     @State private var hasAutoPlannedToday = false
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
-    @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
     
     var body: some View {
         mainListView
@@ -141,8 +140,7 @@ struct ContentView: View {
                 planningLoadingSection
             }
             
-            // Don't try to compute recommendations while planning to avoid SwiftData faults
-            if !isPlanning {
+            if !sessions.isEmpty {
                 let recommendedSessions = getRecommendedSessions()
                 if !recommendedSessions.isEmpty {
                     recommendedSection(sessions: recommendedSessions)
@@ -376,13 +374,8 @@ struct ContentView: View {
         
         print("✅ Starting auto-plan...")
         
-        // Run silent background plan (no animation)
-        let previousSkipSetting = skipPlanningAnimation
-        skipPlanningAnimation = true
         
         await generateDailyPlan()
-        
-        skipPlanningAnimation = previousSkipSetting
     }
     
     /// Update recommendation reasons for existing planned sessions
@@ -445,6 +438,11 @@ struct ContentView: View {
         .onAppear {
             // Cache themes when sheet appears to avoid SwiftData faults
             cachedThemes = availableGoalThemes
+            
+            // Prewarm the model to reduce initial planning delay
+            Task {
+                await planner.prewarm()
+            }
         }
     }
     
@@ -628,13 +626,16 @@ struct ContentView: View {
     
     /// Get recommended sessions for right now (top 3)
     private func getRecommendedSessions() -> [GoalSession] {
-        let filtered = filter(sessions: sessions, with: activeFilter)
+        // Filter out deleted/invalid sessions first
+        let validSessions = sessions.filter { (try? $0.persistentModelID) != nil }
+        let filtered = filter(sessions: validSessions, with: activeFilter)
         
         // First, try to get AI-generated recommendations from the daily plan
         if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: filtered),
            !aiRecommendations.isEmpty {
             // Use AI recommendations - filter to only show ones with recommendation reasons
             let recommendationsWithReasons = aiRecommendations.filter { !$0.recommendationReasons.isEmpty }
+            
             if !recommendationsWithReasons.isEmpty {
                 return Array(recommendationsWithReasons.prefix(3))
             }
@@ -682,10 +683,19 @@ struct ContentView: View {
     
     private func filter(sessions: [GoalSession], with filter: Filter?) -> [GoalSession] {
         guard let filter else {
-            return sessions.filter { isGoalValid($0) }
+            return sessions.filter { session in
+                // Check if not deleted first
+                guard (try? session.persistentModelID) != nil else { return false }
+                return isGoalValid(session)
+            }
         }
         
         let filtered = sessions.filter { session in
+            // Check if not deleted first, before accessing any properties
+            guard (try? session.persistentModelID) != nil else {
+                return false
+            }
+            
             // Filter out sessions with deleted goals
             guard isGoalValid(session) else {
                 return false
@@ -997,28 +1007,6 @@ struct ContentView: View {
             }
         }
         
-        // Delete sessions in a way that avoids view access during deletion
-        await MainActor.run {
-            // Create array copy to avoid query updates during iteration
-            let sessionsToDelete = sessions.map { $0 }
-            
-            for session in sessionsToDelete {
-                modelContext.delete(session)
-            }
-            
-            // Save immediately
-            try? modelContext.save()
-        }
-        
-        // Brief pause to let SwiftUI process the deletion
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        
-        // Provide haptic feedback
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
-        
         do {
             // Generate the plan using active goals
             var activeGoals = goals.filter { $0.status == .active }
@@ -1088,22 +1076,24 @@ struct ContentView: View {
                         )
                         latestPlan = plan
                         
-                        // Apply the partial plan as it streams in (only if animation is enabled)
-                        if !skipPlanningAnimation {
-                            await applyPlan(plan)
-                        }
+                        // Apply the partial plan as it streams in
+                        await applyPlan(plan)
                     }
                 }
             }
             
             // Use the final plan for animation or direct application
             if let plan = latestPlan {
-                if skipPlanningAnimation {
-                    // Apply the final plan directly without streaming updates
-                    await applyPlan(plan)
-                } else {
-                    // Animate the reveal of planned sessions
-                    await animatePlannedSessions(plan)
+                await animatePlannedSessions(plan)
+
+                
+                // Clear planning details for sessions NOT in the plan
+                await MainActor.run {
+                    let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
+                    for session in sessions where !plannedGoalIDs.contains(session.goal.id) {
+                        session.clearPlanningDetails()
+                    }
+                    try? modelContext.save()
                 }
             }
             
@@ -1120,30 +1110,6 @@ struct ContentView: View {
     
     /// Animate the reveal of planned sessions one by one
     private func animatePlannedSessions(_ plan: DailyPlan) async {
-        // Check if animation should be skipped
-        if skipPlanningAnimation {
-            // Instant reveal - no animation
-            await MainActor.run {
-                withAnimation(.spring(response: 0.2)) {
-                    activeFilter = .activeToday  // Show all active sessions including recommendations
-                }
-                
-                // Mark all as revealed immediately
-                for plannedSession in plan.sessions {
-                    if let goalID = UUID(uuidString: plannedSession.id),
-                       let session = sessions.first(where: { $0.goal.id == goalID }) {
-                        revealedSessionIDs.insert(session.id)
-                    }
-                }
-                
-                // Single haptic for completion
-                #if os(iOS)
-                let impact = UINotificationFeedbackGenerator()
-                impact.notificationOccurred(.success)
-                #endif
-            }
-            return
-        }
         
         // Animated reveal (faster than before)
         await MainActor.run {
@@ -1151,10 +1117,7 @@ struct ContentView: View {
                 activeFilter = .activeToday  // Show all active sessions including recommendations
             }
         }
-        
-        // Reduced delay - faster filter switch
-        try? await Task.sleep(for: .milliseconds(150))
-        
+                
         // Reveal each session one by one
         for (index, plannedSession) in plan.sessions.enumerated() {
             guard let goalID = UUID(uuidString: plannedSession.id),

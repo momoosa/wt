@@ -62,6 +62,11 @@ public class GoalSessionPlanner: ObservableObject {
     
     public init() {}
     
+    /// Prewarm the language model to reduce initial latency
+    public func prewarm() async {
+        try? await session.prewarm()
+    }
+    
     /// Generate a daily plan for the given goals and context
     public func generateDailyPlan(
         for goals: [Goal],
