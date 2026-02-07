@@ -59,6 +59,7 @@ struct ContentView: View {
     @State private var showNowPlaying = false
     @State private var sessionToLogManually: GoalSession?
     @State private var cachedThemes: [GoalTag] = []
+    @State private var hasAutoPlannedToday = false
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
@@ -140,17 +141,20 @@ struct ContentView: View {
                 planningLoadingSection
             }
             
-            let recommendedSessions = getRecommendedSessions()
-            if !recommendedSessions.isEmpty {
-                recommendedSection(sessions: recommendedSessions)
-            }
-            
-            let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-            let laterSessions = filter(sessions: sessions, with: activeFilter)
-                .filter { !recommendedSessionIDs.contains($0.id) }
-            
-            if !laterSessions.isEmpty {
-                laterSection(sessions: laterSessions)
+            // Don't try to compute recommendations while planning to avoid SwiftData faults
+            if !isPlanning {
+                let recommendedSessions = getRecommendedSessions()
+                if !recommendedSessions.isEmpty {
+                    recommendedSection(sessions: recommendedSessions)
+                }
+                
+                let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
+                let laterSessions = filter(sessions: sessions, with: activeFilter)
+                    .filter { !recommendedSessionIDs.contains($0.id) }
+                
+                if !laterSessions.isEmpty {
+                    laterSection(sessions: laterSessions)
+                }
             }
         }
 #if os(macOS)
@@ -344,6 +348,51 @@ struct ContentView: View {
         Task {
             refreshGoals()
             syncHealthKitData()
+            
+            // Auto-plan once per day on launch if we haven't already
+            await checkAndRunAutoPlan()
+        }
+    }
+    
+    /// Check if we should auto-plan and run it if needed
+    private func checkAndRunAutoPlan() async {
+        print("🔍 Auto-plan check: hasAutoPlannedToday=\(hasAutoPlannedToday), goals.count=\(goals.count)")
+        
+        // Skip if we've already auto-planned in this session (prevents duplicate runs)
+        guard !hasAutoPlannedToday else {
+            print("⏭️ Skipping: already planned in this session")
+            return
+        }
+        
+        // Mark as started immediately to prevent concurrent runs
+        hasAutoPlannedToday = true
+        
+        // Skip if there are no goals
+        guard !goals.isEmpty else {
+            print("⏭️ Skipping: no goals available")
+            hasAutoPlannedToday = false // Reset so it can try again if goals are added
+            return
+        }
+        
+        print("✅ Starting auto-plan...")
+        
+        // Run silent background plan (no animation)
+        let previousSkipSetting = skipPlanningAnimation
+        skipPlanningAnimation = true
+        
+        await generateDailyPlan()
+        
+        skipPlanningAnimation = previousSkipSetting
+    }
+    
+    /// Update recommendation reasons for existing planned sessions
+    private func updateExistingSessionReasons() async {
+        await MainActor.run {
+            for session in sessions where session.plannedStartTime != nil {
+                let reasons = calculateRecommendationReasons(for: session, goal: session.goal)
+                session.recommendationReasons = reasons
+            }
+            try? modelContext.save()
         }
     }
     
@@ -559,6 +608,11 @@ struct ContentView: View {
     /// Check if a session's goal is still valid (not deleted)
     private func isGoalValid(_ session: GoalSession) -> Bool {
         // Try to access the session and goal properties - if it throws or fails, they were deleted
+        // We need to catch both Swift errors and SwiftData faults
+        guard let _ = try? session.persistentModelID else {
+            return false
+        }
+        
         do {
             _ = session.status
             _ = session.goal.id
@@ -1034,16 +1088,23 @@ struct ContentView: View {
                         )
                         latestPlan = plan
                         
-                        // Apply the partial plan as it streams in
-                        await applyPlan(plan)
+                        // Apply the partial plan as it streams in (only if animation is enabled)
+                        if !skipPlanningAnimation {
+                            await applyPlan(plan)
+                        }
                     }
                 }
             }
             
-            // Use the final plan for animation
+            // Use the final plan for animation or direct application
             if let plan = latestPlan {
-                // Animate the reveal of planned sessions
-                await animatePlannedSessions(plan)
+                if skipPlanningAnimation {
+                    // Apply the final plan directly without streaming updates
+                    await applyPlan(plan)
+                } else {
+                    // Animate the reveal of planned sessions
+                    await animatePlannedSessions(plan)
+                }
             }
             
         } catch {
