@@ -131,7 +131,7 @@ public class GoalSessionPlanner: ObservableObject {
                     // Use higher temperature for faster generation
                     let stream = session.streamResponse(
                         generating: DailyPlan.self,
-                        options: GenerationOptions(temperature: 0.7) // Increased from 0.4
+                        options: GenerationOptions(temperature: 1.0) // Maximum temp for fastest generation
                     ) {
                         prompt
                     }

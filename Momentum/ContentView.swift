@@ -1024,14 +1024,19 @@ struct ContentView: View {
         }
         defer { 
             Task { @MainActor in
+                // Show completion state immediately when planning finishes
                 isPlanning = false
                 
-                // Show completion state
-                showPlanningComplete = true
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showPlanningComplete = true
+                }
                 
-                // Hide completion state after 1.5 seconds
-                try? await Task.sleep(for: .seconds(1.5))
-                showPlanningComplete = false
+                // Keep completion state visible for 0.6 seconds
+                try? await Task.sleep(for: .seconds(0.6))
+                
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showPlanningComplete = false
+                }
             }
         }
         
@@ -1238,12 +1243,6 @@ struct ContentView: View {
                 let goalIDs = goals.map { $0.id }
                 if let goalID = UUID(uuidString: plannedSession.id) {
                     // UUID parsing succeeded - find by ID
-                    for id in goalIDs {
-                        if id.uuidString == plannedSession.id {
-                            print("§ maaaatch")
-                        }
-                        print("§\(id)")
-                    }
                     goal = goals.first(where: { $0.id == goalID })
                 }
                 
