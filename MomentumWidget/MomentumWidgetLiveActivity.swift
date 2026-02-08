@@ -136,7 +136,7 @@ struct MomentumWidgetLiveActivity: Widget {
                         
                         HStack(spacing: 16) {
                             // Pause/Resume button
-                            Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                            Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
                                 HStack(spacing: 6) {
                                     Image(systemName: context.state.isActive ? "pause.fill" : "play.fill")
                                         .font(.system(size: 14))
@@ -152,7 +152,7 @@ struct MomentumWidgetLiveActivity: Widget {
                             .buttonStyle(.plain)
                             
                             // Stop button
-                            Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                            Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "stop.fill")
                                         .font(.system(size: 14))
@@ -256,7 +256,7 @@ struct LiveActivityLockScreenView: View {
                     
                     HStack(spacing: 12) {
                         // Pause/Resume button
-                        Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                        Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
                             HStack(spacing: 4) {
                                 Image(systemName: context.state.isActive ? "pause.fill" : "play.fill")
                                     .font(.system(size: 12))
@@ -272,7 +272,7 @@ struct LiveActivityLockScreenView: View {
                         .buttonStyle(.plain)
                         
                         // Stop button
-                        Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                        Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
                             HStack(spacing: 4) {
                                 Image(systemName: "stop.fill")
                                     .font(.system(size: 12))
@@ -390,6 +390,7 @@ extension MomentumWidgetAttributes {
     fileprivate static var preview: MomentumWidgetAttributes {
         MomentumWidgetAttributes(
             sessionID: UUID().uuidString,
+            dayID: "2026-02-08",
             goalTitle: "Reading",
             dailyTarget: 3600, // 1 hour
             themeLight: "#93C5FD",

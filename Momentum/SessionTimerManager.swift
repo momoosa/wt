@@ -57,6 +57,7 @@ public final class SessionTimerManager {
     public init(goalStore: GoalStore) {
         self.goalStore = goalStore
         setupUserDefaultsObservation()
+        setupExternalChangeNotification()
     }
     
     deinit {
@@ -82,23 +83,58 @@ public final class SessionTimerManager {
         #endif
     }
     
+    /// Sets up observation for external change notifications from intents
+    private func setupExternalChangeNotification() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("SessionTimerExternalChange"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            print("📬 Received external change notification from intent")
+            self?.checkForExternalChanges()
+        }
+    }
+    
     /// Checks if timer state was changed externally (e.g., by widget) and syncs
     public func checkForExternalChanges() {
         guard let defaults = sharedDefaults else { return }
         
         let storedSessionID = defaults.string(forKey: activeSessionIDKey)
+        let pausedSessionID = defaults.string(forKey: "PausedSessionIDV1")
         let currentSessionID = activeSession?.id.uuidString
+        
+        #if canImport(ActivityKit)
+        // Check if Live Activity needs to be ended (stopped but not paused)
+        if let activity = liveActivity {
+            let activitySessionID = activity.attributes.sessionID
+            // If the activity's session is not active and not paused, end it
+            if storedSessionID != activitySessionID && pausedSessionID != activitySessionID {
+                print("🔄 SessionTimerManager: Live Activity session is stopped, ending it")
+                endLiveActivity()
+            }
+        }
+        #endif
         
         // If states don't match, something changed externally
         if storedSessionID != currentSessionID {
             print("🔄 SessionTimerManager: Detected external state change")
-            print("   Current: \(currentSessionID ?? "none"), Stored: \(storedSessionID ?? "none")")
+            print("   Current: \(currentSessionID ?? "none"), Stored: \(storedSessionID ?? "none"), Paused: \(pausedSessionID ?? "none")")
             
-            // Stop current timer if we have one but shouldn't
+            // Stop current timer if we have one but it's not active (and not paused)
             if let activeSession, storedSessionID == nil {
-                print("   → Stopping timer (was stopped externally)")
-                activeSession.stopUITimer()
-                self.activeSession = nil
+                // Check if it's paused instead of stopped
+                if pausedSessionID == activeSession.id.uuidString {
+                    print("   → Timer is paused (keeping Live Activity)")
+                    activeSession.stopUITimer()
+                    self.activeSession = nil
+                    // Don't end Live Activity - it's just paused
+                    // The Live Activity will continue showing the paused state
+                } else {
+                    print("   → Stopping timer (was stopped externally)")
+                    activeSession.stopUITimer()
+                    self.activeSession = nil
+                    // Live Activity already ended above if needed
+                }
             }
             // Or if the session ID changed
             else if let activeSession, let storedID = storedSessionID, storedID != activeSession.id.uuidString {
@@ -390,6 +426,7 @@ public final class SessionTimerManager {
         
         let attributes = MomentumWidgetAttributes(
             sessionID: session.id.uuidString,
+            dayID: session.day.id,
             goalTitle: session.goal.title,
             dailyTarget: session.dailyTarget,
             themeLight: session.goal.primaryTag.theme.light.toHex(),

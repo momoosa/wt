@@ -30,14 +30,16 @@ public struct MomentumWidgetAttributes: ActivityAttributes {
 
     // Fixed non-changing properties
     public var sessionID: String
+    public var dayID: String
     public var goalTitle: String
     public var dailyTarget: TimeInterval
     public var themeLight: String  // Store as hex string
     public var themeDark: String   // Store as hex string
     public var themeNeon: String   // Store as hex string
     
-    public init(sessionID: String, goalTitle: String, dailyTarget: TimeInterval, themeLight: String, themeDark: String, themeNeon: String) {
+    public init(sessionID: String, dayID: String, goalTitle: String, dailyTarget: TimeInterval, themeLight: String, themeDark: String, themeNeon: String) {
         self.sessionID = sessionID
+        self.dayID = dayID
         self.goalTitle = goalTitle
         self.dailyTarget = dailyTarget
         self.themeLight = themeLight
@@ -133,11 +135,14 @@ public struct ToggleTimerIntent: AppIntent {
         let activeSessionIDKey = "ActiveSessionIDV1"
         let activeSessionStartDateKey = "ActiveSessionStartDateV1"
         let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
+        let pausedSessionIDKey = "PausedSessionIDV1"
         
         let currentActiveSessionID = defaults.string(forKey: activeSessionIDKey)
+        let pausedSessionID = defaults.string(forKey: pausedSessionIDKey)
         let isCurrentlyActive = currentActiveSessionID == sessionID
+        let isCurrentlyPaused = pausedSessionID == sessionID
         
-        print("📊 Intent: Current active session: \(currentActiveSessionID ?? "none"), target session: \(sessionID)")
+        print("📊 Intent: Current active session: \(currentActiveSessionID ?? "none"), paused: \(pausedSessionID ?? "none"), target: \(sessionID)")
         
         if isCurrentlyActive {
             // Stop the timer
@@ -175,10 +180,11 @@ public struct ToggleTimerIntent: AppIntent {
             day.add(historicalSession: historicalSession)
             context.insert(historicalSession)
             
-            // Clear timer state
+            // Clear timer state (including paused state)
             defaults.removeObject(forKey: activeSessionIDKey)
             defaults.removeObject(forKey: activeSessionStartDateKey)
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+            defaults.removeObject(forKey: "PausedSessionIDV1")
             
             // Force synchronization of UserDefaults
             defaults.synchronize()
@@ -186,6 +192,50 @@ public struct ToggleTimerIntent: AppIntent {
             try? context.save()
             
             print("✅ Intent: Timer stopped, historical session created (duration: \(duration)s)")
+            
+            // Notify the app to check for external changes and end Live Activity
+            NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
+            
+        } else if isCurrentlyPaused {
+            // Stop a paused timer - create historical session from elapsed time
+            print("⏹️ Intent: Stopping paused timer for session \(session.title)")
+            
+            let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
+            guard elapsedTime > 0 else {
+                print("⚠️ Intent: No elapsed time found for paused session")
+                defaults.removeObject(forKey: pausedSessionIDKey)
+                defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+                defaults.synchronize()
+                throw IntentError.invalidTimerState
+            }
+            
+            // Create historical session with the accumulated time
+            let endDate = Date()
+            let startDate = endDate.addingTimeInterval(-elapsedTime)
+            let historicalSession = HistoricalSession(
+                title: session.goal.title,
+                start: startDate,
+                end: endDate,
+                healthKitType: nil,
+                needsHealthKitRecord: false
+            )
+            historicalSession.goalIDs = [session.goal.id.uuidString]
+            
+            day.add(historicalSession: historicalSession)
+            context.insert(historicalSession)
+            
+            // Clear timer state
+            defaults.removeObject(forKey: pausedSessionIDKey)
+            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+            
+            defaults.synchronize()
+            
+            try? context.save()
+            
+            print("✅ Intent: Paused timer stopped, historical session created (elapsed: \(elapsedTime)s)")
+            
+            // Notify the app to check for external changes and end Live Activity
+            NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
             
         } else {
             // Start the timer
@@ -329,9 +379,12 @@ public struct PauseResumeTimerIntent: AppIntent {
         let activeSessionIDKey = "ActiveSessionIDV1"
         let activeSessionStartDateKey = "ActiveSessionStartDateV1"
         let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
+        let pausedSessionIDKey = "PausedSessionIDV1"
         
         let currentActiveSessionID = defaults.string(forKey: activeSessionIDKey)
+        let pausedSessionID = defaults.string(forKey: pausedSessionIDKey)
         let isCurrentlyActive = currentActiveSessionID == sessionID
+        let isCurrentlyPaused = pausedSessionID == sessionID
         
         if isCurrentlyActive {
             // Pause the timer
@@ -348,7 +401,8 @@ public struct PauseResumeTimerIntent: AppIntent {
             let duration = Date().timeIntervalSince(startDate)
             let totalElapsed = initialElapsed + duration
             
-            // Clear active state but store the total elapsed time
+            // Mark as paused and keep the session ID
+            defaults.set(sessionID, forKey: pausedSessionIDKey)
             defaults.removeObject(forKey: activeSessionIDKey)
             defaults.removeObject(forKey: activeSessionStartDateKey)
             defaults.set(totalElapsed, forKey: activeSessionElapsedTimeKey)
@@ -361,7 +415,7 @@ public struct PauseResumeTimerIntent: AppIntent {
             // Update Live Activity to show paused state
             await updateLiveActivity(sessionID: sessionID, isActive: false, elapsedTime: totalElapsed)
             #endif
-        } else {
+        } else if isCurrentlyPaused {
             // Resume the timer
             print("▶️ Intent: Resuming timer")
             
@@ -371,6 +425,7 @@ public struct PauseResumeTimerIntent: AppIntent {
             defaults.set(sessionID, forKey: activeSessionIDKey)
             defaults.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
             defaults.set(elapsedTime, forKey: activeSessionElapsedTimeKey)
+            defaults.removeObject(forKey: pausedSessionIDKey)
             
             defaults.synchronize()
             
@@ -380,6 +435,8 @@ public struct PauseResumeTimerIntent: AppIntent {
             // Update Live Activity to show active state
             await updateLiveActivity(sessionID: sessionID, isActive: true, elapsedTime: elapsedTime)
             #endif
+        } else {
+            print("⚠️ Intent: Session is neither active nor paused")
         }
         
         // Reload widgets
