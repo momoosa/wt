@@ -20,13 +20,25 @@ struct GoalEditorView: View {
     var existingGoal: Goal?
     
     @State private var userInput: String = ""
+    @FocusState private var focusedField: Field?
+    @Namespace private var buttonNamespace
+    
+    enum Field: Hashable {
+        case goalName
+        case duration
+        case dailyMinimum
+    }
     @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     @State private var errorMessage: String?
     @State private var session = LanguageModelSession(instructions: "Come up with up to three separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the title + duration.")
     @State var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
     @State private var currentStage: EditorStage = .name
     @State private var durationInMinutes: Int = 30
-    @State private var notificationsEnabled: Bool = false
+    @State private var dailyMinimumMinutes: Int? = nil
+    @State private var hasDailyMinimum: Bool = false
+    @State private var notificationsEnabled: Bool = false // Legacy, kept for backward compatibility
+    @State private var scheduleNotificationsEnabled: Bool = false
+    @State private var completionNotificationsEnabled: Bool = false
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
@@ -78,7 +90,7 @@ struct GoalEditorView: View {
             switch self {
             case .morning: return "Morning"
             case .midday: return "Midday"
-            case .afternoon: return "Afternoon"
+            case .afternoon: return "Noon"
             case .evening: return "Evening"
             case .night: return "Night"
             }
@@ -187,6 +199,7 @@ struct GoalEditorView: View {
                             // Custom input section
                             Section {
                                 TextField("What do you want to do?", text: $userInput)
+                                    .focused($focusedField, equals: .goalName)
                                     .onChange(of: userInput) { _, newValue in
                                         // Clear selection if user is typing freeform
                                         if !newValue.isEmpty {
@@ -286,12 +299,37 @@ struct GoalEditorView: View {
                         if currentStage == .duration {
                                                                                     
                             Section(header: Text("Weekly Goal")) {
-                                Picker("Duration (minutes)", selection: $durationInMinutes) {
-                                    ForEach([5, 10, 15, 20, 30, 45, 60, 90], id: \.self) { minutes in
-                                        Text("\(minutes) min").tag(minutes)
+                                HStack {
+                                    Text("Duration")
+                                    Spacer()
+                                    TextField("Minutes", value: $durationInMinutes, format: .number)
+                                        .focused($focusedField, equals: .duration)
+                                        .keyboardType(.numberPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 80)
+                                    Text("min/week")
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Toggle("Daily Minimum", isOn: $hasDailyMinimum)
+                                
+                                if hasDailyMinimum {
+                                    HStack {
+                                        Text("Minimum")
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                        TextField("Minutes", value: Binding(
+                                            get: { dailyMinimumMinutes ?? 10 },
+                                            set: { dailyMinimumMinutes = $0 }
+                                        ), format: .number)
+                                            .focused($focusedField, equals: .dailyMinimum)
+                                            .keyboardType(.numberPad)
+                                            .multilineTextAlignment(.trailing)
+                                            .frame(width: 80)
+                                        Text("min/day")
+                                            .foregroundStyle(.secondary)
                                     }
                                 }
-                                .pickerStyle(.menu)
                             }                            
                             
                             Section(header: Text("Theme")) {
@@ -349,37 +387,38 @@ struct GoalEditorView: View {
 
                             Section(header: Text("When to recommend this goal")) {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    // Header with time periods
+                                    // Header with weekdays
                                     HStack(spacing: 4) {
                                         Text("")
                                             .font(.caption)
                                             .fontWeight(.semibold)
                                             .frame(width: 50, alignment: .leading)
                                         
-                                        ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
-                                            VStack(spacing: 4) {
+                                        ForEach(weekdays, id: \.0) { _, name in
+                                            Text(name)
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .frame(maxWidth: .infinity)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    // Time periods with toggleable days
+                                    ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
+                                        HStack(spacing: 4) {
+                                            VStack(spacing: 2) {
                                                 Image(systemName: timeOfDay.icon)
                                                     .font(.caption2)
                                                 Text(timeOfDay.displayName)
                                                     .font(.caption2)
                                                     .fontWeight(.semibold)
                                             }
-                                            .frame(maxWidth: .infinity)
+                                            .frame(width: 50, alignment: .leading)
                                             .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Days with toggleable time periods
-                                    ForEach(weekdays, id: \.0) { weekday, name in
-                                        HStack(spacing: 4) {
-                                            Text(name)
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                                .frame(width: 50, alignment: .leading)
                                             
-                                            ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
+                                            ForEach(weekdays, id: \.0) { weekday, _ in
                                                 TimeSlotButton(
                                                     isSelected: dayTimePreferences[weekday]?.contains(timeOfDay) ?? false,
                                                     themeColor: activeThemeColor,
@@ -401,7 +440,25 @@ struct GoalEditorView: View {
                             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                             
                             Section(header: Text("Notifications")) {
-                                Toggle("Notify when target is reached", isOn: $notificationsEnabled)
+                                Toggle(isOn: $scheduleNotificationsEnabled) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Start Notifications")
+                                            .font(.subheadline)
+                                        Text("Notify at scheduled times")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                
+                                Toggle(isOn: $completionNotificationsEnabled) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Finish Notifications")
+                                            .font(.subheadline)
+                                        Text("Notify when daily goal is completed")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                             
                             HealthKitConfigurationView(
@@ -414,26 +471,50 @@ struct GoalEditorView: View {
                     .animation(.spring(), value: result)
                     .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStage)
                     
-                // Bottom button
-                VStack(spacing: 0) {
-                    Divider()
-                    Button(action: {
-                        handleButtonTap()
-                    }) {
-                        Text(currentStage == .name ? "Next" : "Save")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background {
-                                Capsule()
-                                    .fill(buttonEnabled ? activeThemeColor : Color.gray)
+            }
+            .overlay(alignment: .bottom) {
+                // Bottom button (hide when keyboard is active)
+                if focusedField == nil {
+                    VStack(spacing: 0) {
+                        Divider()
+                        if currentStage == .name {
+                            Button(action: {
+                                handleButtonTap()
+                            }) {
+                                Text("Next")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background {
+                                        Capsule()
+                                            .fill(buttonEnabled ? activeThemeColor : Color.gray)
+                                    }
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(10)
                             }
-                            .foregroundStyle(.white)
-                            .cornerRadius(10)
+                            .disabled(!buttonEnabled)
+                            .padding()
+                        } else {
+                            Button(action: {
+                                handleButtonTap()
+                            }) {
+                                Text("Save")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background {
+                                        Capsule()
+                                            .fill(buttonEnabled ? activeThemeColor : Color.gray)
+                                    }
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(10)
+                            }
+                            .matchedGeometryEffect(id: "actionButton", in: buttonNamespace)
+                            .disabled(!buttonEnabled)
+                            .padding()
+                        }
                     }
-                    .disabled(!buttonEnabled)
-                    .padding()
+                    .background(Color(.systemBackground))
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .background(Color(.systemBackground))
             }
             .navigationTitle(currentStage == .name ? (existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
             .navigationBarTitleDisplayMode(.inline)
@@ -461,8 +542,48 @@ struct GoalEditorView: View {
                     }
 
                 }
-                // Removed the trailing toolbar button since we have the bottom button now
+                
+                // Keyboard navigation toolbar
+                ToolbarItemGroup(placement: .keyboard) {
+                    HStack(spacing: 12) {
+                        Button {
+                            focusPreviousField()
+                        } label: {
+                            Image(systemName: "chevron.up")
+                        }
+                        .disabled(!canFocusPrevious())
+                        
+                        Button {
+                            focusNextField()
+                        } label: {
+                            Image(systemName: "chevron.down")
+                        }
+                        .disabled(!canFocusNext())
+                        
+                        Button {
+                            focusedField = nil
+                        } label: {
+                            Image(systemName: "keyboard.chevron.compact.down")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Save button (only on duration stage)
+                    if currentStage == .duration {
+                        Button {
+                            saveGoal()
+                        } label: {
+                            Text("Save")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(activeThemeColor)
+                        }
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
             }
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: focusedField)
         }
         .sheet(isPresented: $showingAddThemeSheet) {
             TagSelectionSheet(
@@ -501,13 +622,93 @@ struct GoalEditorView: View {
         }
     }
     
+    // MARK: - Keyboard Navigation
+    
+    private func focusNextField() {
+        switch focusedField {
+        case .goalName:
+            if currentStage == .duration {
+                focusedField = .duration
+            }
+        case .duration:
+            if hasDailyMinimum {
+                focusedField = .dailyMinimum
+            } else {
+                focusedField = nil
+            }
+        case .dailyMinimum:
+            focusedField = nil
+        case .none:
+            focusedField = .goalName
+        }
+    }
+    
+    private func focusPreviousField() {
+        switch focusedField {
+        case .goalName:
+            focusedField = nil
+        case .duration:
+            focusedField = .goalName
+        case .dailyMinimum:
+            focusedField = .duration
+        case .none:
+            if currentStage == .duration {
+                if hasDailyMinimum {
+                    focusedField = .dailyMinimum
+                } else {
+                    focusedField = .duration
+                }
+            } else {
+                focusedField = .goalName
+            }
+        }
+    }
+    
+    private func canFocusNext() -> Bool {
+        switch focusedField {
+        case .goalName:
+            return currentStage == .duration
+        case .duration:
+            return hasDailyMinimum
+        case .dailyMinimum:
+            return false
+        case .none:
+            return true
+        }
+    }
+    
+    private func canFocusPrevious() -> Bool {
+        switch focusedField {
+        case .goalName:
+            return false
+        case .duration:
+            return true
+        case .dailyMinimum:
+            return true
+        case .none:
+            return currentStage == .duration
+        }
+    }
+    
     // MARK: - Helper Functions
     
     /// Load existing goal data for editing
     private func loadGoalData(from goal: Goal) {
         userInput = goal.title
-        durationInMinutes = Int(goal.weeklyTarget / 60 / 7) // Convert weekly back to daily
+        durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes
+        
+        // Load daily minimum
+        if let dailyMin = goal.dailyMinimum {
+            hasDailyMinimum = true
+            dailyMinimumMinutes = Int(dailyMin / 60)
+        } else {
+            hasDailyMinimum = false
+            dailyMinimumMinutes = nil
+        }
+        
         notificationsEnabled = goal.notificationsEnabled
+        scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
+        completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
         
@@ -671,6 +872,8 @@ struct GoalEditorView: View {
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
     
+    @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
+    
     func saveGoal() {
         let goal: Goal
         let isEditing = existingGoal != nil
@@ -709,8 +912,11 @@ struct GoalEditorView: View {
             goal = existingGoal
             goal.title = userInput
             goal.primaryTag = finalGoalTag
-            goal.weeklyTarget = TimeInterval(durationInMinutes * 60 * 7)
+            goal.weeklyTarget = TimeInterval(durationInMinutes * 60) // Weekly minutes to seconds
+            goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
             goal.notificationsEnabled = notificationsEnabled
+            goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
+            goal.completionNotificationsEnabled = completionNotificationsEnabled
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
             
@@ -722,8 +928,10 @@ struct GoalEditorView: View {
                 goal = Goal(
                     title: title,
                     primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
+                    weeklyTarget: TimeInterval(durationInMinutes * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
+                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
+                    completionNotificationsEnabled: completionNotificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
@@ -731,11 +939,14 @@ struct GoalEditorView: View {
                 goal = Goal(
                     title: userInput,
                     primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(durationInMinutes * 60 * 7), // Convert daily to weekly
+                    weeklyTarget: TimeInterval(durationInMinutes * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
+                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
+                    completionNotificationsEnabled: completionNotificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
+                goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
             }
         }
         
@@ -750,7 +961,7 @@ struct GoalEditorView: View {
         print(goal.scheduleSummary)
         
         // Request notification permissions if enabled
-        if notificationsEnabled {
+        if scheduleNotificationsEnabled || completionNotificationsEnabled {
             requestNotificationPermissions()
         }
         
@@ -758,6 +969,27 @@ struct GoalEditorView: View {
         if !isEditing {
             modelContext.insert(goal)
         }
+        
+        // Handle notification scheduling
+        Task {
+            let notificationManager = GoalNotificationManager()
+            
+            // Schedule notifications if enabled and there's a schedule
+            if scheduleNotificationsEnabled && goal.hasSchedule {
+                do {
+                    try await notificationManager.scheduleNotifications(for: goal)
+                } catch {
+                    print("❌ Failed to schedule notifications: \(error)")
+                }
+            } else {
+                // Cancel schedule notifications if disabled
+                await notificationManager.cancelScheduleNotifications(for: goal)
+            }
+        }
+        
+        // Reset the plan generation timestamp to trigger a new plan
+        lastPlanGeneratedTimestamp = 0
+        print("🔄 Reset plan generation timestamp - new plan will be generated")
         
         dismiss()
     }
@@ -1264,16 +1496,24 @@ struct TimeSlotButton: View {
     
     var body: some View {
         Button(action: action) {
-            Circle()
-                .fill(isSelected ? themeColor : Color(.systemGray5))
-                .frame(height: 44)
-                .overlay(
-                    Image(systemName: isSelected ? "checkmark" : "")
-                        .font(.system(size: 14))
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                )
-                .shadow(color: isSelected ? themeColor.opacity(0.3) : .clear, radius: 4, x: 0, y: 2)
+            ZStack {
+                // Invisible tap target
+                Color.clear
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
+                
+                // Smaller visual circle
+                Circle()
+                    .fill(isSelected ? themeColor : Color(.systemGray5))
+                    .frame(height: 28)
+                    .overlay(
+                        Image(systemName: isSelected ? "checkmark" : "")
+                            .font(.system(size: 10))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                    )
+                    .shadow(color: isSelected ? themeColor.opacity(0.3) : .clear, radius: 3, x: 0, y: 1)
+            }
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.3), value: isSelected)

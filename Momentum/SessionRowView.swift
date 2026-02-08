@@ -10,6 +10,7 @@ struct SessionRowView: View {
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
     let onSkip: (GoalSession) -> Void
+    var isRecommended: Bool = false
     
     @Environment(GoalStore.self) private var goalStore
     @Environment(\.colorScheme) private var colorScheme
@@ -28,10 +29,10 @@ struct SessionRowView: View {
             .opacity(0)
             
             HStack {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading) {
                         Text(session.goal.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(isRecommended ? Color.primary : .primary)
                     
                     HStack {
                         if let activeSession = timerManager?.activeSession,
@@ -65,7 +66,7 @@ struct SessionRowView: View {
                             .font(.caption2)
                             .padding(4)
                             .background(Capsule()
-                                .fill(session.goal.primaryTag.themePreset.light.opacity(0.15)))
+                                .fill(isRecommended ? Color.white.opacity(0.2) : session.goal.primaryTag.themePreset.light.opacity(0.15)))
                         
                         HealthKitBadge(
                             metric: session.goal.healthKitMetric,
@@ -75,16 +76,7 @@ struct SessionRowView: View {
                         Spacer()
                     }
                     .opacity(0.7)
-                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark)
-                    
-                    // Show AI reasoning if available with animation
-                    if let reasoning = session.plannedReasoning, selectedSession == session {
-                        Text(reasoning)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 4)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
+                    .foregroundStyle(isRecommended ? Color.primary : (colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark))
                 }
                 
                 Spacer()
@@ -106,7 +98,7 @@ struct SessionRowView: View {
                                     .font(.title2)
                             }
                         }
-                        .foregroundStyle(session.goal.primaryTag.themePreset.color(for: colorScheme))
+                        .foregroundStyle(isRecommended ? Color.primary : session.goal.primaryTag.themePreset.color(for: colorScheme))
                     } else {
                         // Read-only HealthKit metric: Show only log button
                         Button {
@@ -115,7 +107,7 @@ struct SessionRowView: View {
                             Image(systemName: "pencil.circle.fill")
                                 .font(.title3)
                         }
-                        .foregroundStyle(session.goal.primaryTag.themePreset.color(for: colorScheme))
+                        .foregroundStyle(isRecommended ? Color.primary : session.goal.primaryTag.themePreset.color(for: colorScheme))
                         .opacity(0.6)
                     }
                 } else {
@@ -125,11 +117,18 @@ struct SessionRowView: View {
                     } label: {
                         let isActive = timerManager?.activeSession?.id == session.id
                         let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                        GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTag.themePreset.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
-                            .contentTransition(.symbolEffect(.replace))
-                            .font(.title2)
+                        
+                        if isRecommended {
+                            Image(systemName: image)
+                                .contentTransition(.symbolEffect(.replace))
+                                .font(.title2)
+                        } else {
+                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTag.themePreset.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                                .contentTransition(.symbolEffect(.replace))
+                                .font(.title2)
+                        }
                     }
-                    .foregroundStyle(colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark)
+                    .foregroundStyle(isRecommended ? Color.primary : (colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark))
                 }
             }
             .buttonStyle(.plain)

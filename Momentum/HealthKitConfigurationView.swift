@@ -27,7 +27,19 @@ struct HealthKitConfigurationView: View {
                     Text("None").tag(HealthKitMetric?.none)
                     ForEach(HealthKitMetric.allCases) { metric in
                         Label {
-                            Text(metric.displayName)
+                            HStack {
+                                Text(metric.displayName)
+                                Spacer()
+                                if metric.supportsWrite {
+                                    Text("Read & Write")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("Read")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         } icon: {
                             Image(systemName: metric.symbolName)
                         }
@@ -36,9 +48,32 @@ struct HealthKitConfigurationView: View {
                 }
                 
                 if let selectedMetric {
-                    Text(selectedMetric.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(selectedMetric.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        // Show read/write capability
+                        if selectedMetric.supportsWrite {
+                            Label {
+                                Text("Sessions will be saved to Health")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            } icon: {
+                                Image(systemName: "arrow.up.doc")
+                                    .foregroundStyle(.blue)
+                            }
+                        } else {
+                            Label {
+                                Text("Read-only metric")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            } icon: {
+                                Image(systemName: "eye")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                     
                     // Show authorization status
                     if healthKitManager.isHealthKitAvailable && healthKitManager.isAuthorized(for: selectedMetric) {

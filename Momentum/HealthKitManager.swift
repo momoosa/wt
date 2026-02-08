@@ -46,15 +46,24 @@ public final class HealthKitManager {
         
         // Create set of sample types to read (both quantity and category types)
         var typesToRead: Set<HKSampleType> = []
+        var typesToWrite: Set<HKSampleType> = []
         
         for metric in metrics {
             if let sampleType = metric.sampleType {
                 typesToRead.insert(sampleType)
+                
+                // Request write permission for writable metrics
+                if metric.supportsWrite {
+                    typesToWrite.insert(sampleType)
+                }
             }
             
             // Add workout type for workout-based metrics
             if metric == .weightLiftingTime || metric == .ellipticalTime || metric == .rowingTime {
                 typesToRead.insert(HKObjectType.workoutType())
+                if metric.supportsWrite {
+                    typesToWrite.insert(HKObjectType.workoutType())
+                }
             }
         }
         
@@ -63,7 +72,7 @@ public final class HealthKitManager {
         }
         
         do {
-            try await healthStore.requestAuthorization(toShare: [], read: typesToRead)
+            try await healthStore.requestAuthorization(toShare: typesToWrite, read: typesToRead)
             
             // Mark metrics as authorized in UserDefaults (for read-only access tracking)
             for metric in metrics {
@@ -410,6 +419,60 @@ public final class HealthKitManager {
             
             healthStore.execute(query)
         }
+    }
+    
+    // MARK: - Write Operations
+    
+    /// Write a session to HealthKit for writable metrics
+    public func writeSession(metric: HealthKitMetric, startDate: Date, endDate: Date) async throws -> String {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        guard metric.supportsWrite else {
+            throw HealthKitError.invalidMetric
+        }
+        
+        // Handle mindful minutes (category type)
+        if metric == .mindfulMinutes {
+            guard let categoryType = metric.categoryType else {
+                throw HealthKitError.invalidMetric
+            }
+            
+            let sample = HKCategorySample(
+                type: categoryType,
+                value: HKCategoryValue.notApplicable.rawValue,
+                start: startDate,
+                end: endDate
+            )
+            
+            try await healthStore.save(sample)
+            return sample.uuid.uuidString
+        }
+        
+        // Handle workout-based metrics
+        let workoutType: HKWorkoutActivityType
+        switch metric {
+        case .weightLiftingTime:
+            workoutType = .traditionalStrengthTraining
+        case .ellipticalTime:
+            workoutType = .elliptical
+        case .rowingTime:
+            workoutType = .rowing
+        case .workoutTime:
+            workoutType = .other
+        default:
+            throw HealthKitError.invalidMetric
+        }
+        
+        let workout = HKWorkout(
+            activityType: workoutType,
+            start: startDate,
+            end: endDate
+        )
+        
+        try await healthStore.save(workout)
+        return workout.uuid.uuidString
     }
 }
 

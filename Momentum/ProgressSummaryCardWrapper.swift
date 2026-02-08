@@ -77,9 +77,16 @@ struct ProgressSummaryCardWrapper: View {
     @Binding var cardRotationY: Double
     @Binding var shimmerOffset: CGFloat
     let timerManager: SessionTimerManager
+    let onDone: () -> Void
+    let onSkip: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var isTimerActive: Bool {
         timerManager.isActive(session)
+    }
+    
+    var tintColor: Color {
+        colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark
     }
     
     var body: some View {
@@ -91,7 +98,11 @@ struct ProgressSummaryCardWrapper: View {
             dailyElapsed: session.elapsedTime,
             dailyTarget: session.dailyTarget,
             shimmerOffset: $shimmerOffset,
-            activeSessionDetails: timerManager.activeSession
+            activeSessionDetails: timerManager.activeSession,
+            session: session,
+            timerManager: timerManager,
+            onDone: onDone,
+            onSkip: onSkip
         )
     }
 }
@@ -108,6 +119,10 @@ struct ProgressSummaryCard: View {
     
     @Binding var shimmerOffset: CGFloat
     var activeSessionDetails: ActiveSessionDetails?
+    var session: GoalSession?
+    var timerManager: SessionTimerManager?
+    var onDone: (() -> Void)?
+    var onSkip: (() -> Void)?
     
     // Computed property that accesses currentTime to ensure updates when timer is active
     private var currentElapsed: TimeInterval {
@@ -131,7 +146,7 @@ struct ProgressSummaryCard: View {
     var body: some View {
             ZStack {
                 
-                VStack {
+                VStack(spacing: 0) {
                
                     // Progress summary content
                     HStack(alignment: .center, spacing: 16) {
@@ -180,8 +195,71 @@ struct ProgressSummaryCard: View {
                         
                         Spacer()
                     }
+                    .padding()
+                    
+                    // Action Buttons (if provided)
+                    if let session = session, let timerManager = timerManager, let onDone = onDone, let onSkip = onSkip {
+                        
+                        HStack(spacing: 0) {
+                            // Mark as Done button
+                            Button {
+                                onDone()
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title2)
+                                        .symbolRenderingMode(.hierarchical)
+                                    Text("Done")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .foregroundStyle(textColor)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            
+                            // Start/Stop button
+                            Button {
+                                timerManager.toggleTimer(for: session, in: session.day)
+                            } label: {
+                                let isActive = timerManager.isActive(session)
+                                VStack(spacing: 4) {
+                                    Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
+                                        .font(.title2)
+                                        .symbolRenderingMode(.hierarchical)
+                                    Text(isActive ? "Pause" : "Start")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .foregroundStyle(textColor)
+                            }
+                            .buttonStyle(.plain)
+                                                        
+                            // Skip button
+                            Button {
+                                onSkip()
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "forward.circle.fill")
+                                        .font(.title2)
+                                        .symbolRenderingMode(.hierarchical)
+                                    Text(session.status == .skipped ? "Undo Skip" : "Skip")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .foregroundStyle(textColor.opacity(0.7))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .background(.ultraThinMaterial)
+                    }
                 }
-                .padding()
                 .background {
                     LinearGradient(
                                    colors: [

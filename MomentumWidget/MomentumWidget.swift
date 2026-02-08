@@ -258,42 +258,42 @@ struct MediumWidgetView: View {
             } else {
                 VStack(spacing: 6) {
                     ForEach(entry.recommendations.prefix(6)) { session in
-                        HStack(spacing: 8) {
+                        HStack(spacing: 10) {
                             // Play/Stop Button
                             Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
                                 ZStack {
                                     Circle()
                                         .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
-                                        .frame(width: 24, height: 24)
+                                        .frame(width: 36, height: 36)
                                     
                                     Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
-                                        .font(.system(size: 8))
+                                        .font(.system(size: 14))
                                         .foregroundStyle(.white)
                                 }
                             }
                             .buttonStyle(.plain)
                             
-                            VStack(alignment: .leading, spacing: 1) {
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text(session.title)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
                                     .lineLimit(1)
                                     .strikethrough(session.hasMetTarget, color: .secondary)
                                 
-                                HStack(spacing: 3) {
+                                HStack(spacing: 4) {
                                     if session.isTimerActive {
                                         Circle()
                                             .fill(.red)
-                                            .frame(width: 4, height: 4)
+                                            .frame(width: 5, height: 5)
                                     }
                                     
                                     Text(session.formattedTime)
-                                        .font(.system(size: 9))
+                                        .font(.caption)
                                         .foregroundStyle(.secondary)
                                     
                                     if session.hasMetTarget {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 8))
+                                            .font(.system(size: 10))
                                             .foregroundStyle(.green)
                                     }
                                 }

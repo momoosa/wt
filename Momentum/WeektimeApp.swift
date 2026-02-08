@@ -8,9 +8,40 @@
 import SwiftUI
 import SwiftData
 import MomentumKit
+import UserNotifications
+
+// MARK: - App Delegate for Notification Handling
+
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Set notification delegate to handle foreground notifications
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+    
+    // Handle notifications when app is in foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Show banner, play sound, and update badge even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    // Handle notification taps
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        
+        // Handle different notification types
+        if let goalId = userInfo["goalId"] as? String {
+            print("📱 User tapped notification for goal: \(goalId)")
+            // TODO: Navigate to goal detail if needed
+        }
+        
+        completionHandler()
+    }
+}
 
 @main
 struct MomentumApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Goal.self,

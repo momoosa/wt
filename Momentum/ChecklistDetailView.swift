@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import UserNotifications
+import Charts
 
 struct ChecklistDetailView: View {
     var session: GoalSession
@@ -26,9 +27,130 @@ struct ChecklistDetailView: View {
     // Card tilt and shimmer states
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
+    
+    // Notification manager (created as needed)
+    private let notificationManager = GoalNotificationManager()
 
     var tintColor: Color {
         colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark
+    }
+    
+    // Schedule data for chart
+    struct SchedulePoint: Identifiable {
+        let id = UUID()
+        let weekday: String
+        let timeOfDay: String
+    }
+    
+    var schedulePoints: [SchedulePoint] {
+        let weekdays: [(Int, String)] = [
+            (2, "M"), (3, "T"), (4, "W"),
+            (5, "T"), (6, "F"), (7, "S"), (1, "S")
+        ]
+        
+        var points: [SchedulePoint] = []
+        for (weekdayNum, dayLabel) in weekdays {
+            for timeOfDay in TimeOfDay.allCases {
+                if session.goal.isScheduled(weekday: weekdayNum, time: timeOfDay) {
+                    points.append(SchedulePoint(weekday: dayLabel, timeOfDay: timeOfDay.displayName))
+                }
+            }
+        }
+        return points
+    }
+    
+    var scheduleChartView: some View {
+        let weekdays: [(Int, String)] = [
+            (2, "M"), (3, "T"), (4, "W"),
+            (5, "T"), (6, "F"), (7, "S"), (1, "S")
+        ]
+        let times = Array(TimeOfDay.allCases)
+        let theme = session.goal.primaryTag.theme
+        
+        return VStack(spacing: 4) {
+            // Header row with day labels
+            HStack(spacing: 6) {
+                Text("")
+                    .frame(width: 20)
+                
+                ForEach(weekdays, id: \.0) { _, label in
+                    Text(label)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Grid with gradient overlay
+            ZStack {
+                // Icons on the left
+                VStack(spacing: 2) {
+                    ForEach(Array(times.enumerated()), id: \.offset) { index, time in
+                        HStack(spacing: 6) {
+                            Image(systemName: time.icon)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 20, alignment: .leading)
+                            
+                            Spacer()
+                        }
+                        .frame(height: 20)
+                    }
+                }
+                
+                // Gradient with mask
+                HStack(spacing: 6) {
+                    Color.clear
+                        .frame(width: 20)
+                    
+                    LinearGradient(
+                        colors: [theme.dark, theme.neon],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .mask {
+                        VStack(spacing: 2) {
+                            ForEach(times, id: \.self) { time in
+                                HStack(spacing: 8) {
+                                    ForEach(weekdays, id: \.0) { weekday, _ in
+                                        let isScheduled = session.goal.isScheduled(weekday: weekday, time: time)
+                                        
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(isScheduled ? Color.white : Color.clear)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .frame(height: 20)
+                                    }
+                                }
+                                .frame(height: 20)
+                            }
+                        }
+                    }
+                }
+                
+                // Unscheduled cells overlay
+                HStack(spacing: 6) {
+                    Color.clear
+                        .frame(width: 20)
+                    
+                    VStack(spacing: 2) {
+                        ForEach(times, id: \.self) { time in
+                            HStack(spacing: 8) {
+                                ForEach(weekdays, id: \.0) { weekday, _ in
+                                    let isScheduled = session.goal.isScheduled(weekday: weekday, time: time)
+                                    
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(isScheduled ? Color.clear : Color.secondary.opacity(0.15))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .frame(height: 20)
+                                }
+                            }
+                            .frame(height: 20)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 8)
     }
     
     // Weekly progress calculation
@@ -54,129 +176,19 @@ struct ChecklistDetailView: View {
                     weeklyElapsedTime: weeklyElapsedTime,
                     cardRotationY: $cardRotationY,
                     shimmerOffset: $shimmerOffset,
-                    timerManager: timerManager
+                    timerManager: timerManager,
+                    onDone: markGoalAsDone,
+                    onSkip: toggleSkip
                 )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 
             }
             
-            // Action Buttons
-            Section {
-                HStack(spacing: 12) {
-                    // Mark as Done button
-                    Button {
-                        markGoalAsDone()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.title2)
-                                .symbolRenderingMode(.hierarchical)
-                            Text("Done")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(tintColor.opacity(0.15))
-                        .foregroundStyle(tintColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
-                    
-                    // Start/Stop button
-                    Button {
-                        timerManager.toggleTimer(for: session, in: session.day)
-                    } label: {
-                        let isActive = timerManager.isActive(session)
-                        VStack(spacing: 4) {
-                            Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.title2)
-                                .symbolRenderingMode(.hierarchical)
-                            Text(isActive ? "Pause" : "Start")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(tintColor.opacity(0.15))
-                        .foregroundStyle(tintColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
-                    
-                    // Skip button
-                    Button {
-                        toggleSkip()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: "forward.circle.fill")
-                                .font(.title2)
-                                .symbolRenderingMode(.hierarchical)
-                            Text(session.status == .skipped ? "Undo Skip" : "Skip")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.secondary.opacity(0.15))
-                        .foregroundStyle(.secondary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            }
-            .listRowBackground(Color.clear)
-            
             // Schedule Display
             if session.goal.hasSchedule {
                 Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Compact weekly schedule grid
-                        VStack(spacing: 8) {
-                            // Header row
-                            HStack(spacing: 4) {
-                                Text("")
-                                    .font(.caption2)
-                                    .fontWeight(.semibold)
-                                    .frame(width: 35, alignment: .leading)
-                                
-                                ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
-                                    Image(systemName: timeOfDay.icon)
-                                        .font(.caption2)
-                                        .frame(maxWidth: .infinity)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            
-                            // Day rows
-                            let weekdays: [(Int, String)] = [
-                                (2, "Mon"), (3, "Tue"), (4, "Wed"),
-                                (5, "Thu"), (6, "Fri"), (7, "Sat"), (1, "Sun")
-                            ]
-                            
-                            ForEach(weekdays, id: \.0) { weekday, name in
-                                HStack(spacing: 4) {
-                                    Text(name)
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .frame(width: 35, alignment: .leading)
-                                        .foregroundStyle(.secondary)
-                                    
-                                    ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
-                                        let isScheduled = session.goal.isScheduled(weekday: weekday, time: timeOfDay)
-                                        Circle()
-                                            .fill(isScheduled ? tintColor : Color.secondary.opacity(0.2))
-                                            .frame(maxWidth: .infinity)
-                                            .aspectRatio(1, contentMode: .fit)
-                                            .frame(maxHeight: 20)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
+                    scheduleChartView
                 } header: {
                     HStack {
                         Text("Schedule")
@@ -186,6 +198,113 @@ struct ChecklistDetailView: View {
                             .foregroundStyle(isCurrentlyScheduled ? tintColor : .secondary)
                     }
                 }
+            }
+            
+            // Goal Settings Info
+            Section {
+                // HealthKit Integration
+                if session.goal.healthKitSyncEnabled, let metric = session.goal.healthKitMetric {
+                    HStack {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("HealthKit Sync")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text(metric.displayName)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: metric.symbolName)
+                                .foregroundStyle(tintColor)
+                        }
+                        
+                        Spacer()
+                        
+                        if metric.supportsWrite {
+                            Text("Read & Write")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(tintColor.opacity(0.15))
+                                .clipShape(Capsule())
+                        } else {
+                            Text("Read")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.secondary.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                
+                // Schedule Notifications Toggle
+                Toggle(isOn: Binding(
+                    get: { session.goal.scheduleNotificationsEnabled },
+                    set: { newValue in
+                        session.goal.scheduleNotificationsEnabled = newValue
+                        try? context.save()
+                        
+                        // Schedule or cancel schedule notifications
+                        Task {
+                            if newValue {
+                                try? await notificationManager.scheduleNotifications(for: session.goal)
+                            } else {
+                                await notificationManager.cancelScheduleNotifications(for: session.goal)
+                            }
+                        }
+                    }
+                )) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Start Notifications")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            if session.goal.hasSchedule {
+                                Text(session.goal.scheduleNotificationsEnabled ? "Notify when starting sessions" : "Tap to enable")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text(session.goal.scheduleNotificationsEnabled ? "Notify when starting sessions" : "Tap to enable")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    } icon: {
+                        Image(systemName: session.goal.scheduleNotificationsEnabled ? "bell.badge.fill" : "bell.badge")
+                            .foregroundStyle(session.goal.scheduleNotificationsEnabled ? tintColor : .secondary)
+                    }
+                }
+                .tint(tintColor)
+                
+                // Completion Notifications Toggle
+                Toggle(isOn: Binding(
+                    get: { session.goal.completionNotificationsEnabled },
+                    set: { newValue in
+                        session.goal.completionNotificationsEnabled = newValue
+                        try? context.save()
+                    }
+                )) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Finish Notifications")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text(session.goal.completionNotificationsEnabled ? "Notify when goal is completed" : "Tap to enable")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: session.goal.completionNotificationsEnabled ? "checkmark.circle.fill" : "checkmark.circle")
+                            .foregroundStyle(session.goal.completionNotificationsEnabled ? tintColor : .secondary)
+                    }
+                }
+                .tint(tintColor)
+            } header: {
+                Text("Settings")
             }
             
             // History section remains as-is
@@ -319,6 +438,8 @@ struct ChecklistDetailView: View {
             }
             
         }
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .tint(tintColor)
         .navigationDestination(isPresented: $isShowingListsOverview) {
             ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor)
         }
@@ -434,6 +555,9 @@ struct ChecklistDetailView: View {
     private func notificationIdentifier(for interval: IntervalSession) -> String {
         return "interval_\(interval.id)"
     }
+    
+    // MARK: - Chart Helpers
+
 // TODO: 
 //    private func cancelAllIntervalNotifications(for session: GoalSession) {
 //        let ids = session.intervals.map { notificationIdentifier(for: $0) }

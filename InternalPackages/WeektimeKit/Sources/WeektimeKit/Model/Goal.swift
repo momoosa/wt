@@ -17,7 +17,12 @@ public final class Goal {
     public var primaryTag: GoalTag // Optional tag that provides both theme and smart triggers
     public var otherTags: [GoalTag]
     public var weeklyTarget: TimeInterval // Target duration in seconds for the week
-    public var notificationsEnabled: Bool // Whether to send notifications when target is reached
+    public var dailyMinimum: TimeInterval? // Optional minimum time required each day (for strict daily habits)
+    
+    // Notifications
+    public var notificationsEnabled: Bool // Legacy: kept for backward compatibility
+    public var scheduleNotificationsEnabled: Bool = false // Whether to send notifications at scheduled times
+    public var completionNotificationsEnabled: Bool = false // Whether to send notifications when daily target is reached
     
     // HealthKit Integration
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
@@ -36,7 +41,7 @@ public final class Goal {
     @Relationship(deleteRule: .cascade) 
     public var intervalLists: [IntervalList] = []
 
-    public init(title: String, primaryTag: GoalTag, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
+    public init(title: String, primaryTag: GoalTag, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
         self.title = title
         self.status = .active
@@ -44,6 +49,8 @@ public final class Goal {
         self.otherTags = otherTags
         self.weeklyTarget = weeklyTarget
         self.notificationsEnabled = notificationsEnabled
+        self.scheduleNotificationsEnabled = scheduleNotificationsEnabled
+        self.completionNotificationsEnabled = completionNotificationsEnabled
         self.healthKitMetricRawValue = healthKitMetric?.rawValue
         self.healthKitSyncEnabled = healthKitSyncEnabled
     }

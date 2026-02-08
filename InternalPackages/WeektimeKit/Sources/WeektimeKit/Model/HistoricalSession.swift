@@ -39,5 +39,10 @@ public final class HistoricalSession {
     public var duration: Double { // TODO: Extension
         return endDate.timeIntervalSince(startDate)
     }
+    
+    /// Update the HealthKit type for this session
+    public func setHealthKitType(_ type: String?) {
+        self.healthKitType = type
+    }
 }
 

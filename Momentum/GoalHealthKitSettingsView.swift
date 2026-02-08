@@ -28,7 +28,19 @@ struct GoalHealthKitSettingsView: View {
                         Text("Select Metric").tag(HealthKitMetric?.none)
                         ForEach(HealthKitMetric.allCases) { metric in
                             Label {
-                                Text(metric.displayName)
+                                HStack {
+                                    Text(metric.displayName)
+                                    Spacer()
+                                    if metric.supportsWrite {
+                                        Text("Read & Write")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        Text("Read")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                             } icon: {
                                 Image(systemName: metric.symbolName)
                             }
@@ -37,12 +49,35 @@ struct GoalHealthKitSettingsView: View {
                     }
                     
                     if let metric = goal.healthKitMetric {
-                        HStack {
-                            Image(systemName: metric.symbolName)
-                                .foregroundStyle(goal.primaryTag.theme.dark)
-                            Text(metric.description)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: metric.symbolName)
+                                    .foregroundStyle(goal.primaryTag.theme.dark)
+                                Text(metric.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            // Show read/write capability
+                            if metric.supportsWrite {
+                                Label {
+                                    Text("Tracked sessions will be saved to Health")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                } icon: {
+                                    Image(systemName: "arrow.up.doc")
+                                        .foregroundStyle(.blue)
+                                }
+                            } else {
+                                Label {
+                                    Text("Read-only metric")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                } icon: {
+                                    Image(systemName: "eye")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                         .padding(.vertical, 4)
                         
@@ -132,15 +167,15 @@ struct HealthKitPrivacyInfoView: View {
                 
                 Label {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Read-Only Access")
+                        Text("Read & Write Access")
                             .fontWeight(.semibold)
-                        Text("Momentum only reads data from HealthKit. It does not modify or add data to your Health app.")
+                        Text("Some metrics support writing sessions back to HealthKit. Sessions you track will be saved to your Health app.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 } icon: {
-                    Image(systemName: "eye.fill")
-                        .foregroundStyle(.green)
+                    Image(systemName: "arrow.left.arrow.right")
+                        .foregroundStyle(.blue)
                 }
                 
                 Label {

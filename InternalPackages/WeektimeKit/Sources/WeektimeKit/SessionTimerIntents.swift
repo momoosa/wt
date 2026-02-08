@@ -273,26 +273,137 @@ public struct StartSessionTimerIntent: AppIntent {
 }
 
 /// App Intent to stop a timer for a goal session
-struct StopTimerIntent: AppIntent {
-    static let title: LocalizedStringResource = "Stop Timer"
-    static let description = IntentDescription("Stop tracking time for a goal")
+public struct StopTimerIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Stop Timer"
+    public static let description = IntentDescription("Stop tracking time for a goal")
     
     @Parameter(title: "Session ID")
-    var sessionID: String
+    public var sessionID: String
     
     @Parameter(title: "Day ID")
-    var dayID: String
+    public var dayID: String
     
-    init() {}
+    public init() {}
     
-    init(sessionID: String, dayID: String) {
+    public init(sessionID: String, dayID: String) {
         self.sessionID = sessionID
         self.dayID = dayID
     }
     
-    func perform() async throws -> some IntentResult {
+    public func perform() async throws -> some IntentResult {
         // Delegate to ToggleTimerIntent
         let toggle = ToggleTimerIntent(sessionID: sessionID, dayID: dayID)
         return try await toggle.perform()
     }
+}
+
+/// App Intent to pause/resume a timer for a goal session (for Live Activities)
+public struct PauseResumeTimerIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Pause/Resume Timer"
+    public static let description = IntentDescription("Pause or resume tracking time for a goal")
+    
+    @Parameter(title: "Session ID")
+    public var sessionID: String
+    
+    @Parameter(title: "Day ID")
+    public var dayID: String
+    
+    public init() {}
+    
+    public init(sessionID: String, dayID: String) {
+        self.sessionID = sessionID
+        self.dayID = dayID
+    }
+    
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        print("⏸️ PauseResumeTimerIntent: Starting for session \(sessionID)")
+        
+        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            print("❌ Intent: Failed to access UserDefaults for app group")
+            throw ToggleTimerIntent.IntentError.containerError
+        }
+        
+        let activeSessionIDKey = "ActiveSessionIDV1"
+        let activeSessionStartDateKey = "ActiveSessionStartDateV1"
+        let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
+        
+        let currentActiveSessionID = defaults.string(forKey: activeSessionIDKey)
+        let isCurrentlyActive = currentActiveSessionID == sessionID
+        
+        if isCurrentlyActive {
+            // Pause the timer
+            print("⏸️ Intent: Pausing timer")
+            
+            let startTimeInterval = defaults.double(forKey: activeSessionStartDateKey)
+            guard startTimeInterval > 0 else {
+                print("⚠️ Intent: No valid start time found")
+                throw ToggleTimerIntent.IntentError.invalidTimerState
+            }
+            
+            let startDate = Date(timeIntervalSince1970: startTimeInterval)
+            let initialElapsed = defaults.double(forKey: activeSessionElapsedTimeKey)
+            let duration = Date().timeIntervalSince(startDate)
+            let totalElapsed = initialElapsed + duration
+            
+            // Clear active state but store the total elapsed time
+            defaults.removeObject(forKey: activeSessionIDKey)
+            defaults.removeObject(forKey: activeSessionStartDateKey)
+            defaults.set(totalElapsed, forKey: activeSessionElapsedTimeKey)
+            
+            defaults.synchronize()
+            
+            print("✅ Intent: Timer paused (elapsed: \(totalElapsed)s)")
+            
+            #if canImport(ActivityKit)
+            // Update Live Activity to show paused state
+            await updateLiveActivity(sessionID: sessionID, isActive: false, elapsedTime: totalElapsed)
+            #endif
+        } else {
+            // Resume the timer
+            print("▶️ Intent: Resuming timer")
+            
+            let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
+            let startDate = Date()
+            
+            defaults.set(sessionID, forKey: activeSessionIDKey)
+            defaults.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
+            defaults.set(elapsedTime, forKey: activeSessionElapsedTimeKey)
+            
+            defaults.synchronize()
+            
+            print("✅ Intent: Timer resumed at \(startDate)")
+            
+            #if canImport(ActivityKit)
+            // Update Live Activity to show active state
+            await updateLiveActivity(sessionID: sessionID, isActive: true, elapsedTime: elapsedTime)
+            #endif
+        }
+        
+        // Reload widgets
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        WidgetCenter.shared.reloadAllTimelines()
+        
+        return .result()
+    }
+    
+    #if canImport(ActivityKit)
+    @MainActor
+    private func updateLiveActivity(sessionID: String, isActive: Bool, elapsedTime: TimeInterval) async {
+        let activities = Activity<MomentumWidgetAttributes>.activities
+        for activity in activities {
+            if activity.attributes.sessionID == sessionID {
+                let updatedState = MomentumWidgetAttributes.ContentState(
+                    elapsedTime: elapsedTime,
+                    startDate: Date(),
+                    isActive: isActive
+                )
+                await activity.update(using: updatedState)
+                print("✅ Updated Live Activity state: isActive=\(isActive), elapsed=\(elapsedTime)")
+            }
+        }
+    }
+    #endif
 }

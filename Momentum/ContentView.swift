@@ -60,9 +60,11 @@ struct ContentView: View {
     @State private var showNowPlaying = false
     @State private var sessionToLogManually: GoalSession?
     @State private var cachedThemes: [GoalTag] = []
+    @State private var planningTask: Task<Void, Never>?
     @State private var hasAutoPlannedToday = false
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
+    @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
     
     var body: some View {
         mainListView
@@ -88,7 +90,7 @@ struct ContentView: View {
             .toolbar {
                 toolbarContent
             }
-            .onAppear {
+            .task {
                 setupOnAppear()
             }
             .onDisappear {
@@ -141,7 +143,7 @@ struct ContentView: View {
         List {
             if !sessions.isEmpty || isPlanning || showPlanningComplete {
                 let recommendedSessions = getRecommendedSessions()
-                if !recommendedSessions.isEmpty || isPlanning || showPlanningComplete {
+                if !recommendedSessions.isEmpty {
                     recommendedSection(sessions: recommendedSessions)
                 }
                 
@@ -153,6 +155,11 @@ struct ContentView: View {
                     if !laterSessions.isEmpty {
                         laterSection(sessions: laterSessions)
                     }
+                }
+                
+                // Show planning indicator after all sessions
+                if isPlanning || showPlanningComplete {
+                    planningIndicatorSection
                 }
             }
         }
@@ -195,32 +202,6 @@ struct ContentView: View {
                 removal: .opacity
             ))
         }
-        
-        // Loading indicator during planning
-        if isPlanning || showPlanningComplete {
-            Section {
-                HStack {
-                    if isPlanning {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Generating plan...")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    } else if showPlanningComplete {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .imageScale(.small)
-                        Text("All done")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
-            }
-            .listSectionSpacing(.compact)
-            .transition(.opacity)
-        }
     }
     
     private func laterSection(sessions: [GoalSession]) -> some View {
@@ -237,6 +218,44 @@ struct ContentView: View {
             }
         }
         .listSectionSpacing(.compact)
+    }
+    
+    private var planningIndicatorSection: some View {
+        Section {
+            HStack {
+                if isPlanning {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Generating plan...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    Button {
+                        planningTask?.cancel()
+                        planningTask = nil
+                        withAnimation {
+                            isPlanning = false
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                } else if showPlanningComplete {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .imageScale(.small)
+                    Text("All done")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+        }
+        .listSectionSpacing(.compact)
+        .transition(.opacity)
     }
     
     // MARK: - Toolbar
@@ -360,6 +379,31 @@ struct ContentView: View {
             
             // Auto-plan once per day on launch if we haven't already
             await checkAndRunAutoPlan()
+            
+            // Reschedule notifications for all goals with notifications enabled
+            await rescheduleGoalNotifications()
+        }
+    }
+    
+    /// Reschedule notifications for all goals with schedule notifications enabled
+    @MainActor
+    private func rescheduleGoalNotifications() async {
+        let notificationManager = GoalNotificationManager()
+        
+        // Get all active goals with schedule notifications enabled
+        let notificationGoals = goals.filter { $0.scheduleNotificationsEnabled && $0.hasSchedule && $0.status == .active }
+        
+        guard !notificationGoals.isEmpty else {
+            print("⏭️ No goals with notifications enabled")
+            return
+        }
+        
+        print("📅 Rescheduling notifications for \(notificationGoals.count) goals...")
+        
+        do {
+            try await notificationManager.rescheduleAllGoals(goals: notificationGoals)
+        } catch {
+            print("❌ Failed to reschedule notifications: \(error)")
         }
     }
     
@@ -380,6 +424,18 @@ struct ContentView: View {
         guard !goals.isEmpty else {
             print("⏭️ Skipping: no goals available")
             hasAutoPlannedToday = false // Reset so it can try again if goals are added
+            return
+        }
+        
+        // Check if less than 1 hour has passed since last plan generation
+        let currentTime = Date().timeIntervalSince1970
+        let timeSinceLastPlan = currentTime - lastPlanGeneratedTimestamp
+        let oneHourInSeconds: Double = 3600
+        
+        if lastPlanGeneratedTimestamp > 0 && timeSinceLastPlan < oneHourInSeconds {
+            let remainingMinutes = Int((oneHourInSeconds - timeSinceLastPlan) / 60)
+            print("⏭️ Skipping: Plan generated \(Int(timeSinceLastPlan / 60)) minutes ago. Will regenerate in \(remainingMinutes) minutes")
+            hasAutoPlannedToday = false // Reset so it can try again later
             return
         }
         
@@ -438,7 +494,7 @@ struct ContentView: View {
             animation: animation
         ) {
             showPlannerSheet = false
-            Task {
+            planningTask = Task {
                 await generateDailyPlan()
             }
         }
@@ -1024,8 +1080,16 @@ struct ContentView: View {
         }
         defer { 
             Task { @MainActor in
+                // Check if task was cancelled
+                guard !Task.isCancelled else {
+                    isPlanning = false
+                    planningTask = nil
+                    return
+                }
+                
                 // Show completion state immediately when planning finishes
                 isPlanning = false
+                planningTask = nil
                 
                 withAnimation(.easeInOut(duration: 0.3)) {
                     showPlanningComplete = true
@@ -1037,6 +1101,10 @@ struct ContentView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     showPlanningComplete = false
                 }
+                
+                // Update timestamp to cache when plan was last generated
+                lastPlanGeneratedTimestamp = Date().timeIntervalSince1970
+                print("📝 Updated plan generation timestamp")
             }
         }
         
@@ -1066,7 +1134,8 @@ struct ContentView: View {
                 max(1, timeBasedMaxSessions)
             )
             
-            self.day.removeAllSessions()
+            // Don't remove all sessions - we want to keep sessions for goals not in the plan
+            // The applyPlan function will create/update sessions as needed
             
             // Use streaming to get real-time updates
             let stream = planner.streamDailyPlan(
@@ -1079,6 +1148,12 @@ struct ContentView: View {
             var latestPlan: DailyPlan?
             
             for try await partialPlan in stream {
+                // Check if task was cancelled
+                guard !Task.isCancelled else {
+                    print("🚫 Planning cancelled by user")
+                    return
+                }
+                
                 // Convert partial plan to full plan if we have sessions
                 if let sessions = partialPlan.sessions {
                     let fullyGeneratedSessions = sessions.compactMap { partialSession -> PlannedSession? in
@@ -1128,6 +1203,23 @@ struct ContentView: View {
                     }
                     try? modelContext.save()
                 }
+            }
+            
+            // Ensure all active goals have sessions (even if not in the plan)
+            await MainActor.run {
+                let allActiveGoals = goals.filter { $0.status == .active }
+                let existingSessionGoalIDs = Set(sessions.map { $0.goal.id })
+                
+                for goal in allActiveGoals {
+                    if !existingSessionGoalIDs.contains(goal.id) {
+                        // Create session for goal not in the plan
+                        let session = GoalSession(title: goal.title, goal: goal, day: day)
+                        session.status = .active
+                        modelContext.insert(session)
+                    }
+                }
+                
+                try? modelContext.save()
             }
             
         } catch {
@@ -1236,8 +1328,19 @@ struct ContentView: View {
             // Get existing sessions to avoid duplicates during streaming
             let existingSessionGoalIDs = Set(sessions.map { $0.goal.id })
             
+            // Sort planned sessions by start time to maintain stable order during streaming
+            let sortedPlannedSessions = plan.sessions.sorted { session1, session2 in
+                // Parse time strings to compare
+                if let time1 = parseTimeString(session1.recommendedStartTime, for: day.startDate),
+                   let time2 = parseTimeString(session2.recommendedStartTime, for: day.startDate) {
+                    return time1 < time2
+                }
+                // Fallback to priority if times can't be parsed
+                return session1.priority < session2.priority
+            }
+            
             // Create new GoalSession objects for each planned session
-            for plannedSession in plan.sessions {
+            for plannedSession in sortedPlannedSessions {
                 // Try to find the goal by UUID first
                 var goal: Goal?
                 let goalIDs = goals.map { $0.id }

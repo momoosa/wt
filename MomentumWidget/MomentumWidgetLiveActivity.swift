@@ -9,6 +9,7 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 import MomentumKit
+import AppIntents
 
 // Note: MomentumWidgetAttributes is now defined in MomentumKit/SessionTimerIntents.swift
 
@@ -128,13 +129,44 @@ struct MomentumWidgetLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack {
+                    VStack(spacing: 12) {
                         Text(context.attributes.goalTitle)
                             .font(.headline)
                             .lineLimit(1)
                         
-                        
-                       
+                        HStack(spacing: 16) {
+                            // Pause/Resume button
+                            Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: context.state.isActive ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 14))
+                                    Text(context.state.isActive ? "Pause" : "Resume")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color(hex: context.attributes.themeNeon)?.opacity(0.2) ?? .blue.opacity(0.2))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Stop button
+                            Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "stop.fill")
+                                        .font(.system(size: 14))
+                                    Text("Stop")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color.red.opacity(0.2))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             } compactLeading: {
@@ -221,7 +253,40 @@ struct LiveActivityLockScreenView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                  
+                    
+                    HStack(spacing: 12) {
+                        // Pause/Resume button
+                        Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                            HStack(spacing: 4) {
+                                Image(systemName: context.state.isActive ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 12))
+                                Text(context.state.isActive ? "Pause" : "Resume")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(hex: context.attributes.themeNeon)?.opacity(0.2) ?? .blue.opacity(0.2))
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Stop button
+                        Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: "")) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "stop.fill")
+                                    .font(.system(size: 12))
+                                Text("Stop")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.red.opacity(0.2))
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 
                 Spacer()

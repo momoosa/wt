@@ -33,6 +33,7 @@ public final class SessionTimerManager {
     public var onExternalChange: (() -> Void)?
     
     private let goalStore: GoalStore
+    private let healthKitManager = HealthKitManager()
     private var userDefaultsObserver: NSObjectProtocol?
     
     #if canImport(ActivityKit)
@@ -159,6 +160,14 @@ public final class SessionTimerManager {
         // Start Live Activity
         startLiveActivity(for: session, activeSession: newActiveSession)
         
+        // Send start notification if enabled
+        if session.goal.scheduleNotificationsEnabled {
+            Task { @MainActor in
+                let notificationManager = GoalNotificationManager()
+                await notificationManager.sendSessionStartNotification(for: session.goal)
+            }
+        }
+        
         #if os(iOS)
         // Success haptic feedback
         let generator = UINotificationFeedbackGenerator()
@@ -170,13 +179,40 @@ public final class SessionTimerManager {
     public func stopTimer(for session: GoalSession, in day: Day) {
         guard let activeSession, activeSession.id == session.id else { return }
         
+        let startDate = activeSession.startDate
+        let endDate = Date.now
+        
         // Save the session to create a historical entry
-        goalStore.save(
+        let historicalSession = goalStore.save(
             session: session,
             in: day,
-            startDate: activeSession.startDate,
-            endDate: .now
+            startDate: startDate,
+            endDate: endDate
         )
+        
+        // Write to HealthKit if the goal has a writable metric
+        if let metric = session.goal.healthKitMetric,
+           metric.supportsWrite,
+           session.goal.healthKitSyncEnabled,
+           let historicalSession = historicalSession {
+            Task { @MainActor in
+                do {
+                    let healthKitID = try await healthKitManager.writeSession(
+                        metric: metric,
+                        startDate: startDate,
+                        endDate: endDate
+                    )
+                    
+                    // Store the HealthKit ID so we know this came from us
+                    historicalSession.setHealthKitType(metric.rawValue)
+                    historicalSession.needsHealthKitRecord = false
+                    
+                    print("✅ Wrote session to HealthKit: \(metric.displayName)")
+                } catch {
+                    print("❌ Failed to write session to HealthKit: \(error)")
+                }
+            }
+        }
         
         // Stop and clear the active session
         activeSession.stopUITimer()
@@ -308,6 +344,16 @@ public final class SessionTimerManager {
         
         // Save context
         try? context.save()
+        
+        // Send completion notification
+        let totalElapsed = session.elapsedTime + timeNeeded
+        Task { @MainActor in
+            let notificationManager = GoalNotificationManager()
+            await notificationManager.sendCompletionNotification(
+                for: session.goal,
+                elapsedTime: totalElapsed
+            )
+        }
     }
     
     // MARK: - Private Helpers
@@ -319,7 +365,14 @@ public final class SessionTimerManager {
         generator.notificationOccurred(.success)
         #endif
         
-        // Could also schedule a notification here
+        // Send completion notification if enabled
+        Task { @MainActor in
+            let notificationManager = GoalNotificationManager()
+            await notificationManager.sendCompletionNotification(
+                for: session.goal,
+                elapsedTime: session.elapsedTime
+            )
+        }
         print("🎯 Target reached for session: \(session.title)")
     }
     

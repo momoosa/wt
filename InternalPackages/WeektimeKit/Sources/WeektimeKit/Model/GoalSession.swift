@@ -19,6 +19,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
     case preferredTime = "preferred_time"        // Matches user's preferred time of day
     case energyLevel = "energy_level"            // Optimal for current time's energy level
     case usualTime = "usual_time"                // Based on historical usage patterns
+    case constrained = "constrained"             // Goal is only active now, not later in the day
     
     public var displayName: String {
         switch self {
@@ -31,6 +32,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .preferredTime: return "Preferred Time"
         case .energyLevel: return "Peak Energy"
         case .usualTime: return "Usual Time"
+        case .constrained: return "Time-Limited"
         }
     }
     
@@ -45,6 +47,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .preferredTime: return "calendar"
         case .energyLevel: return "bolt.fill"
         case .usualTime: return "clock.arrow.circlepath"
+        case .constrained: return "hourglass"
         }
     }
     
@@ -59,6 +62,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .preferredTime: return "Your preferred time slot"
         case .energyLevel: return "Best time for focus"
         case .usualTime: return "You often work on this now"
+        case .constrained: return "Only available during this time window"
         }
     }
 }
@@ -97,7 +101,9 @@ public final class GoalSession: SessionProgressProvider {
     public var recommendationReasons: [RecommendationReason] = []
     
     public var dailyTarget: TimeInterval {
-        return goal.weeklyTarget / 7
+        // If goal has a daily minimum set, use that as the target
+        // Otherwise, divide weekly target by 7
+        return goal.dailyMinimum ?? (goal.weeklyTarget / 7)
     }
     
     /// Total elapsed time including both manual tracking and HealthKit data
