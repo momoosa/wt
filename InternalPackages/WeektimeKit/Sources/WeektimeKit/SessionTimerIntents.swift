@@ -71,60 +71,7 @@ public struct ToggleTimerIntent: AppIntent {
     public func perform() async throws -> some IntentResult {
         print("🎯 ToggleTimerIntent: Starting for session \(sessionID)")
         
-        // Set up model container with App Group for shared data access
-        let schema = Schema([
-            Goal.self,
-            GoalTag.self,
-            Day.self,
-            GoalSession.self,
-            HistoricalSession.self,
-            ChecklistItemSession.self,
-            IntervalListSession.self
-        ])
-        
         let appGroupIdentifier = "group.com.moosa.ios.momentum"
-        
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("❌ Intent: Failed to get App Group container URL")
-            throw IntentError.containerError
-        }
-        
-        let storeURL = containerURL.appendingPathComponent("default.store")
-        let modelConfiguration = ModelConfiguration(url: storeURL)
-        
-        guard let container = try? ModelContainer(for: schema, configurations: [modelConfiguration]) else {
-            print("❌ Intent: Failed to create model container")
-            throw IntentError.modelContainerError
-        }
-        
-        let context = container.mainContext
-        
-        // Fetch the session
-        guard let sessionUUID = UUID(uuidString: sessionID) else {
-            print("❌ Intent: Invalid session ID format")
-            throw IntentError.invalidSessionID
-        }
-        
-        let sessionPredicate = #Predicate<GoalSession> { session in
-            session.id == sessionUUID
-        }
-        let sessionDescriptor = FetchDescriptor<GoalSession>(predicate: sessionPredicate)
-        
-        guard let session = try? context.fetch(sessionDescriptor).first else {
-            print("❌ Intent: Session not found")
-            throw IntentError.sessionNotFound
-        }
-        
-        // Fetch the day
-        let dayPredicate = #Predicate<Day> { day in
-            day.id == dayID
-        }
-        let dayDescriptor = FetchDescriptor<Day>(predicate: dayPredicate)
-        
-        guard let day = try? context.fetch(dayDescriptor).first else {
-            print("❌ Intent: Day not found")
-            throw IntentError.dayNotFound
-        }
         
         // Check if timer is currently running by reading from UserDefaults
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
@@ -144,123 +91,53 @@ public struct ToggleTimerIntent: AppIntent {
         
         print("📊 Intent: Current active session: \(currentActiveSessionID ?? "none"), paused: \(pausedSessionID ?? "none"), target: \(sessionID)")
         
-        if isCurrentlyActive {
-            // Stop the timer
-            print("⏹️ Intent: Stopping timer for session \(session.title)")
+        if isCurrentlyActive || isCurrentlyPaused {
+            // Mark session as stopped - the app will handle creating the historical session
+            print("⏹️ Intent: Marking session as stopped (app will create historical session)")
             
-            // Get start date and calculate duration
-            let startTimeInterval = defaults.double(forKey: activeSessionStartDateKey)
-            guard startTimeInterval > 0 else {
-                print("⚠️ Intent: No valid start time found, clearing state")
-                defaults.removeObject(forKey: activeSessionIDKey)
-                defaults.removeObject(forKey: activeSessionStartDateKey)
-                defaults.removeObject(forKey: activeSessionElapsedTimeKey)
-                defaults.synchronize()
-                throw IntentError.invalidTimerState
-            }
-            
-            let startDate = Date(timeIntervalSince1970: startTimeInterval)
-            let endDate = Date()
-            let duration = endDate.timeIntervalSince(startDate)
-            
-            // Note: initialElapsed is stored for reference but not used in historical session creation
-            // The historical session duration is calculated from start/end times
-            _ = defaults.double(forKey: activeSessionElapsedTimeKey)
-            
-            // Create historical session
-            let historicalSession = HistoricalSession(
-                title: session.goal.title,
-                start: startDate,
-                end: endDate,
-                healthKitType: nil,
-                needsHealthKitRecord: false
-            )
-            historicalSession.goalIDs = [session.goal.id.uuidString]
-            
-            day.add(historicalSession: historicalSession)
-            context.insert(historicalSession)
+            // Set a flag indicating the session should be stopped and saved
+            defaults.set(sessionID, forKey: "StoppedSessionIDV1")
             
             // Clear timer state (including paused state)
             defaults.removeObject(forKey: activeSessionIDKey)
             defaults.removeObject(forKey: activeSessionStartDateKey)
-            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
-            defaults.removeObject(forKey: "PausedSessionIDV1")
+            defaults.removeObject(forKey: pausedSessionIDKey)
+            // Keep elapsed time so app can create historical session
             
             // Force synchronization of UserDefaults
             defaults.synchronize()
             
-            try? context.save()
+            print("✅ Intent: Session marked as stopped, app will finalize")
             
-            print("✅ Intent: Timer stopped, historical session created (duration: \(duration)s)")
-            
-            // Notify the app to check for external changes and end Live Activity
-            NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
-            
-        } else if isCurrentlyPaused {
-            // Stop a paused timer - create historical session from elapsed time
-            print("⏹️ Intent: Stopping paused timer for session \(session.title)")
-            
-            let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
-            guard elapsedTime > 0 else {
-                print("⚠️ Intent: No elapsed time found for paused session")
-                defaults.removeObject(forKey: pausedSessionIDKey)
-                defaults.removeObject(forKey: activeSessionElapsedTimeKey)
-                defaults.synchronize()
-                throw IntentError.invalidTimerState
-            }
-            
-            // Create historical session with the accumulated time
-            let endDate = Date()
-            let startDate = endDate.addingTimeInterval(-elapsedTime)
-            let historicalSession = HistoricalSession(
-                title: session.goal.title,
-                start: startDate,
-                end: endDate,
-                healthKitType: nil,
-                needsHealthKitRecord: false
-            )
-            historicalSession.goalIDs = [session.goal.id.uuidString]
-            
-            day.add(historicalSession: historicalSession)
-            context.insert(historicalSession)
-            
-            // Clear timer state
-            defaults.removeObject(forKey: pausedSessionIDKey)
-            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
-            
-            defaults.synchronize()
-            
-            try? context.save()
-            
-            print("✅ Intent: Paused timer stopped, historical session created (elapsed: \(elapsedTime)s)")
-            
-            // Notify the app to check for external changes and end Live Activity
+            // Notify the app to check for external changes
             NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
             
         } else {
             // Start the timer
-            print("▶️ Intent: Starting timer for session \(session.title)")
+            print("▶️ Intent: Starting timer for session \(sessionID)")
             
             // Stop any existing timer first
             if let existingSessionID = currentActiveSessionID {
                 print("⚠️ Intent: Stopping existing timer for session \(existingSessionID)")
-                // We could stop and save the existing timer here, but for simplicity
-                // we'll just overwrite it. In production, you might want to save it first.
                 defaults.removeObject(forKey: activeSessionIDKey)
                 defaults.removeObject(forKey: activeSessionStartDateKey)
                 defaults.removeObject(forKey: activeSessionElapsedTimeKey)
             }
             
-            // Start new timer
+            // Start new timer - get elapsed time from UserDefaults or default to 0
+            let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
             let startDate = Date()
             defaults.set(sessionID, forKey: activeSessionIDKey)
             defaults.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
-            defaults.set(session.elapsedTime, forKey: activeSessionElapsedTimeKey)
+            defaults.set(elapsedTime, forKey: activeSessionElapsedTimeKey)
             
             // Force synchronization of UserDefaults
             defaults.synchronize()
             
             print("✅ Intent: Timer started at \(startDate)")
+            
+            // Notify the app
+            NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
         }
         
         // Give UserDefaults a moment to sync, then reload widgets
@@ -272,24 +149,12 @@ public struct ToggleTimerIntent: AppIntent {
     
     enum IntentError: Error, CustomLocalizedStringResourceConvertible {
         case containerError
-        case modelContainerError
-        case invalidSessionID
-        case sessionNotFound
-        case dayNotFound
         case invalidTimerState
         
         var localizedStringResource: LocalizedStringResource {
             switch self {
             case .containerError:
                 return "Failed to access shared data"
-            case .modelContainerError:
-                return "Failed to initialize data store"
-            case .invalidSessionID:
-                return "Invalid session identifier"
-            case .sessionNotFound:
-                return "Session not found"
-            case .dayNotFound:
-                return "Day not found"
             case .invalidTimerState:
                 return "Timer state is invalid"
             }
@@ -323,7 +188,7 @@ public struct StartSessionTimerIntent: AppIntent {
 }
 
 /// App Intent to stop a timer for a goal session
-public struct StopTimerIntent: AppIntent {
+public struct StopTimerIntent: LiveActivityIntent {
     public static let title: LocalizedStringResource = "Stop Timer"
     public static let description = IntentDescription("Stop tracking time for a goal")
     
@@ -348,7 +213,7 @@ public struct StopTimerIntent: AppIntent {
 }
 
 /// App Intent to pause/resume a timer for a goal session (for Live Activities)
-public struct PauseResumeTimerIntent: AppIntent {
+public struct PauseResumeTimerIntent: LiveActivityIntent {
     public static let title: LocalizedStringResource = "Pause/Resume Timer"
     public static let description = IntentDescription("Pause or resume tracking time for a goal")
     

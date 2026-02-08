@@ -33,6 +33,7 @@ public final class SessionTimerManager {
     public var onExternalChange: (() -> Void)?
     
     private let goalStore: GoalStore
+    private let modelContext: ModelContext
     private let healthKitManager = HealthKitManager()
     private var userDefaultsObserver: NSObjectProtocol?
     
@@ -54,8 +55,9 @@ public final class SessionTimerManager {
         UserDefaults(suiteName: appGroupIdentifier)
     }
     
-    public init(goalStore: GoalStore) {
+    public init(goalStore: GoalStore, modelContext: ModelContext) {
         self.goalStore = goalStore
+        self.modelContext = modelContext
         setupUserDefaultsObservation()
         setupExternalChangeNotification()
     }
@@ -95,6 +97,59 @@ public final class SessionTimerManager {
         }
     }
     
+    /// Handles a session that was stopped externally (from widget/Live Activity)
+    @MainActor
+    private func handleStoppedSession(sessionID: String) async {
+        guard let defaults = sharedDefaults else { return }
+        
+        // Get the elapsed time that was accumulated
+        let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
+        guard elapsedTime > 0 else {
+            print("⚠️ SessionTimerManager: No elapsed time for stopped session")
+            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+            return
+        }
+        
+        // Find the session in the data store
+        guard let sessionUUID = UUID(uuidString: sessionID) else {
+            print("⚠️ SessionTimerManager: Invalid session ID")
+            return
+        }
+        
+        let context = modelContext
+        let descriptor = FetchDescriptor<GoalSession>(
+            predicate: #Predicate { $0.id == sessionUUID }
+        )
+        
+        guard let session = try? context.fetch(descriptor).first else {
+            print("⚠️ SessionTimerManager: Session not found")
+            return
+        }
+        
+        // Create historical session from accumulated time
+        let endDate = Date()
+        let startDate = endDate.addingTimeInterval(-elapsedTime)
+        let historicalSession = HistoricalSession(
+            title: session.goal.title,
+            start: startDate,
+            end: endDate,
+            healthKitType: nil,
+            needsHealthKitRecord: false
+        )
+        historicalSession.goalIDs = [session.goal.id.uuidString]
+        
+        session.day.add(historicalSession: historicalSession)
+        context.insert(historicalSession)
+        
+        // Clear elapsed time
+        defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+        defaults.synchronize()
+        
+        try? context.save()
+        
+        print("✅ SessionTimerManager: Created historical session for stopped session (elapsed: \(elapsedTime)s)")
+    }
+    
     /// Checks if timer state was changed externally (e.g., by widget) and syncs
     public func checkForExternalChanges() {
         guard let defaults = sharedDefaults else { return }
@@ -102,6 +157,16 @@ public final class SessionTimerManager {
         let storedSessionID = defaults.string(forKey: activeSessionIDKey)
         let pausedSessionID = defaults.string(forKey: "PausedSessionIDV1")
         let currentSessionID = activeSession?.id.uuidString
+        
+        // Check if a session was stopped externally and needs to be saved
+        if let stoppedSessionID = defaults.string(forKey: "StoppedSessionIDV1") {
+            print("🔄 SessionTimerManager: Found stopped session \(stoppedSessionID), creating historical session")
+            Task { @MainActor in
+                await self.handleStoppedSession(sessionID: stoppedSessionID)
+            }
+            // Clear the flag
+            defaults.removeObject(forKey: "StoppedSessionIDV1")
+        }
         
         #if canImport(ActivityKit)
         // Check if Live Activity needs to be ended (stopped but not paused)

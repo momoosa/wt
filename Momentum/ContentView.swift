@@ -357,7 +357,7 @@ struct ContentView: View {
     private func setupOnAppear() {
         // Initialize timer manager if needed
         if timerManager == nil {
-            let manager = SessionTimerManager(goalStore: goalStore)
+            let manager = SessionTimerManager(goalStore: goalStore, modelContext: modelContext)
             
             // Set up callback for external changes (e.g., widget stopping timer)
             manager.onExternalChange = { [weak manager] in
