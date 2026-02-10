@@ -24,6 +24,13 @@
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
+		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
+		CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
+		CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */; };
+		CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80F2F3BA157001F2406 /* AllGoalsView.swift */; };
+		CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */; };
+		CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8112F3BA166001F2406 /* GoalRow.swift */; };
+		CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8092F3BA109001F2406 /* GoalManager.swift */; };
 		CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2C2F2F633800F7265A /* WidgetKit.framework */; };
 		CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2E2F2F633800F7265A /* SwiftUI.framework */; };
 		CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -31,6 +38,7 @@
 		CD39BD4A2F2F66E600F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD492F2F66E600F7265A /* MomentumKit */; };
 		CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD4B2F2F66EF00F7265A /* MomentumKit */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
+		CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -113,11 +121,18 @@
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
+		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
+		CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFilterService.swift; sourceTree = "<group>"; };
+		CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFilterBar.swift; sourceTree = "<group>"; };
+		CD22C80F2F3BA157001F2406 /* AllGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllGoalsView.swift; sourceTree = "<group>"; };
+		CD22C8112F3BA166001F2406 /* GoalRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalRow.swift; sourceTree = "<group>"; };
+		CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualLogSheet.swift; sourceTree = "<group>"; };
 		CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		CD39BD4D2F2F677200F7265A /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
+		CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverviewView.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -311,6 +326,13 @@
 				CDA4436B2F372DB600DE984B /* SessionRowView.swift */,
 				CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */,
 				CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */,
+				CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */,
+				CD22C8092F3BA109001F2406 /* GoalManager.swift */,
+				CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */,
+				CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */,
+				CD22C80F2F3BA157001F2406 /* AllGoalsView.swift */,
+				CD22C8112F3BA166001F2406 /* GoalRow.swift */,
+				CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -518,24 +540,31 @@
 			files = (
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
+				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
+				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
+				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
+				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
+				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
 				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
 				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
 				CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */,
+				CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */,
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
+				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
@@ -557,6 +586,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

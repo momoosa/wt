@@ -20,7 +20,6 @@ struct ContentView: View {
     @State private var selectedSession: GoalSession?
     @Namespace var animation
     @State private var showingGoalEditor = false
-    @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .skippedSessions]
     @State private var activeFilter: Filter = .activeToday
 
     
@@ -57,17 +56,12 @@ struct ContentView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: getRecommendedSessions().map { $0.id })
             .overlay {
                 VStack {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(availableFilters, id: \.self) { filter in
-                                filterChip(for: filter)
-                            }
-                        }
-                        .padding([.leading, .trailing])
-                        .padding([.top, .bottom], 8)
-                    }
+                    GoalFilterBar(
+                        filters: availableFilters,
+                        activeFilter: $activeFilter,
+                        sessionCounts: sessionCountsForFilters
+                    )
                     Spacer()
-
                 }
             }
             .toolbar {
@@ -140,7 +134,7 @@ struct ContentView: View {
                 
                 if !sessions.isEmpty {
                     let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-                    let laterSessions = filter(sessions: sessions, with: activeFilter)
+                    let laterSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
                         .filter { !recommendedSessionIDs.contains($0.id) }
                     
                     if !laterSessions.isEmpty {
@@ -558,47 +552,18 @@ struct ContentView: View {
         return uniqueThemes
     }
     
-    private func count(for filter: Filter) -> Int {
-        switch filter {
-        case .skippedSessions:
-            return sessions.filter { $0.status == .skipped }.count
-        case .activeToday:
-            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
-        case .allGoals:
-            return sessions.count
-        case .theme(let goalTheme):
-            return sessions.filter { $0.goal.primaryTag.themeID == goalTheme.themeID && $0.goal.status != .archived && $0.status != .skipped }.count
-        case .completedToday:
-            return sessions.filter { $0.hasMetDailyTarget }.count
+    private var availableFilters: [Filter] {
+        SessionFilterService.buildAvailableFilters(from: availableGoalThemes, sessions: sessions)
+    }
+    
+    private var sessionCountsForFilters: [Filter: Int] {
+        var counts: [Filter: Int] = [:]
+        for filter in availableFilters {
+            counts[filter] = SessionFilterService.count(sessions, for: filter)
         }
+        return counts
     }
-    
-    
-    private func filterChip(for filter: Filter) -> some View {
-        filterText(for: filter)
-        .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
-        .fontWeight(.semibold)
-        .padding([.top, .bottom], 6)
-        .padding([.leading, .trailing], 10)
-        .frame(minWidth: 60.0, minHeight: 40)
-        .glassEffect(in: Capsule())
-        .onTapGesture {
-            withAnimation {
-                activeFilter = filter
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func filterText(for filter: Filter) -> some View {
-            let count = count(for: filter)
-            HStack {
-                Text(filter.text)
-                Text("\(count)")
-                    .foregroundStyle(.secondary)
-            }
-            .font(.footnote)
-    }
+
     
     init(day: Day) {
         self.day = day
@@ -661,53 +626,13 @@ struct ContentView: View {
     
     /// Get recommended sessions for right now (top 3)
     private func getRecommendedSessions() -> [GoalSession] {
-        // Filter out deleted/invalid sessions first
-        let validSessions = sessions.filter { (try? $0.persistentModelID) != nil }
-        let filtered = filter(sessions: validSessions, with: activeFilter)
-        
-        // During planning or if we have planned sessions, show top 3 with planning details as recommended
-        let plannedSessions = filtered
-            .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
-            .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
-        
-        if !plannedSessions.isEmpty {
-            return Array(plannedSessions.prefix(3))
-        }
-        
-        // Fallback: try to get AI-generated recommendations from the daily plan
-        if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: filtered),
-           !aiRecommendations.isEmpty {
-            // Use AI recommendations - filter to only show ones with recommendation reasons
-            let recommendationsWithReasons = aiRecommendations.filter { !$0.recommendationReasons.isEmpty }
-            
-            if !recommendationsWithReasons.isEmpty {
-                return Array(recommendationsWithReasons.prefix(3))
-            }
-        }
-        
-        // Only show fallback recommendations if we have enough sessions
-        guard sessions.count > 4 else {
-            return []
-        }
-        
-        // Fallback: Use scoring algorithm (soft refresh)
-        let scored = filtered.compactMap { session -> (GoalSession, Double)? in
-            guard isGoalValid(session) else { return nil }
-            
-            let score = planner.scoreSession(
-                for: session.goal,
-                session: session,
-                at: Date(),
-                preferences: plannerPreferences
-            )
-            return (session, score)
-        }
-        
-        // Sort by score and take top 3
-        return scored
-            .sorted { $0.1 > $1.1 }
-            .prefix(3)
-            .map { $0.0 }
+        return SessionFilterService.getRecommendedSessions(
+            from: sessions,
+            filter: activeFilter,
+            planner: planner,
+            preferences: plannerPreferences,
+            validationCheck: isGoalValid
+        )
     }
     
     // MARK: - Session Row
@@ -725,73 +650,7 @@ struct ContentView: View {
         )
     }
     
-    private func filter(sessions: [GoalSession], with filter: Filter?) -> [GoalSession] {
-        guard let filter else {
-            return sessions.filter { session in
-                // Check if not deleted first
-                guard (try? session.persistentModelID) != nil else { return false }
-                return isGoalValid(session)
-            }
-        }
-        
-        let filtered = sessions.filter { session in
-            // Check if not deleted first, before accessing any properties
-            guard (try? session.persistentModelID) != nil else {
-                return false
-            }
-            
-            // Filter out sessions with deleted goals
-            guard isGoalValid(session) else {
-                return false
-            }
-            
-            // Safely access status properties that might be faults
-            let isArchived: Bool
-            let isSkipped: Bool
-            
-            do {
-                isArchived = session.goal.status == .archived
-                isSkipped = session.status == .skipped
-            } catch {
-                // If we can't access the status, assume it's not valid
-                return false
-            }
-            
-            switch activeFilter {
-            case .activeToday:
-                return !isArchived && !isSkipped
-            case .allGoals:
-                return true
-            case .skippedSessions:
-                return isSkipped
-            case .theme(let goalTheme):
-                return session.goal.primaryTag.themeID == goalTheme.themeID && !isArchived && !isSkipped
-            case .completedToday:
-                return session.hasMetDailyTarget
-            }
-        }
-        
-        // Sort by planned start time if available, otherwise by goal title
-        return filtered.sorted { session1, session2 in
-            // First, prioritize sessions with planned times
-            let has1 = session1.plannedStartTime != nil
-            let has2 = session2.plannedStartTime != nil
-            
-            if has1 && has2 {
-                // Both have planned times - sort by time
-                return session1.plannedStartTime! < session2.plannedStartTime!
-            } else if has1 {
-                // Only session1 has a planned time - it comes first
-                return true
-            } else if has2 {
-                // Only session2 has a planned time - it comes first
-                return false
-            } else {
-                // Neither has a planned time - sort by goal title
-                return session1.goal.title < session2.goal.title
-            }
-        }
-    }
+
     func handle(event: ActionView.Event) {
         guard let timerManager else { return }
         switch event {
@@ -1469,269 +1328,7 @@ enum DebugGoals: String, CaseIterable, Identifiable {
 }
 #endif
 
-// MARK: - All Goals View
 
-struct AllGoalsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    let goals: [Goal]
-    
-    @State private var goalToDelete: Goal?
-    @State private var showingDeleteConfirmation = false
-    
-    var activeGoals: [Goal] {
-        goals.filter { $0.status == .active }
-    }
-    
-    var archivedGoals: [Goal] {
-        goals.filter { $0.status == .archived }
-    }
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                if !activeGoals.isEmpty {
-                    Section("Active Goals") {
-                        ForEach(activeGoals) { goal in
-                            GoalRow(goal: goal)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        goalToDelete = goal
-                                        showingDeleteConfirmation = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                        }
-                    }
-                }
-                
-                if !archivedGoals.isEmpty {
-                    Section("Archived Goals") {
-                        ForEach(archivedGoals) { goal in
-                            GoalRow(goal: goal)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        goalToDelete = goal
-                                        showingDeleteConfirmation = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                        }
-                    }
-                }
-                
-                if goals.isEmpty {
-                    ContentUnavailableView(
-                        "No Goals",
-                        systemImage: "target",
-                        description: Text("Create your first goal to get started")
-                    )
-                }
-            }
-            .navigationTitle("All Goals")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-            .confirmationDialog(
-                "Delete Goal",
-                isPresented: $showingDeleteConfirmation,
-                presenting: goalToDelete
-            ) { goal in
-                Button("Delete \"\(goal.title)\"", role: .destructive) {
-                    deleteGoal(goal)
-                }
-                Button("Cancel", role: .cancel) {
-                    goalToDelete = nil
-                }
-            } message: { goal in
-                Text("Are you sure you want to delete \"\(goal.title)\"? This action cannot be undone.")
-            }
-        }
-    }
-    
-    private func deleteGoal(_ goal: Goal) {
-        withAnimation {
-            // First, clean up any related data
-            // Delete all sessions for this goal
-            for session in goal.goalSessions {
-                modelContext.delete(session)
-            }
-            
-            // Delete all checklist items
-            for item in goal.checklistItems {
-                modelContext.delete(item)
-            }
-            
-            // Delete all interval lists
-            for list in goal.intervalLists {
-                modelContext.delete(list)
-            }
-            
-            // Now delete the goal itself
-            modelContext.delete(goal)
-            
-            // Save the context to ensure deletion is persisted
-            try? modelContext.save()
-            
-            goalToDelete = nil
-            
-            #if os(iOS)
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            #endif
-        }
-    }
-}
-
-struct GoalRow: View {
-    let goal: Goal
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(goal.title)
-                    .font(.headline)
-                
-                HStack {
-                    Text(goal.primaryTag.title)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(goal.primaryTag.themePreset.light.opacity(0.2))
-                        )
-                        .foregroundStyle(goal.primaryTag.themePreset.dark)
-                    
-                    if goal.notificationsEnabled {
-                        Image(systemName: "bell.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    if goal.healthKitSyncEnabled {
-                        Image(systemName: "heart.fill")
-                            .font(.caption)
-                            .foregroundStyle(.pink)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("\(Int(goal.weeklyTarget / 60)) min")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                
-                Text("weekly target")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Manual Log Sheet
-
-struct ManualLogSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    
-    let session: GoalSession
-    let day: Day
-    
-    @State private var startDate = Date()
-    @State private var duration: TimeInterval = 1800 // Default 30 minutes
-    @State private var notes: String = ""
-    
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    DatePicker("Start Time", selection: $startDate, in: day.startDate...day.endDate)
-                    
-                    Picker("Duration", selection: $duration) {
-                        Text("5 min").tag(TimeInterval(300))
-                        Text("10 min").tag(TimeInterval(600))
-                        Text("15 min").tag(TimeInterval(900))
-                        Text("20 min").tag(TimeInterval(1200))
-                        Text("30 min").tag(TimeInterval(1800))
-                        Text("45 min").tag(TimeInterval(2700))
-                        Text("1 hour").tag(TimeInterval(3600))
-                        Text("1.5 hours").tag(TimeInterval(5400))
-                        Text("2 hours").tag(TimeInterval(7200))
-                    }
-                } header: {
-                    Text("Activity Details")
-                } footer: {
-                    Text("Log time you spent on this goal that wasn't captured by HealthKit")
-                }
-                
-                Section("Notes (Optional)") {
-                    TextField("Add any notes...", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-            }
-            .navigationTitle("Log \(session.goal.title)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveManualLog()
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func saveManualLog() {
-        // Create a historical session for this manual entry
-        let endDate = startDate.addingTimeInterval(duration)
-        
-        let historicalSession = HistoricalSession(
-            id: UUID().uuidString,
-            title: "\(session.goal.title) - Manual Entry",
-            start: startDate,
-            end: endDate,
-            healthKitType: nil, // Manual entry, not from HealthKit
-            needsHealthKitRecord: false
-        )
-        historicalSession.goalIDs.append(session.goal.id.uuidString)
-        
-        if !notes.isEmpty {
-            // TODO: Add notes property to HistoricalSession if needed
-        }
-        
-        // Add to day
-        day.add(historicalSession: historicalSession)
-        modelContext.insert(historicalSession)
-        
-        // Save context
-        try? modelContext.save()
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
-    }
-}
 
 #Preview {
     let store = GoalStore()
