@@ -357,7 +357,7 @@ struct ChecklistDetailView: View {
                         Button {
                             isShowingListsOverview = true
                         } label: {
-                            Text("Lists") // TODO: Naming
+                            Text("Lists")
                             Text("\(session.intervalLists.count)")
                                 .font(.caption2)
                                 .foregroundStyle(Color(.systemBackground))
@@ -443,7 +443,6 @@ struct ChecklistDetailView: View {
                 context.delete(item)
                 context.delete(item.checklistItem)
             }
-//            stopUITimer() // TODO:
         }
     }
   
@@ -540,32 +539,5 @@ struct ChecklistDetailView: View {
     }
     
     // MARK: - Chart Helpers
-
-// TODO: 
-//    private func cancelAllIntervalNotifications(for session: GoalSession) {
-//        let ids = session.intervals.map { notificationIdentifier(for: $0) }
-//        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
-//    }
-//
-//    private func scheduleNotifications(from current: IntervalSession, in session: GoalSession, startingIn secondsOffset: TimeInterval = 0) {
-//        // Schedule notification for current interval end and all subsequent intervals
-//        requestNotificationAuthorizationIfNeeded()
-//        let sorted = session.intervals.sorted { $0.interval.orderIndex < $1.interval.orderIndex }
-//        guard let startIndex = sorted.firstIndex(where: { $0.id == current.id }) else { return }
-//        var cumulative: TimeInterval = secondsOffset
-//        for idx in startIndex..<sorted.count {
-//            let item = sorted[idx]
-//            let duration = TimeInterval(item.interval.durationSeconds)
-//            cumulative += duration
-//            let content = UNMutableNotificationContent()
-//            content.title = session.goal.title
-//            content.body = "\(item.interval.name) complete"
-//            content.sound = .default
-//
-//            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(cumulative, 0.5), repeats: false)
-//            let request = UNNotificationRequest(identifier: notificationIdentifier(for: item), content: content, trigger: trigger)
-//            UNUserNotificationCenter.current().add(request)
-//        }
-//    }
 }
 

@@ -33,7 +33,6 @@ struct GoalEditorView: View {
     }
     @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     @State private var errorMessage: String?
-    @State private var session = LanguageModelSession(instructions: "Come up with up to three separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the title + duration.")
     @State var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
     @State private var currentStage: EditorStage = .name
     @State private var durationInMinutes: Int = 30
@@ -71,21 +70,6 @@ struct GoalEditorView: View {
     // Scheduling state
     enum TimeRelation: String, CaseIterable, Identifiable { case before, after; var id: String { rawValue } }
     struct DaySchedule: Identifiable { let id = UUID(); var enabled: Bool; var relation: TimeRelation; var time: Date }
-    @State private var weeklySchedule: [Int: DaySchedule] = {
-        // Keys 1...7 for Sun(1) ... Sat(7) using Calendar component .weekday
-        var dict: [Int: DaySchedule] = [:]
-        let calendar = Calendar.current
-        let defaultMorning = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-        for weekday in 1...7 {
-            dict[weekday] = DaySchedule(enabled: false, relation: .before, time: defaultMorning)
-        }
-        return dict
-    }()
-    
-    // Option 2: Multiple times list with per-day overrides
-    @State private var globalTimes: [Date] = []
-    // Keys 1...7 for Sun...Sat
-    @State private var perDayTimes: [Int: [Date]] = [:]
     
     // Grid scheduling types
     enum TimeBucket: String, CaseIterable, Identifiable { case morning, midday, afternoon, evening, night; var id: String { rawValue }
@@ -115,13 +99,9 @@ struct GoalEditorView: View {
         let weekday: Int
         let bucket: TimeBucket
     }
-    @State private var bucketTimes: [DayBucket: [DateComponents]] = [:]
-    @State private var editingBucket: DayBucket?
-    @State private var tempTimes: [Date] = []
     
     // Simple multi-select time of day
     enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
-    @State private var selectedSimpleTimes: Set<SimpleTimeOfDay> = [.anytime]
     
     // Custom theme selection
     @State private var selectedGoalTheme: GoalTag?
@@ -392,7 +372,7 @@ struct GoalEditorView: View {
                                                 .foregroundStyle(activeThemeColor)
                                                 .frame(width: 24, height: 24)
                                             
-                                            Text(selectedIcon != nil ? "Icon" : "Icon")
+                                            Text("Icon")
                                                 .foregroundStyle(.primary)
                                         }
                                         .frame(maxWidth: .infinity)
@@ -728,8 +708,6 @@ struct GoalEditorView: View {
             .presentationDragIndicator(.visible)
         }
         .task {
-            prewarm()
-            
             // Load existing goal data if editing
             if let existingGoal {
                 loadGoalData(from: existingGoal)
@@ -853,9 +831,6 @@ struct GoalEditorView: View {
                 dayTimePreferences[weekday] = times
             }
         }
-
-        // TODO: Load tags from goal if supported (not implemented)
-        // selectedTags = goal.tagsArray (if Goal had a tags relation)
         
         // Go straight to duration stage when editing
         currentStage = .duration
@@ -1087,8 +1062,6 @@ struct GoalEditorView: View {
             goal.setTimes(times, forWeekday: weekday)
         }
         
-        // TODO: Associate selectedTags to goal when Goal supports tags
-        
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
         print(goal.scheduleSummary)
         
@@ -1138,10 +1111,6 @@ struct GoalEditorView: View {
                 print("Notification permission error: \(error.localizedDescription)")
             }
         }
-    }
-
-    func prewarm() {
-//        session.prewarm()
     }
     
     /// Infer an appropriate icon from a goal title
