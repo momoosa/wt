@@ -16,60 +16,48 @@ extension ContentView {
             switch self {
             case .activeToday:
                 "activeToday"
-            case .recommendedGoals:
-                "recommendedGoals"
             case .allGoals:
                 "allGoals"
-            case .archivedGoals:
-                "archivedGoals"
+            case .completedToday:
+                "completedToday"
             case .skippedSessions:
                 "skippedSessions"
-            case .planned:
-                "planned"
             case .theme(let theme):
                 "theme_\(theme.id)"
             }
         }
         
-        var label: (text: String?, imageName: String?) {
-            var text: String?
-            var image: String?
+        var text: String {
             switch self {
             case .activeToday:
-                text = "Today"
-            case .recommendedGoals:
-                image = "star.fill"
+                return "Today"
             case .allGoals:
-                text = "All"
-            case .archivedGoals:
-                text = "Archived"
+                return "All"
+            case .completedToday:
+                return "Completed"
             case .skippedSessions:
-                text = "Skipped"
-            case .planned:
-                image = "sparkles"
-                text = "Planned"
+                return "Skipped"
             case .theme(let theme):
-                text = theme.title
+                return theme.title
             }
-            return (text, image)
         }
         
         var tintColor: Color {
             switch self {
-            case .activeToday, .recommendedGoals, .allGoals, .archivedGoals, .skippedSessions:
+            case .activeToday, .allGoals:
                 return themePresets.first(where: { $0.id == "blue "})?.toTheme().dark ?? .blue // TODO:
-            case .planned:
-                return .purple
+            case .completedToday:
+                return .green
+            case .skippedSessions:
+                return .orange
             case .theme(let goalTheme):
                 return goalTheme.theme.dark
             }
         }
         case activeToday
-        case recommendedGoals
         case allGoals
-        case archivedGoals
+        case completedToday
         case skippedSessions
-        case planned
         case theme(GoalTag)
     }
 }

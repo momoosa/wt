@@ -34,13 +34,13 @@ struct ActionView: View {
             Button {
                 eventHandler(.stopTapped)
             } label: {
-                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.goal.tintColor(for: colorScheme), font: .title2, gaugeScale: 0.5)
+                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.goal.primaryTag.themePreset.color(for: colorScheme) ?? .gray, font: .title2, gaugeScale: 0.5)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolRenderingMode(.hierarchical)
                     .font(.title2)
             }
         }
-        .foregroundStyle(session.goal.tintColor(for: colorScheme))
+        .foregroundStyle(session.goal.primaryTag.theme.dark ?? .gray)
     }
 }
 

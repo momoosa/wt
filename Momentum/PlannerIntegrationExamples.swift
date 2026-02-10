@@ -228,7 +228,7 @@ struct FilteredPlannerView: View {
         try? await planner.generateDailyPlan(
             for: filteredGoals,
             goalSessions: goalSessions.filter { session in
-                filteredGoals.contains { $0.id == session.goal.id }
+                filteredGoals.contains { $0.id.uuidString == session.goalID }
             }
         )
     }

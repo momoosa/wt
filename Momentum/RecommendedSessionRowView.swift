@@ -14,7 +14,9 @@ struct RecommendedSessionRowView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        SessionRowView(
+        let primaryTag = session.goal.primaryTag
+        
+        return SessionRowView(
             session: session,
             day: day,
             timerManager: timerManager,
@@ -26,8 +28,8 @@ struct RecommendedSessionRowView: View {
         )
         .padding()
        
-        .foregroundStyle(session.goal.primaryTag.themePreset.textColor)
+        .foregroundStyle(primaryTag.themePreset.textColor)
         .listRowInsets(EdgeInsets())
-        .listRowBackground(session.goal.primaryTag.themePreset.gradient)
+        .listRowBackground(primaryTag.themePreset.gradient)
     }
 }

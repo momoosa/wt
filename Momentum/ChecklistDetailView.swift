@@ -32,7 +32,8 @@ struct ChecklistDetailView: View {
     private let notificationManager = GoalNotificationManager()
 
     var tintColor: Color {
-        colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark
+        let theme = session.goal.primaryTag.theme
+        return colorScheme == .dark ? theme.neon : theme.dark
     }
     
     // Schedule data for chart
@@ -43,11 +44,12 @@ struct ChecklistDetailView: View {
     }
     
     var schedulePoints: [SchedulePoint] {
+
         let weekdays: [(Int, String)] = [
             (2, "M"), (3, "T"), (4, "W"),
             (5, "T"), (6, "F"), (7, "S"), (1, "S")
         ]
-        
+
         var points: [SchedulePoint] = []
         for (weekdayNum, dayLabel) in weekdays {
             for timeOfDay in TimeOfDay.allCases {
@@ -66,13 +68,11 @@ struct ChecklistDetailView: View {
         ]
         let times = Array(TimeOfDay.allCases)
         let theme = session.goal.primaryTag.theme
+        let goal = session.goal
         
         return VStack(spacing: 4) {
             // Header row with day labels
             HStack(spacing: 6) {
-                Text("")
-                    .frame(width: 20)
-                
                 ForEach(weekdays, id: \.0) { _, label in
                     Text(label)
                         .font(.system(size: 10, weight: .medium))
@@ -84,25 +84,9 @@ struct ChecklistDetailView: View {
             // Grid with gradient overlay
             ZStack {
                 // Icons on the left
-                VStack(spacing: 2) {
-                    ForEach(Array(times.enumerated()), id: \.offset) { index, time in
-                        HStack(spacing: 6) {
-                            Image(systemName: time.icon)
-                                .font(.system(size: 9))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 20, alignment: .leading)
-                            
-                            Spacer()
-                        }
-                        .frame(height: 20)
-                    }
-                }
                 
                 // Gradient with mask
                 HStack(spacing: 6) {
-                    Color.clear
-                        .frame(width: 20)
-                    
                     LinearGradient(
                         colors: [theme.dark, theme.neon],
                         startPoint: .topLeading,
@@ -115,8 +99,9 @@ struct ChecklistDetailView: View {
                                     ForEach(weekdays, id: \.0) { weekday, _ in
                                         let isScheduled = session.goal.isScheduled(weekday: weekday, time: time)
                                         
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(isScheduled ? Color.white : Color.clear)
+                                        Image(systemName: time.icon)
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundStyle(isScheduled ? Color.white : Color.clear)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                                             .frame(height: 20)
                                     }
@@ -129,17 +114,15 @@ struct ChecklistDetailView: View {
                 
                 // Unscheduled cells overlay
                 HStack(spacing: 6) {
-                    Color.clear
-                        .frame(width: 20)
-                    
                     VStack(spacing: 2) {
                         ForEach(times, id: \.self) { time in
                             HStack(spacing: 8) {
                                 ForEach(weekdays, id: \.0) { weekday, _ in
                                     let isScheduled = session.goal.isScheduled(weekday: weekday, time: time)
                                     
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(isScheduled ? Color.clear : Color.secondary.opacity(0.15))
+                                    Image(systemName: time.icon)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(isScheduled ? Color.clear : Color.secondary.opacity(0.15))
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                                         .frame(height: 20)
                                 }
@@ -311,7 +294,7 @@ struct ChecklistDetailView: View {
             Section {
                 if !session.historicalSessions.isEmpty {
                     ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
-                        HistoricalSessionRow(session: historicalSession, showsTimeSummaryInsteadOfTitle: true)
+                        HistoricalSessionRow(session: historicalSession, showsTimeSummaryInsteadOfTitle: true, allSessions: Array(session.historicalSessions))
                             .foregroundStyle(.primary)
                             .swipeActions {
                                 // Only allow deletion of manual entries, not HealthKit synced ones
@@ -438,7 +421,7 @@ struct ChecklistDetailView: View {
             }
             
         }
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(colorScheme == .dark ? .light : .dark, for: .navigationBar)
         .tint(tintColor)
         .navigationDestination(isPresented: $isShowingListsOverview) {
             ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor)

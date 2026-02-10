@@ -78,7 +78,7 @@ public class GoalSessionPlanner: ObservableObject {
         defer { isGenerating = false }
         
         let prompt = buildPrompt(
-            goals: goals,
+             goals: goals,
             goalSessions: goalSessions,
             currentDate: currentDate,
             preferences: userPreferences
@@ -195,8 +195,7 @@ public class GoalSessionPlanner: ObservableObject {
         
         // Map IDs to sessions
         let recommended = topThreeIDs.compactMap { goalIDString -> GoalSession? in
-            guard let goalID = UUID(uuidString: goalIDString) else { return nil }
-            return allSessions.first { $0.goal.id == goalID }
+            return allSessions.first { $0.goalID == goalIDString }
         }
         
         return recommended.isEmpty ? nil : recommended
@@ -206,7 +205,7 @@ public class GoalSessionPlanner: ObservableObject {
     /// Returns nil if no plan exists or session is not in the plan
     public func getPlannedSession(for session: GoalSession) -> PlannedSession? {
         guard let plan = currentPlan else { return nil }
-        return plan.sessions.first { $0.id == session.goal.id.uuidString }
+        return plan.sessions.first { $0.id == session.goalID }
     }
     
     /// Score a single session for how recommended it is at a given time
@@ -313,7 +312,7 @@ public class GoalSessionPlanner: ObservableObject {
         let validGoalIDs = goals.map { $0.id.uuidString }
         
         for goal in goals {
-            guard let session = goalSessions.first(where: { $0.goal.id == goal.id }) else { continue }
+            guard let session = goalSessions.first(where: { $0.goalID == goal.id.uuidString }) else { continue }
             
             let dailyTarget = goal.weeklyTarget / 7
             let elapsedTime = session.elapsedTime

@@ -10,13 +10,18 @@ import SwiftUI
 import SwiftData
 
 @Observable
-public final class ActiveSessionDetails: SessionProgressProvider {
+public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
+    public static func == (lhs: ActiveSessionDetails, rhs: ActiveSessionDetails) -> Bool {
+        lhs.id == rhs.id && lhs.isPaused == rhs.isPaused
+    }
+    
     public private(set) var id: UUID
     public private(set) var startDate: Date
     public private(set) var elapsedTime: TimeInterval = 0
     public var currentTime: Date?
     public private(set) var timeText: String?
     public var dailyTarget: TimeInterval = 0 // Changed from optional to required for protocol
+    public var isPaused: Bool = false // Track if the session is currently paused
     public var onTargetReached: (() -> Void)? // Callback when target is reached
     public var onTick: (() -> Void)? // Callback on every timer tick
     public private(set) var tickCount: Int = 0 // Increments every second to trigger UI updates

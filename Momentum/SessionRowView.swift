@@ -30,9 +30,9 @@ struct SessionRowView: View {
             
             HStack {
                 VStack(alignment: .leading) {
-                        Text(session.goal.title)
+                        Text(session.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(isRecommended ? Color.primary : .primary)
+                            .foregroundStyle(isRecommended ? (session.goal.primaryTag.theme.textColor ?? .primary) : .primary)
                     
                     HStack {
                         if let activeSession = timerManager?.activeSession,
@@ -61,13 +61,6 @@ struct SessionRowView: View {
                             }
                         }
                         
-                        // Show planned start time with animation
-                        Text(session.goal.primaryTag.title)
-                            .font(.caption2)
-                            .padding(4)
-                            .background(Capsule()
-                                .fill(isRecommended ? Color.white.opacity(0.2) : session.goal.primaryTag.themePreset.light.opacity(0.15)))
-                        
                         HealthKitBadge(
                             metric: session.goal.healthKitMetric,
                             isEnabled: session.goal.healthKitSyncEnabled
@@ -76,7 +69,7 @@ struct SessionRowView: View {
                         Spacer()
                     }
                     .opacity(0.7)
-                    .foregroundStyle(isRecommended ? Color.primary : (colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark))
+                    .foregroundStyle(isRecommended ? session.goal.primaryTag.theme.textColor : (colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark))
                 }
                 
                 Spacer()
@@ -98,7 +91,7 @@ struct SessionRowView: View {
                                     .font(.title2)
                             }
                         }
-                        .foregroundStyle(isRecommended ? Color.primary : session.goal.primaryTag.themePreset.color(for: colorScheme))
+                        .foregroundStyle(isRecommended ? session.goal.primaryTag.theme.textColor : session.goal.primaryTag.themePreset.color(for: colorScheme))
                     } else {
                         // Read-only HealthKit metric: Show only log button
                         Button {
@@ -107,7 +100,7 @@ struct SessionRowView: View {
                             Image(systemName: "pencil.circle.fill")
                                 .font(.title3)
                         }
-                        .foregroundStyle(isRecommended ? Color.primary : session.goal.primaryTag.themePreset.color(for: colorScheme))
+                        .foregroundStyle(isRecommended ? session.goal.primaryTag.theme.textColor : session.goal.primaryTag.themePreset.color(for: colorScheme))
                         .opacity(0.6)
                     }
                 } else {
@@ -128,11 +121,11 @@ struct SessionRowView: View {
                                 .font(.title2)
                         }
                     }
-                    .foregroundStyle(isRecommended ? Color.primary : (colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark))
+                    .foregroundStyle(isRecommended ? (session.goal.primaryTag.theme.textColor ?? .primary) : (colorScheme == .dark ? (session.goal.primaryTag.themePreset.neon ?? .gray) : (session.goal.primaryTag.themePreset.dark ?? .gray)))
                 }
             }
             .buttonStyle(.plain)
-            .listRowBackground(colorScheme == .dark ? session.goal.primaryTag.themePreset.light.opacity(0.03) : Color(.systemBackground))
+            .listRowBackground(colorScheme == .dark ? (session.goal.primaryTag.themePreset.light.opacity(0.03) ?? Color(.systemBackground)) : Color(.systemBackground))
             .onTapGesture {
                 withAnimation(.spring(response: 0.3)) {
                     selectedSession = session

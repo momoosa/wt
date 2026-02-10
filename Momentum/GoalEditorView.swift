@@ -3,6 +3,9 @@ import FoundationModels
 import MomentumKit
 import SwiftData
 import UserNotifications
+#if os(iOS)
+import WidgetKit
+#endif
 
 // MARK: - AI Suggestion Model
 @Generable
@@ -126,6 +129,10 @@ struct GoalEditorView: View {
     @State private var customThemeName: String = ""
     @State private var selectedBaseThemeForCustom: Theme? // For creating custom themes
     @State private var isEditingThemes: Bool = false // Track edit mode for theme sheet
+    @State private var showingColorPicker: Bool = false
+    @State private var selectedColorPreset: ThemePreset?
+    @State private var showingIconPicker: Bool = false
+    @State private var selectedIcon: String?
 
     @Query private var allTags: [GoalTag]
     @State private var selectedTags: [GoalTag] = []
@@ -182,7 +189,9 @@ struct GoalEditorView: View {
     
     // Computed property for the active theme color
     private var activeThemeColor: Color {
-        if let selectedTheme = selectedGoalTheme {
+        if let selectedPreset = selectedColorPreset {
+            return selectedPreset.color(for: colorScheme)
+        } else if let selectedTheme = selectedGoalTheme {
             return selectedTheme.themePreset.color(for: colorScheme)
         } else if let template = selectedTemplate {
             let matchedTheme = matchTheme(named: template.theme)
@@ -193,7 +202,6 @@ struct GoalEditorView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
                     
                     List {
                             // Custom input section
@@ -224,6 +232,15 @@ struct GoalEditorView: View {
                                             if let proxy = scrollProxy {
                                                 withAnimation(.easeInOut(duration: 0.25)) {
                                                     proxy.scrollTo(categoryIndex, anchor: .center)
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Infer icon from user input if no icon is selected yet
+                                        if selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
+                                            Task { @MainActor in
+                                                if selectedIcon == nil {
+                                                    selectedIcon = inferIcon(from: trimmed)
                                                 }
                                             }
                                         }
@@ -330,7 +347,62 @@ struct GoalEditorView: View {
                                             .foregroundStyle(.secondary)
                                     }
                                 }
-                            }                            
+                            }
+                            
+                            // Color and icon picker buttons
+                            Section {
+                                HStack(spacing: 12) {
+                                    // Color picker button
+                                    Button(action: {
+                                        showingColorPicker = true
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            // Color preview circle
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            selectedColorPreset?.neon ?? activeThemeColor,
+                                                            selectedColorPreset?.dark ?? activeThemeColor
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .frame(width: 24, height: 24)
+                                            
+                                            Text(selectedColorPreset?.title ?? "Color")
+                                                .foregroundStyle(.primary)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Color(.systemGray6))
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    // Icon picker button
+                                    Button(action: {
+                                        showingIconPicker = true
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            // Icon preview
+                                            Image(systemName: selectedIcon ?? "star.fill")
+                                                .font(.system(size: 20))
+                                                .foregroundStyle(activeThemeColor)
+                                                .frame(width: 24, height: 24)
+                                            
+                                            Text(selectedIcon != nil ? "Icon" : "Icon")
+                                                .foregroundStyle(.primary)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Color(.systemGray6))
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
                             
                             Section(header: Text("Theme")) {
                                 VStack(alignment: .leading, spacing: 12) {
@@ -467,11 +539,12 @@ struct GoalEditorView: View {
                             )
                         }
                         
+                        Spacer()
+                            .frame(height: 60.0)
                     }
                     .animation(.spring(), value: result)
                     .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStage)
                     
-            }
             .overlay(alignment: .bottom) {
                 // Bottom button (hide when keyboard is active)
                 if focusedField == nil {
@@ -489,7 +562,6 @@ struct GoalEditorView: View {
                                             .fill(buttonEnabled ? activeThemeColor : Color.gray)
                                     }
                                     .foregroundStyle(.white)
-                                    .cornerRadius(10)
                             }
                             .disabled(!buttonEnabled)
                             .padding()
@@ -505,13 +577,13 @@ struct GoalEditorView: View {
                                             .fill(buttonEnabled ? activeThemeColor : Color.gray)
                                     }
                                     .foregroundStyle(.white)
-                                    .cornerRadius(10)
                             }
                             .matchedGeometryEffect(id: "actionButton", in: buttonNamespace)
                             .disabled(!buttonEnabled)
                             .padding()
                         }
                     }
+                    .frame(height: 60.0)
                     .background(Color(.systemBackground))
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -543,6 +615,18 @@ struct GoalEditorView: View {
 
                 }
                 
+                // Close button on duration stage
+                if currentStage == .duration {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Close")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                }
+                
                 // Keyboard navigation toolbar
                 ToolbarItemGroup(placement: .keyboard) {
                     HStack(spacing: 12) {
@@ -570,7 +654,20 @@ struct GoalEditorView: View {
                     
                     Spacer()
                     
-                    // Save button (only on duration stage)
+                    // Next button (only on name stage with goalName field focused)
+                    if currentStage == .name && focusedField == .goalName {
+                        Button {
+                            handleButtonTap()
+                        } label: {
+                            Text("Next")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(activeThemeColor)
+                        }
+                        .disabled(!buttonEnabled)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    
+                    // Save button (only on duration stage)G
                     if currentStage == .duration {
                         Button {
                             saveGoal()
@@ -600,6 +697,45 @@ struct GoalEditorView: View {
             NavigationStack {
                 GoalTagTriggersEditor(goalTag: tag)
             }
+        }
+        .sheet(isPresented: $showingColorPicker) {
+            ColorPickerSheet(
+                selectedColorPreset: $selectedColorPreset,
+                onSelect: { preset in
+                    selectedColorPreset = preset
+                    
+                    // Create or update a tag with the selected color
+                    if selectedTags.isEmpty {
+                        // Create a new tag with this color
+                        let newTag = GoalTag(
+                            title: userInput.isEmpty ? "Custom" : userInput,
+                            color: preset.toTheme()
+                        )
+                        modelContext.insert(newTag)
+                        selectedTags = [newTag]
+                        selectedGoalTheme = newTag
+                    } else {
+                        // Update the first selected tag's color
+                        selectedTags[0].themeID = preset.id
+                    }
+                    
+                    showingColorPicker = false
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingIconPicker) {
+            IconPickerSheet(
+                selectedIcon: $selectedIcon,
+                themeColor: activeThemeColor,
+                onSelect: { icon in
+                    selectedIcon = icon
+                    showingIconPicker = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .task {
             prewarm()
@@ -831,6 +967,9 @@ struct GoalEditorView: View {
         // Set duration
         durationInMinutes = template.duration
         
+        // Infer and set icon from template
+        selectedIcon = inferIcon(from: template.title)
+        
         // Create GoalTheme based on template's theme
         let matchedTheme = matchTheme(named: template.theme)
         
@@ -914,6 +1053,7 @@ struct GoalEditorView: View {
             goal.primaryTag = finalGoalTag
             goal.weeklyTarget = TimeInterval(durationInMinutes * 60) // Weekly minutes to seconds
             goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+            goal.iconName = selectedIcon
             goal.notificationsEnabled = notificationsEnabled
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = completionNotificationsEnabled
@@ -935,6 +1075,7 @@ struct GoalEditorView: View {
                     healthKitMetric: selectedHealthKitMetric,
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
+                goal.iconName = selectedIcon
             } else {
                 goal = Goal(
                     title: userInput,
@@ -946,6 +1087,7 @@ struct GoalEditorView: View {
                     healthKitMetric: selectedHealthKitMetric,
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
+                goal.iconName = selectedIcon
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
             }
         }
@@ -991,6 +1133,12 @@ struct GoalEditorView: View {
         lastPlanGeneratedTimestamp = 0
         print("🔄 Reset plan generation timestamp - new plan will be generated")
         
+        // Reload widgets to show the new goal
+        #if os(iOS)
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+        print("🔄 Reloaded all widget timelines")
+        #endif
+        
         dismiss()
     }
     
@@ -1004,6 +1152,143 @@ struct GoalEditorView: View {
 
     func prewarm() {
 //        session.prewarm()
+    }
+    
+    /// Infer an appropriate icon from a goal title
+    func inferIcon(from title: String) -> String? {
+        guard !title.isEmpty else { return nil }
+        let normalizedTitle = title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty else { return nil }
+        
+        // Icon mapping dictionary - maps keywords to SF Symbol names
+        let iconMapping: [String: String] = [
+            // Fitness
+            "run": "figure.run",
+            "running": "figure.run",
+            "jog": "figure.run",
+            "walk": "figure.walk",
+            "walking": "figure.walk",
+            "yoga": "figure.yoga",
+            "stretch": "figure.yoga",
+            "gym": "dumbbell.fill",
+            "workout": "figure.strengthtraining.traditional",
+            "exercise": "figure.strengthtraining.traditional",
+            "strength": "dumbbell.fill",
+            "cardio": "heart.circle.fill",
+            "cycle": "bicycle",
+            "bike": "bicycle",
+            "swim": "figure.pool.swim",
+            "swimming": "figure.pool.swim",
+            "dance": "figure.dance",
+            "basketball": "figure.basketball",
+            "soccer": "figure.soccer",
+            "tennis": "figure.tennis",
+            "climb": "figure.climbing",
+            "hike": "figure.hiking",
+            "hiking": "figure.hiking",
+            
+            // Wellness
+            "meditate": "figure.mind.and.body",
+            "meditation": "figure.mind.and.body",
+            "sleep": "bed.double.fill",
+            "rest": "zzz",
+            "water": "waterbottle.fill",
+            "hydrate": "drop.fill",
+            "breathe": "wind",
+            "breathing": "wind",
+            "health": "heart.fill",
+            "mindful": "sparkles",
+            "wellness": "heart.circle.fill",
+            
+            // Learning
+            "read": "book.fill",
+            "reading": "book.fill",
+            "book": "book.fill",
+            "study": "book.closed.fill",
+            "learn": "graduationcap.fill",
+            "learning": "lightbulb.fill",
+            "write": "pencil",
+            "writing": "pencil",
+            "journal": "note.text",
+            "note": "note.text",
+            "practice": "star.fill",
+            "course": "graduationcap.fill",
+            "education": "graduationcap.fill",
+            
+            // Creative
+            "paint": "paintbrush.fill",
+            "painting": "paintbrush.fill",
+            "draw": "pencil.and.ruler.fill",
+            "drawing": "pencil.and.ruler.fill",
+            "art": "paintpalette.fill",
+            "photo": "camera.fill",
+            "photography": "camera.fill",
+            "music": "music.note",
+            "guitar": "guitars.fill",
+            "piano": "pianokeys.inverse",
+            "sing": "mic.fill",
+            "singing": "mic.fill",
+            "creative": "paintbrush.fill",
+            "design": "paintbrush.pointed.fill",
+            
+            // Productivity
+            "work": "checkmark.circle.fill",
+            "task": "checkmark.square.fill",
+            "focus": "target",
+            "plan": "calendar",
+            "organize": "folder.fill",
+            "email": "envelope.fill",
+            "meeting": "person.2.fill",
+            "project": "doc.fill",
+            "code": "chevron.left.forwardslash.chevron.right",
+            "coding": "chevron.left.forwardslash.chevron.right",
+            "program": "chevron.left.forwardslash.chevron.right",
+            
+            // Home
+            "cook": "fork.knife",
+            "cooking": "fork.knife",
+            "clean": "sparkles",
+            "cleaning": "trash.fill",
+            "garden": "leaf.fill",
+            "gardening": "leaf.fill",
+            "laundry": "washer.fill",
+            "dishes": "cup.and.saucer.fill",
+            
+            // Social
+            "call": "phone.fill",
+            "chat": "message.fill",
+            "message": "bubble.fill",
+            "friend": "person.2.fill",
+            "family": "person.3.fill",
+            "social": "person.2.fill",
+            "party": "party.popper.fill",
+            "celebrate": "balloon.fill",
+            
+            // Nature
+            "nature": "leaf.fill",
+            "outdoor": "sun.max.fill",
+            "outdoors": "sun.max.fill",
+            "tree": "tree.fill",
+            "flower": "flower.fill",
+            "plant": "leaf.fill",
+            "pet": "pawprint.fill",
+            "dog": "dog.fill",
+            "cat": "cat.fill"
+        ]
+        
+        // Try to find a direct match first
+        if let icon = iconMapping[normalizedTitle] {
+            return icon
+        }
+        
+        // Try to find a partial match (keyword contained in title)
+        for (keyword, icon) in iconMapping {
+            if normalizedTitle.contains(keyword) {
+                return icon
+            }
+        }
+        
+        return nil
     }
     
     /// Match a theme name to an actual Theme from the themes array
@@ -1924,3 +2209,379 @@ struct FlowLayout: Layout {
         }
     }
 }
+// MARK: - Color Picker Sheet
+
+struct ColorPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @Binding var selectedColorPreset: ThemePreset?
+    let onSelect: (ThemePreset) -> Void
+    
+    // Rainbow-sorted color order
+    private var sortedPresets: [ThemePreset] {
+        let order = [
+            // Red family
+            "red", "cherry", "crimson", "ruby", "coral", "salmon", "hot_pink", "rose",
+            // Orange family
+            "orange", "burnt_orange", "tangerine", "peach", "amber", "apricot",
+            // Yellow family
+            "yellow", "sunshine", "lemon", "gold", "mustard", "beige", "cream",
+            // Green family
+            "green", "emerald", "mint", "seafoam", "lime", "olive", "sage", "forest",
+            // Blue family
+            "blue", "navy", "sky_blue", "azure", "cyan", "teal", "turquoise", "mint_blue", "steel", "grey_blue", "cobalt",
+            // Purple/Violet family
+            "purple", "indigo", "violet", "lilac", "grape", "plum", "mauve", "lavender", "orchid", "magenta",
+            // Pink family
+            "pink0", "bubblegum", "fuchsia",
+            // Brown/Neutral family
+            "chocolate", "coffee", "taupe",
+            // Gray family
+            "silver0", "charcoal", "slate"
+        ]
+        
+        return order.compactMap { id in
+            themePresets.first(where: { $0.id == id })
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 16) {
+                    ForEach(sortedPresets, id: \.id) { preset in
+                        ColorPresetButton(
+                            preset: preset,
+                            isSelected: selectedColorPreset?.id == preset.id,
+                            colorScheme: colorScheme
+                        ) {
+                            onSelect(preset)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Choose Color")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct ColorPresetButton: View {
+    let preset: ThemePreset
+    let isSelected: Bool
+    let colorScheme: ColorScheme
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                // Color preview with gradient circle
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [preset.neon, preset.dark],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(
+                                isSelected ? Color.primary : Color.clear,
+                                lineWidth: 3
+                            )
+                    )
+                    .shadow(color: preset.neon.opacity(0.3), radius: 6)
+                
+                // Color name
+                Text(preset.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+    }
+}
+
+// MARK: - Icon Picker Sheet
+struct IconPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedIcon: String?
+    let themeColor: Color
+    let onSelect: (String) -> Void
+    
+    @State private var searchText: String = ""
+    @State private var selectedCategory: IconCategory = .fitness
+    
+    var filteredIcons: [String] {
+        let categoryIcons = selectedCategory.icons
+        if searchText.isEmpty {
+            return categoryIcons
+        }
+        return categoryIcons.filter { icon in
+            icon.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Category picker
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(IconCategory.allCases, id: \.self) { category in
+                            CategoryButton(
+                                category: category,
+                                isSelected: selectedCategory == category,
+                                themeColor: themeColor
+                            ) {
+                                withAnimation(.spring(response: 0.3)) {
+                                    selectedCategory = category
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                }
+                .background(Color(.systemBackground))
+                
+                Divider()
+                
+                // Icon grid
+                ScrollView {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 20) {
+                        ForEach(filteredIcons, id: \.self) { icon in
+                            IconButton(
+                                icon: icon,
+                                isSelected: selectedIcon == icon,
+                                themeColor: themeColor
+                            ) {
+                                onSelect(icon)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                .searchable(text: $searchText, prompt: "Search icons")
+            }
+            .navigationTitle("Choose Icon")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct CategoryButton: View {
+    let category: IconCategory
+    let isSelected: Bool
+    let themeColor: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: category.icon)
+                    .font(.system(size: 16))
+                Text(category.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(isSelected ? themeColor : Color(.systemGray6))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct IconButton: View {
+    let icon: String
+    let isSelected: Bool
+    let themeColor: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundStyle(isSelected ? themeColor : .primary)
+                    .frame(width: 50, height: 50)
+                    .background(
+                        Circle()
+                            .fill(isSelected ? themeColor.opacity(0.15) : Color(.systemGray6))
+                    )
+                    .overlay(
+                        Circle()
+                            .strokeBorder(isSelected ? themeColor : Color.clear, lineWidth: 2)
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.1 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+    }
+}
+
+// MARK: - Icon Categories
+
+enum IconCategory: String, CaseIterable {
+    case fitness = "Fitness"
+    case wellness = "Wellness"
+    case learning = "Learning"
+    case creative = "Creative"
+    case productivity = "Productivity"
+    case home = "Home"
+    case social = "Social"
+    case nature = "Nature"
+    
+    var name: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .fitness: return "figure.run"
+        case .wellness: return "heart.fill"
+        case .learning: return "book.fill"
+        case .creative: return "paintbrush.fill"
+        case .productivity: return "checkmark.circle.fill"
+        case .home: return "house.fill"
+        case .social: return "person.2.fill"
+        case .nature: return "leaf.fill"
+        }
+    }
+    
+    var icons: [String] {
+        switch self {
+        case .fitness:
+            return [
+                "figure.run", "figure.walk", "figure.yoga", "figure.cooldown",
+                "figure.strengthtraining.traditional", "dumbbell.fill", "figure.dance",
+                "figure.jumprope", "figure.boxing", "figure.kickboxing",
+                "figure.basketball", "figure.soccer", "figure.tennis",
+                "figure.baseball", "figure.volleyball", "figure.badminton",
+                "figure.skiing.downhill", "figure.snowboarding", "figure.surfing",
+                "bicycle", "figure.outdoor.cycle", "figure.indoor.cycle",
+                "figure.pool.swim", "figure.water.fitness", "figure.rowing",
+                "figure.climbing", "figure.hiking", "shoeprints.fill",
+                "heart.circle.fill", "bolt.heart.fill", "stopwatch.fill"
+            ]
+        case .wellness:
+            return [
+                "heart.fill", "heart.circle.fill", "sparkles",
+                "leaf.fill", "drop.fill", "wind",
+                "sun.max.fill", "moon.stars.fill", "cloud.sun.fill",
+                "bed.double.fill", "zzz", "waterbottle.fill",
+                "brain.fill", "lungs.fill", "figure.mind.and.body",
+                "pills.fill", "cross.vial.fill", "stethoscope",
+                "medical.thermometer.fill", "bandage.fill", "cross.case.fill",
+                "allergens", "syringe.fill", "ivfluid.bag.fill"
+            ]
+        case .learning:
+            return [
+                "book.fill", "book.closed.fill", "books.vertical.fill",
+                "magazine.fill", "newspaper.fill", "note.text",
+                "doc.text.fill", "doc.richtext.fill", "note",
+                "pencil", "pencil.circle.fill", "highlighter",
+                "graduationcap.fill", "studentdesk", "backpack.fill",
+                "brain.head.profile", "lightbulb.fill", "star.fill",
+                "chart.bar.fill", "text.book.closed.fill", "character.book.closed.fill",
+                "abc", "textformat.abc", "textformat.123"
+            ]
+        case .creative:
+            return [
+                "paintbrush.fill", "paintpalette.fill", "photo.fill",
+                "camera.fill", "video.fill", "film.fill",
+                "music.note", "music.note.list", "guitars.fill",
+                "pianokeys.inverse", "mic.fill", "waveform",
+                "scissors", "pencil.and.ruler.fill", "square.and.pencil",
+                "paintbrush.pointed.fill", "eyedropper.halffull", "swatchpalette.fill",
+                "lasso.badge.sparkles", "photo.badge.plus.fill", "rectangle.portrait.on.rectangle.portrait.fill"
+            ]
+        case .productivity:
+            return [
+                "checkmark.circle.fill", "checkmark.square.fill", "list.bullet",
+                "list.bullet.clipboard.fill", "calendar", "clock.fill",
+                "timer", "stopwatch.fill", "bell.fill",
+                "flag.fill", "star.fill", "paperclip",
+                "folder.fill", "doc.fill", "tray.fill",
+                "archivebox.fill", "shippingbox.fill", "envelope.fill",
+                "paperplane.fill", "link", "square.grid.2x2.fill",
+                "target", "scope", "chart.line.uptrend.xyaxis"
+            ]
+        case .home:
+            return [
+                "house.fill", "door.left.hand.closed", "lightbulb.fill",
+                "lamp.desk.fill", "lamp.floor.fill", "lamp.ceiling.fill",
+                "fan.fill", "poweroutlet.type.a.fill", "heater.vertical.fill",
+                "basket.fill", "cart.fill", "bag.fill",
+                "fork.knife", "cup.and.saucer.fill", "mug.fill",
+                "refrigerator.fill", "stove.fill", "oven.fill",
+                "washer.fill", "dryer.fill", "dishwasher.fill",
+                "trash.fill", "toilet.fill", "shower.fill",
+                "bathtub.fill", "bed.double.fill", "sofa.fill",
+                "chair.fill", "table.furniture.fill", "cabinet.fill"
+            ]
+        case .social:
+            return [
+                "person.fill", "person.2.fill", "person.3.fill",
+                "person.crop.circle.fill", "person.crop.square.fill", "person.and.background.dotted",
+                "bubble.fill", "bubble.left.and.bubble.right.fill", "message.fill",
+                "phone.fill", "video.fill", "envelope.fill",
+                "heart.fill", "hand.thumbsup.fill", "star.fill",
+                "gift.fill", "party.popper.fill", "balloon.fill",
+                "birthday.cake.fill", "cup.and.saucer.fill", "wineglass.fill",
+                "camera.fill", "camera.viewfinder", "photo.on.rectangle.fill"
+            ]
+        case .nature:
+            return [
+                "leaf.fill", "tree.fill", "flower.fill",
+                "sun.max.fill", "cloud.sun.fill", "cloud.rain.fill",
+                "snowflake", "wind", "tornado",
+                "flame.fill", "drop.fill", "globe.americas.fill",
+                "mountain.2.fill", "beach.umbrella.fill", "water.waves",
+                "pawprint.fill", "hare.fill", "bird.fill",
+                "fish.fill", "ladybug.fill", "ant.fill",
+                "tortoise.fill", "lizard.fill", "cat.fill",
+                "dog.fill", "carrot.fill", "leaf.arrow.triangle.circlepath"
+            ]
+        }
+    }
+}
+
+

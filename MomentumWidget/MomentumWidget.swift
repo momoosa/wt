@@ -138,7 +138,7 @@ struct Provider: AppIntentTimelineProvider {
                 let isActive = activeTimerSessionID == session.id.uuidString
                 return RecommendedSession(
                     id: session.id,
-                    title: session.goal.title,
+                    title: session.title,
                     theme: session.goal.primaryTag.theme,
                     progress: session.progress,
                     formattedTime: session.formattedTime,
@@ -187,58 +187,27 @@ struct MomentumWidgetEntryView : View {
 }
 
 // MARK: - Small Widget
-
+private struct Constants {
+    static let padding = 10.0
+}
 struct SmallWidgetView: View {
     let entry: Provider.Entry
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-         
-            if entry.recommendations.isEmpty {
+        if entry.recommendations.isEmpty {
+            VStack {
                 Text("No goals today")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.recommendations.prefix(3)) { session in
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(session.theme.light)
-                                .frame(width: 6, height: 6)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(session.title)
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .lineLimit(1)
-                                    .strikethrough(session.hasMetTarget, color: .secondary)
-                                
-                                HStack(spacing: 4) {
-                                    if session.isTimerActive {
-                                        Circle()
-                                            .fill(.red)
-                                            .frame(width: 4, height: 4)
-                                    }
-                                    
-                                    Text(session.formattedTime)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                    
-                                    if session.hasMetTarget {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 8))
-                                            .foregroundStyle(.green)
-                                    }
-                                }
-                            }
-                            
-                            Spacer(minLength: 0)
-                        }
-                    }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(spacing: 4) {
+                ForEach(entry.recommendations.prefix(3)) { session in
+                    MediumWidgetCell(session: session)
                 }
             }
-            
-            Spacer()
+            .padding(Constants.padding)
         }
     }
 }
@@ -249,65 +218,100 @@ struct MediumWidgetView: View {
     let entry: Provider.Entry
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            
-            if entry.recommendations.isEmpty {
+        if entry.recommendations.isEmpty {
+            VStack {
                 Text("No active goals")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } else {
-                VStack(spacing: 6) {
-                    ForEach(entry.recommendations.prefix(6)) { session in
-                        HStack(spacing: 10) {
-                            // Play/Stop Button
-                            Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
-                                ZStack {
-                                    Circle()
-                                        .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
-                                        .frame(width: 36, height: 36)
-                                    
-                                    Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(.white)
-                                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                ForEach(0..<3, id: \.self) { row in
+                    GridRow {
+                        ForEach(0..<2, id: \.self) { column in
+                            let index = row * 2 + column
+                            if index < entry.recommendations.count {
+                                let session = entry.recommendations[index]
+                                MediumWidgetCell(session: session)
+                            } else {
+                                Color.clear
+                                    .gridCellUnsizedAxes([.horizontal, .vertical])
                             }
-                            .buttonStyle(.plain)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(session.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .lineLimit(1)
-                                    .strikethrough(session.hasMetTarget, color: .secondary)
-                                
-                                HStack(spacing: 4) {
-                                    if session.isTimerActive {
-                                        Circle()
-                                            .fill(.red)
-                                            .frame(width: 5, height: 5)
-                                    }
-                                    
-                                    Text(session.formattedTime)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    
-                                    if session.hasMetTarget {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(.green)
-                                    }
-                                }
-                            }
-                            
-                            Spacer()
-                         
                         }
                     }
                 }
             }
-            
-            Spacer(minLength: 0)
+            .padding(Constants.padding)
         }
+    }
+}
+
+// MARK: - Medium Widget Cell
+
+struct MediumWidgetCell: View {
+    let session: RecommendedSession
+    
+    var body: some View {
+        HStack {
+            // Background tap area - opens app
+            Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text(session.title)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                        
+                        Spacer(minLength: 0)
+               
+                    }
+                    
+                    HStack(spacing: 4) {
+                        if session.isTimerActive {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 4, height: 4)
+                        }
+                        
+                        Text(session.formattedTime)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer(minLength: 0)
+                    }
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+               
+            }
+            
+            // Play button overlay - starts/stops timer
+            Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(session.theme.textColor)
+                    .frame(width: 24, height: 24)
+                    .background(
+                        Circle()
+                            .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal)
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    session.theme.neon.opacity(0.3),
+                    session.theme.dark.opacity(0.3)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+
     }
 }
 
@@ -397,7 +401,7 @@ struct LargeWidgetView: View {
             
             Spacer()
         }
-        .padding()
+        .padding(12)
     }
 }
 
@@ -412,6 +416,7 @@ struct MomentumWidget: Widget {
         .configurationDisplayName("Momentum")
         .description("See your top recommended goals right now")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -426,6 +431,26 @@ struct MomentumWidget: Widget {
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: false
+        ),
+        RecommendedSession(
+            id: UUID(),
+            title: "Exercise",
+            theme: themePresets.first(where: { $0.id == "red" })!.toTheme(),
+            progress: 0.75,
+            formattedTime: "20m / 25m",
+            hasMetTarget: false,
+            dayID: "2026-02-02",
+            isTimerActive: false
+        ),
+        RecommendedSession(
+            id: UUID(),
+            title: "Meditation",
+            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
+            progress: 1.0,
+            formattedTime: "10m / 10m",
+            hasMetTarget: true,
             dayID: "2026-02-02",
             isTimerActive: false
         )
@@ -468,7 +493,7 @@ struct MomentumWidget: Widget {
         )
     ])
 }
-#Preview(as: .systemLarge) {
+#Preview(as: .systemMedium) {
     MomentumWidget()
 } timeline: {
     SimpleEntry(date: .now, recommendations: [

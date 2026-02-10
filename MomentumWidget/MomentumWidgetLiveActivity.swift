@@ -254,42 +254,43 @@ struct LiveActivityLockScreenView: View {
                             .foregroundStyle(.secondary)
                     }
                     
-                    HStack(spacing: 12) {
-                        // Pause/Resume button
-                        Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
-                            HStack(spacing: 4) {
-                                Image(systemName: context.state.isActive ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 12))
-                                Text(context.state.isActive ? "Pause" : "Resume")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color(hex: context.attributes.themeNeon)?.opacity(0.2) ?? .blue.opacity(0.2))
-                            .cornerRadius(6)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        // Stop button
-                        Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "stop.fill")
-                                    .font(.system(size: 12))
-                                Text("Stop")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.red.opacity(0.2))
-                            .cornerRadius(6)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    
                 }
                 
                 Spacer()
+                VStack {
+                    // Pause/Resume button
+                    Button(intent: PauseResumeTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
+                        HStack(spacing: 4) {
+                            Image(systemName: context.state.isActive ? "pause.fill" : "play.fill")
+                                .font(.system(size: 12))
+                            Text(context.state.isActive ? "Pause" : "Resume")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(hex: context.attributes.themeNeon)?.opacity(0.2) ?? .blue.opacity(0.2))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Stop button
+                    Button(intent: StopTimerIntent(sessionID: context.attributes.sessionID, dayID: context.attributes.dayID)) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 12))
+                            Text("Stop")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.red.opacity(0.2))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding()
         }

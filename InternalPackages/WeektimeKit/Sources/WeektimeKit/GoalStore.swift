@@ -47,7 +47,7 @@ public final class GoalStore {
 //        } else {
             let historicalSession = HistoricalSession(title: session.title, start: startDate, end: endDate, needsHealthKitRecord: false)
             modelContext.insert(historicalSession)
-            historicalSession.goalIDs = [session.goal.id.uuidString]
+            historicalSession.goalIDs = [session.goalID]
             day.add(historicalSession: historicalSession)
             do {
                 try modelContext.save()

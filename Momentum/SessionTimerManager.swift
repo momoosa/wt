@@ -100,10 +100,17 @@ public final class SessionTimerManager {
     /// Handles a session that was stopped externally (from widget/Live Activity)
     @MainActor
     private func handleStoppedSession(sessionID: String) async {
-        guard let defaults = sharedDefaults else { return }
+        print("🔍 handleStoppedSession: Called for session \(sessionID)")
+        
+        guard let defaults = sharedDefaults else {
+            print("❌ handleStoppedSession: No shared defaults")
+            return
+        }
         
         // Get the elapsed time that was accumulated
         let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
+        print("🔍 handleStoppedSession: Elapsed time = \(elapsedTime)s")
+        
         guard elapsedTime > 0 else {
             print("⚠️ SessionTimerManager: No elapsed time for stopped session")
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
@@ -121,51 +128,167 @@ public final class SessionTimerManager {
             predicate: #Predicate { $0.id == sessionUUID }
         )
         
+        // Fetch the session - if it doesn't exist, the goal was likely deleted (cascade)
         guard let session = try? context.fetch(descriptor).first else {
-            print("⚠️ SessionTimerManager: Session not found")
+            print("⚠️ SessionTimerManager: Session not found for ID \(sessionUUID) - goal may have been deleted")
+            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+            defaults.removeObject(forKey: "StoppedSessionIDV1")
+            defaults.synchronize()
             return
         }
+        
+        // Use the session's title (which is cached) instead of accessing session.goal.title
+        // This avoids potential crashes if the goal was deleted
+        let sessionTitle = session.title
+        
+        // We need the goal ID to create the historical session
+        // To avoid crashes from accessing deleted goals, we'll fetch the goal separately
+        let goalDescriptor = FetchDescriptor<Goal>(
+            predicate: #Predicate { goal in
+                goal.goalSessions.contains { $0.id == sessionUUID }
+            }
+        )
+        
+        guard let goal = try? context.fetch(goalDescriptor).first else {
+            print("⚠️ SessionTimerManager: Goal was deleted, cannot create historical session")
+            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+            defaults.removeObject(forKey: "StoppedSessionIDV1")
+            defaults.synchronize()
+            return
+        }
+        
+        let goalID = goal.id.uuidString
+        
+        print("🔍 handleStoppedSession: Found session for goal '\(sessionTitle)'")
         
         // Create historical session from accumulated time
         let endDate = Date()
         let startDate = endDate.addingTimeInterval(-elapsedTime)
         let historicalSession = HistoricalSession(
-            title: session.goal.title,
+            title: sessionTitle,
             start: startDate,
             end: endDate,
             healthKitType: nil,
             needsHealthKitRecord: false
         )
-        historicalSession.goalIDs = [session.goal.id.uuidString]
+        historicalSession.goalIDs = [goalID]
+        
+        print("🔍 handleStoppedSession: Creating historical session from \(startDate) to \(endDate)")
         
         session.day.add(historicalSession: historicalSession)
         context.insert(historicalSession)
         
-        // Clear elapsed time
+        // Clear elapsed time and stopped flag
         defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+        defaults.removeObject(forKey: "StoppedSessionIDV1")
         defaults.synchronize()
         
-        try? context.save()
+        do {
+            try context.save()
+            print("✅ SessionTimerManager: Created historical session for stopped session (elapsed: \(elapsedTime)s)")
+        } catch {
+            print("❌ SessionTimerManager: Failed to save historical session: \(error)")
+        }
+    }
+    
+    /// Syncs a session started from the widget to the main app
+    @MainActor
+    private func syncExternalSessionToApp(sessionID: String) async {
+        print("🔄 syncExternalSessionToApp: Syncing session \(sessionID) from widget to app")
         
-        print("✅ SessionTimerManager: Created historical session for stopped session (elapsed: \(elapsedTime)s)")
+        guard let defaults = sharedDefaults else {
+            print("❌ syncExternalSessionToApp: No shared defaults")
+            return
+        }
+        
+        // Find the session in the model context
+        guard let sessionUUID = UUID(uuidString: sessionID) else {
+            print("❌ syncExternalSessionToApp: Invalid session UUID")
+            return
+        }
+        
+        let fetchDescriptor = FetchDescriptor<GoalSession>(
+            predicate: #Predicate { $0.id == sessionUUID }
+        )
+        
+        guard let session = try? modelContext.fetch(fetchDescriptor).first else {
+            print("❌ syncExternalSessionToApp: Could not find session")
+            return
+        }
+        
+        // Get elapsed time and start date from UserDefaults
+        let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
+        let startDateInterval = defaults.double(forKey: activeSessionStartDateKey)
+        let startDate = startDateInterval > 0 ? Date(timeIntervalSince1970: startDateInterval) : Date()
+        
+        print("🔍 syncExternalSessionToApp: Creating ActiveSessionDetails with elapsed=\(elapsedTime)s, start=\(startDate)")
+        
+        // Create ActiveSessionDetails
+        let newActiveSession = ActiveSessionDetails(
+            id: session.id,
+            startDate: startDate,
+            elapsedTime: elapsedTime,
+            dailyTarget: session.dailyTarget
+        ) {
+            // Callback when target is reached
+            self.onTargetReached(for: session)
+        }
+        
+        activeSession = newActiveSession
+        
+        // Wire up the onTick callback to update Live Activity
+        newActiveSession.onTick = { [weak self] in
+            self?.updateFromActiveSession()
+        }
+        
+        newActiveSession.startUITimer()
+        
+        // Check if a Live Activity already exists for this session (started by widget)
+        #if canImport(ActivityKit)
+        let existingActivity = Activity<MomentumWidgetAttributes>.activities.first { activity in
+            activity.attributes.sessionID == sessionID
+        }
+        
+        if let existingActivity = existingActivity {
+            // Use the existing Live Activity instead of creating a new one
+            liveActivity = existingActivity
+            setupLiveActivityObservation()
+            print("✅ syncExternalSessionToApp: Using existing Live Activity from widget")
+        } else {
+            // No existing activity, start a new one
+            startLiveActivity(for: session, activeSession: newActiveSession)
+        }
+        #else
+        // Start Live Activity
+        startLiveActivity(for: session, activeSession: newActiveSession)
+        #endif
+        
+        print("✅ syncExternalSessionToApp: Session synced successfully")
     }
     
     /// Checks if timer state was changed externally (e.g., by widget) and syncs
     public func checkForExternalChanges() {
-        guard let defaults = sharedDefaults else { return }
+        print("🔄 checkForExternalChanges: Called")
+        
+        guard let defaults = sharedDefaults else {
+            print("❌ checkForExternalChanges: No shared defaults")
+            return
+        }
         
         let storedSessionID = defaults.string(forKey: activeSessionIDKey)
         let pausedSessionID = defaults.string(forKey: "PausedSessionIDV1")
+        let stoppedSessionID = defaults.string(forKey: "StoppedSessionIDV1")
         let currentSessionID = activeSession?.id.uuidString
         
+        print("🔍 checkForExternalChanges: stored=\(storedSessionID ?? "nil"), paused=\(pausedSessionID ?? "nil"), stopped=\(stoppedSessionID ?? "nil"), current=\(currentSessionID ?? "nil")")
+        
         // Check if a session was stopped externally and needs to be saved
-        if let stoppedSessionID = defaults.string(forKey: "StoppedSessionIDV1") {
+        if let stoppedSessionID = stoppedSessionID {
             print("🔄 SessionTimerManager: Found stopped session \(stoppedSessionID), creating historical session")
             Task { @MainActor in
                 await self.handleStoppedSession(sessionID: stoppedSessionID)
             }
-            // Clear the flag
-            defaults.removeObject(forKey: "StoppedSessionIDV1")
+            // Don't clear the flag here - let handleStoppedSession do it after creating the session
         }
         
         #if canImport(ActivityKit)
@@ -180,6 +303,21 @@ public final class SessionTimerManager {
         }
         #endif
         
+        // Check if a paused session was resumed (storedSessionID matches and pausedSessionID is cleared)
+        if let activeSession, activeSession.isPaused {
+            // If the session is marked as paused but storedSessionID now matches (resumed)
+            if storedSessionID == activeSession.id.uuidString {
+                print("🔄 SessionTimerManager: Session resumed")
+                activeSession.isPaused = false
+                activeSession.startUITimer()
+                
+                // Notify that external change occurred so UI can refresh
+                DispatchQueue.main.async {
+                    self.onExternalChange?()
+                }
+            }
+        }
+        
         // If states don't match, something changed externally
         if storedSessionID != currentSessionID {
             print("🔄 SessionTimerManager: Detected external state change")
@@ -189,9 +327,10 @@ public final class SessionTimerManager {
             if let activeSession, storedSessionID == nil {
                 // Check if it's paused instead of stopped
                 if pausedSessionID == activeSession.id.uuidString {
-                    print("   → Timer is paused (keeping Live Activity)")
+                    print("   → Timer is paused (keeping session visible)")
                     activeSession.stopUITimer()
-                    self.activeSession = nil
+                    activeSession.isPaused = true
+                    // Keep the session in activeSession so it remains visible in UI
                     // Don't end Live Activity - it's just paused
                     // The Live Activity will continue showing the paused state
                 } else {
@@ -207,6 +346,13 @@ public final class SessionTimerManager {
                 activeSession.stopUITimer()
                 self.activeSession = nil
             }
+            // New session started from widget (no current session, but stored session exists)
+            else if activeSession == nil, let storedID = storedSessionID {
+                print("   → New session started from widget, syncing to app")
+                Task { @MainActor in
+                    await self.syncExternalSessionToApp(sessionID: storedID)
+                }
+            }
             
             // Notify that external change occurred so UI can refresh
             DispatchQueue.main.async {
@@ -221,13 +367,47 @@ public final class SessionTimerManager {
     public func toggleTimer(for session: GoalSession, in day: Day) {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             if let activeSession, activeSession.id == session.id {
-                // Stop the timer
-                stopTimer(for: session, in: day)
+                // Check if paused - if so, resume
+                if activeSession.isPaused {
+                    resumeTimer()
+                } else {
+                    // Stop the timer
+                    stopTimer(for: session, in: day)
+                }
             } else {
                 // Start the timer
                 startTimer(for: session)
             }
         }
+    }
+    
+    /// Resumes a paused timer
+    public func resumeTimer() {
+        guard let activeSession, activeSession.isPaused else { return }
+        
+        print("▶️ Resuming paused session")
+        
+        // Clear paused flag
+        activeSession.isPaused = false
+        
+        // Restart the UI timer
+        activeSession.startUITimer()
+        
+        // Update UserDefaults to mark as active
+        guard let defaults = sharedDefaults else { return }
+        defaults.set(activeSession.id.uuidString, forKey: activeSessionIDKey)
+        defaults.removeObject(forKey: "PausedSessionIDV1")
+        defaults.synchronize()
+        
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+        
+        #if os(iOS)
+        // Success haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
     }
     
     /// Starts a timer for the given session
@@ -346,6 +526,16 @@ public final class SessionTimerManager {
         return activeSession?.id == session.id
     }
     
+    /// Clears the active session without creating a historical entry (for forced cleanup)
+    public func clearActiveSession() {
+        if let activeSession {
+            activeSession.stopUITimer()
+            self.activeSession = nil
+            saveTimerState()
+            endLiveActivity()
+        }
+    }
+    
     // MARK: - Timer State Persistence
     
     /// Saves the current timer state to UserDefaults
@@ -426,14 +616,14 @@ public final class SessionTimerManager {
         if timeNeeded > 0 {
             let now = Date()
             let historicalSession = HistoricalSession(
-                title: session.goal.title,
+                title: session.title,
                 start: now,
                 end: now.addingTimeInterval(timeNeeded),
                 healthKitType: nil,
                 needsHealthKitRecord: false
             )
-            historicalSession.goalIDs = [session.goal.id.uuidString]
-            
+            historicalSession.goalIDs = [session.goalID]
+
             day.add(historicalSession: historicalSession)
             context.insert(historicalSession)
         }
@@ -448,12 +638,14 @@ public final class SessionTimerManager {
         
         // Send completion notification
         let totalElapsed = session.elapsedTime + timeNeeded
-        Task { @MainActor in
-            let notificationManager = GoalNotificationManager()
-            await notificationManager.sendCompletionNotification(
-                for: session.goal,
-                elapsedTime: totalElapsed
-            )
+        if session.goal.completionNotificationsEnabled {
+            Task { @MainActor in
+                let notificationManager = GoalNotificationManager()
+                await notificationManager.sendCompletionNotification(
+                    for: session.goal,
+                    elapsedTime: totalElapsed
+                )
+            }
         }
     }
     
@@ -467,12 +659,14 @@ public final class SessionTimerManager {
         #endif
         
         // Send completion notification if enabled
-        Task { @MainActor in
-            let notificationManager = GoalNotificationManager()
-            await notificationManager.sendCompletionNotification(
-                for: session.goal,
-                elapsedTime: session.elapsedTime
-            )
+        if session.goal.completionNotificationsEnabled {
+            Task { @MainActor in
+                let notificationManager = GoalNotificationManager()
+                await notificationManager.sendCompletionNotification(
+                    for: session.goal,
+                    elapsedTime: session.elapsedTime
+                )
+            }
         }
         print("🎯 Target reached for session: \(session.title)")
     }
@@ -489,14 +683,15 @@ public final class SessionTimerManager {
         // End any existing activity
         endLiveActivity()
         
+        let theme = session.goal.primaryTag.theme
         let attributes = MomentumWidgetAttributes(
             sessionID: session.id.uuidString,
             dayID: session.day.id,
-            goalTitle: session.goal.title,
+            goalTitle: session.title,
             dailyTarget: session.dailyTarget,
-            themeLight: session.goal.primaryTag.theme.light.toHex(),
-            themeDark: session.goal.primaryTag.theme.dark.toHex(),
-            themeNeon: session.goal.primaryTag.theme.neon.toHex()
+            themeLight: theme.light.toHex(),
+            themeDark: theme.dark.toHex(),
+            themeNeon: theme.neon.toHex()
         )
         
         let contentState = MomentumWidgetAttributes.ContentState(
@@ -511,7 +706,7 @@ public final class SessionTimerManager {
                 content: .init(state: contentState, staleDate: nil),
                 pushType: nil
             )
-            print("✅ Live Activity started: \(session.goal.title)")
+            print("✅ Live Activity started: \(session.title)")
             
             // Set up observation of ActiveSessionDetails timer
             setupLiveActivityObservation()

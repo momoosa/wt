@@ -74,10 +74,14 @@ public final class GoalSession: SessionProgressProvider {
     public var status: Status
     public private(set) var goal: Goal
     public private(set) var day: Day
+    
+    /// Cached goal ID to avoid accessing deleted goal
+    public private(set) var goalID: String
+    
     @Relationship public var checklist: [ChecklistItemSession] = []
     @Relationship public var intervalLists: [IntervalListSession] = []
     public var historicalSessions: [HistoricalSession] {
-        day.historicalSessions.filter({ $0.goalIDs.contains(goal.id.uuidString )})
+        day.historicalSessions.filter({ $0.goalIDs.contains(goalID)})
     }
     
     /// Time tracked from HealthKit for this session (if enabled)
@@ -100,11 +104,9 @@ public final class GoalSession: SessionProgressProvider {
     /// Structured recommendation reasons
     public var recommendationReasons: [RecommendationReason] = []
     
-    public var dailyTarget: TimeInterval {
-        // If goal has a daily minimum set, use that as the target
-        // Otherwise, divide weekly target by 7
-        return goal.dailyMinimum ?? (goal.weeklyTarget / 7)
-    }
+    /// Cached daily target to avoid accessing deleted goal
+    /// This is set when the session is created and doesn't change
+    public private(set) var dailyTarget: TimeInterval
     
     /// Total elapsed time including both manual tracking and HealthKit data
     public var elapsedTime: TimeInterval {
@@ -138,6 +140,9 @@ public final class GoalSession: SessionProgressProvider {
         self.goal = goal
         self.day = day
         self.status = .active
+        // Cache goal properties at creation time to avoid accessing goal after deletion
+        self.goalID = goal.id.uuidString
+        self.dailyTarget = goal.dailyMinimum ?? (goal.weeklyTarget / 7)
         self.intervalLists = goal.intervalLists.map({ interval in
             IntervalListSession(list: interval)
         })

@@ -86,12 +86,13 @@ struct ProgressSummaryCardWrapper: View {
     }
     
     var tintColor: Color {
-        colorScheme == .dark ? session.goal.primaryTag.theme.neon : session.goal.primaryTag.theme.dark
+        let primaryTag = session.goal.primaryTag
+        return colorScheme == .dark ? primaryTag.theme.neon : primaryTag.theme.dark
     }
-    
+
     var body: some View {
         ProgressSummaryCard(
-            goalTitle: session.goal.title,
+            goalTitle: session.title,
             themeName: session.goal.primaryTag.title,
             themeColors: session.goal.primaryTag.theme,
             dailyProgress: session.progress,
@@ -170,10 +171,23 @@ struct ProgressSummaryCard: View {
                         // Daily progress text
                         VStack(alignment: .leading, spacing: 8) {
                             
-                            Text(goalTitle)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(textColor)
+                            HStack {
+                                Text(goalTitle)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(textColor)
+                                
+                                if let activeSession = activeSessionDetails, activeSession.isPaused {
+                                    Text("Paused")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(textColor)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(textColor.opacity(0.2))
+                                        .clipShape(Capsule())
+                                }
+                            }
 
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text(currentElapsed.formatted(style: .hmmss))
@@ -201,35 +215,18 @@ struct ProgressSummaryCard: View {
                     if let session = session, let timerManager = timerManager, let onDone = onDone, let onSkip = onSkip {
                         
                         HStack(spacing: 0) {
-                            // Mark as Done button
-                            Button {
-                                onDone()
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title2)
-                                        .symbolRenderingMode(.hierarchical)
-                                    Text("Done")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .foregroundStyle(textColor)
-                            }
-                            .buttonStyle(.plain)
-                            
                             
                             // Start/Stop button
                             Button {
                                 timerManager.toggleTimer(for: session, in: session.day)
                             } label: {
                                 let isActive = timerManager.isActive(session)
+                                let isPaused = timerManager.activeSession?.isPaused ?? false
                                 VStack(spacing: 4) {
-                                    Image(systemName: isActive ? "pause.circle.fill" : "play.circle.fill")
+                                    Image(systemName: isPaused ? "play.circle.fill" : (isActive ? "pause.circle.fill" : "play.circle.fill"))
                                         .font(.title2)
                                         .symbolRenderingMode(.hierarchical)
-                                    Text(isActive ? "Pause" : "Start")
+                                    Text(isPaused ? "Resume" : (isActive ? "Pause" : "Start"))
                                         .font(.caption)
                                         .fontWeight(.medium)
                                 }
@@ -256,8 +253,26 @@ struct ProgressSummaryCard: View {
                                 .foregroundStyle(textColor.opacity(0.7))
                             }
                             .buttonStyle(.plain)
+                            // Mark as Done button
+                            Button {
+                                onDone()
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title2)
+                                        .symbolRenderingMode(.hierarchical)
+                                    Text("Done")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .foregroundStyle(textColor)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .background(.ultraThinMaterial)
+
+                            
                     }
                 }
                 .background {

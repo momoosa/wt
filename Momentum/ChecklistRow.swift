@@ -13,7 +13,8 @@ struct ChecklistRow: View {
     @Bindable var item: ChecklistItemSession
     var body: some View {
         let color = item.session.goal.primaryTag.theme.dark
-        HStack {
+        
+        return HStack {
             Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
                 .contentTransition(.symbolEffect(.replace))
                 .foregroundStyle(item.isCompleted ? color : .secondary)

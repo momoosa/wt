@@ -7,6 +7,7 @@
 
 import AppIntents
 import SwiftData
+import SwiftUI
 import WidgetKit
 
 #if canImport(ActivityKit)
@@ -95,6 +96,22 @@ public struct ToggleTimerIntent: AppIntent {
             // Mark session as stopped - the app will handle creating the historical session
             print("⏹️ Intent: Marking session as stopped (app will create historical session)")
             
+            // Get the current elapsed time before clearing anything
+            let currentElapsed = defaults.double(forKey: activeSessionElapsedTimeKey)
+            print("🔍 Intent: Current elapsed time in UserDefaults: \(currentElapsed)s")
+            
+            // If currently active (not paused), calculate and update the elapsed time
+            if isCurrentlyActive {
+                let startTimeInterval = defaults.double(forKey: activeSessionStartDateKey)
+                if startTimeInterval > 0 {
+                    let startDate = Date(timeIntervalSince1970: startTimeInterval)
+                    let duration = Date().timeIntervalSince(startDate)
+                    let totalElapsed = currentElapsed + duration
+                    defaults.set(totalElapsed, forKey: activeSessionElapsedTimeKey)
+                    print("🔍 Intent: Updated elapsed time to \(totalElapsed)s (was \(currentElapsed)s)")
+                }
+            }
+            
             // Set a flag indicating the session should be stopped and saved
             defaults.set(sessionID, forKey: "StoppedSessionIDV1")
             
@@ -107,7 +124,12 @@ public struct ToggleTimerIntent: AppIntent {
             // Force synchronization of UserDefaults
             defaults.synchronize()
             
-            print("✅ Intent: Session marked as stopped, app will finalize")
+            print("✅ Intent: Session marked as stopped with elapsed time \(defaults.double(forKey: activeSessionElapsedTimeKey))s, app will finalize")
+            
+            // End Live Activity
+            #if canImport(ActivityKit)
+            await endLiveActivity(sessionID: sessionID)
+            #endif
             
             // Notify the app to check for external changes
             NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
@@ -136,6 +158,11 @@ public struct ToggleTimerIntent: AppIntent {
             
             print("✅ Intent: Timer started at \(startDate)")
             
+            // Start Live Activity
+            #if canImport(ActivityKit)
+            await startLiveActivity(sessionID: sessionID, dayID: dayID, elapsedTime: elapsedTime, appGroupIdentifier: appGroupIdentifier)
+            #endif
+            
             // Notify the app
             NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
         }
@@ -160,6 +187,104 @@ public struct ToggleTimerIntent: AppIntent {
             }
         }
     }
+    
+    #if canImport(ActivityKit)
+    /// Start a Live Activity for the session
+    @MainActor
+    private func startLiveActivity(sessionID: String, dayID: String, elapsedTime: TimeInterval, appGroupIdentifier: String) async {
+        // First, end any existing activities
+        let existingActivities = Activity<MomentumWidgetAttributes>.activities
+        for activity in existingActivities {
+            await activity.end(nil, dismissalPolicy: .immediate)
+            print("🔚 Ended existing Live Activity: \(activity.id)")
+        }
+        
+        // Fetch session data from SwiftData
+        let schema = Schema([
+            Goal.self,
+            GoalTag.self,
+        ])
+        
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier),
+              let container = try? ModelContainer(for: schema, configurations: [ModelConfiguration(url: containerURL.appendingPathComponent("default.store"))]) else {
+            print("❌ Failed to create model container for Live Activity")
+            return
+        }
+        
+        let context = container.mainContext
+        
+        // Fetch the day
+        let dayPredicate = #Predicate<Day> { day in
+            day.id == dayID
+        }
+        let dayDescriptor = FetchDescriptor<Day>(predicate: dayPredicate)
+        
+        guard let day = try? context.fetch(dayDescriptor).first else {
+            print("❌ Failed to fetch day for Live Activity")
+            return
+        }
+        
+        // Fetch the session
+        guard let sessionUUID = UUID(uuidString: sessionID) else {
+            print("❌ Invalid session ID")
+            return
+        }
+        
+        let sessionPredicate = #Predicate<GoalSession> { session in
+            session.id == sessionUUID && session.day.id == dayID
+        }
+        let sessionDescriptor = FetchDescriptor<GoalSession>(predicate: sessionPredicate)
+        
+        guard let session = try? context.fetch(sessionDescriptor).first else {
+            print("❌ Failed to fetch session for Live Activity")
+            return
+        }
+        
+        // Create activity attributes
+        let primaryTag = session.goal.primaryTag
+        let theme = primaryTag.theme
+        
+        let attributes = MomentumWidgetAttributes(
+            sessionID: sessionID,
+            dayID: dayID,
+            goalTitle: session.title,
+            dailyTarget: session.dailyTarget,
+            themeLight: "#\(theme.light.toHex() ?? "007AFF")",
+            themeDark: "#\(theme.dark.toHex() ?? "0051D5")",
+            themeNeon: "#\(theme.neon.toHex() ?? "00D4FF")"
+        )
+        
+        let contentState = MomentumWidgetAttributes.ContentState(
+            elapsedTime: elapsedTime,
+            startDate: Date(),
+            isActive: true
+        )
+        
+        // Start the Live Activity
+        do {
+            let activity = try Activity<MomentumWidgetAttributes>.request(
+                attributes: attributes,
+                content: .init(state: contentState, staleDate: nil),
+                pushType: nil
+            )
+            print("✅ Started Live Activity: \(activity.id)")
+        } catch {
+            print("❌ Failed to start Live Activity: \(error)")
+        }
+    }
+    
+    /// End the Live Activity for a session
+    @MainActor
+    private func endLiveActivity(sessionID: String) async {
+        let activities = Activity<MomentumWidgetAttributes>.activities
+        for activity in activities {
+            if activity.attributes.sessionID == sessionID {
+                await activity.end(nil, dismissalPolicy: .immediate)
+                print("🔚 Ended Live Activity: \(activity.id)")
+            }
+        }
+    }
+    #endif
 }
 
 /// App Intent to start a timer for a goal session

@@ -20,25 +20,9 @@ struct ContentView: View {
     @State private var selectedSession: GoalSession?
     @Namespace var animation
     @State private var showingGoalEditor = false
-    @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .skippedSessions, .archivedGoals]
+    @State private var availableFilters: [Filter] = [.activeToday, .allGoals, .skippedSessions]
     @State private var activeFilter: Filter = .activeToday
-    
-    private var dynamicAvailableFilters: [Filter] {
-        var filters = availableFilters
-        
-        // Add "Planned" filter if there are any planned sessions
-        let hasPlannedSessions = sessions.contains(where: { $0.plannedStartTime != nil })
-        if hasPlannedSessions && !filters.contains(.planned) {
-            // Insert planned filter after activeToday
-            if let index = filters.firstIndex(of: .activeToday) {
-                filters.insert(.planned, at: index + 1)
-            } else {
-                filters.insert(.planned, at: 0)
-            }
-        }
-        
-        return filters
-    }
+
     
     // Timer manager for session tracking
     @State private var timerManager: SessionTimerManager?
@@ -71,20 +55,19 @@ struct ContentView: View {
             .animation(.spring(), value: goals)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sessions.count)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: getRecommendedSessions().map { $0.id })
-            .safeAreaInset(edge: .top, spacing: 0) {
-                VStack(spacing: 0) {
+            .overlay {
+                VStack {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
-                            ForEach(dynamicAvailableFilters, id: \.self) { filter in
+                            ForEach(availableFilters, id: \.self) { filter in
                                 filterChip(for: filter)
                             }
                         }
                         .padding([.leading, .trailing])
                         .padding([.top, .bottom], 8)
                     }
-                    .background(.ultraThinMaterial)
-                    
-                    Divider()
+                    Spacer()
+
                 }
             }
             .toolbar {
@@ -141,6 +124,14 @@ struct ContentView: View {
     
     private var mainListView: some View {
         List {
+            Section {
+                
+            } footer: {
+
+                Spacer()
+                    .frame(height: 10.0)
+            }
+
             if !sessions.isEmpty || isPlanning || showPlanningComplete {
                 let recommendedSessions = getRecommendedSessions()
                 if !recommendedSessions.isEmpty {
@@ -571,43 +562,26 @@ struct ContentView: View {
         switch filter {
         case .skippedSessions:
             return sessions.filter { $0.status == .skipped }.count
-        case .archivedGoals:
-            // Count archived goals that have a session for this day
-            let archivedGoalIDs = Set(goals.filter { $0.status == .archived }.map { $0.id })
-            return sessions.filter { archivedGoalIDs.contains($0.goal.id) }.count
         case .activeToday:
             return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
         case .allGoals:
             return sessions.count
-        case .recommendedGoals:
-            // Currently same criteria as active non-skipped/non-archived
-            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
-        case .planned:
-            return sessions.filter { $0.plannedStartTime != nil && $0.goal.status != .archived && $0.status != .skipped }.count
         case .theme(let goalTheme):
             return sessions.filter { $0.goal.primaryTag.themeID == goalTheme.themeID && $0.goal.status != .archived && $0.status != .skipped }.count
+        case .completedToday:
+            return sessions.filter { $0.hasMetDailyTarget }.count
         }
     }
     
     
     private func filterChip(for filter: Filter) -> some View {
-        HStack(spacing: 4) {
-            if let image = filter.label.imageName {
-                Image(systemName: image)
-            }
-            if let text = filter.label.text {
-                filterText(for: filter, text: text)
-            }
-        }
+        filterText(for: filter)
         .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
         .fontWeight(.semibold)
         .padding([.top, .bottom], 6)
         .padding([.leading, .trailing], 10)
-        .frame(minWidth: 60.0)
-        .background {
-            Capsule()
-                .fill(filter.id == activeFilter.id ? filter.tintColor.opacity(0.4) : Color(.systemGray5))
-        }
+        .frame(minWidth: 60.0, minHeight: 40)
+        .glassEffect(in: Capsule())
         .onTapGesture {
             withAnimation {
                 activeFilter = filter
@@ -616,20 +590,14 @@ struct ContentView: View {
     }
     
     @ViewBuilder
-    private func filterText(for filter: Filter, text: String) -> some View {
-        if filter == .skippedSessions || filter == .archivedGoals || filter == .planned {
+    private func filterText(for filter: Filter) -> some View {
             let count = count(for: filter)
             HStack {
-                Text(text)
-                    .font(.footnote)
+                Text(filter.text)
                 Text("\(count)")
                     .foregroundStyle(.secondary)
-                    .font(.caption2)
             }
-        } else {
-            Text(text)
-                .font(.footnote)
-        }
+            .font(.footnote)
     }
     
     init(day: Day) {
@@ -637,10 +605,10 @@ struct ContentView: View {
         let dayID = day.id
         
         self._sessions = Query(
-                    filter: #Predicate<GoalSession> { event in
-                        event.day.id == dayID
-                    }
-                )
+            filter: #Predicate<GoalSession> { event in
+                event.day.id == dayID
+            }
+        )
     }
     
     private func refreshGoals() {
@@ -792,18 +760,14 @@ struct ContentView: View {
             switch activeFilter {
             case .activeToday:
                 return !isArchived && !isSkipped
-            case .recommendedGoals:
-                return !isArchived && !isSkipped
             case .allGoals:
                 return true
-            case .archivedGoals:
-                return isArchived
             case .skippedSessions:
                 return isSkipped
-            case .planned:
-                return session.plannedStartTime != nil && !isArchived && !isSkipped
             case .theme(let goalTheme):
                 return session.goal.primaryTag.themeID == goalTheme.themeID && !isArchived && !isSkipped
+            case .completedToday:
+                return session.hasMetDailyTarget
             }
         }
         

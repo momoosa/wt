@@ -13,6 +13,7 @@ import SwiftUI
 public final class Goal {
     public private(set) var id: UUID
     public var title: String
+    public var iconName: String? // SF Symbol name for the goal icon
     public var status: Status
     public var primaryTag: GoalTag // Optional tag that provides both theme and smart triggers
     public var otherTags: [GoalTag]
