@@ -6,9 +6,12 @@
 //
 
 import SwiftUI
+import MomentumKit
+import SwiftData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
@@ -50,6 +53,18 @@ struct SettingsView: View {
                     Text("Skipping the animation makes planning feel faster by showing all sessions immediately.")
                 }
                 
+                #if DEBUG
+                Section {
+                    Button {
+                        addDebugGoals()
+                    } label: {
+                        Text("Add Debug Goals")
+                    }
+
+                } header: {
+                    Text("Debug")
+                }
+                #endif
                 Section {
                     HStack {
                         Text("Version")
@@ -72,8 +87,110 @@ struct SettingsView: View {
             }
         }
     }
+    
+    private func addDebugGoals() {
+        for debugGoal in DebugGoals.allCases {
+            addDebugGoal(debugGoal)
+        }
+    }
+    
+    private func addDebugGoal(_ debugGoal: DebugGoals) {
+        let theme = GoalTag(title: debugGoal.themeTitle, color: debugGoal.theme)
+        let goal = Goal(
+            title: debugGoal.title,
+            primaryTag: theme,
+            weeklyTarget: TimeInterval(debugGoal.weeklyTargetMinutes * 60),
+            notificationsEnabled: debugGoal.notificationsEnabled,
+            healthKitMetric: debugGoal.healthKitMetric,
+            healthKitSyncEnabled: debugGoal.healthKitSyncEnabled
+        )
+        withAnimation {
+            modelContext.insert(goal)
+        }
+    }
 }
 
 #Preview {
     SettingsView()
 }
+
+#if DEBUG
+enum DebugGoals: String, CaseIterable, Identifiable {
+    case reading = "Reading"
+    case exercise = "Exercise"
+    case meditation = "Meditation"
+    case coding = "Coding Practice"
+    case music = "Music Practice"
+    case cooking = "Cooking"
+    case learning = "Language Learning"
+    case writing = "Writing"
+    
+    var id: String { rawValue }
+    
+    var title: String {
+        rawValue
+    }
+    
+    var themeTitle: String {
+        switch self {
+        case .reading: return "Learning"
+        case .exercise: return "Health"
+        case .meditation: return "Wellness"
+        case .coding: return "Tech"
+        case .music: return "Creative"
+        case .cooking: return "Home"
+        case .learning: return "Education"
+        case .writing: return "Creative"
+        }
+    }
+    
+    var theme: Theme {
+        switch self {
+        case .reading: return themePresets.first(where: { $0.id == "blue" })!.toTheme()
+        case .exercise: return themePresets.first(where: { $0.id == "red" })!.toTheme()
+        case .meditation: return themePresets.first(where: { $0.id == "purple" })!.toTheme()
+        case .coding: return themePresets.first(where: { $0.id == "green" })!.toTheme()
+        case .music: return themePresets.first(where: { $0.id == "orange" })!.toTheme()
+        case .cooking: return themePresets.first(where: { $0.id == "yellow" })!.toTheme()
+        case .learning: return themePresets.first(where: { $0.id == "purple" })!.toTheme()
+        case .writing: return themePresets.first(where: { $0.id == "teal" })!.toTheme()
+        }
+    }
+    
+    var weeklyTargetMinutes: Int {
+        switch self {
+        case .reading: return 210 // 30 min/day
+        case .exercise: return 175 // 25 min/day
+        case .meditation: return 70 // 10 min/day
+        case .coding: return 420 // 60 min/day
+        case .music: return 140 // 20 min/day
+        case .cooking: return 105 // 15 min/day
+        case .learning: return 210 // 30 min/day
+        case .writing: return 140 // 20 min/day
+        }
+    }
+    
+    var notificationsEnabled: Bool {
+        switch self {
+        case .meditation, .exercise, .reading:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var healthKitMetric: HealthKitMetric? {
+        switch self {
+        case .exercise: return .appleExerciseTime
+        case .meditation: return .mindfulMinutes
+        default: return nil
+        }
+    }
+    
+    var healthKitSyncEnabled: Bool {
+        return healthKitMetric != nil
+    }
+}
+#endif
+
+
