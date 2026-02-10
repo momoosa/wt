@@ -31,6 +31,7 @@
 		CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */; };
 		CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8112F3BA166001F2406 /* GoalRow.swift */; };
 		CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8092F3BA109001F2406 /* GoalManager.swift */; };
+		CD22C81C2F3BB8CA001F2406 /* PlanningViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */; };
 		CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2C2F2F633800F7265A /* WidgetKit.framework */; };
 		CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2E2F2F633800F7265A /* SwiftUI.framework */; };
 		CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -127,6 +128,7 @@
 		CD22C80F2F3BA157001F2406 /* AllGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllGoalsView.swift; sourceTree = "<group>"; };
 		CD22C8112F3BA166001F2406 /* GoalRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalRow.swift; sourceTree = "<group>"; };
 		CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualLogSheet.swift; sourceTree = "<group>"; };
+		CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningViewModel.swift; sourceTree = "<group>"; };
 		CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -333,6 +335,7 @@
 				CD22C80F2F3BA157001F2406 /* AllGoalsView.swift */,
 				CD22C8112F3BA166001F2406 /* GoalRow.swift */,
 				CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */,
+				CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -571,6 +574,7 @@
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
 				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
 				CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */,
+				CD22C81C2F3BB8CA001F2406 /* PlanningViewModel.swift in Sources */,
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,

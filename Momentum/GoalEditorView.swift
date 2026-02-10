@@ -704,18 +704,8 @@ struct GoalEditorView: View {
                 onSelect: { preset in
                     selectedColorPreset = preset
                     
-                    // Create or update a tag with the selected color
-                    if selectedTags.isEmpty {
-                        // Create a new tag with this color
-                        let newTag = GoalTag(
-                            title: userInput.isEmpty ? "Custom" : userInput,
-                            color: preset.toTheme()
-                        )
-                        modelContext.insert(newTag)
-                        selectedTags = [newTag]
-                        selectedGoalTheme = newTag
-                    } else {
-                        // Update the first selected tag's color
+                    // If there's an existing tag selected, update its color
+                    if !selectedTags.isEmpty {
                         selectedTags[0].themeID = preset.id
                     }
                     
