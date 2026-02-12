@@ -38,6 +38,11 @@ struct Provider: AppIntentTimelineProvider {
         let schema = Schema([
             Goal.self,
             GoalTag.self,
+            GoalSession.self,
+            Day.self,
+            HistoricalSession.self,
+            ChecklistItemSession.self,
+            IntervalListSession.self,
         ])
         
         // Use App Group container for shared data access
