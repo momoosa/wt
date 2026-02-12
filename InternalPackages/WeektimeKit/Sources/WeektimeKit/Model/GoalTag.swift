@@ -102,7 +102,6 @@ public final class GoalTag {
     }
 }
 
-// MARK: - Time of Day
 
 public enum TimeOfDay: String, Codable, CaseIterable, Hashable, Comparable {
     case morning

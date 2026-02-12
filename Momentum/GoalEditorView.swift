@@ -71,35 +71,7 @@ struct GoalEditorView: View {
     enum TimeRelation: String, CaseIterable, Identifiable { case before, after; var id: String { rawValue } }
     struct DaySchedule: Identifiable { let id = UUID(); var enabled: Bool; var relation: TimeRelation; var time: Date }
     
-    // Grid scheduling types
-    enum TimeBucket: String, CaseIterable, Identifiable { case morning, midday, afternoon, evening, night; var id: String { rawValue }
-        var displayName: String {
-            switch self {
-            case .morning: return "Morning"
-            case .midday: return "Midday"
-            case .afternoon: return "Noon"
-            case .evening: return "Evening"
-            case .night: return "Night"
-            }
-        }
-        var hoursRange: ClosedRange<Int> {
-            switch self {
-            case .morning: return 6...10
-            case .midday: return 10...14
-            case .afternoon: return 14...17
-            case .evening: return 17...21
-            case .night: return 21...23
-            }
-        }
-    }
-    struct DayBucket: Identifiable, Hashable {
-        var id: String {
-            return "\(weekday)-\(bucket.id)"
-        }
-        let weekday: Int
-        let bucket: TimeBucket
-    }
-    
+  
     // Simple multi-select time of day
     enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
     
@@ -296,37 +268,47 @@ struct GoalEditorView: View {
                         if currentStage == .duration {
                                                                                     
                             Section(header: Text("Weekly Goal")) {
-                                HStack {
-                                    Text("Duration")
-                                    Spacer()
-                                    TextField("Minutes", value: $durationInMinutes, format: .number)
-                                        .focused($focusedField, equals: .duration)
-                                        .keyboardType(.numberPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(width: 80)
-                                    Text("min/week")
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                                Toggle("Daily Minimum", isOn: $hasDailyMinimum)
-                                
-                                if hasDailyMinimum {
-                                    HStack {
-                                        Text("Minimum")
-                                            .foregroundStyle(.secondary)
-                                        Spacer()
-                                        TextField("Minutes", value: Binding(
-                                            get: { dailyMinimumMinutes ?? 10 },
-                                            set: { dailyMinimumMinutes = $0 }
-                                        ), format: .number)
-                                            .focused($focusedField, equals: .dailyMinimum)
-                                            .keyboardType(.numberPad)
-                                            .multilineTextAlignment(.trailing)
-                                            .frame(width: 80)
-                                        Text("min/day")
-                                            .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Text("Weekly Target")
+                                            Spacer()
+                                            Text("\(calculatedWeeklyTarget) min")
+                                                .foregroundStyle(activeThemeColor)
+                                        }
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+
+                                        Divider()
+                                        
+                                        VStack(spacing: 8) {
+                                            ForEach(weekdays, id: \.0) { weekday, name in
+                                                ExpandableDayRow(
+                                                    weekday: weekday,
+                                                    name: name,
+                                                    isActive: isDayActive(weekday),
+                                                    minutes: dailyTargets[weekday] ?? 30,
+                                                    selectedTimes: dayTimePreferences[weekday] ?? [],
+                                                    themeColor: activeThemeColor,
+                                                    isExpanded: expandedDay == weekday,
+                                                    onToggleDay: { toggleActiveDay(weekday) },
+                                                    onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
+                                                    onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
+                                                    onToggleExpand: {
+                                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                                            expandedDay = (expandedDay == weekday) ? nil : weekday
+                                                        }
+                                                    }
+                                                )
+                                                
+                                                if weekday != weekdays.last?.0 {
+                                                    Divider()
+                                                }
+                                            }
+                                        }
                                     }
                                 }
+                                .padding(.vertical, 4)
                             }
                             
                             // Color and icon picker buttons
@@ -799,15 +781,35 @@ struct GoalEditorView: View {
     /// Load existing goal data for editing
     private func loadGoalData(from goal: Goal) {
         userInput = goal.title
-        durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes
+        durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
         
-        // Load daily minimum
+        // Load daily minimum (this is now the primary daily target)
         if let dailyMin = goal.dailyMinimum {
-            hasDailyMinimum = true
             dailyMinimumMinutes = Int(dailyMin / 60)
         } else {
-            hasDailyMinimum = false
-            dailyMinimumMinutes = nil
+            // Default to 10 minutes if not set
+            dailyMinimumMinutes = 10
+        }
+        
+        // Infer active days from schedule - days with any time preferences are "active"
+        activeDays.removeAll()
+        dailyTargets.removeAll()
+        
+        for weekday in 1...7 {
+            let times = goal.timesForWeekday(weekday)
+            if !times.isEmpty {
+                activeDays.insert(weekday)
+                // Use dailyMinimum as the target for all active days when editing
+                dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+            }
+        }
+        
+        // If no active days found, default to weekdays with default targets
+        if activeDays.isEmpty {
+            activeDays = Set(2...6) // Monday-Friday
+            for weekday in 2...6 {
+                dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+            }
         }
         
         notificationsEnabled = goal.notificationsEnabled
@@ -894,6 +896,15 @@ struct GoalEditorView: View {
     private func toggleTimeSlot(weekday: Int, timeOfDay: TimeOfDay) {
         if dayTimePreferences[weekday]?.contains(timeOfDay) ?? false {
             dayTimePreferences[weekday]?.remove(timeOfDay)
+            
+            // If all time slots are now unchecked, deactivate the day
+            if dayTimePreferences[weekday]?.isEmpty ?? true {
+                activeDays.remove(weekday)
+                dailyTargets.removeValue(forKey: weekday)
+                withAnimation {
+                    expandedDay = nil // Close the row when deactivating
+                }
+            }
         } else {
             dayTimePreferences[weekday, default: []].insert(timeOfDay)
         }
@@ -902,6 +913,40 @@ struct GoalEditorView: View {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
         #endif
+    }
+    
+    // MARK: - Active Days Management
+    
+    @State private var activeDays: Set<Int> = Set(2...6) // Default: Monday-Friday
+    @State private var dailyTargets: [Int: Int] = Dictionary(uniqueKeysWithValues: (2...6).map { ($0, 10) }) // Default 10 min for weekdays
+    @State private var expandedDay: Int? = nil // Track which day row is expanded (accordion-style)
+    
+    private func toggleActiveDay(_ weekday: Int) {
+        if activeDays.contains(weekday) {
+            activeDays.remove(weekday)
+            dailyTargets.removeValue(forKey: weekday)
+        } else {
+            activeDays.insert(weekday)
+            // Set default target when activating a day
+            dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+        }
+        
+        #if os(iOS)
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        #endif
+    }
+    
+    private func isDayActive(_ weekday: Int) -> Bool {
+        activeDays.contains(weekday)
+    }
+    
+    private var calculatedWeeklyTarget: Int {
+        return dailyTargets.values.reduce(0, +)
+    }
+    
+    private func updateDailyTarget(for weekday: Int, minutes: Int) {
+        dailyTargets[weekday] = minutes
     }
     
     func handleButtonTap() {
@@ -1016,8 +1061,10 @@ struct GoalEditorView: View {
             goal = existingGoal
             goal.title = userInput
             goal.primaryTag = finalGoalTag
-            goal.weeklyTarget = TimeInterval(durationInMinutes * 60) // Weekly minutes to seconds
-            goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+            goal.weeklyTarget = TimeInterval(calculatedWeeklyTarget * 60) // Weekly minutes to seconds
+            // Calculate average daily target from per-day targets
+            let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+            goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
             goal.iconName = selectedIcon
             goal.notificationsEnabled = notificationsEnabled
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
@@ -1033,7 +1080,7 @@ struct GoalEditorView: View {
                 goal = Goal(
                     title: title,
                     primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(durationInMinutes * 60), // Weekly minutes to seconds
+                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
                     scheduleNotificationsEnabled: scheduleNotificationsEnabled,
                     completionNotificationsEnabled: completionNotificationsEnabled,
@@ -1041,11 +1088,13 @@ struct GoalEditorView: View {
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
                 goal.iconName = selectedIcon
+                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
             } else {
                 goal = Goal(
                     title: userInput,
                     primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(durationInMinutes * 60), // Weekly minutes to seconds
+                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
                     scheduleNotificationsEnabled: scheduleNotificationsEnabled,
                     completionNotificationsEnabled: completionNotificationsEnabled,
@@ -1053,13 +1102,23 @@ struct GoalEditorView: View {
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
                 goal.iconName = selectedIcon
+                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
             }
         }
         
         // ✅ Save the day-time schedule using the convenience method
-        for (weekday, times) in dayTimePreferences {
-            goal.setTimes(times, forWeekday: weekday)
+        // For active days, use their time preferences, or default to all times if not set
+        for weekday in 1...7 {
+            if activeDays.contains(weekday) {
+                // Day is active - use specified times or default to all times
+                let times = dayTimePreferences[weekday] ?? Set(TimeOfDay.allCases)
+                goal.setTimes(times, forWeekday: weekday)
+            } else {
+                // Day is not active - clear any time preferences
+                goal.setTimes([], forWeekday: weekday)
+            }
         }
         
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
@@ -2542,5 +2601,4 @@ enum IconCategory: String, CaseIterable {
         }
     }
 }
-
 

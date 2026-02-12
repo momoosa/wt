@@ -22,6 +22,7 @@
 		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
+		CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
 		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
@@ -120,6 +121,7 @@
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
+		CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandableDayRow.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
@@ -298,6 +300,7 @@
 				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
 				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
 				CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */,
+				CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */,
 				CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */,
 				CDEBAA2F2EE9FA1000C1C411 /* Info.plist */,
 				CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */,
@@ -569,6 +572,7 @@
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
 				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
+				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
