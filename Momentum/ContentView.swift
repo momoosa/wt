@@ -152,18 +152,30 @@ struct ContentView: View {
             }
 
             if !sessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
-                let recommendedSessions = getRecommendedSessions()
-                if !recommendedSessions.isEmpty {
-                    recommendedSection(sessions: recommendedSessions)
-                }
-                
-                if !sessions.isEmpty {
-                    let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-                    let laterSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
-                        .filter { !recommendedSessionIDs.contains($0.id) }
+                // Only show recommended section for "Today" filter
+                if activeFilter == .activeToday {
+                    let recommendedSessions = getRecommendedSessions()
+                    if !recommendedSessions.isEmpty {
+                        recommendedSection(sessions: recommendedSessions)
+                    }
                     
-                    if !laterSessions.isEmpty {
-                        laterSection(sessions: laterSessions)
+                    if !sessions.isEmpty {
+                        let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
+                        let laterSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
+                            .filter { !recommendedSessionIDs.contains($0.id) }
+                        
+                        if !laterSessions.isEmpty {
+                            laterSection(sessions: laterSessions)
+                        }
+                    }
+                } else {
+                    // For other filters, show all sessions as regular rows (no recommended section)
+                    if !sessions.isEmpty {
+                        let allSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
+                        
+                        if !allSessions.isEmpty {
+                            laterSection(sessions: allSessions)
+                        }
                     }
                 }
                 

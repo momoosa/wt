@@ -180,7 +180,7 @@ struct SessionFilterService {
         from tags: [GoalTag],
         sessions: [GoalSession]
     ) -> [ContentView.Filter] {
-        var filters: [ContentView.Filter] = [.activeToday, .allGoals, .completedToday, .skippedSessions]
+        var filters: [ContentView.Filter] = [.activeToday, .completedToday, .skippedSessions]
         
         // Add theme filters for unique themes
         var uniqueThemes: [GoalTag] = []
