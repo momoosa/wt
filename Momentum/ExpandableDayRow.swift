@@ -140,7 +140,7 @@ struct ExpandableDayRow: View {
                     }
                     .padding(.leading, 52)
                 }
-                .transition(.opacity.combined(with: .move(edge: .leading)))
+                .transition(.opacity)
             }
         }
     }

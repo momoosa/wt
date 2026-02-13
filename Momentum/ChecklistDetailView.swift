@@ -33,7 +33,7 @@ struct ChecklistDetailView: View {
 
     var tintColor: Color {
         let theme = session.goal.primaryTag.theme
-        return colorScheme == .dark ? theme.neon : theme.dark
+        return colorScheme == .dark ? theme.light : theme.dark
     }
     
     // Schedule data for chart
@@ -421,7 +421,6 @@ struct ChecklistDetailView: View {
             }
             
         }
-        .toolbarColorScheme(colorScheme == .dark ? .light : .dark, for: .navigationBar)
         .tint(tintColor)
         .navigationDestination(isPresented: $isShowingListsOverview) {
             ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor)

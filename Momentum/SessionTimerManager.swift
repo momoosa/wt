@@ -243,23 +243,15 @@ public final class SessionTimerManager {
         
         newActiveSession.startUITimer()
         
-        // Check if a Live Activity already exists for this session (started by widget)
+        // Start Live Activity (widget extensions cannot create Live Activities, only the main app can)
         #if canImport(ActivityKit)
-        let existingActivity = Activity<MomentumWidgetAttributes>.activities.first { activity in
-            activity.attributes.sessionID == sessionID
-        }
+        print("🎬 syncExternalSessionToApp: Creating Live Activity from main app")
+        startLiveActivity(for: session, activeSession: newActiveSession)
         
-        if let existingActivity = existingActivity {
-            // Use the existing Live Activity instead of creating a new one
-            liveActivity = existingActivity
-            setupLiveActivityObservation()
-            print("✅ syncExternalSessionToApp: Using existing Live Activity from widget")
-        } else {
-            // No existing activity, start a new one
-            startLiveActivity(for: session, activeSession: newActiveSession)
-        }
+        // Clear the flag now that we've created the Live Activity
+        defaults.removeObject(forKey: "ShouldStartLiveActivity")
+        defaults.synchronize()
         #else
-        // Start Live Activity
         startLiveActivity(for: session, activeSession: newActiveSession)
         #endif
         

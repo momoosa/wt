@@ -69,6 +69,7 @@ struct MomentumApp: App {
     @State var day: Day?
     @Query var days: [Day]
     private let permissionHandler = PermissionsHandler()
+    
     var body: some Scene {
         WindowGroup {
             if let day {
@@ -80,6 +81,9 @@ struct MomentumApp: App {
                         .task {
                             await permissionHandler.requestScreentimeAuthorization() // TODO: MOve somewhere...
                         }
+                }
+                .onOpenURL { url in
+                    handleURL(url)
                 }
             } else {
                 Text("")
@@ -100,5 +104,23 @@ struct MomentumApp: App {
             }
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    // Handle deep link URLs from widgets
+    private func handleURL(_ url: URL) {
+        print("📱 Received URL: \(url.absoluteString)")
+        
+        // Parse URL like: momentum://goal/{sessionID}
+        guard url.scheme == "momentum",
+              url.host == "goal",
+              let sessionID = url.pathComponents.last,
+              sessionID != "/" else {
+            print("⚠️ Invalid URL format")
+            return
+        }
+        
+        print("✅ Opening session: \(sessionID)")
+        // Post notification to ContentView
+        NotificationCenter.default.post(name: NSNotification.Name("OpenSessionFromWidget"), object: sessionID)
     }
 }

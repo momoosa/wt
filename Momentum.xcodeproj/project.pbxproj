@@ -23,6 +23,7 @@
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
 		CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */; };
+		CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DDB2F3FB404004BF35F /* ToastView.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
 		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
@@ -122,6 +123,7 @@
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
 		CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandableDayRow.swift; sourceTree = "<group>"; };
+		CD134DDB2F3FB404004BF35F /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
@@ -339,6 +341,7 @@
 				CD22C8112F3BA166001F2406 /* GoalRow.swift */,
 				CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */,
 				CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */,
+				CD134DDB2F3FB404004BF35F /* ToastView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -572,6 +575,7 @@
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
 				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
+				CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */,
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,

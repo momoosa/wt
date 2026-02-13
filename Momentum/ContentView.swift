@@ -18,10 +18,11 @@ struct ContentView: View {
     @Query private var sessions: [GoalSession]
     let day: Day
     @State private var selectedSession: GoalSession?
+    @State private var sessionIDToOpen: String?
     @Namespace var animation
     @State private var showingGoalEditor = false
     @State private var activeFilter: Filter = .activeToday
-
+    @State private var navigationPath = NavigationPath()
     
     // Timer manager for session tracking
     @State private var timerManager: SessionTimerManager?
@@ -35,6 +36,9 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showNowPlaying = false
     @State private var sessionToLogManually: GoalSession?
+    
+    // Toast state
+    @State private var toastConfig: ToastConfig?
     
     // HealthKit
     @State private var healthKitManager = HealthKitManager()
@@ -56,6 +60,21 @@ struct ContentView: View {
                         sessionCounts: sessionCountsForFilters
                     )
                     Spacer()
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let toastConfig = toastConfig {
+                    VStack {
+                        Spacer()
+                        ToastView(
+                            config: toastConfig,
+                            onDismiss: {
+                                self.toastConfig = nil
+                            }
+                        )
+                        .padding(.bottom, 80) // Position above bottom toolbar
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .toolbar {
@@ -105,6 +124,18 @@ struct ContentView: View {
             }
             .sheet(item: $sessionToLogManually) { session in
                 manualLogSheet(for: session)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSessionFromWidget"))) { notification in
+                if let sessionID = notification.object as? String {
+                    handleDeepLink(sessionID: sessionID)
+                }
+            }
+            .navigationDestination(item: $selectedSession) { session in
+                if let timerManager = timerManager {
+                    ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
+                        .tint(session.goal.primaryTag.themePreset.dark)
+                        .environment(goalStore)
+                }
             }
     }
     
@@ -580,9 +611,23 @@ struct ContentView: View {
     }
     
     func skip(session: GoalSession) {
+        let previousStatus = session.status
+        
         withAnimation {
             session.status = session.status == .skipped ? .active : .skipped
         }
+        
+        let message = session.status == .skipped ? "Goal skipped" : "Goal unskipped"
+        toastConfig = ToastConfig(
+            message: message,
+            showUndo: true,
+            onUndo: { [weak session] in
+                guard let session = session else { return }
+                withAnimation {
+                    session.status = previousStatus
+                }
+            }
+        )
     }
     
     /// Check if a session's goal is still valid (not deleted)
@@ -1207,6 +1252,23 @@ struct ContentView: View {
             
             // Save the new/updated sessions
             try? modelContext.save()
+    }
+    
+    // MARK: - Deep Link Handling
+    
+    private func handleDeepLink(sessionID: String?) {
+        guard let sessionID = sessionID,
+              let uuid = UUID(uuidString: sessionID),
+              let session = sessions.first(where: { $0.id == uuid }) else {
+            print("⚠️ Session not found for ID: \(sessionID ?? "nil")")
+            return
+        }
+        
+        print("✅ Found session to open: \(session.title)")
+        
+        // Open the session detail using selectedSession which triggers NavigationLink
+        selectedSession = session
+        
     }
 }
 

@@ -115,32 +115,53 @@ struct Provider: AppIntentTimelineProvider {
         let defaults = UserDefaults(suiteName: appGroupIdentifier)
         let activeTimerSessionID = defaults?.string(forKey: "ActiveSessionIDV1")
         
-        // Score and rank sessions
+        // Use same ordering logic as ContentView
         let planner = GoalSessionPlanner()
         let preferences = PlannerPreferences.default
         
-        let scored = activeSessions.compactMap { session -> (GoalSession, Double, Bool)? in
-            let score = planner.scoreSession(
-                for: session.goal,
-                session: session,
-                at: now,
-                preferences: preferences
-            )
-            return (session, score, session.hasMetDailyTarget)
+        // First: Show planned sessions with recommendation reasons (top 3)
+        let plannedSessions = activeSessions
+            .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
+            .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
+            .prefix(3)
+        
+        var orderedSessions: [GoalSession] = Array(plannedSessions)
+        
+        // Fill remaining slots up to 10 sessions
+        if orderedSessions.count < 10 {
+            let plannedIDs = Set(plannedSessions.map { $0.id })
+            let remainingSessions = activeSessions.filter { !plannedIDs.contains($0.id) }
+            
+            // Sort remaining by planned time if available, otherwise by score
+            let sorted = remainingSessions.sorted { session1, session2 in
+                let has1 = session1.plannedStartTime != nil
+                let has2 = session2.plannedStartTime != nil
+                
+                if has1 && has2 {
+                    return session1.plannedStartTime! < session2.plannedStartTime!
+                } else if has1 {
+                    return true
+                } else if has2 {
+                    return false
+                } else {
+                    // Use scoring for unplanned sessions
+                    let score1 = planner.scoreSession(for: session1.goal, session: session1, at: now, preferences: preferences)
+                    let score2 = planner.scoreSession(for: session2.goal, session: session2, at: now, preferences: preferences)
+                    return score1 > score2
+                }
+            }
+            
+            orderedSessions.append(contentsOf: sorted.prefix(10 - orderedSessions.count))
         }
         
-        // Separate incomplete and complete sessions
-        let incomplete = scored.filter { !$0.2 }.sorted { $0.1 > $1.1 }
-        let complete = scored.filter { $0.2 }.sorted { $0.1 > $1.1 }
-        
-        // Prioritize incomplete sessions, then complete ones
-        let prioritized = incomplete + complete
-        
-        // Get top 6 for widgets
-        let topSessions = prioritized
-            .prefix(6)
-            .map { session, _, _ in
+        // Convert to widget format - get top 10 and let widget views decide how many to show
+        let topSessions = orderedSessions
+            .prefix(10)
+            .map { session in
                 let isActive = activeTimerSessionID == session.id.uuidString
+                let isHealthKitSynced = session.goal.healthKitSyncEnabled && session.goal.healthKitMetric != nil
+                let supportsWrite = session.goal.healthKitMetric?.supportsWrite ?? true
+                
                 return RecommendedSession(
                     id: session.id,
                     title: session.title,
@@ -149,7 +170,9 @@ struct Provider: AppIntentTimelineProvider {
                     formattedTime: session.formattedTime,
                     hasMetTarget: session.hasMetDailyTarget,
                     dayID: day.id,
-                    isTimerActive: isActive
+                    isTimerActive: isActive,
+                    isHealthKitSynced: isHealthKitSynced,
+                    supportsWrite: supportsWrite
                 )
             }
         
@@ -166,6 +189,8 @@ struct RecommendedSession: Identifiable {
     let hasMetTarget: Bool
     let dayID: String
     let isTimerActive: Bool
+    let isHealthKitSynced: Bool
+    let supportsWrite: Bool
 }
 
 struct SimpleEntry: TimelineEntry {
@@ -231,12 +256,15 @@ struct MediumWidgetView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
+            let maxItems = min(entry.recommendations.count, 6) // Cap at 6 for medium widget
+            let rows = (maxItems + 1) / 2 // Calculate rows needed (ceiling division)
+            
             Grid(horizontalSpacing: 4, verticalSpacing: 4) {
-                ForEach(0..<3, id: \.self) { row in
+                ForEach(0..<rows, id: \.self) { row in
                     GridRow {
                         ForEach(0..<2, id: \.self) { column in
                             let index = row * 2 + column
-                            if index < entry.recommendations.count {
+                            if index < maxItems {
                                 let session = entry.recommendations[index]
                                 MediumWidgetCell(session: session)
                             } else {
@@ -258,19 +286,15 @@ struct MediumWidgetCell: View {
     let session: RecommendedSession
     
     var body: some View {
-        HStack {
+        HStack(spacing: 6) {
             // Background tap area - opens app
             Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text(session.title)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .lineLimit(1)
-                        
-                        Spacer(minLength: 0)
-               
-                    }
+                    Text(session.title)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .foregroundStyle(session.theme.textColor)
                     
                     HStack(spacing: 4) {
                         if session.isTimerActive {
@@ -281,35 +305,37 @@ struct MediumWidgetCell: View {
                         
                         Text(session.formattedTime)
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(session.theme.textColor.opacity(0.7))
                         
                         Spacer(minLength: 0)
                     }
                 }
-                .padding(6)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-               
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             
-            // Play button overlay - starts/stops timer
-            Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
-                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(session.theme.textColor)
-                    .frame(width: 24, height: 24)
-                    .background(
-                        Circle()
-                            .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
-                    )
+            // Action button - play/stop for trackable sessions, pencil for manual-only
+            if session.isHealthKitSynced && !session.supportsWrite {
+                // Read-only HealthKit: Show pencil icon (opens app for manual entry)
+                Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
+                    Image(systemName: "pencil.circle.fill")
+                        .foregroundStyle(session.theme.textColor)
+                }
+                .opacity(0.6)
+            } else {
+                // Regular or writable HealthKit: Show play/stop button
+                Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                    Image(systemName: session.isTimerActive ? "stop.circle.fill" : "play.circle.fill")
+                        .foregroundStyle(session.theme.textColor)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal)
         }
+        .padding(6)
         .background(
             LinearGradient(
                 colors: [
-                    session.theme.neon.opacity(0.3),
-                    session.theme.dark.opacity(0.3)
+                    session.theme.neon,
+                    session.theme.dark
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -336,22 +362,23 @@ struct LargeWidgetView: View {
                 }
             } else {
                 ForEach(entry.recommendations) { session in
-                    HStack(spacing: 12) {
-                        // Play/Stop Button
-                        Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
-                            ZStack {
-                                Circle()
-                                    .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
-                                    .frame(width: 44, height: 44)
-                                
-                                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(.white)
+                    Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
+                        HStack(spacing: 12) {
+                            // Play/Stop Button
+                            Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                                ZStack {
+                                    Circle()
+                                        .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
+                                        .frame(width: 44, height: 44)
+                                    
+                                    Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
+                                        .font(.title3)
+                                        .foregroundStyle(.white)
+                                }
                             }
-                        }
-                        .buttonStyle(.plain)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
+                            .buttonStyle(.plain)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text(session.title)
                                     .font(.headline)
@@ -397,10 +424,11 @@ struct LargeWidgetView: View {
                                 .cornerRadius(2)
                             }
                         }
+                        }
+                        .padding()
+                        .background(session.theme.light.opacity(0.1))
+                        .cornerRadius(12)
                     }
-                    .padding()
-                    .background(session.theme.light.opacity(0.1))
-                    .cornerRadius(12)
                 }
             }
             
@@ -437,7 +465,9 @@ struct MomentumWidget: Widget {
             formattedTime: "15m / 30m",
             hasMetTarget: false,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         ),
         RecommendedSession(
             id: UUID(),
@@ -447,7 +477,9 @@ struct MomentumWidget: Widget {
             formattedTime: "20m / 25m",
             hasMetTarget: false,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         ),
         RecommendedSession(
             id: UUID(),
@@ -457,7 +489,9 @@ struct MomentumWidget: Widget {
             formattedTime: "10m / 10m",
             hasMetTarget: true,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         )
     ])
 }
@@ -474,7 +508,9 @@ struct MomentumWidget: Widget {
             formattedTime: "15m / 30m",
             hasMetTarget: false,
             dayID: "2026-02-02",
-            isTimerActive: true
+            isTimerActive: true,
+            isHealthKitSynced: false,
+            supportsWrite: true
         ),
         RecommendedSession(
             id: UUID(),
@@ -484,7 +520,9 @@ struct MomentumWidget: Widget {
             formattedTime: "20m / 25m",
             hasMetTarget: false,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         ),
         RecommendedSession(
             id: UUID(),
@@ -494,7 +532,9 @@ struct MomentumWidget: Widget {
             formattedTime: "10m / 10m",
             hasMetTarget: true,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         )
     ])
 }
@@ -510,7 +550,9 @@ struct MomentumWidget: Widget {
             formattedTime: "15m / 30m",
             hasMetTarget: false,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         ),
         RecommendedSession(
             id: UUID(),
@@ -520,7 +562,9 @@ struct MomentumWidget: Widget {
             formattedTime: "20m / 25m",
             hasMetTarget: false,
             dayID: "2026-02-02",
-            isTimerActive: true
+            isTimerActive: true,
+            isHealthKitSynced: false,
+            supportsWrite: true
         ),
         RecommendedSession(
             id: UUID(),
@@ -530,7 +574,9 @@ struct MomentumWidget: Widget {
             formattedTime: "10m / 10m",
             hasMetTarget: true,
             dayID: "2026-02-02",
-            isTimerActive: false
+            isTimerActive: false,
+            isHealthKitSynced: false,
+            supportsWrite: true
         )
     ])
 }
