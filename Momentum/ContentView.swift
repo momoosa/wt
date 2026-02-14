@@ -9,6 +9,9 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import HealthKit
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 struct ContentView: View {
     @Environment(GoalStore.self) var goalStore
@@ -143,12 +146,22 @@ struct ContentView: View {
     
     private var mainListView: some View {
         List {
-            Section {
-                
-            } footer: {
+            // Show daily progress card once user has saved at least one session
+            if !day.historicalSessions.isEmpty && activeFilter == .activeToday {
+                Section {
+                    dailyProgressCard
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listSectionSpacing(.compact)
+            } else {
+                Section {
+                    
+                } footer: {
 
-                Spacer()
-                    .frame(height: 10.0)
+                    Spacer()
+                        .frame(height: 10.0)
+                }
             }
 
             if !sessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
@@ -274,6 +287,93 @@ struct ContentView: View {
         }
         .listSectionSpacing(.compact)
         .transition(.opacity)
+    }
+    
+    private var dailyProgressCard: some View {
+        HStack(spacing: 16) {
+            // Large circular progress
+            ZStack {
+                CircularProgressView(progress: dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
+                    .frame(height: 60)
+
+                VStack(spacing: 2) {
+                    Text("\(Int(dailyProgress * 100))%")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(.primary)
+
+                    Text("Complete")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Stats
+            VStack {
+                VStack(spacing: 4) {
+                    Text("\(totalDailyMinutes)")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Text("Minutes")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(spacing: 4) {
+                    Text("\(completedGoalsCount)")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Text("Goals Done")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(spacing: 4) {
+                    Text("\(totalActiveGoals)")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Text("Total Goals")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 20)
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var dailyProgress: Double {
+        guard totalDailyTarget > 0 else { return 0 }
+        return min(Double(totalDailyMinutes) / Double(totalDailyTarget), 1.0)
+    }
+
+    private var totalDailyMinutes: Int {
+        Int(sessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
+    }
+
+    private var totalDailyTarget: Int {
+        var total = 0
+        for session in sessions {
+            guard session.status != .skipped else { continue }
+            guard session.goal.status != .archived else { continue }
+            total += Int(session.dailyTarget / 60)
+        }
+        return total
+    }
+
+    private var completedGoalsCount: Int {
+        sessions.filter { session in
+            guard session.status != .skipped else { return false }
+            guard session.goal.status != .archived else { return false }
+            return session.hasMetDailyTarget
+        }.count
+    }
+
+    private var totalActiveGoals: Int {
+        sessions.filter { session in
+            guard session.status != .skipped else { return false }
+            guard session.goal.status != .archived else { return false }
+            return true
+        }.count
     }
     
     // MARK: - Toolbar
@@ -619,6 +719,11 @@ struct ContentView: View {
         // Save changes if there were any insertions or deletions
         if modelContext.hasChanges {
             try? modelContext.save()
+            
+            // Reload widgets when sessions are created or deleted
+            #if canImport(WidgetKit)
+            WidgetCenter.shared.reloadAllTimelines()
+            #endif
         }
     }
     
@@ -967,6 +1072,11 @@ struct ContentView: View {
                 // Update timestamp to cache when plan was last generated
                 lastPlanGeneratedTimestamp = Date().timeIntervalSince1970
                 print("📝 Updated plan generation timestamp")
+                
+                // Reload widgets to show updated sessions
+                #if canImport(WidgetKit)
+                WidgetCenter.shared.reloadAllTimelines()
+                #endif
             }
         }
         

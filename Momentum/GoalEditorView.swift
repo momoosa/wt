@@ -18,6 +18,7 @@ struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Query private var allGoals: [Goal]
     
     // Optional existing goal for editing
     var existingGoal: Goal?
@@ -1041,9 +1042,9 @@ struct GoalEditorView: View {
             let matchedTheme = matchTheme(named: themeNames[0])
             finalGoalTag = GoalTag(title: matchedTheme.title, color: matchedTheme)
         } else {
-            // Random fallback
-            let randomTheme = (themePresets.randomElement() ?? themePresets[0]).toTheme()
-            finalGoalTag = GoalTag(title: randomTheme.title, color: randomTheme)
+            // Find an unused theme, or fall back to random
+            let unusedTheme = findUnusedTheme()
+            finalGoalTag = GoalTag(title: unusedTheme.title, color: unusedTheme)
         }
         
         // Debug print day-time schedule
@@ -1449,6 +1450,20 @@ struct GoalEditorView: View {
         
         // Default fallback - use "general" theme
         return themePresets.first(where: { $0.id == "general" })?.toTheme() ?? themePresets[0].toTheme()
+    }
+    
+    /// Find a theme that isn't currently used by any active goal
+    func findUnusedTheme() -> Theme {
+        // Get all theme IDs currently in use by active goals
+        let usedThemeIDs = Set(allGoals.filter { $0.status == .active }.map { $0.primaryTag.themeID })
+        
+        // Find first unused theme
+        if let unusedPreset = themePresets.first(where: { !usedThemeIDs.contains($0.id) }) {
+            return unusedPreset.toTheme()
+        }
+        
+        // If all themes are used, return a random one
+        return (themePresets.randomElement() ?? themePresets[0]).toTheme()
     }
     
     func generateChecklist(for input: String) {

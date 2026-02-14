@@ -127,6 +127,28 @@ public extension Goal {
         
         return summaries.joined(separator: "\n")
     }
+    
+    /// Calculate daily target based on schedule
+    /// If a schedule exists, divides weekly target by number of scheduled days
+    /// Otherwise, divides by 7 (every day)
+    func dailyTargetFromSchedule() -> TimeInterval {
+        // If dailyMinimum is set, use that
+        if let dailyMinimum = dailyMinimum {
+            return dailyMinimum
+        }
+        
+        // If there's a schedule, divide by scheduled days
+        if hasSchedule {
+            let scheduledDaysCount = scheduledWeekdays.count
+            guard scheduledDaysCount > 0 else {
+                return weeklyTarget / 7
+            }
+            return weeklyTarget / TimeInterval(scheduledDaysCount)
+        }
+        
+        // Default: divide by 7
+        return weeklyTarget / 7
+    }
 }
 
 public extension Goal {

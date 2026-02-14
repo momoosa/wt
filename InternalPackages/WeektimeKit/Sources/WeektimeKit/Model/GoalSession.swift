@@ -142,7 +142,7 @@ public final class GoalSession: SessionProgressProvider {
         self.status = .active
         // Cache goal properties at creation time to avoid accessing goal after deletion
         self.goalID = goal.id.uuidString
-        self.dailyTarget = goal.dailyMinimum ?? (goal.weeklyTarget / 7)
+        self.dailyTarget = goal.dailyTargetFromSchedule()
         self.intervalLists = goal.intervalLists.map({ interval in
             IntervalListSession(list: interval)
         })
