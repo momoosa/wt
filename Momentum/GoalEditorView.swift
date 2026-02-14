@@ -31,6 +31,7 @@ struct GoalEditorView: View {
         case goalName
         case duration
         case dailyMinimum
+        case scheduleDay(Int) // weekday 1-7
     }
     @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     @State private var errorMessage: String?
@@ -292,6 +293,7 @@ struct GoalEditorView: View {
                                                     selectedTimes: dayTimePreferences[weekday] ?? [],
                                                     themeColor: activeThemeColor,
                                                     isExpanded: expandedDay == weekday,
+                                                    focusedField: $focusedField,
                                                     onToggleDay: { toggleActiveDay(weekday) },
                                                     onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
                                                     onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
@@ -419,61 +421,6 @@ struct GoalEditorView: View {
                                 }
                             }
                             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-
-                            Section(header: Text("When to recommend this goal")) {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    // Header with weekdays
-                                    HStack(spacing: 4) {
-                                        Text("")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .frame(width: 50, alignment: .leading)
-                                        
-                                        ForEach(weekdays, id: \.0) { _, name in
-                                            Text(name)
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-                                                .frame(maxWidth: .infinity)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Time periods with toggleable days
-                                    ForEach(TimeOfDay.allCases, id: \.self) { timeOfDay in
-                                        HStack(spacing: 4) {
-                                            VStack(spacing: 2) {
-                                                Image(systemName: timeOfDay.icon)
-                                                    .font(.caption2)
-                                                Text(timeOfDay.displayName)
-                                                    .font(.caption2)
-                                                    .fontWeight(.semibold)
-                                            }
-                                            .frame(width: 50, alignment: .leading)
-                                            .foregroundStyle(.secondary)
-                                            
-                                            ForEach(weekdays, id: \.0) { weekday, _ in
-                                                TimeSlotButton(
-                                                    isSelected: dayTimePreferences[weekday]?.contains(timeOfDay) ?? false,
-                                                    themeColor: activeThemeColor,
-                                                    action: {
-                                                        toggleTimeSlot(weekday: weekday, timeOfDay: timeOfDay)
-                                                    }
-                                                )
-                                                .frame(maxWidth: .infinity)
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 8)
-                                
-                                Text("Tap cells to choose when this goal should be recommended each day")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                            
                             Section(header: Text("Notifications")) {
                                 Toggle(isOn: $scheduleNotificationsEnabled) {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -720,11 +667,23 @@ struct GoalEditorView: View {
         case .duration:
             if hasDailyMinimum {
                 focusedField = .dailyMinimum
+            } else if let firstActiveDay = getNextActiveScheduleDay(after: nil) {
+                focusedField = .scheduleDay(firstActiveDay)
             } else {
                 focusedField = nil
             }
         case .dailyMinimum:
-            focusedField = nil
+            if let firstActiveDay = getNextActiveScheduleDay(after: nil) {
+                focusedField = .scheduleDay(firstActiveDay)
+            } else {
+                focusedField = nil
+            }
+        case .scheduleDay(let weekday):
+            if let nextDay = getNextActiveScheduleDay(after: weekday) {
+                focusedField = .scheduleDay(nextDay)
+            } else {
+                focusedField = nil
+            }
         case .none:
             focusedField = .goalName
         }
@@ -738,9 +697,19 @@ struct GoalEditorView: View {
             focusedField = .goalName
         case .dailyMinimum:
             focusedField = .duration
+        case .scheduleDay(let weekday):
+            if let previousDay = getPreviousActiveScheduleDay(before: weekday) {
+                focusedField = .scheduleDay(previousDay)
+            } else if hasDailyMinimum {
+                focusedField = .dailyMinimum
+            } else {
+                focusedField = .duration
+            }
         case .none:
             if currentStage == .duration {
-                if hasDailyMinimum {
+                if let lastActiveDay = getPreviousActiveScheduleDay(before: nil) {
+                    focusedField = .scheduleDay(lastActiveDay)
+                } else if hasDailyMinimum {
                     focusedField = .dailyMinimum
                 } else {
                     focusedField = .duration
@@ -756,9 +725,11 @@ struct GoalEditorView: View {
         case .goalName:
             return currentStage == .duration
         case .duration:
-            return hasDailyMinimum
+            return hasDailyMinimum || !activeDays.isEmpty
         case .dailyMinimum:
-            return false
+            return !activeDays.isEmpty
+        case .scheduleDay(let weekday):
+            return getNextActiveScheduleDay(after: weekday) != nil
         case .none:
             return true
         }
@@ -772,8 +743,42 @@ struct GoalEditorView: View {
             return true
         case .dailyMinimum:
             return true
+        case .scheduleDay:
+            return true
         case .none:
             return currentStage == .duration
+        }
+    }
+    
+    // MARK: - Schedule Focus Navigation Helpers
+    
+    /// Get the next active schedule day after the given weekday (or first if nil)
+    private func getNextActiveScheduleDay(after weekday: Int?) -> Int? {
+        let orderedWeekdays = [2, 3, 4, 5, 6, 7, 1] // Mon-Sun
+        
+        if let currentDay = weekday {
+            // Find next active day after current
+            guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
+            let remainingDays = orderedWeekdays[(currentIndex + 1)...]
+            return remainingDays.first(where: { activeDays.contains($0) })
+        } else {
+            // Return first active day
+            return orderedWeekdays.first(where: { activeDays.contains($0) })
+        }
+    }
+    
+    /// Get the previous active schedule day before the given weekday (or last if nil)
+    private func getPreviousActiveScheduleDay(before weekday: Int?) -> Int? {
+        let orderedWeekdays = [2, 3, 4, 5, 6, 7, 1] // Mon-Sun
+        
+        if let currentDay = weekday {
+            // Find previous active day before current
+            guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
+            let previousDays = orderedWeekdays[..<currentIndex]
+            return previousDays.reversed().first(where: { activeDays.contains($0) })
+        } else {
+            // Return last active day
+            return orderedWeekdays.reversed().first(where: { activeDays.contains($0) })
         }
     }
     
@@ -1806,38 +1811,6 @@ struct ThemeColorButton: View {
 }
 
 // MARK: - Time Slot Button
-
-struct TimeSlotButton: View {
-    let isSelected: Bool
-    var themeColor: Color = .accentColor
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                // Invisible tap target
-                Color.clear
-                    .frame(height: 44)
-                    .contentShape(Rectangle())
-                
-                // Smaller visual circle
-                Circle()
-                    .fill(isSelected ? themeColor : Color(.systemGray5))
-                    .frame(height: 28)
-                    .overlay(
-                        Image(systemName: isSelected ? "checkmark" : "")
-                            .font(.system(size: 10))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                    )
-                    .shadow(color: isSelected ? themeColor.opacity(0.3) : .clear, radius: 3, x: 0, y: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.3), value: isSelected)
-    }
-}
-
 // MARK: - Quick Preset Button
 struct QuickPresetButton: View {
     let title: String

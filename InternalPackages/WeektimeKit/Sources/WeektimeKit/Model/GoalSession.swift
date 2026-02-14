@@ -104,6 +104,9 @@ public final class GoalSession: SessionProgressProvider {
     /// Structured recommendation reasons
     public var recommendationReasons: [RecommendationReason] = []
     
+    /// Whether this session is pinned to appear in widgets
+    public var pinnedInWidget: Bool = false
+    
     /// Cached daily target to avoid accessing deleted goal
     /// This is set when the session is created and doesn't change
     public private(set) var dailyTarget: TimeInterval

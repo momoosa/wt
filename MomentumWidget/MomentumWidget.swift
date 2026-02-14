@@ -119,39 +119,58 @@ struct Provider: AppIntentTimelineProvider {
         let planner = GoalSessionPlanner()
         let preferences = PlannerPreferences.default
         
-        // First: Show planned sessions with recommendation reasons (top 3)
-        let plannedSessions = activeSessions
-            .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
-            .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
-            .prefix(3)
+        // First: Show pinned sessions (always at the top)
+        let pinnedSessions = activeSessions
+            .filter { $0.pinnedInWidget }
+            .sorted { session1, session2 in
+                // Sort pinned by planned time if available, otherwise by title
+                if let time1 = session1.plannedStartTime, let time2 = session2.plannedStartTime {
+                    return time1 < time2
+                }
+                return session1.title < session2.title
+            }
         
-        var orderedSessions: [GoalSession] = Array(plannedSessions)
+        var orderedSessions: [GoalSession] = Array(pinnedSessions)
         
         // Fill remaining slots up to 10 sessions
         if orderedSessions.count < 10 {
-            let plannedIDs = Set(plannedSessions.map { $0.id })
-            let remainingSessions = activeSessions.filter { !plannedIDs.contains($0.id) }
+            let pinnedIDs = Set(pinnedSessions.map { $0.id })
+            let unpinnedSessions = activeSessions.filter { !pinnedIDs.contains($0.id) }
             
-            // Sort remaining by planned time if available, otherwise by score
-            let sorted = remainingSessions.sorted { session1, session2 in
-                let has1 = session1.plannedStartTime != nil
-                let has2 = session2.plannedStartTime != nil
+            // Second: Show planned sessions with recommendation reasons (top 3)
+            let plannedSessions = unpinnedSessions
+                .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
+                .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
+                .prefix(3)
+            
+            orderedSessions.append(contentsOf: plannedSessions)
+            
+            // Fill remaining slots
+            if orderedSessions.count < 10 {
+                let plannedIDs = Set(plannedSessions.map { $0.id })
+                let remainingSessions = unpinnedSessions.filter { !plannedIDs.contains($0.id) }
                 
-                if has1 && has2 {
-                    return session1.plannedStartTime! < session2.plannedStartTime!
-                } else if has1 {
-                    return true
-                } else if has2 {
-                    return false
-                } else {
-                    // Use scoring for unplanned sessions
-                    let score1 = planner.scoreSession(for: session1.goal, session: session1, at: now, preferences: preferences)
-                    let score2 = planner.scoreSession(for: session2.goal, session: session2, at: now, preferences: preferences)
-                    return score1 > score2
+                // Sort remaining by planned time if available, otherwise by score
+                let sorted = remainingSessions.sorted { session1, session2 in
+                    let has1 = session1.plannedStartTime != nil
+                    let has2 = session2.plannedStartTime != nil
+                    
+                    if has1 && has2 {
+                        return session1.plannedStartTime! < session2.plannedStartTime!
+                    } else if has1 {
+                        return true
+                    } else if has2 {
+                        return false
+                    } else {
+                        // Use scoring for unplanned sessions
+                        let score1 = planner.scoreSession(for: session1.goal, session: session1, at: now, preferences: preferences)
+                        let score2 = planner.scoreSession(for: session2.goal, session: session2, at: now, preferences: preferences)
+                        return score1 > score2
+                    }
                 }
+                
+                orderedSessions.append(contentsOf: sorted.prefix(10 - orderedSessions.count))
             }
-            
-            orderedSessions.append(contentsOf: sorted.prefix(10 - orderedSessions.count))
         }
         
         // Convert to widget format - get top 10 and let widget views decide how many to show
@@ -172,7 +191,8 @@ struct Provider: AppIntentTimelineProvider {
                     dayID: day.id,
                     isTimerActive: isActive,
                     isHealthKitSynced: isHealthKitSynced,
-                    supportsWrite: supportsWrite
+                    supportsWrite: supportsWrite,
+                    isPinned: session.pinnedInWidget
                 )
             }
         
@@ -191,6 +211,7 @@ struct RecommendedSession: Identifiable {
     let isTimerActive: Bool
     let isHealthKitSynced: Bool
     let supportsWrite: Bool
+    let isPinned: Bool
 }
 
 struct SimpleEntry: TimelineEntry {
@@ -467,7 +488,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         ),
         RecommendedSession(
             id: UUID(),
@@ -479,7 +501,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         ),
         RecommendedSession(
             id: UUID(),
@@ -491,7 +514,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         )
     ])
 }
@@ -510,7 +534,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: true,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         ),
         RecommendedSession(
             id: UUID(),
@@ -522,7 +547,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         ),
         RecommendedSession(
             id: UUID(),
@@ -534,7 +560,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         )
     ])
 }
@@ -552,7 +579,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         ),
         RecommendedSession(
             id: UUID(),
@@ -564,7 +592,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: true,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         ),
         RecommendedSession(
             id: UUID(),
@@ -576,7 +605,8 @@ struct MomentumWidget: Widget {
             dayID: "2026-02-02",
             isTimerActive: false,
             isHealthKitSynced: false,
-            supportsWrite: true
+            supportsWrite: true,
+            isPinned: false
         )
     ])
 }

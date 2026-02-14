@@ -16,6 +16,7 @@ struct ExpandableDayRow: View {
     let selectedTimes: Set<TimeOfDay>
     let themeColor: Color
     let isExpanded: Bool
+    @FocusState.Binding var focusedField: GoalEditorView.Field?
     let onToggleDay: () -> Void
     let onUpdateMinutes: (Int) -> Void
     let onToggleTime: (TimeOfDay) -> Void
@@ -37,6 +38,7 @@ struct ExpandableDayRow: View {
                         .background(
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(isActive ? themeColor : Color(.systemGray5))
+                                .stroke(themeColor)
                         )
                         .foregroundStyle(isActive ? .white : .secondary)
                 }
@@ -58,6 +60,7 @@ struct ExpandableDayRow: View {
                                 RoundedRectangle(cornerRadius: 6)
                                     .fill(Color(.systemGray6))
                             )
+                            .focused($focusedField, equals: .scheduleDay(weekday))
                         
                         Text("min")
                             .font(.caption)

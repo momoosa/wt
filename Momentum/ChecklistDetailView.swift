@@ -3,6 +3,9 @@ import SwiftData
 import MomentumKit
 import UserNotifications
 import Charts
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 struct ChecklistDetailView: View {
     var session: GoalSession
@@ -387,6 +390,22 @@ struct ChecklistDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    
+                    Button {
+                        withAnimation {
+                            session.pinnedInWidget.toggle()
+                        }
+                        #if canImport(WidgetKit)
+                        WidgetCenter.shared.reloadAllTimelines()
+                        #endif
+                    } label: {
+                        Label(
+                            session.pinnedInWidget ? "Unpin from Widget" : "Pin to Widget",
+                            systemImage: session.pinnedInWidget ? "pin.slash.fill" : "pin.fill"
+                        )
+                    }
+                    
+                    Divider()
                     
                     Button {
                         withAnimation {
