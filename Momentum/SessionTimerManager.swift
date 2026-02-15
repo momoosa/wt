@@ -42,6 +42,9 @@ public final class SessionTimerManager {
     private let healthKitManager = HealthKitManager()
     private var userDefaultsObserver: NSObjectProtocol?
     
+    /// Tracks if we're currently processing a stopped session to prevent duplicate handling
+    private var isProcessingStoppedSession = false
+    
     #if canImport(ActivityKit)
     private var liveActivity: Activity<MomentumWidgetAttributes>?
     private var liveActivityUpdateCounter: Int = 0
@@ -106,6 +109,7 @@ public final class SessionTimerManager {
     @MainActor
     private func handleStoppedSession(sessionID: String) async {
         print("🔍 handleStoppedSession: Called for session \(sessionID)")
+        print("🔍 handleStoppedSession: Thread = \(Thread.isMainThread ? "MAIN" : "BACKGROUND")")
         
         guard let defaults = sharedDefaults else {
             print("❌ handleStoppedSession: No shared defaults")
@@ -116,8 +120,15 @@ public final class SessionTimerManager {
         let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
         print("🔍 handleStoppedSession: Elapsed time = \(elapsedTime)s")
         
+        // Check all relevant keys
+        let allKeys = defaults.dictionaryRepresentation().filter { $0.key.contains("Session") || $0.key.contains("Elapsed") || $0.key.contains("Active") }
+        print("🔍 handleStoppedSession: All session-related keys in UserDefaults:")
+        for (key, value) in allKeys {
+            print("   - \(key): \(value)")
+        }
+        
         guard elapsedTime > 0 else {
-            print("⚠️ SessionTimerManager: No elapsed time for stopped session")
+            print("⚠️ SessionTimerManager: No elapsed time for stopped session (elapsed=\(elapsedTime))")
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
             return
         }
@@ -142,29 +153,12 @@ public final class SessionTimerManager {
             return
         }
         
-        // Use the session's title (which is cached) instead of accessing session.goal.title
-        // This avoids potential crashes if the goal was deleted
+        // Access the goal directly from the session
+        let goal = session.goal
         let sessionTitle = session.title
-        
-        // We need the goal ID to create the historical session
-        // To avoid crashes from accessing deleted goals, we'll fetch the goal separately
-        let goalDescriptor = FetchDescriptor<Goal>(
-            predicate: #Predicate { goal in
-                goal.goalSessions.contains { $0.id == sessionUUID }
-            }
-        )
-        
-        guard let goal = try? context.fetch(goalDescriptor).first else {
-            print("⚠️ SessionTimerManager: Goal was deleted, cannot create historical session")
-            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
-            defaults.removeObject(forKey: "StoppedSessionIDV1")
-            defaults.synchronize()
-            return
-        }
-        
         let goalID = goal.id.uuidString
         
-        print("🔍 handleStoppedSession: Found session for goal '\(sessionTitle)'")
+        print("🔍 handleStoppedSession: Found session '\(sessionTitle)' for goal '\(goal.title)'")
         
         // Create historical session from accumulated time
         let endDate = Date()
@@ -183,9 +177,8 @@ public final class SessionTimerManager {
         session.day.add(historicalSession: historicalSession)
         context.insert(historicalSession)
         
-        // Clear elapsed time and stopped flag
+        // Clear elapsed time (flag was already cleared by caller)
         defaults.removeObject(forKey: activeSessionElapsedTimeKey)
-        defaults.removeObject(forKey: "StoppedSessionIDV1")
         defaults.synchronize()
         
         do {
@@ -280,12 +273,20 @@ public final class SessionTimerManager {
         print("🔍 checkForExternalChanges: stored=\(storedSessionID ?? "nil"), paused=\(pausedSessionID ?? "nil"), stopped=\(stoppedSessionID ?? "nil"), current=\(currentSessionID ?? "nil")")
         
         // Check if a session was stopped externally and needs to be saved
-        if let stoppedSessionID = stoppedSessionID {
+        if let stoppedSessionID = stoppedSessionID, !isProcessingStoppedSession {
             print("🔄 SessionTimerManager: Found stopped session \(stoppedSessionID), creating historical session")
+            
+            // Clear the flag immediately to prevent re-processing
+            defaults.removeObject(forKey: "StoppedSessionIDV1")
+            defaults.synchronize()
+            
+            // Mark as processing
+            isProcessingStoppedSession = true
+            
             Task { @MainActor in
                 await self.handleStoppedSession(sessionID: stoppedSessionID)
+                self.isProcessingStoppedSession = false
             }
-            // Don't clear the flag here - let handleStoppedSession do it after creating the session
         }
         
         #if canImport(ActivityKit)
@@ -563,6 +564,24 @@ public final class SessionTimerManager {
     
     /// Loads the timer state from UserDefaults on app launch
     public func loadTimerState(sessions: [GoalSession]) {
+        // Check for stopped sessions first (in case app wasn't running when stopped)
+        if let stoppedSessionID = sharedDefaults?.string(forKey: "StoppedSessionIDV1"),
+           !isProcessingStoppedSession {
+            print("🔍 loadTimerState: Found stopped session on app launch: \(stoppedSessionID)")
+            
+            // Clear the flag immediately to prevent re-processing
+            sharedDefaults?.removeObject(forKey: "StoppedSessionIDV1")
+            sharedDefaults?.synchronize()
+            
+            // Mark as processing
+            isProcessingStoppedSession = true
+            
+            Task { @MainActor in
+                await self.handleStoppedSession(sessionID: stoppedSessionID)
+                self.isProcessingStoppedSession = false
+            }
+        }
+        
         guard let defaults = sharedDefaults,
               let idString = defaults.string(forKey: activeSessionIDKey),
               let uuid = UUID(uuidString: idString) else {

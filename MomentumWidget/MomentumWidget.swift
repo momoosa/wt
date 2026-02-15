@@ -24,9 +24,15 @@ struct Provider: AppIntentTimelineProvider {
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         let recommendations = await fetchRecommendations()
         
-        // Update every 15 minutes to keep recommendations fresh
         let currentDate = Date()
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+        
+        // Check if any session has an active timer
+        let hasActiveTimer = recommendations.contains { $0.isTimerActive }
+        
+        // Update more frequently if timer is active (every 1 minute)
+        // Otherwise update every 15 minutes to keep recommendations fresh
+        let updateInterval = hasActiveTimer ? 1 : 15
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: updateInterval, to: currentDate)!
         
         let entry = SimpleEntry(date: currentDate, recommendations: recommendations)
         return Timeline(entries: [entry], policy: .after(nextUpdate))
@@ -114,6 +120,8 @@ struct Provider: AppIntentTimelineProvider {
         // Check for active timer from UserDefaults
         let defaults = UserDefaults(suiteName: appGroupIdentifier)
         let activeTimerSessionID = defaults?.string(forKey: "ActiveSessionIDV1")
+        let activeSessionStartDate = defaults?.double(forKey: "ActiveSessionStartDateV1")
+        let activeSessionElapsedTime = defaults?.double(forKey: "ActiveSessionElapsedTimeV1")
         
         // Use same ordering logic as ContentView
         let planner = GoalSessionPlanner()
@@ -181,6 +189,17 @@ struct Provider: AppIntentTimelineProvider {
                 let isHealthKitSynced = session.goal.healthKitSyncEnabled && session.goal.healthKitMetric != nil
                 let supportsWrite = session.goal.healthKitMetric?.supportsWrite ?? true
                 
+                // Get timer data if this session is active
+                var timerStart: Date? = nil
+                var elapsed: TimeInterval = session.elapsedTime
+                
+                if isActive, let startInterval = activeSessionStartDate, startInterval > 0 {
+                    timerStart = Date(timeIntervalSince1970: startInterval)
+                    if let baseElapsed = activeSessionElapsedTime {
+                        elapsed = baseElapsed
+                    }
+                }
+                
                 return RecommendedSession(
                     id: session.id,
                     title: session.title,
@@ -192,7 +211,10 @@ struct Provider: AppIntentTimelineProvider {
                     isTimerActive: isActive,
                     isHealthKitSynced: isHealthKitSynced,
                     supportsWrite: supportsWrite,
-                    isPinned: session.pinnedInWidget
+                    isPinned: session.pinnedInWidget,
+                    timerStartDate: timerStart,
+                    elapsedTime: elapsed,
+                    dailyTarget: session.dailyTarget
                 )
             }
         
@@ -212,6 +234,11 @@ struct RecommendedSession: Identifiable {
     let isHealthKitSynced: Bool
     let supportsWrite: Bool
     let isPinned: Bool
+    
+    // Timer data for live updates
+    let timerStartDate: Date?
+    let elapsedTime: TimeInterval
+    let dailyTarget: TimeInterval
 }
 
 struct SimpleEntry: TimelineEntry {
@@ -324,9 +351,18 @@ struct MediumWidgetCell: View {
                                 .frame(width: 4, height: 4)
                         }
                         
-                        Text(session.formattedTime)
-                            .font(.caption2)
-                            .foregroundStyle(session.theme.textColor.opacity(0.7))
+                        if session.isTimerActive, let startDate = session.timerStartDate {
+                            // Show live elapsed timer counting up (same as Live Activity)
+                            let effectiveStart = startDate.addingTimeInterval(-session.elapsedTime)
+                            Text(timerInterval: effectiveStart...Date.distantFuture, countsDown: false)
+                                .font(.caption2)
+                                .foregroundStyle(session.theme.textColor.opacity(0.7))
+                                .monospacedDigit()
+                        } else {
+                            Text(session.formattedTime)
+                                .font(.caption2)
+                                .foregroundStyle(session.theme.textColor.opacity(0.7))
+                        }
                         
                         Spacer(minLength: 0)
                     }
@@ -418,9 +454,19 @@ struct LargeWidgetView: View {
                                         Circle()
                                             .fill(.red)
                                             .frame(width: 8, height: 8)
-                                        Text("Recording")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.red)
+                                        
+                                        if let startDate = session.timerStartDate {
+                                            // Show live elapsed timer counting up (same as Live Activity)
+                                            let effectiveStart = startDate.addingTimeInterval(-session.elapsedTime)
+                                            Text(timerInterval: effectiveStart...Date.distantFuture, countsDown: false)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.red)
+                                                .monospacedDigit()
+                                        } else {
+                                            Text("Recording")
+                                                .font(.subheadline)
+                                                .foregroundStyle(.red)
+                                        }
                                     }
                                 } else {
                                     Text(session.formattedTime)
@@ -489,7 +535,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 900,
+            dailyTarget: 1800
         ),
         RecommendedSession(
             id: UUID(),
@@ -502,7 +551,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 1200,
+            dailyTarget: 1500
         ),
         RecommendedSession(
             id: UUID(),
@@ -515,7 +567,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 600,
+            dailyTarget: 600
         )
     ])
 }
@@ -535,7 +590,10 @@ struct MomentumWidget: Widget {
             isTimerActive: true,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: Date().addingTimeInterval(-900),
+            elapsedTime: 900,
+            dailyTarget: 1800
         ),
         RecommendedSession(
             id: UUID(),
@@ -548,7 +606,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 1200,
+            dailyTarget: 1500
         ),
         RecommendedSession(
             id: UUID(),
@@ -561,7 +622,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 600,
+            dailyTarget: 600
         )
     ])
 }
@@ -580,7 +644,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 900,
+            dailyTarget: 1800
         ),
         RecommendedSession(
             id: UUID(),
@@ -593,7 +660,10 @@ struct MomentumWidget: Widget {
             isTimerActive: true,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: Date().addingTimeInterval(-1200),
+            elapsedTime: 1200,
+            dailyTarget: 1500
         ),
         RecommendedSession(
             id: UUID(),
@@ -606,7 +676,10 @@ struct MomentumWidget: Widget {
             isTimerActive: false,
             isHealthKitSynced: false,
             supportsWrite: true,
-            isPinned: false
+            isPinned: false,
+            timerStartDate: nil,
+            elapsedTime: 600,
+            dailyTarget: 600
         )
     ])
 }
