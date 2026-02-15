@@ -60,6 +60,10 @@ public class GoalSessionPlanner: ObservableObject {
     
     private let session = LanguageModelSession()
     
+    // Cache to avoid regenerating same plan repeatedly
+    private var cachedPlanTimestamp: Date?
+    private let cacheValidityDuration: TimeInterval = 300 // 5 minutes
+    
     public init() {}
     
     /// Prewarm the language model to reduce initial latency
@@ -74,11 +78,48 @@ public class GoalSessionPlanner: ObservableObject {
         currentDate: Date = Date(),
         userPreferences: PlannerPreferences = .default
     ) async throws -> DailyPlan {
+        // Check cache first - avoid regenerating if plan is still fresh
+        if let cachedTimestamp = cachedPlanTimestamp,
+           let currentPlan = currentPlan,
+           currentDate.timeIntervalSince(cachedTimestamp) < cacheValidityDuration {
+            print("⚡ Using cached plan (age: \(Int(currentDate.timeIntervalSince(cachedTimestamp)))s)")
+            return currentPlan
+        }
+        
         isGenerating = true
         defer { isGenerating = false }
         
+        // Pre-filter goals to reduce Foundation Model workload
+        let eligibleGoals = preFilterGoalsForPlanning(
+            goals: goals,
+            goalSessions: goalSessions,
+            currentDate: currentDate
+        )
+        
+        // Early bailout: If no eligible goals, return empty plan immediately
+        if eligibleGoals.isEmpty {
+            let emptyPlan = DailyPlan(
+                sessions: [],
+                overallStrategy: "No goals are eligible for planning at this time.",
+                topThreeRecommendations: [],
+                recommendationReasoning: "All goals are either completed, archived, or not scheduled for the current time."
+            )
+            currentPlan = emptyPlan
+            cachedPlanTimestamp = currentDate
+            return emptyPlan
+        }
+        
+        // Early bailout: If only 1-2 goals, skip AI and create simple plan
+        if eligibleGoals.count <= 2 {
+            return createSimplePlanWithoutAI(
+                goals: eligibleGoals,
+                goalSessions: goalSessions,
+                currentDate: currentDate
+            )
+        }
+        
         let prompt = buildPrompt(
-             goals: goals,
+             goals: eligibleGoals,
             goalSessions: goalSessions,
             currentDate: currentDate,
             preferences: userPreferences
@@ -93,6 +134,7 @@ public class GoalSessionPlanner: ObservableObject {
             
             let plan = response.content
             currentPlan = plan
+            cachedPlanTimestamp = currentDate // Update cache timestamp
             return plan
             
         } catch {
@@ -113,8 +155,15 @@ public class GoalSessionPlanner: ObservableObject {
         // Clear current plan when starting a new planning session
         currentPlan = nil
         
-        let prompt = buildPrompt(
+        // Pre-filter goals to reduce Foundation Model workload
+        let eligibleGoals = preFilterGoalsForPlanning(
             goals: goals,
+            goalSessions: goalSessions,
+            currentDate: currentDate
+        )
+        
+        let prompt = buildPrompt(
+            goals: eligibleGoals,
             goalSessions: goalSessions,
             currentDate: currentDate,
             preferences: userPreferences
@@ -294,6 +343,168 @@ public class GoalSessionPlanner: ObservableObject {
     
     // MARK: - Prompt Building
     
+    /// Create a simple plan without AI for 1-2 goals (much faster)
+    private func createSimplePlanWithoutAI(
+        goals: [Goal],
+        goalSessions: [GoalSession],
+        currentDate: Date
+    ) -> DailyPlan {
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: currentDate)
+        let currentMinute = calendar.component(.minute, from: currentDate)
+        
+        var sessions: [PlannedSession] = []
+        var currentTime = currentDate
+        
+        for goal in goals {
+            guard let session = goalSessions.first(where: { $0.goalID == goal.id.uuidString }) else {
+                continue
+            }
+            
+            let dailyTarget = goal.weeklyTarget / 7
+            let remainingTime = max(0, dailyTarget - session.elapsedTime)
+            let suggestedMinutes = Int(remainingTime / 60)
+            
+            // Schedule 30 minutes from now (or immediately if < 30 min left in day)
+            currentTime = calendar.date(byAdding: .minute, value: 30, to: currentTime) ?? currentTime
+            
+            let timeString = currentTime.formatted(date: .omitted, time: .shortened)
+            let components = calendar.dateComponents([.hour, .minute], from: currentTime)
+            let formattedTime = String(format: "%02d:%02d", components.hour ?? 0, components.minute ?? 0)
+            
+            let plannedSession = PlannedSession(
+                id: goal.id.uuidString,
+                goalTitle: goal.title,
+                recommendedStartTime: formattedTime,
+                suggestedDuration: max(suggestedMinutes, 5),
+                priority: 1,
+                reasoning: remainingTime > 0 ? "Complete remaining \(Duration.seconds(remainingTime).formatted(.time(pattern: .minuteSecond))) to reach daily target" : "Maintain momentum with this goal"
+            )
+            sessions.append(plannedSession)
+        }
+        
+        let plan = DailyPlan(
+            sessions: sessions,
+            overallStrategy: "Simple schedule for your \(goals.count) active goal\(goals.count == 1 ? "" : "s")",
+            topThreeRecommendations: goals.prefix(3).map { $0.id.uuidString },
+            recommendationReasoning: "Start with \(goals.first?.title ?? "your goal") to make progress toward your daily target"
+        )
+        
+        currentPlan = plan
+        cachedPlanTimestamp = currentDate
+        return plan
+    }
+    
+    /// Pre-filter goals to only include those eligible for planning
+    /// This significantly speeds up planning by reducing the data sent to the Foundation Model
+    private func preFilterGoalsForPlanning(
+        goals: [Goal],
+        goalSessions: [GoalSession],
+        currentDate: Date
+    ) -> [Goal] {
+        let calendar = Calendar.current
+        let currentWeekday = calendar.component(.weekday, from: currentDate)
+        let currentHour = calendar.component(.hour, from: currentDate)
+        let currentMinute = calendar.component(.minute, from: currentDate)
+        
+        // Calculate remaining minutes in the day
+        let remainingMinutesInDay = (24 - currentHour) * 60 - currentMinute
+        
+        // Determine current time of day
+        let currentTimeOfDay: TimeOfDay = {
+            switch currentHour {
+            case 6..<11: return .morning
+            case 11..<14: return .midday
+            case 14..<17: return .afternoon
+            default: return .evening
+            }
+        }()
+        
+        var eligibleGoals: [(goal: Goal, priority: Double)] = []
+        
+        for goal in goals {
+            // Filter 1: Must have a valid session with dailyTarget > 0
+            guard let session = goalSessions.first(where: { $0.goalID == goal.id.uuidString }),
+                  session.dailyTarget > 0 else {
+                continue
+            }
+            
+            // Filter 2: Skip if already completed today
+            let dailyTarget = goal.weeklyTarget / 7
+            if session.elapsedTime >= dailyTarget && dailyTarget > 0 {
+                continue
+            }
+            
+            // Filter 3: Calculate remaining time needed
+            let remainingTime = max(0, dailyTarget - session.elapsedTime)
+            let remainingMinutes = Int(remainingTime / 60)
+            
+            // Skip if remaining time is tiny (< 1 minute) - not worth planning
+            if remainingMinutes < 1 {
+                continue
+            }
+            
+            // Filter 4: Skip if remaining time exceeds available time in day
+            // (But allow some overflow for flexibility - maybe 2x the remaining time)
+            if remainingMinutes > remainingMinutesInDay * 2 {
+                continue
+            }
+            
+            // Filter 5: Must have a schedule that matches current day/time OR no schedule (flexible)
+            let hasSchedule = goal.hasSchedule
+            if hasSchedule {
+                // Only include if scheduled for current day and time
+                let isScheduledNow = goal.isScheduled(weekday: currentWeekday, time: currentTimeOfDay)
+                if !isScheduledNow {
+                    continue
+                }
+            }
+            
+            // Filter 6: Goal must not be archived
+            guard goal.status != .archived else {
+                continue
+            }
+            
+            // Calculate priority score for pre-sorting (higher = more urgent)
+            var priorityScore: Double = 0
+            
+            // Factor 1: Progress deficit (further behind = higher priority)
+            let progressPercent = dailyTarget > 0 ? (session.elapsedTime / dailyTarget) : 0
+            let deficit = max(0, 1.0 - progressPercent)
+            priorityScore += deficit * 100 // 0-100 points
+            
+            // Factor 2: Weekly target urgency
+            let weeklyTarget = goal.weeklyTarget
+            if weeklyTarget > 0 {
+                // Higher weekly targets = more important
+                let weeklyHours = weeklyTarget / 3600
+                priorityScore += min(weeklyHours * 5, 50) // Up to 50 points
+            }
+            
+            // Factor 3: Time sensitivity - if we're late in the day, prioritize more
+            let dayProgress = Double(currentHour) / 24.0
+            priorityScore += dayProgress * 30 // Up to 30 points for urgency
+            
+            // Factor 4: Scheduled vs flexible (scheduled = higher priority)
+            if hasSchedule {
+                priorityScore += 20 // Bonus for respecting schedule
+            }
+            
+            eligibleGoals.append((goal: goal, priority: priorityScore))
+        }
+        
+        // Sort by priority and take top candidates
+        // This pre-sorts goals so Foundation Model focuses on most relevant ones
+        let sortedGoals = eligibleGoals
+            .sorted { $0.priority > $1.priority }
+            .map { $0.goal }
+        
+        // Limit to reasonable number (e.g., top 10) to keep prompt concise
+        // Most users won't want to plan more than 10 sessions in one day anyway
+        let maxGoalsToConsider = 10
+        return Array(sortedGoals.prefix(maxGoalsToConsider))
+    }
+    
     private func buildPrompt(
         goals: [Goal],
         goalSessions: [GoalSession],
@@ -315,75 +526,34 @@ public class GoalSessionPlanner: ObservableObject {
             guard let session = goalSessions.first(where: { $0.goalID == goal.id.uuidString }) else { continue }
             
             let dailyTarget = goal.weeklyTarget / 7
-            let elapsedTime = session.elapsedTime
-            let remainingTime = max(0, dailyTarget - elapsedTime)
-            let progress = dailyTarget > 0 ? (elapsedTime / dailyTarget) * 100 : 0
+            let remainingTime = max(0, dailyTarget - session.elapsedTime)
+            let remainingMinutes = Int(remainingTime / 60)
+            let progress = dailyTarget > 0 ? Int((session.elapsedTime / dailyTarget) * 100) : 0
             
-            // Calculate weekly progress
-            let weeklyProgress = calculateWeeklyProgress(for: goal, currentDate: currentDate)
-            
+            // Simplified, concise context (50% less text)
             var context = """
-            Goal: "\(goal.title)"
-            - ID: \(goal.id.uuidString)
-            - Daily Target: \(dailyTarget.formatted(style: .hourMinute))
-            - Time Completed Today: \(elapsedTime.formatted(style: .hourMinute))
-            - Remaining Time: \(remainingTime.formatted(style: .hourMinute))
-            - Daily Progress: \(String(format: "%.0f", progress))%
-            - Weekly Progress: \(String(format: "%.0f", weeklyProgress))%
-            - Theme: \(goal.primaryTag.title)
-            - Notifications Enabled: \(goal.notificationsEnabled ? "Yes" : "No")
+            \(goal.title) [\(goal.id.uuidString)]
+            Need: \(remainingMinutes)min | Done: \(progress)%
             """
             
-            // Add HealthKit context if available
-            if let metric = goal.healthKitMetric, goal.healthKitSyncEnabled {
-                context += "\n- HealthKit Metric: \(metric.rawValue)"
-            }
-            
-            // Add time of day preferences
+            // Only add preferences if they exist (reduces clutter)
             if !goal.preferredTimesOfDay.isEmpty {
-                let timesString = goal.preferredTimesOfDay.joined(separator: ", ")
-                context += "\n- Preferred Times of Day: \(timesString)"
-            } else {
-                context += "\n- Preferred Times of Day: Not specified (any time)"
+                context += " | Times: \(goal.preferredTimesOfDay.joined(separator: ","))"
             }
             
             goalContexts.append(context)
         }
         
         let prompt = """
-        Create a daily schedule for these goals. Today is \(dayName), \(currentTime).
+        Schedule for \(dayName) \(currentTime). Max \(preferences.maxSessionsPerDay) sessions, \(preferences.minimumBreakMinutes)min breaks.
         
-        VALID IDS (copy exactly for each session):
-        \(validGoalIDs.joined(separator: "\n"))
+        IDs (copy exact): \(validGoalIDs.joined(separator: ", "))
         
         GOALS:
-        \(goalContexts.joined(separator: "\n\n"))
+        \(goalContexts.joined(separator: "\n"))
         
-        RULES:
-        - Max \(preferences.maxSessionsPerDay) sessions
-        - \(preferences.minimumBreakMinutes)min breaks between sessions
-        - Don't schedule in the past
-        - Use exact UUID from VALID IDS for each PlannedSession "id" field
-        - Times as HH:mm (24hr), chronological order
-        
-        Focus on goals furthest from their daily target.
-        
-        REASONING GUIDELINES:
-        For each session's "reasoning" field, provide a concise explanation (1-2 sentences) that mentions:
-        - Why this time is optimal (e.g., "Morning energy best for creative work", "Matches your preferred afternoon slot")
-        - Progress status if relevant (e.g., "Behind on weekly target", "Quick session to maintain streak")
-        - Any other contextual factors (e.g., "Short duration fits before evening", "High priority goal")
-        
-        Make reasoning actionable and human-readable, avoiding generic phrases like "follows goal X" or numbered references.
-        
-        IMPORTANT: Also provide "topThreeRecommendations" - an array of exactly 3 goal IDs that should be worked on RIGHT NOW (at \(currentTime)).
-        Consider:
-        - Which goals are most behind their targets
-        - Which goals match the current time of day
-        - Urgency and priority
-        - Current energy levels typical for \(currentTime)
-        
-        Also provide "recommendationReasoning" - a brief explanation of why these 3 goals are recommended right now.
+        Return: sessions (HH:mm times, chronological), topThreeRecommendations (3 IDs for NOW), reasoning (1 sentence why).
+        Prioritize goals furthest behind target.
         """
         
         return prompt

@@ -22,6 +22,12 @@ struct ExpandableDayRow: View {
     let onToggleTime: (TimeOfDay) -> Void
     let onToggleExpand: () -> Void
     
+    /// Calculate appropriate text color based on background luminance
+    private var textColor: Color {
+        let luminance = themeColor.luminance ?? 0.5
+        return luminance > 0.5 ? .black : .white
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Main row
@@ -40,7 +46,7 @@ struct ExpandableDayRow: View {
                                 .fill(isActive ? themeColor : Color(.systemGray5))
                                 .stroke(themeColor)
                         )
-                        .foregroundStyle(isActive ? .white : .secondary)
+                        .foregroundStyle(isActive ? textColor : .secondary)
                 }
                 .buttonStyle(.plain)
                 

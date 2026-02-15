@@ -30,6 +30,9 @@ struct RecommendedSessionRowView: View {
        
         .foregroundStyle(primaryTag.themePreset.textColor)
         .listRowInsets(EdgeInsets())
-        .listRowBackground(primaryTag.themePreset.gradient)
+        .listRowBackground(
+            primaryTag.themePreset.gradient
+                .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+        )
     }
 }

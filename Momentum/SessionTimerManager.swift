@@ -32,6 +32,11 @@ public final class SessionTimerManager {
     /// Callback when external changes are detected (e.g., widget stopped the timer)
     public var onExternalChange: (() -> Void)?
     
+    /// Current interval information (if intervals are active)
+    public var currentIntervalName: String?
+    public var intervalProgress: Double?
+    public var intervalTimeRemaining: TimeInterval?
+    
     private let goalStore: GoalStore
     private let modelContext: ModelContext
     private let healthKitManager = HealthKitManager()

@@ -343,7 +343,7 @@ struct ChecklistDetailView: View {
             Section {
                 TabView(selection: $selectedListID) {
                     ForEach(session.intervalLists) { listSession in
-                        IntervalListView(listSession: listSession, activeIntervalID: $activeIntervalID, intervalStartDate: $intervalStartDate, intervalElapsed: $intervalElapsed, uiTimer: $uiTimer, limit: 3)
+                        IntervalListView(listSession: listSession, activeIntervalID: $activeIntervalID, intervalStartDate: $intervalStartDate, intervalElapsed: $intervalElapsed, uiTimer: $uiTimer, timerManager: timerManager, goalSession: session, limit: 3)
                             .tag(listSession.id)
                     }
                 }
@@ -442,7 +442,7 @@ struct ChecklistDetailView: View {
         }
         .tint(tintColor)
         .navigationDestination(isPresented: $isShowingListsOverview) {
-            ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor)
+            ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor, timerManager: timerManager)
         }
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
         .sheet(isPresented: $isShowingIntervalsEditor) {

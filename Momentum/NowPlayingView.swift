@@ -14,6 +14,20 @@ struct NowPlayingView: View {
     let onStopTapped: () -> Void
     @Environment(\.dismiss) private var dismiss
     
+    // Optional interval information
+    let currentIntervalName: String?
+    let intervalProgress: Double?
+    let intervalTimeRemaining: TimeInterval?
+    
+    init(session: GoalSession, activeSessionDetails: ActiveSessionDetails, currentIntervalName: String? = nil, intervalProgress: Double? = nil, intervalTimeRemaining: TimeInterval? = nil, onStopTapped: @escaping () -> Void) {
+        self.session = session
+        self.activeSessionDetails = activeSessionDetails
+        self.currentIntervalName = currentIntervalName
+        self.intervalProgress = intervalProgress
+        self.intervalTimeRemaining = intervalTimeRemaining
+        self.onStopTapped = onStopTapped
+    }
+    
     var body: some View {
         ZStack {
             // Background gradient
@@ -128,6 +142,49 @@ struct NowPlayingView: View {
                 }
                 .padding(.vertical, 40)
                 
+                // Current interval display (if active)
+                if let currentIntervalName, let intervalTimeRemaining, let intervalProgress {
+                    VStack(spacing: 12) {
+                        // Interval name
+                        Text(currentIntervalName)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                        
+                        // Interval time remaining
+                        Text(Duration.seconds(intervalTimeRemaining).formatted(.time(pattern: .minuteSecond)))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .contentTransition(.numericText())
+                        
+                        // Interval progress bar
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                // Background
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(.white.opacity(0.2))
+                                    .frame(height: 8)
+                                
+                                // Progress
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(.white)
+                                    .frame(width: geometry.size.width * intervalProgress, height: 8)
+                                    .animation(.linear(duration: 0.5), value: intervalProgress)
+                            }
+                        }
+                        .frame(height: 8)
+                        .padding(.horizontal, 40)
+                    }
+                    .padding(.vertical, 20)
+                    .padding(.horizontal, 20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.white.opacity(0.15))
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                    )
+                    .padding(.horizontal, 40)
+                }
+                
                 // Control buttons
                 HStack(spacing: 60) {
                     // Close button
@@ -197,7 +254,13 @@ struct NowPlayingView: View {
     let session = GoalSession(title: "Meditation", goal: goal, day: day)
     let details = ActiveSessionDetails(id: session.id, startDate: Date().addingTimeInterval(-600), elapsedTime: 600, dailyTarget: 1200)
     
-    NowPlayingView(session: session, activeSessionDetails: details) {
+    NowPlayingView(
+        session: session,
+        activeSessionDetails: details,
+        currentIntervalName: "Heel Stretch 2/4",
+        intervalProgress: 0.6,
+        intervalTimeRemaining: 12
+    ) {
         print("Stop tapped")
     }
 }

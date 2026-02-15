@@ -18,7 +18,7 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var goals: [Goal]
-    @Query private var sessions: [GoalSession]
+    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var sessions: [GoalSession]
     let day: Day
     @State private var selectedSession: GoalSession?
     @State private var sessionIDToOpen: String?
@@ -75,7 +75,6 @@ struct ContentView: View {
                                 self.toastConfig = nil
                             }
                         )
-                        .padding(.bottom, 80) // Position above bottom toolbar
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -641,7 +640,10 @@ struct ContentView: View {
                let session = sessions.first(where: { $0.id == activeSession.id }) {
                 NowPlayingView(
                     session: session,
-                    activeSessionDetails: activeSession
+                    activeSessionDetails: activeSession,
+                    currentIntervalName: timerManager.currentIntervalName,
+                    intervalProgress: timerManager.intervalProgress,
+                    intervalTimeRemaining: timerManager.intervalTimeRemaining
                 ) {
                     timerManager.toggleTimer(for: session, in: day)
                 }

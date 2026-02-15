@@ -154,6 +154,12 @@ struct GoalEditorView: View {
         return .accentColor
     }
     
+    /// Calculate appropriate text color for buttons based on background luminance
+    private var buttonTextColor: Color {
+        let luminance = activeThemeColor.luminance ?? 0.5
+        return luminance > 0.5 ? .black : .white
+    }
+    
     var body: some View {
         NavigationStack {
                     
@@ -471,7 +477,7 @@ struct GoalEditorView: View {
                                         Capsule()
                                             .fill(buttonEnabled ? activeThemeColor : Color.gray)
                                     }
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(buttonEnabled ? buttonTextColor : .white)
                             }
                             .disabled(!buttonEnabled)
                             .padding()
@@ -486,7 +492,7 @@ struct GoalEditorView: View {
                                         Capsule()
                                             .fill(buttonEnabled ? activeThemeColor : Color.gray)
                                     }
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(buttonEnabled ? buttonTextColor : .white)
                             }
                             .matchedGeometryEffect(id: "actionButton", in: buttonNamespace)
                             .disabled(!buttonEnabled)
