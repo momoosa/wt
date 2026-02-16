@@ -415,6 +415,12 @@ public final class SessionTimerManager {
             existingSession.stopUITimer()
         }
         
+        // If this session was marked as complete, unmark it
+        if session.markedComplete {
+            session.markedComplete = false
+            print("🔄 Unmarked session as complete - resuming work")
+        }
+        
         // Create new active session
         let newActiveSession = ActiveSessionDetails(
             id: session.id,
@@ -622,27 +628,10 @@ public final class SessionTimerManager {
     
     // MARK: - Session Actions
     
-    /// Marks a goal as done by creating a historical session to meet the daily target
+    /// Marks a goal as done by setting the completion flag
     public func markGoalAsDone(session: GoalSession, day: Day, context: ModelContext) {
-        // Calculate how much time is needed to meet the daily target
-        let currentElapsed = session.elapsedTime
-        let timeNeeded = session.dailyTarget - currentElapsed
-        
-        // Only add a historical session if there's time remaining to meet target
-        if timeNeeded > 0 {
-            let now = Date()
-            let historicalSession = HistoricalSession(
-                title: session.title,
-                start: now,
-                end: now.addingTimeInterval(timeNeeded),
-                healthKitType: nil,
-                needsHealthKitRecord: false
-            )
-            historicalSession.goalIDs = [session.goalID]
-
-            day.add(historicalSession: historicalSession)
-            context.insert(historicalSession)
-        }
+        // Set the manual completion flag
+        session.markedComplete = true
         
         // Mark all checklist items as complete
         for item in session.checklist {
@@ -653,13 +642,12 @@ public final class SessionTimerManager {
         try? context.save()
         
         // Send completion notification
-        let totalElapsed = session.elapsedTime + timeNeeded
         if session.goal.completionNotificationsEnabled {
             Task { @MainActor in
                 let notificationManager = GoalNotificationManager()
                 await notificationManager.sendCompletionNotification(
                     for: session.goal,
-                    elapsedTime: totalElapsed
+                    elapsedTime: session.elapsedTime
                 )
             }
         }

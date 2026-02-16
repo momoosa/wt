@@ -6,9 +6,17 @@
 	<string>You'll be able to keep track of active sessions outside of the app and be notified when they're finished.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Momentum will save your tracked sessions to the Health app so your progress is recorded across all your devices.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Momentum can import your reminders to help you quickly create time-tracked goals based on your existing to-dos.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>processing</string>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.moosa.ios.momentum.refresh</string>
 	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>

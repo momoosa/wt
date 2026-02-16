@@ -13,12 +13,12 @@ import AppIntents
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), recommendations: [])
+        SimpleEntry(date: Date(), recommendations: [], configuration: ConfigurationAppIntent())
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let recommendations = await fetchRecommendations()
-        return SimpleEntry(date: Date(), recommendations: recommendations)
+        return SimpleEntry(date: Date(), recommendations: recommendations, configuration: configuration)
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
@@ -32,10 +32,17 @@ struct Provider: AppIntentTimelineProvider {
         // Update more frequently if timer is active (every 1 minute)
         // Otherwise update every 15 minutes to keep recommendations fresh
         let updateInterval = hasActiveTimer ? 1 : 15
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: updateInterval, to: currentDate)!
         
-        let entry = SimpleEntry(date: currentDate, recommendations: recommendations)
-        return Timeline(entries: [entry], policy: .after(nextUpdate))
+        // Create multiple timeline entries to improve background refresh reliability
+        var entries: [SimpleEntry] = []
+        for minuteOffset in stride(from: 0, through: updateInterval * 3, by: updateInterval) {
+            if let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate) {
+                entries.append(SimpleEntry(date: entryDate, recommendations: recommendations, configuration: configuration))
+            }
+        }
+        
+        // Use .atEnd policy to request updates as soon as the timeline expires
+        return Timeline(entries: entries, policy: .atEnd)
     }
     
     @MainActor
@@ -110,9 +117,9 @@ struct Provider: AppIntentTimelineProvider {
         
         print("📊 Widget: Found \(sessions.count) sessions")
         
-        // Filter active, non-skipped sessions
+        // Filter active, non-skipped, non-completed sessions
         let activeSessions = sessions.filter { session in
-            session.goal.status != .archived && session.status != .skipped
+            session.goal.status != .archived && session.status != .skipped && !session.hasMetDailyTarget
         }
         
         print("✅ Widget: \(activeSessions.count) active sessions")
@@ -244,6 +251,7 @@ struct RecommendedSession: Identifiable {
 struct SimpleEntry: TimelineEntry {
     let date: Date
     let recommendations: [RecommendedSession]
+    let configuration: ConfigurationAppIntent
 }
 
 struct MomentumWidgetEntryView : View {
@@ -264,6 +272,31 @@ struct MomentumWidgetEntryView : View {
     }
 }
 
+// MARK: - Reusable Widget Container
+
+/// A reusable container that handles vertical spacing for widget cells
+/// - When items == maxItems: Cells expand to fill vertical space equally
+/// - When items < maxItems: Cells use natural height and are pushed to the top
+struct WidgetCellContainer<Content: View>: View {
+    let items: Int
+    let maxItems: Int
+    let spacing: CGFloat
+    let padding: CGFloat
+    @ViewBuilder let content: Content
+    
+    var body: some View {
+        VStack(spacing: spacing) {
+            content
+            
+            if items < maxItems {
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxHeight: .infinity)
+        .padding(padding)
+    }
+}
+
 // MARK: - Small Widget
 private struct Constants {
     static let padding = 10.0
@@ -280,12 +313,13 @@ struct SmallWidgetView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            VStack(spacing: 4) {
+            let itemCount = min(entry.recommendations.count, 3)
+            WidgetCellContainer(items: itemCount, maxItems: 3, spacing: 4, padding: Constants.padding) {
                 ForEach(entry.recommendations.prefix(3)) { session in
                     MediumWidgetCell(session: session)
+                        .frame(maxHeight: itemCount == 3 ? .infinity : nil)
                 }
             }
-            .padding(Constants.padding)
         }
     }
 }
@@ -304,26 +338,75 @@ struct MediumWidgetView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            let maxItems = min(entry.recommendations.count, 6) // Cap at 6 for medium widget
-            let rows = (maxItems + 1) / 2 // Calculate rows needed (ceiling division)
+            // Compact mode: Show max 3 sessions with action buttons
+            // Extended mode: Show up to 6 sessions in grid
+            let useCompactMode = entry.configuration.mediumLayout == .compact || entry.recommendations.count <= 3
             
-            Grid(horizontalSpacing: 4, verticalSpacing: 4) {
-                ForEach(0..<rows, id: \.self) { row in
-                    GridRow {
-                        ForEach(0..<2, id: \.self) { column in
-                            let index = row * 2 + column
-                            if index < maxItems {
-                                let session = entry.recommendations[index]
+            if useCompactMode {
+                // Compact: 1-3 items in a single vertical column with action buttons on the right
+                let itemCount = min(entry.recommendations.count, 3)
+                WidgetCellContainer(items: itemCount, maxItems: 3, spacing: 4, padding: Constants.padding) {
+                    HStack(spacing: 8) {
+                        VStack(spacing: 4) {
+                            ForEach(entry.recommendations.prefix(3)) { session in
                                 MediumWidgetCell(session: session)
-                            } else {
-                                Color.clear
-                                    .gridCellUnsizedAxes([.horizontal, .vertical])
+                                    .frame(maxHeight: itemCount == 3 ? .infinity : nil)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                        // Action buttons
+                        VStack(spacing: 8) {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                // Search button
+                                Link(destination: URL(string: "momentum://search")!) {
+                                    Image(systemName: "magnifyingglass.circle.fill")
+                                        .font(.largeTitle)
+                                        .foregroundStyle(.gray.gradient)
+                                }
+                                
+                                Spacer()
+                                
+                                // Add button
+                                Link(destination: URL(string: "momentum://new")!) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.largeTitle)
+                                        .foregroundStyle(.blue.gradient)
+                                }
+                                Spacer()
+                            }
+                            
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            } else {
+                // Extended: 4-6 items in a 2-column grid
+                let maxItems = min(entry.recommendations.count, 6)
+                let rows = (maxItems + 1) / 2
+                
+                WidgetCellContainer(items: rows, maxItems: 3, spacing: 4, padding: Constants.padding) {
+                    Grid(horizontalSpacing: 4, verticalSpacing: 4) {
+                        ForEach(0..<rows, id: \.self) { row in
+                            GridRow {
+                                ForEach(0..<2, id: \.self) { column in
+                                    let index = row * 2 + column
+                                    if index < maxItems {
+                                        let session = entry.recommendations[index]
+                                        MediumWidgetCell(session: session)
+                                            .frame(maxHeight: rows == 3 ? .infinity : nil)
+                                    } else {
+                                        Color.clear
+                                            .gridCellUnsizedAxes([.horizontal, .vertical])
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-            .padding(Constants.padding)
         }
     }
 }
@@ -398,7 +481,7 @@ struct MediumWidgetCell: View {
                 endPoint: .bottomTrailing
             )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
 
     }
 }
@@ -556,23 +639,23 @@ struct MomentumWidget: Widget {
             elapsedTime: 1200,
             dailyTarget: 1500
         ),
-        RecommendedSession(
-            id: UUID(),
-            title: "Meditation",
-            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
-            progress: 1.0,
-            formattedTime: "10m / 10m",
-            hasMetTarget: true,
-            dayID: "2026-02-02",
-            isTimerActive: false,
-            isHealthKitSynced: false,
-            supportsWrite: true,
-            isPinned: false,
-            timerStartDate: nil,
-            elapsedTime: 600,
-            dailyTarget: 600
-        )
-    ])
+//        RecommendedSession(
+//            id: UUID(),
+//            title: "Meditation",
+//            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
+//            progress: 1.0,
+//            formattedTime: "10m / 10m",
+//            hasMetTarget: true,
+//            dayID: "2026-02-02",
+//            isTimerActive: false,
+//            isHealthKitSynced: false,
+//            supportsWrite: true,
+//            isPinned: false,
+//            timerStartDate: nil,
+//            elapsedTime: 600,
+//            dailyTarget: 600
+//        )
+    ], configuration: ConfigurationAppIntent())
 }
 
 #Preview(as: .systemMedium) {
@@ -627,7 +710,7 @@ struct MomentumWidget: Widget {
             elapsedTime: 600,
             dailyTarget: 600
         )
-    ])
+    ], configuration: ConfigurationAppIntent())
 }
 #Preview(as: .systemMedium) {
     MomentumWidget()
@@ -681,6 +764,6 @@ struct MomentumWidget: Widget {
             elapsedTime: 600,
             dailyTarget: 600
         )
-    ])
+    ], configuration: ConfigurationAppIntent())
 }
 

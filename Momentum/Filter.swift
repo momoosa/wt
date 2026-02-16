@@ -22,6 +22,8 @@ extension ContentView {
                 "completedToday"
             case .skippedSessions:
                 "skippedSessions"
+            case .inactive:
+                "inactive"
             case .theme(let theme):
                 "theme_\(theme.id)"
             }
@@ -37,6 +39,8 @@ extension ContentView {
                 return "Completed"
             case .skippedSessions:
                 return "Skipped"
+            case .inactive:
+                return "Inactive"
             case .theme(let theme):
                 return theme.title
             }
@@ -50,6 +54,8 @@ extension ContentView {
                 return .green
             case .skippedSessions:
                 return .orange
+            case .inactive:
+                return .gray
             case .theme(let goalTheme):
                 return goalTheme.theme.dark
             }
@@ -58,6 +64,7 @@ extension ContentView {
         case allGoals
         case completedToday
         case skippedSessions
+        case inactive
         case theme(GoalTag)
     }
 }

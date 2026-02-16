@@ -119,6 +119,9 @@ struct PlannerConfigurationSheet: View {
                 confirmButton
             }
         }
+        .navigationTransition(
+            .zoom(sourceID: "plannerButton", in: animation)
+        )
     }
     
     // MARK: - Subviews

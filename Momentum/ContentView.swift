@@ -40,6 +40,10 @@ struct ContentView: View {
     @State private var showNowPlaying = false
     @State private var sessionToLogManually: GoalSession?
     
+    // Search state
+    @State private var isSearching = false
+    @State private var searchText = ""
+    
     // Toast state
     @State private var toastConfig: ToastConfig?
     
@@ -78,6 +82,9 @@ struct ContentView: View {
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+            }
+            .sheet(isPresented: $isSearching) {
+                searchSheet
             }
             .toolbar {
                 toolbarContent
@@ -132,13 +139,52 @@ struct ContentView: View {
                     handleDeepLink(sessionID: sessionID)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSearch"))) { _ in
+                isSearching = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
+                showingGoalEditor = true
+            }
             .navigationDestination(item: $selectedSession) { session in
                 if let timerManager = timerManager {
-                    ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
-                        .tint(session.goal.primaryTag.themePreset.dark)
-                        .environment(goalStore)
+                    ChecklistDetailView(
+                        session: session,
+                        animation: animation,
+                        timerManager: timerManager,
+                        onMarkedComplete: {
+                            // Dismiss the detail view
+                            selectedSession = nil
+                            
+                            // Show toast
+                            toastConfig = ToastConfig(
+                                message: "Marked as complete - moved to Completed filter",
+                                showUndo: false
+                            )
+                        }
+                    )
+                    .tint(session.goal.primaryTag.themePreset.dark)
+                    .environment(goalStore)
                 }
             }
+    }
+    
+    // MARK: - Main List View
+    
+    // MARK: - Search Sheet
+    
+    private var searchSheet: some View {
+        SearchSheet(
+            sessions: Array(sessions),
+            availableFilters: availableFilters,
+            day: day,
+            timerManager: timerManager,
+            animation: animation,
+            selectedSession: $selectedSession,
+            sessionToLogManually: $sessionToLogManually,
+            searchText: $searchText,
+            onSkip: skip,
+            isGoalValid: isGoalValid
+        )
     }
     
     // MARK: - Main List View
@@ -181,7 +227,7 @@ struct ContentView: View {
                         }
                     }
                 } else {
-                    // For other filters, show all sessions as regular rows (no recommended section)
+                    // For other filters, show all sessions as regular rows
                     if !sessions.isEmpty {
                         let allSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
                         
@@ -412,6 +458,15 @@ struct ContentView: View {
         
         ToolbarItem(placement: .bottomBar) {
             Button {
+                isSearching = true
+            } label: {
+                Label("Search", systemImage: "magnifyingglass")
+            }
+            .matchedTransitionSource(id: "searchButton", in: animation)
+        }
+        
+        ToolbarItem(placement: .bottomBar) {
+            Button {
                 // Cache themes before showing sheet to avoid SwiftData faults
                 planningViewModel.cachedThemes = availableGoalThemes
                 showPlannerSheet = true
@@ -435,6 +490,7 @@ struct ContentView: View {
         if let timerManager,
            let activeSession = timerManager.activeSession,
            let session = sessions.first(where: { $0.id == activeSession.id }) {
+            
             ToolbarItem(placement: .bottomBar) {
                 ActionView(session: session, details: activeSession) { event in
                     handle(event: event)
@@ -442,7 +498,7 @@ struct ContentView: View {
                 .onTapGesture {
                     showNowPlaying = true
                 }
-                .frame(minWidth: 180.0)
+                .frame(minWidth: 140.0)
             }
         }
         
@@ -645,7 +701,7 @@ struct ContentView: View {
                     intervalProgress: timerManager.intervalProgress,
                     intervalTimeRemaining: timerManager.intervalTimeRemaining
                 ) {
-                    timerManager.toggleTimer(for: session, in: day)
+                    handleTimerToggle(for: session)
                 }
             }
         }
@@ -781,6 +837,7 @@ struct ContentView: View {
         )
     }
     
+
     // MARK: - Session Row
     
     @ViewBuilder
@@ -797,12 +854,34 @@ struct ContentView: View {
     }
     
 
+    func handleTimerToggle(for session: GoalSession) {
+        guard let timerManager else { return }
+        
+        // Check if session is currently completed
+        let wasCompleted = session.hasMetDailyTarget
+        
+        // Toggle the timer
+        timerManager.toggleTimer(for: session, in: day)
+        
+        // If it was completed and we just started it, switch to Today filter and show toast
+        if wasCompleted && timerManager.activeSession?.id == session.id {
+            withAnimation {
+                activeFilter = .activeToday
+            }
+            
+            toastConfig = ToastConfig(
+                message: "Session resumed - moved to Today",
+                showUndo: false
+            )
+        }
+    }
+    
     func handle(event: ActionView.Event) {
         guard let timerManager else { return }
         switch event {
         case .stopTapped:
             if let session = sessions.first(where: { $0.id == timerManager.activeSession?.id }) {
-                timerManager.toggleTimer(for: session, in: day)
+                handleTimerToggle(for: session)
             }
         }
     }

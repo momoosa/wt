@@ -20,10 +20,13 @@
 		CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */; };
 		CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */; };
 		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
+		CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0B80982F43A590006EDA47 /* SearchSheet.swift */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
 		CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */; };
 		CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DDB2F3FB404004BF35F /* ToastView.swift */; };
+		CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DE32F42439C004BF35F /* RemindersManager.swift */; };
+		CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DE52F4243B0004BF35F /* RemindersImportView.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
 		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
@@ -120,10 +123,13 @@
 		CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerIntegrationExamples.swift; sourceTree = "<group>"; };
 		CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartNotificationScheduler.swift; sourceTree = "<group>"; };
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
+		CD0B80982F43A590006EDA47 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
 		CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandableDayRow.swift; sourceTree = "<group>"; };
 		CD134DDB2F3FB404004BF35F /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		CD134DE32F42439C004BF35F /* RemindersManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersManager.swift; sourceTree = "<group>"; };
+		CD134DE52F4243B0004BF35F /* RemindersImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersImportView.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
@@ -342,6 +348,9 @@
 				CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */,
 				CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */,
 				CD134DDB2F3FB404004BF35F /* ToastView.swift */,
+				CD134DE32F42439C004BF35F /* RemindersManager.swift */,
+				CD134DE52F4243B0004BF35F /* RemindersImportView.swift */,
+				CD0B80982F43A590006EDA47 /* SearchSheet.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -554,6 +563,7 @@
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
+				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
@@ -563,6 +573,7 @@
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
+				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
@@ -591,6 +602,7 @@
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
 				CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */,
+				CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

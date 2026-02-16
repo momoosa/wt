@@ -15,6 +15,7 @@ struct SettingsView: View {
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
+    @State private var showingRemindersImport = false
     
     var body: some View {
         NavigationStack {
@@ -53,6 +54,18 @@ struct SettingsView: View {
                     Text("Skipping the animation makes planning feel faster by showing all sessions immediately.")
                 }
                 
+                Section {
+                    Button {
+                        showingRemindersImport = true
+                    } label: {
+                        Label("Import from Reminders", systemImage: "checklist")
+                    }
+                } header: {
+                    Label("Integrations", systemImage: "square.and.arrow.down")
+                } footer: {
+                    Text("Quickly create goals from your existing reminders. Each reminder becomes a time-tracked goal.")
+                }
+                
                 #if DEBUG
                 Section {
                     Button {
@@ -84,6 +97,9 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showingRemindersImport) {
+                RemindersImportView()
             }
         }
     }

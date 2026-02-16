@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import UserNotifications
+import BackgroundTasks
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 // MARK: - App Delegate for Notification Handling
 
@@ -16,7 +20,60 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Set notification delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
+        
+        // Register background refresh task
+        registerBackgroundTasks()
+        
         return true
+    }
+    
+    // Register background task for widget updates
+    func registerBackgroundTasks() {
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.moosa.ios.momentum.refresh", using: nil) { task in
+            self.handleAppRefresh(task: task as! BGAppRefreshTask)
+        }
+    }
+    
+    // Handle background refresh
+    func handleAppRefresh(task: BGAppRefreshTask) {
+        // Schedule next refresh
+        scheduleAppRefresh()
+        
+        // Create task to refresh widget data
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        
+        let operation = BlockOperation {
+            // Reload widgets with fresh data
+            #if canImport(WidgetKit)
+            WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+            print("🔄 Background refresh: Reloaded widget timelines")
+            #endif
+        }
+        
+        task.expirationHandler = {
+            queue.cancelAllOperations()
+        }
+        
+        operation.completionBlock = {
+            task.setTaskCompleted(success: !operation.isCancelled)
+        }
+        
+        queue.addOperation(operation)
+    }
+    
+    // Schedule next background refresh
+    func scheduleAppRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: "com.moosa.ios.momentum.refresh")
+        // Request refresh in 15 minutes (iOS may delay this)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            print("📅 Scheduled background refresh")
+        } catch {
+            print("❌ Could not schedule app refresh: \(error)")
+        }
     }
     
     // Handle notifications when app is in foreground
@@ -42,6 +99,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 @main
 struct MomentumApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Goal.self,
@@ -104,23 +163,46 @@ struct MomentumApp: App {
             }
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .background {
+                // Schedule background refresh when app goes to background
+                appDelegate.scheduleAppRefresh()
+            }
+        }
     }
     
     // Handle deep link URLs from widgets
     private func handleURL(_ url: URL) {
         print("📱 Received URL: \(url.absoluteString)")
         
-        // Parse URL like: momentum://goal/{sessionID}
-        guard url.scheme == "momentum",
-              url.host == "goal",
-              let sessionID = url.pathComponents.last,
-              sessionID != "/" else {
-            print("⚠️ Invalid URL format")
+        guard url.scheme == "momentum" else {
+            print("⚠️ Invalid URL scheme")
             return
         }
         
-        print("✅ Opening session: \(sessionID)")
-        // Post notification to ContentView
-        NotificationCenter.default.post(name: NSNotification.Name("OpenSessionFromWidget"), object: sessionID)
+        switch url.host {
+        case "goal":
+            // Parse URL like: momentum://goal/{sessionID}
+            guard let sessionID = url.pathComponents.last,
+                  sessionID != "/" else {
+                print("⚠️ Invalid goal URL format")
+                return
+            }
+            print("✅ Opening session: \(sessionID)")
+            NotificationCenter.default.post(name: NSNotification.Name("OpenSessionFromWidget"), object: sessionID)
+            
+        case "search":
+            // momentum://search
+            print("✅ Opening search")
+            NotificationCenter.default.post(name: NSNotification.Name("OpenSearch"), object: nil)
+            
+        case "new":
+            // momentum://new
+            print("✅ Opening new goal editor")
+            NotificationCenter.default.post(name: NSNotification.Name("OpenNewGoal"), object: nil)
+            
+        default:
+            print("⚠️ Unknown URL host: \(url.host ?? "none")")
+        }
     }
 }

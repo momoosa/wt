@@ -23,17 +23,20 @@ struct SessionFilterService {
         case .skippedSessions:
             return sessions.filter { $0.status == .skipped }.count
         case .activeToday:
-            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped }.count
+            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped && $0.dailyTarget > 0 }.count
         case .allGoals:
             return sessions.count
         case .theme(let goalTheme):
             return sessions.filter {
                 $0.goal.primaryTag.themeID == goalTheme.themeID &&
                 $0.goal.status != .archived &&
-                $0.status != .skipped
+                $0.status != .skipped &&
+                $0.dailyTarget > 0
             }.count
         case .completedToday:
-            return sessions.filter { $0.hasMetDailyTarget }.count
+            return sessions.filter { $0.hasMetDailyTarget && $0.dailyTarget > 0 }.count
+        case .inactive:
+            return sessions.filter { $0.dailyTarget == 0 }.count
         }
     }
     
@@ -73,15 +76,17 @@ struct SessionFilterService {
             
             switch filter {
             case .activeToday:
-                return !isArchived && !isSkipped
+                return !isArchived && !isSkipped && !session.hasMetDailyTarget && session.dailyTarget > 0
             case .allGoals:
                 return true
             case .skippedSessions:
                 return isSkipped
             case .theme(let goalTheme):
-                return session.goal.primaryTag.themeID == goalTheme.themeID && !isArchived && !isSkipped
+                return session.goal.primaryTag.themeID == goalTheme.themeID && !isArchived && !isSkipped && !session.hasMetDailyTarget && session.dailyTarget > 0
             case .completedToday:
-                return session.hasMetDailyTarget
+                return session.hasMetDailyTarget && session.dailyTarget > 0
+            case .inactive:
+                return session.dailyTarget == 0
             }
         }
         
@@ -180,7 +185,7 @@ struct SessionFilterService {
         from tags: [GoalTag],
         sessions: [GoalSession]
     ) -> [ContentView.Filter] {
-        var filters: [ContentView.Filter] = [.activeToday, .completedToday, .skippedSessions]
+        var filters: [ContentView.Filter] = [.activeToday, .completedToday, .skippedSessions, .inactive]
         
         // Add theme filters for unique themes
         var uniqueThemes: [GoalTag] = []

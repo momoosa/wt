@@ -111,6 +111,9 @@ public final class GoalSession: SessionProgressProvider {
     /// This is set when the session is created and doesn't change
     public private(set) var dailyTarget: TimeInterval
     
+    /// Whether this session has been manually marked as complete for the day
+    public var markedComplete: Bool = false
+    
     /// Total elapsed time including both manual tracking and HealthKit data
     public var elapsedTime: TimeInterval {
         // historicalSessions already includes both manual sessions and HealthKit sessions
@@ -120,6 +123,11 @@ public final class GoalSession: SessionProgressProvider {
         }
         
         return totalTime
+    }
+    
+    /// Whether the daily target has been met (either by time or manual completion)
+    public var hasMetDailyTarget: Bool {
+        markedComplete || elapsedTime >= dailyTarget
     }
     
     public var formattedTime: String {

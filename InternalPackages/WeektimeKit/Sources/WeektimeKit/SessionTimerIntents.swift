@@ -146,8 +146,9 @@ public struct ToggleTimerIntent: AppIntent {
                 defaults.removeObject(forKey: activeSessionElapsedTimeKey)
             }
             
-            // Start new timer - get elapsed time from UserDefaults or default to 0
-            let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
+            // Fetch the session's current elapsed time from SwiftData
+            let elapsedTime = await fetchSessionElapsedTime(sessionID: sessionID, appGroupIdentifier: appGroupIdentifier)
+            
             let startDate = Date()
             defaults.set(sessionID, forKey: activeSessionIDKey)
             defaults.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
@@ -462,4 +463,48 @@ extension ToggleTimerIntent {
         }
     }
     #endif
+    
+    /// Fetches the session's current elapsed time from SwiftData
+    @MainActor
+    fileprivate func fetchSessionElapsedTime(sessionID: String, appGroupIdentifier: String) async -> TimeInterval {
+        let schema = Schema([
+            Goal.self,
+            GoalTag.self,
+            GoalSession.self,
+            Day.self,
+            HistoricalSession.self,
+        ])
+        
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            print("❌ Intent: Failed to get container URL for app group")
+            return 0
+        }
+        
+        let storeURL = containerURL.appendingPathComponent("default.store")
+        
+        guard let container = try? ModelContainer(for: schema, configurations: [ModelConfiguration(url: storeURL)]) else {
+            print("❌ Intent: Failed to create model container")
+            return 0
+        }
+        
+        let context = container.mainContext
+        
+        guard let sessionUUID = UUID(uuidString: sessionID) else {
+            print("❌ Intent: Invalid session ID")
+            return 0
+        }
+        
+        let sessionPredicate = #Predicate<GoalSession> { session in
+            session.id == sessionUUID
+        }
+        let sessionDescriptor = FetchDescriptor<GoalSession>(predicate: sessionPredicate)
+        
+        guard let session = try? context.fetch(sessionDescriptor).first else {
+            print("❌ Intent: Failed to fetch session \(sessionID)")
+            return 0
+        }
+        
+        print("✅ Intent: Fetched elapsed time \(session.elapsedTime)s for session '\(session.title)'")
+        return session.elapsedTime
+    }
 }

@@ -8,11 +8,21 @@
 import WidgetKit
 import AppIntents
 
+enum MediumWidgetLayout: String, AppEnum {
+    case compact = "Compact"
+    case extended = "Extended"
+    
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Layout")
+    static var caseDisplayRepresentations: [MediumWidgetLayout: DisplayRepresentation] = [
+        .compact: "3 Sessions + Actions",
+        .extended: "Up to 6 Sessions"
+    ]
+}
+
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource { "Configuration" }
-    static var description: IntentDescription { "This is an example widget." }
+    static var description: IntentDescription { "Configure your Momentum widget" }
 
-    // An example configurable parameter.
-    @Parameter(title: "Favorite Emoji", default: "😃")
-    var favoriteEmoji: String
+    @Parameter(title: "Medium Widget Layout", default: .compact)
+    var mediumLayout: MediumWidgetLayout
 }

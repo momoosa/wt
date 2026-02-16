@@ -15,6 +15,7 @@ struct ChecklistDetailView: View {
     @Environment(GoalStore.self) private var goalStore
     var animation: Namespace.ID
     var timerManager: SessionTimerManager
+    var onMarkedComplete: (() -> Void)? = nil
     let historicalSessionLimit = 3
     @State var isShowingEditScreen = false
     @State private var isShowingIntervalsEditor = false
@@ -527,7 +528,18 @@ struct ChecklistDetailView: View {
     // MARK: - Goal Actions
     
     private func markGoalAsDone() {
-        timerManager.markGoalAsDone(session: session, day: session.day, context: context)
+        withAnimation {
+            timerManager.markGoalAsDone(session: session, day: session.day, context: context)
+        }
+        
+        // Provide haptic feedback
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
+        
+        // Notify parent and dismiss
+        onMarkedComplete?()
     }
     
     private func toggleSkip() {
