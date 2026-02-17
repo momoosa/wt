@@ -11,7 +11,7 @@ import MomentumKit
 
 struct SearchSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var isSearchFieldFocused: Bool
+    @State private var isSearchFieldFocused = false
     
     let sessions: [GoalSession]
     let availableFilters: [ContentView.Filter]
@@ -58,10 +58,9 @@ struct SearchSheet: View {
             }
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search goals...")
-            .focused($isSearchFieldFocused)
-            .onAppear {
-                isSearchFieldFocused = true
+            .searchable(text: $searchText, isPresented: $isSearchFieldFocused, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search goals...")
+            .task {
+                    isSearchFieldFocused = true
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

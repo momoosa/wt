@@ -8,6 +8,7 @@ struct DayOverviewView: View {
     let day: Day
     let sessions: [GoalSession]
     let goals: [Goal]
+    let animation: Namespace.ID
 
     private var dailyProgress: Double {
         guard totalDailyTarget > 0 else { return 0 }
@@ -52,7 +53,7 @@ struct DayOverviewView: View {
     }
 
     // Get all historical sessions from all goals, grouped by hour with time ranges
-    private var groupedHistoricalSessions: [(startHour: Int, endHour: Int, sessions: [HistoricalSession])] {
+    private var groupedHistoricalSessions: [(startDate: Date, endDate: Date, sessions: [HistoricalSession])] {
         let allHistoricalSessions = sessions.flatMap { $0.historicalSessions }
         let calendar = Calendar.current
 
@@ -67,11 +68,10 @@ struct DayOverviewView: View {
                 let sortedSessions = sessions.sorted { $0.startDate < $1.startDate }
                 
                 // Find the earliest start and latest end time in this hour group
-                let startHour = hour
+                let earliestStartDate = sortedSessions.map { $0.startDate }.min() ?? Date()
                 let latestEndDate = sortedSessions.map { $0.endDate }.max() ?? Date()
-                let endHour = calendar.component(.hour, from: latestEndDate)
                 
-                return (startHour: startHour, endHour: endHour, sessions: sortedSessions)
+                return (startDate: earliestStartDate, endDate: latestEndDate, sessions: sortedSessions)
             }
     }
     
@@ -99,7 +99,8 @@ struct DayOverviewView: View {
 
                 // Historical Sessions by Hour
                 if !groupedHistoricalSessions.isEmpty {
-                    ForEach(groupedHistoricalSessions, id: \.startHour) { group in
+                    ForEach(groupedHistoricalSessions.indices, id: \.self) { index in
+                        let group = groupedHistoricalSessions[index]
                         Section {
                             ForEach(group.sessions) { historicalSession in
                                 HistoricalSessionRow(
@@ -110,7 +111,7 @@ struct DayOverviewView: View {
                                 )
                             }
                         } header: {
-                            Text(formatTimeRange(startHour: group.startHour, endHour: group.endHour))
+                            Text(formatTimeRange(startDate: group.startDate, endDate: group.endDate))
                         }
                     }
                 } else {
@@ -136,6 +137,9 @@ struct DayOverviewView: View {
                 }
             }
         }
+        .navigationTransition(
+            .zoom(sourceID: "dayOverviewCard", in: animation)
+        )
     }
 
     private var progressSummaryCard: some View {
@@ -207,20 +211,10 @@ struct DayOverviewView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private func formatTimeRange(startHour: Int, endHour: Int) -> String {
+    private func formatTimeRange(startDate: Date, endDate: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "ha"
+        formatter.dateFormat = "HH:mm"
         
-        let calendar = Calendar.current
-        let startDate = calendar.date(bySettingHour: startHour, minute: 0, second: 0, of: Date()) ?? Date()
-        
-        // If end hour is the same as start hour, just show single hour
-        if startHour == endHour {
-            return formatter.string(from: startDate)
-        }
-        
-        // Show range
-        let endDate = calendar.date(bySettingHour: endHour, minute: 59, second: 59, of: Date()) ?? Date()
         let startString = formatter.string(from: startDate)
         let endString = formatter.string(from: endDate)
         

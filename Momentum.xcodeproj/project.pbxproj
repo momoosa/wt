@@ -27,6 +27,8 @@
 		CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DDB2F3FB404004BF35F /* ToastView.swift */; };
 		CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DE32F42439C004BF35F /* RemindersManager.swift */; };
 		CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD134DE52F4243B0004BF35F /* RemindersImportView.swift */; };
+		CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD13E01C2F44962C00E65CCA /* FocusFilterIntent.swift */; };
+		CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
 		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
@@ -130,6 +132,8 @@
 		CD134DDB2F3FB404004BF35F /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		CD134DE32F42439C004BF35F /* RemindersManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersManager.swift; sourceTree = "<group>"; };
 		CD134DE52F4243B0004BF35F /* RemindersImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersImportView.swift; sourceTree = "<group>"; };
+		CD13E01C2F44962C00E65CCA /* FocusFilterIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusFilterIntent.swift; sourceTree = "<group>"; };
+		CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusFilterStore.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
@@ -351,6 +355,8 @@
 				CD134DE32F42439C004BF35F /* RemindersManager.swift */,
 				CD134DE52F4243B0004BF35F /* RemindersImportView.swift */,
 				CD0B80982F43A590006EDA47 /* SearchSheet.swift */,
+				CD13E01C2F44962C00E65CCA /* FocusFilterIntent.swift */,
+				CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -566,6 +572,7 @@
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
+				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
@@ -586,6 +593,7 @@
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
 				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
+				CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */,
 				CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */,
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,

@@ -43,6 +43,15 @@
           "icon": "figure.walk"
         },
         {
+          "id": "daylight",
+          "title": "Daylight",
+          "subtitle": "Spend time in natural light",
+          "duration": 30,
+          "theme": "Wellness",
+          "healthKitMetric": "time_in_daylight",
+          "icon": "sun.max.fill"
+        },
+        {
           "id": "cycling",
           "title": "Cycling",
           "subtitle": "Cardio on two wheels",

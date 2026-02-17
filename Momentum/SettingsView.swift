@@ -60,10 +60,18 @@ struct SettingsView: View {
                     } label: {
                         Label("Import from Reminders", systemImage: "checklist")
                     }
+
+                    Button {
+                        if let url = URL(string: "App-prefs:Focus") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Label("Configure Focus Filters", systemImage: "moon")
+                    }
                 } header: {
                     Label("Integrations", systemImage: "square.and.arrow.down")
                 } footer: {
-                    Text("Quickly create goals from your existing reminders. Each reminder becomes a time-tracked goal.")
+                    Text("Import goals from Reminders, or set up Focus Filters in iOS Settings to show only certain goal tags during a Focus mode.")
                 }
                 
                 #if DEBUG

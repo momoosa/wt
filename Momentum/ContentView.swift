@@ -38,8 +38,12 @@ struct ContentView: View {
     @State private var showAllGoals = false
     @State private var showSettings = false
     @State private var showNowPlaying = false
+    @State private var showDayOverview = false
     @State private var sessionToLogManually: GoalSession?
     
+    // Focus filter
+    @State private var focusFilterStore = FocusFilterStore.shared
+
     // Search state
     @State private var isSearching = false
     @State private var searchText = ""
@@ -60,7 +64,10 @@ struct ContentView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sessions.count)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: getRecommendedSessions().map { $0.id })
             .overlay {
-                VStack {
+                VStack(spacing: 0) {
+                    if focusFilterStore.isFocusFilterActive {
+                        focusBanner
+                    }
                     GoalFilterBar(
                         filters: availableFilters,
                         activeFilter: $activeFilter,
@@ -131,6 +138,9 @@ struct ContentView: View {
             .sheet(isPresented: $showSettings) {
                 settingsSheet
             }
+            .sheet(isPresented: $showDayOverview) {
+                dayOverviewSheet
+            }
             .sheet(item: $sessionToLogManually) { session in
                 manualLogSheet(for: session)
             }
@@ -174,7 +184,7 @@ struct ContentView: View {
     
     private var searchSheet: some View {
         SearchSheet(
-            sessions: Array(sessions),
+            sessions: focusFilteredSessions,
             availableFilters: availableFilters,
             day: day,
             timerManager: timerManager,
@@ -187,29 +197,55 @@ struct ContentView: View {
         )
     }
     
+    // MARK: - Focus Banner
+
+    private var focusBanner: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "moon.fill")
+                .imageScale(.small)
+            Text("Focus Filter Active")
+                .font(.caption)
+                .fontWeight(.medium)
+            Text("·")
+                .foregroundStyle(.secondary)
+            Text(focusFilterStore.activeFocusTagTitles.joined(separator: ", "))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.thinMaterial, in: Capsule())
+        .padding(.top, 4)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
     // MARK: - Main List View
-    
+
     private var mainListView: some View {
         List {
             // Show daily progress card once user has saved at least one session
+            Section {
+                
+            } footer: {
+                Spacer()
+                    .frame(height: 10.0)
+            }
+
             if !day.historicalSessions.isEmpty && activeFilter == .activeToday {
                 Section {
                     dailyProgressCard
+                        .matchedTransitionSource(id: "dayOverviewCard", in: animation)
+                        .onTapGesture {
+                            showDayOverview = true
+                        }
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listSectionSpacing(.compact)
-            } else {
-                Section {
-                    
-                } footer: {
-
-                    Spacer()
-                        .frame(height: 10.0)
-                }
             }
 
-            if !sessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
+            if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
                 // Only show recommended section for "Today" filter
                 if activeFilter == .activeToday {
                     let recommendedSessions = getRecommendedSessions()
@@ -217,9 +253,9 @@ struct ContentView: View {
                         recommendedSection(sessions: recommendedSessions)
                     }
                     
-                    if !sessions.isEmpty {
+                    if !focusFilteredSessions.isEmpty {
                         let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-                        let laterSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
+                        let laterSessions = SessionFilterService.filter(focusFilteredSessions, by: activeFilter, validationCheck: isGoalValid)
                             .filter { !recommendedSessionIDs.contains($0.id) }
                         
                         if !laterSessions.isEmpty {
@@ -228,8 +264,8 @@ struct ContentView: View {
                     }
                 } else {
                     // For other filters, show all sessions as regular rows
-                    if !sessions.isEmpty {
-                        let allSessions = SessionFilterService.filter(sessions, by: activeFilter, validationCheck: isGoalValid)
+                    if !focusFilteredSessions.isEmpty {
+                        let allSessions = SessionFilterService.filter(focusFilteredSessions, by: activeFilter, validationCheck: isGoalValid)
                         
                         if !allSessions.isEmpty {
                             laterSection(sessions: allSessions)
@@ -337,9 +373,10 @@ struct ContentView: View {
     private var dailyProgressCard: some View {
         HStack(spacing: 16) {
             // Large circular progress
+            Spacer()
             ZStack {
                 CircularProgressView(progress: dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
-                    .frame(height: 60)
+//                    .frame(height: 60)
 
                 VStack(spacing: 2) {
                     Text("\(Int(dailyProgress * 100))%")
@@ -351,7 +388,7 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-
+            Spacer()
             // Stats
             VStack {
                 VStack(spacing: 4) {
@@ -381,9 +418,11 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            Spacer()
         }
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity)
+        .padding()
+        .glassCardStyle(shadowColor: .black)
+        .padding()
     }
     
     private var dailyProgress: Double {
@@ -431,7 +470,7 @@ struct ContentView: View {
                 Button {
                     showAllGoals = true
                 } label: {
-                    Image(systemName: "list.bullet")
+                    Image(systemName: "target")
                 }
                 EditButton()
             }
@@ -443,13 +482,7 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "gear")
             }
-            
-            Button {
-                showAllGoals = true
-            } label: {
-                Image(systemName: "list.bullet")
-            }
-            
+   
         }
 #endif
         
@@ -711,6 +744,10 @@ struct ContentView: View {
         SettingsView()
     }
     
+    private var dayOverviewSheet: some View {
+        DayOverviewView(day: day, sessions: Array(sessions), goals: goals, animation: animation)
+    }
+    
     private func manualLogSheet(for session: GoalSession) -> some View {
         ManualLogSheet(session: session, day: day)
             .presentationDetents([.medium])
@@ -742,9 +779,19 @@ struct ContentView: View {
     private var sessionCountsForFilters: [Filter: Int] {
         var counts: [Filter: Int] = [:]
         for filter in availableFilters {
-            counts[filter] = SessionFilterService.count(sessions, for: filter)
+            counts[filter] = SessionFilterService.count(focusFilteredSessions, for: filter)
         }
         return counts
+    }
+
+    /// Sessions pre-filtered by the active Focus filter (if any).
+    /// When no Focus filter is active this is identical to `sessions`.
+    private var focusFilteredSessions: [GoalSession] {
+        let activeTags = focusFilterStore.activeFocusTagTitles
+        guard !activeTags.isEmpty else { return Array(sessions) }
+        return sessions.filter { session in
+            activeTags.contains(session.goal.primaryTag.title)
+        }
     }
 
     
@@ -829,7 +876,7 @@ struct ContentView: View {
     /// Get recommended sessions for right now (top 3)
     private func getRecommendedSessions() -> [GoalSession] {
         return SessionFilterService.getRecommendedSessions(
-            from: sessions,
+            from: focusFilteredSessions,
             filter: activeFilter,
             planner: planningViewModel.planner,
             preferences: planningViewModel.plannerPreferences,
