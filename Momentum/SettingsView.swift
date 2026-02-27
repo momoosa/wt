@@ -15,6 +15,7 @@ struct SettingsView: View {
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
+    @AppStorage("weekStartDay") private var weekStartDay: Int = Calendar.current.firstWeekday
     @State private var showingRemindersImport = false
     
     var body: some View {
@@ -40,6 +41,24 @@ struct SettingsView: View {
                     Label("AI Planning", systemImage: "sparkles")
                 } footer: {
                     Text("Control how many daily sessions the AI planner can suggest. Fewer sessions create more focused days, while more sessions provide comprehensive coverage of all your goals.")
+                }
+                
+                Section {
+                    Picker("Week Starts On", selection: $weekStartDay) {
+                        Text("Sunday").tag(1)
+                        Text("Monday").tag(2)
+                    }
+                    
+                    let systemDefault = Calendar.current.firstWeekday
+                    let systemDefaultName = systemDefault == 1 ? "Sunday" : "Monday"
+                    
+                    Text("System default: \(systemDefaultName)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Label("Calendar", systemImage: "calendar")
+                } footer: {
+                    Text("This affects weekly progress tracking and charts throughout the app. The default value is based on your region settings.")
                 }
                 
                 Section {

@@ -13,24 +13,41 @@ struct GoalRow: View {
     let goal: Goal
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("weekStartDay") private var weekStartDay: Int = Calendar.current.firstWeekday
+    @Query private var allDays: [Day]
+    
+    init(goal: Goal) {
+        self.goal = goal
+        
+        // Fetch current week's days efficiently with a single query
+        var calendar = Calendar.current
+        let storedWeekStartDay = UserDefaults.standard.integer(forKey: "weekStartDay")
+        calendar.firstWeekday = storedWeekStartDay == 0 ? Calendar.current.firstWeekday : storedWeekStartDay
+        
+        let today = Date()
+        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)),
+              let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek) else {
+            _allDays = Query(filter: #Predicate<Day> { _ in false })
+            return
+        }
+        
+        let startDayID = startOfWeek.yearMonthDayID(with: calendar)
+        let endDayID = endOfWeek.yearMonthDayID(with: calendar)
+        
+        _allDays = Query(
+            filter: #Predicate<Day> { day in
+                day.id >= startDayID && day.id <= endDayID
+            },
+            sort: \Day.id
+        )
+    }
     
     // Calculate total weekly elapsed time
     private var weeklyElapsedMinutes: Int {
-        let calendar = Calendar.current
-        let today = Date()
         var totalTime: TimeInterval = 0
         
-        for daysAgo in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today
-            let dayID = date.yearMonthDayID(with: calendar)
-            
-            let fetchRequest = FetchDescriptor<Day>(
-                predicate: #Predicate<Day> { $0.id == dayID }
-            )
-            
-            if let day = try? modelContext.fetch(fetchRequest).first,
-               let session = day.sessions.first(where: { $0.goal.id == goal.id }) {
-                
+        for day in allDays {
+            if let session = day.sessions.first(where: { $0.goal.id == goal.id }) {
                 // Add manual elapsed time
                 totalTime += session.elapsedTime
                 
@@ -98,26 +115,49 @@ struct GoalRow: View {
 
 struct SevenDayBarChart: View {
     let goal: Goal
-    @Environment(\.modelContext) private var modelContext
+    @Query private var allDays: [Day]
+    @AppStorage("weekStartDay") private var weekStartDay: Int = Calendar.current.firstWeekday
     
-    // Calculate daily data for the last 7 days
-    private var dailyData: [(day: String, progress: TimeInterval, date: Date)] {
+    init(goal: Goal) {
+        self.goal = goal
+        
+        // Fetch last 7 days efficiently with a single query
         let calendar = Calendar.current
         let today = Date()
+        let sevenDaysAgo = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+        let startDayID = sevenDaysAgo.yearMonthDayID(with: calendar)
+        let endDayID = today.yearMonthDayID(with: calendar)
         
-        return (0..<7).reversed().map { daysAgo in
-            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) ?? today
+        _allDays = Query(
+            filter: #Predicate<Day> { day in
+                day.id >= startDayID && day.id <= endDayID
+            },
+            sort: \Day.id
+        )
+    }
+    
+    // Calculate daily data for the current week (respecting user's week start preference)
+    private var dailyData: [(day: String, progress: TimeInterval, date: Date)] {
+        var calendar = Calendar.current
+        calendar.firstWeekday = weekStartDay
+        
+        let today = Date()
+        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) else {
+            return []
+        }
+        
+        // Create a lookup dictionary for faster access
+        let daysByID = Dictionary(uniqueKeysWithValues: allDays.map { ($0.id, $0) })
+        
+        return (0..<7).map { dayOffset in
+            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek) else {
+                return ("", 0, Date())
+            }
+            
             let dayID = date.yearMonthDayID(with: calendar)
             
-            // Fetch the day from SwiftData
-            let fetchRequest = FetchDescriptor<Day>(
-                predicate: #Predicate<Day> { $0.id == dayID }
-            )
-            
-            let day = try? modelContext.fetch(fetchRequest).first
-            
             // Find the session for this goal
-            let session = day?.sessions.first(where: { $0.goal.id == goal.id })
+            let session = daysByID[dayID]?.sessions.first(where: { $0.goal.id == goal.id })
             
             // Calculate total progress from manual tracking + HealthKit + historical sessions
             var totalProgress: TimeInterval = 0
