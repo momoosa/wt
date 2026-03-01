@@ -1017,6 +1017,15 @@ struct GoalEditorView: View {
         // Set duration
         durationInMinutes = template.duration
         
+        // Distribute the template duration across active days
+        // Default to weekdays (Monday-Friday) if no active days are set
+        let targetDays = activeDays.isEmpty ? Set(2...6) : activeDays
+        let dailyMinutes = targetDays.isEmpty ? template.duration : template.duration / targetDays.count
+        
+        for weekday in targetDays {
+            dailyTargets[weekday] = dailyMinutes
+        }
+        
         // Infer and set icon from template
         selectedIcon = inferIcon(from: template.title)
         
@@ -1057,6 +1066,8 @@ struct GoalEditorView: View {
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
         print("   Duration: \(template.duration) min")
+        print("   Daily Minutes: \(dailyMinutes) min per day")
+        print("   Active Days: \(targetDays.count)")
         print("   Theme: \(template.theme)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
@@ -1066,6 +1077,11 @@ struct GoalEditorView: View {
     func saveGoal() {
         let goal: Goal
         let isEditing = existingGoal != nil
+        
+        // Track if goal was scheduled for today before editing (for toast notification)
+        let calendar = Calendar.current
+        let todayWeekday = calendar.component(.weekday, from: Date())
+        let hadAnyScheduleForToday = existingGoal?.timesForWeekday(todayWeekday).isEmpty == false
         
         // Determine theme based on user selection or suggestion
         let finalGoalTag: GoalTag
@@ -1189,11 +1205,59 @@ struct GoalEditorView: View {
                 // Cancel schedule notifications if disabled
                 await notificationManager.cancelScheduleNotifications(for: goal)
             }
+            
+            // Request HealthKit permissions immediately if this goal has HealthKit sync enabled
+            if goal.healthKitSyncEnabled, let metric = goal.healthKitMetric {
+                let healthKitManager = HealthKitManager()
+                do {
+                    try await healthKitManager.requestAuthorization(for: [metric])
+                    print("✅ HealthKit authorization requested for \(metric.displayName)")
+                } catch {
+                    print("❌ Failed to request HealthKit authorization: \(error)")
+                }
+            }
         }
         
         // Reset the plan generation timestamp to trigger a new plan
         lastPlanGeneratedTimestamp = 0
         print("🔄 Reset plan generation timestamp - new plan will be generated")
+        
+        // Update all existing sessions for this goal to reflect new dailyTarget
+        if isEditing {
+            let calendar = Calendar.current
+            let todayWeekday = calendar.component(.weekday, from: Date())
+            let isNowScheduledForToday = !goal.timesForWeekday(todayWeekday).isEmpty
+            
+            // Fetch all sessions for this goal
+            let goalID = goal.id.uuidString
+            let fetchRequest = FetchDescriptor<GoalSession>(
+                predicate: #Predicate<GoalSession> { session in
+                    session.goalID == goalID
+                }
+            )
+            
+            if let sessions = try? modelContext.fetch(fetchRequest) {
+                for session in sessions {
+                    session.updateDailyTarget()
+                }
+                
+                // Show toast if goal moved in/out of today's schedule
+                if hadAnyScheduleForToday != isNowScheduledForToday {
+                    let message: String
+                    if isNowScheduledForToday {
+                        message = "'\(goal.title)' is now available today"
+                    } else {
+                        message = "'\(goal.title)' is no longer scheduled for today"
+                    }
+                    
+                    // Post notification to show toast in ContentView
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ShowToast"),
+                        object: message
+                    )
+                }
+            }
+        }
         
         // Reload widgets to show the new goal
         #if os(iOS)

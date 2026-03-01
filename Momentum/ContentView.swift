@@ -155,6 +155,14 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
                 showingGoalEditor = true
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowToast"))) { notification in
+                if let message = notification.object as? String {
+                    toastConfig = ToastConfig(
+                        message: message,
+                        showUndo: false
+                    )
+                }
+            }
             .navigationDestination(item: $selectedSession) { session in
                 if let timerManager = timerManager {
                     ChecklistDetailView(

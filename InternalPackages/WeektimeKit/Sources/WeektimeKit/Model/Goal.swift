@@ -153,6 +153,6 @@ public extension Goal {
 
 public extension Goal {
     func tintColor(for colorScheme: ColorScheme) -> Color {
-        return primaryTag.theme.dark
+        return primaryTag.theme.color(for: colorScheme)
     }
 }

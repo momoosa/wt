@@ -195,4 +195,10 @@ public extension GoalSession {
         self.plannedReasoning = nil
         self.recommendationReasons = []
     }
+    
+    /// Update the cached daily target from the goal's current schedule
+    /// Call this when the goal's schedule changes
+    func updateDailyTarget() {
+        self.dailyTarget = goal.dailyTargetFromSchedule()
+    }
 }

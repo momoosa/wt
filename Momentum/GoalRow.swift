@@ -117,6 +117,7 @@ struct SevenDayBarChart: View {
     let goal: Goal
     @Query private var allDays: [Day]
     @AppStorage("weekStartDay") private var weekStartDay: Int = Calendar.current.firstWeekday
+    @Environment(\.colorScheme) private var colorScheme
     
     init(goal: Goal) {
         self.goal = goal
@@ -206,14 +207,14 @@ struct SevenDayBarChart: View {
                         .overlay(alignment: .bottom) {
                             if isToday {
                                 RoundedRectangle(cornerRadius: 1.5)
-                                    .strokeBorder(goal.primaryTag.themePreset.dark, lineWidth: 0.75)
+                                    .strokeBorder(goal.primaryTag.themePreset.color(for: colorScheme), lineWidth: 0.75)
                             }
                         }
                     
                     // Day label
                     Text(data.day)
                         .font(.caption2)
-                        .foregroundStyle(isToday ? goal.primaryTag.themePreset.dark : .secondary)
+                        .foregroundStyle(isToday ? goal.primaryTag.themePreset.color(for: colorScheme) : .secondary)
                         .fontWeight(isToday ? .semibold : .regular)
                 }
                 .frame(maxWidth: .infinity)
