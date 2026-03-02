@@ -35,6 +35,10 @@ public final class Goal {
     // Detailed day-time schedule: weekday (1-7) → times of day
     public var dayTimeSchedule: [String: [String]] = [:] // e.g., ["2": ["morning", "afternoon"], "6": ["evening"]]
     
+    // Notes and Resources
+    public var notes: String? // User's notes about the goal
+    public var link: String? // Optional URL for reference (tutorial, article, etc.)
+    
     @Relationship(deleteRule: .cascade)
     public var goalSessions: [GoalSession] = []
     @Relationship(deleteRule: .cascade) 

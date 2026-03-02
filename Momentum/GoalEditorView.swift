@@ -46,6 +46,8 @@ struct GoalEditorView: View {
     @State private var completionNotificationsEnabled: Bool = false
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
+    @State private var goalNotes: String = ""
+    @State private var goalLink: String = ""
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
@@ -480,6 +482,41 @@ struct GoalEditorView: View {
                                 selectedMetric: $selectedHealthKitMetric,
                                 syncEnabled: $healthKitSyncEnabled
                             )
+                            
+                            Section(header: Text("Notes & Resources")) {
+                                    // Notes field
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        TextField("Add any notes about this goal...", text: $goalNotes, axis: .vertical)
+                                            .lineLimit(3...6)
+                                            
+                                    
+                                    // Link field
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "link")
+                                                .foregroundStyle(.secondary)
+                                                .font(.subheadline)
+                                            
+                                            TextField("Add a link here...", text: $goalLink)
+                                                .keyboardType(.URL)
+                                                .autocapitalization(.none)
+                                        
+                                        
+                                        if !goalLink.isEmpty, let url = URL(string: goalLink), UIApplication.shared.canOpenURL(url) {
+                                            Button(action: {
+                                                UIApplication.shared.open(url)
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "arrow.up.right.square")
+                                                    Text("Open Link")
+                                                }
+                                                .font(.caption)
+                                                .foregroundStyle(activeThemeColor)
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
                         }
                         
                         Spacer()
@@ -857,6 +894,8 @@ struct GoalEditorView: View {
         completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
+        goalNotes = goal.notes ?? ""
+        goalLink = goal.link ?? ""
         
         // Load tag/theme
         selectedGoalTheme = goal.primaryTag
@@ -1127,6 +1166,8 @@ struct GoalEditorView: View {
             goal.completionNotificationsEnabled = completionNotificationsEnabled
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
+            goal.notes = goalNotes.isEmpty ? nil : goalNotes
+            goal.link = goalLink.isEmpty ? nil : goalLink
             
             // Clear existing schedule and set new one
             goal.dayTimeSchedule.removeAll()
@@ -1146,6 +1187,8 @@ struct GoalEditorView: View {
                 goal.iconName = selectedIcon
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
+                goal.notes = goalNotes.isEmpty ? nil : goalNotes
+                goal.link = goalLink.isEmpty ? nil : goalLink
             } else {
                 goal = Goal(
                     title: userInput,
@@ -1161,6 +1204,8 @@ struct GoalEditorView: View {
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+                goal.notes = goalNotes.isEmpty ? nil : goalNotes
+                goal.link = goalLink.isEmpty ? nil : goalLink
             }
         }
         

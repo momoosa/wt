@@ -31,6 +31,7 @@
 		CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
+		CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */; };
 		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
 		CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
 		CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */; };
@@ -136,6 +137,7 @@
 		CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusFilterStore.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
+		CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlinePlannerPrompt.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
 		CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFilterService.swift; sourceTree = "<group>"; };
 		CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFilterBar.swift; sourceTree = "<group>"; };
@@ -357,6 +359,7 @@
 				CD0B80982F43A590006EDA47 /* SearchSheet.swift */,
 				CD13E01C2F44962C00E65CCA /* FocusFilterIntent.swift */,
 				CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */,
+				CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -607,6 +610,7 @@
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
+				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
 				CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */,

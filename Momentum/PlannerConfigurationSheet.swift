@@ -97,15 +97,20 @@ struct PlannerConfigurationSheet: View {
     let onConfirm: () -> Void
     
     @State private var showingTimePicker = false
+    @State private var showingThemePicker = false
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    timePickerSection
-                    themeSelectionSection
-                    Spacer()
-                }
+            VStack(spacing: 0) {
+                Spacer()
+                
+                // Sentence with tappable parts
+                sentenceView
+                    .padding(.horizontal)
+                
+                Spacer()
+                
+                confirmButton
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -115,9 +120,6 @@ struct PlannerConfigurationSheet: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                confirmButton
-            }
         }
         .navigationTransition(
             .zoom(sourceID: "plannerButton", in: animation)
@@ -126,183 +128,156 @@ struct PlannerConfigurationSheet: View {
     
     // MARK: - Subviews
     
-    private var timePickerSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-                        Label("Available Time", systemImage: "clock.fill")
-                            .font(.headline)
-                            .foregroundStyle(.purple)
-                        
-                        HStack {
-                            Button {
-                                showingTimePicker.toggle()
-                            } label: {
-                                HStack {
-                                    Text(formatTime(availableTimeMinutes))
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .foregroundStyle(.secondary)
-                                        .rotationEffect(.degrees(showingTimePicker ? 90 : 0))
-                                }
-                                .foregroundStyle(.primary)
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.secondarySystemBackground))
-                                )
-                            }
-                        }
-                        
-                        if showingTimePicker {
-                            VStack(spacing: 16) {
-                                // Quick time buttons
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach([30, 60, 90, 120, 180, 240], id: \.self) { minutes in
-                                            Button {
-                                                withAnimation(.spring(response: 0.3)) {
-                                                    availableTimeMinutes = minutes
-                                                }
-                                            } label: {
-                                                Text(formatTime(minutes))
-                                                    .font(.subheadline)
-                                                    .fontWeight(.semibold)
-                                                    .foregroundStyle(availableTimeMinutes == minutes ? .white : .purple)
-                                                    .padding(.horizontal, 16)
-                                                    .padding(.vertical, 8)
-                                                    .background(
-                                                        Capsule()
-//                                                            .fill(availableTimeMinutes == minutes ? Color.purple.gradient : Color.purple.opacity(0.1))
-                                                    )
-                                            }
-                                        }
-                                    }
-                                }
-//                                
-//                                // Custom slider
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Custom Time")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    
-                                    HStack {
-                                        Text("15 min")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                        
-                                        Slider(value: Binding(
-                                            get: { Double(availableTimeMinutes) },
-                                            set: { availableTimeMinutes = Int($0) }
-                                        ), in: 15...480, step: 15)
-                                        .tint(.purple)
-                                        
-                                        Text("8 hrs")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.tertiarySystemBackground))
-                            )
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                    }
-                    .padding(.horizontal)
+    private var sentenceView: some View {
+        TagFlowLayout(spacing: 8) {
+            Text("I have")
+                .foregroundStyle(.primary)
+            
+            if showingTimePicker {
+                timePickerInline
+            } else {
+                timeButton
+            }
+            
+            Text("free and want to work on")
+                .foregroundStyle(.primary)
+            
+            if showingThemePicker {
+                themePickerInline
+            } else {
+                themeButton
+            }
+        }
+        .font(.title3)
     }
     
-    private var themeSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Label("Focus Themes", systemImage: "tag.fill")
-                                .font(.headline)
-                                .foregroundStyle(.purple)
-                            
-                            Spacer()
-                            
-                            if !selectedThemes.isEmpty {
-                                Button("Clear All") {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        selectedThemes.removeAll()
-                                    }
-                                }
-                                .font(.caption)
-                                .foregroundStyle(.purple)
-                            }
-                        }
-                        
-                        if allThemes.isEmpty {
-                            Text("No active goals with themes")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.secondarySystemBackground))
-                                )
-                        } else {
-                            Text(selectedThemes.isEmpty ? "All themes will be considered" : "Planning will focus on selected themes")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.bottom, 4)
-                            
-                            // Tag cloud
-                            FlowLayout(spacing: 8) {
-                                ForEach(allThemes, id: \.theme.id) { theme in
-                                    ThemeTag(
-                                        theme: theme,
-                                        isSelected: selectedThemes.contains(theme.theme.id)
-                                    ) {
-                                        withAnimation(.spring(response: 0.3)) {
-                                            if selectedThemes.contains(theme.theme.id) {
-                                                selectedThemes.remove(theme.theme.id)
-                                            } else {
-                                                selectedThemes.insert(theme.theme.id)
-                                            }
-                                        }
-                                        
-                                        #if os(iOS)
-                                        let impact = UIImpactFeedbackGenerator(style: .light)
-                                        impact.impactOccurred()
-                                        #endif
-                                    }
-                                }
-                            }
-                        }
+    private var timePickerInline: some View {
+        // Time options: 5, 15, 30 mins, 1-6 hours
+        let timeOptions = [5, 15, 30, 60, 120, 180, 240, 300, 360]
+        
+        return ForEach(timeOptions, id: \.self) { minutes in
+            Button {
+                withAnimation(.spring(response: 0.3)) {
+                    availableTimeMinutes = minutes
+                    showingTimePicker = false
+                }
+            } label: {
+                Text(formatTime(minutes))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(availableTimeMinutes == minutes ? .white : .purple)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(availableTimeMinutes == minutes ? Color.purple : Color.purple.opacity(0.1))
+                    )
+            }
+        }
+    }
+    
+    private var timeButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.3)) {
+                showingTimePicker = true
+            }
+        } label: {
+            Text(formatTime(availableTimeMinutes))
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundStyle(.purple)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.purple.opacity(0.15))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.purple.opacity(0.3), lineWidth: 2)
+                )
+        }
+    }
+    
+    private var themePickerInline: some View {
+        ForEach(allThemes, id: \.theme.id) { theme in
+            ThemeTag(
+                theme: theme,
+                isSelected: selectedThemes.contains(theme.theme.id)
+            ) {
+                withAnimation(.spring(response: 0.3)) {
+                    if selectedThemes.contains(theme.theme.id) {
+                        selectedThemes.remove(theme.theme.id)
+                    } else {
+                        selectedThemes.insert(theme.theme.id)
                     }
-                    .padding(.horizontal)
+                }
+                
+                #if os(iOS)
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
+                #endif
+            }
+        }
+    }
+    
+    private var themeButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.3)) {
+                showingThemePicker = true
+            }
+        } label: {
+            Text(themeButtonText)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundStyle(.purple)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.purple.opacity(0.15))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.purple.opacity(0.3), lineWidth: 2)
+                )
+        }
     }
     
     private var confirmButton: some View {
         Button {
-                    #if os(iOS)
-                    let impact = UINotificationFeedbackGenerator()
-                    impact.notificationOccurred(.success)
-                    #endif
-                    
-                    onConfirm()
-                } label: {
-                    HStack {
-                        Image(systemName: "sparkles")
-                        Text("Generate Plan")
-                    }
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.purple.gradient)
-                    )
-                }
-                .padding()
-                .background(.thinMaterial)
+            #if os(iOS)
+            let impact = UINotificationFeedbackGenerator()
+            impact.notificationOccurred(.success)
+            #endif
+            
+            onConfirm()
+        } label: {
+                Text("Generate Plan")
+            .font(.headline)
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.purple.gradient)
+            )
+        }
+        .padding()
+        .background(.thinMaterial)
+    }
+    
+    // MARK: - Helpers
+    
+    private var themeButtonText: String {
+        if selectedThemes.isEmpty {
+            return "anything"
+        } else if selectedThemes.count == 1,
+                  let theme = allThemes.first(where: { selectedThemes.contains($0.theme.id) }) {
+            return theme.title.lowercased()
+        } else {
+            return "\(selectedThemes.count) themes"
+        }
     }
     
     private func formatTime(_ minutes: Int) -> String {

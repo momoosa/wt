@@ -294,6 +294,54 @@ struct ChecklistDetailView: View {
                 Text("Settings")
             }
             
+            // Notes and Link section
+            if session.goal.notes != nil || session.goal.link != nil {
+                Section {
+                    if let notes = session.goal.notes {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label {
+                                Text("Notes")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            } icon: {
+                                Image(systemName: "note.text")
+                                    .foregroundStyle(tintColor)
+                            }
+                            
+                            Text(notes)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    if let link = session.goal.link, let url = URL(string: link) {
+                        Button {
+                            UIApplication.shared.open(url)
+                        } label: {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Reference Link")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Text(link)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            } icon: {
+                                Image(systemName: "link")
+                                    .foregroundStyle(tintColor)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("Resources")
+                }
+            }
+            
             // History section remains as-is
             Section {
                 if !session.historicalSessions.isEmpty {

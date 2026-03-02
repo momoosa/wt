@@ -125,6 +125,7 @@ struct ContentView: View {
             .sheet(isPresented: $showPlannerSheet) {
                 plannerSheet
             }
+
         
             .sheet(isPresented: $showingGoalEditor) {
                 goalEditorSheet
