@@ -48,7 +48,9 @@ public struct GoalTagTriggersEditor: View {
                     Text("Min Temperature")
                     Spacer()
                     TextField("Min", text: $minTemperatureString)
+                        #if os(iOS)
                         .keyboardType(.decimalPad)
+                        #endif
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                 }
@@ -57,7 +59,9 @@ public struct GoalTagTriggersEditor: View {
                     Text("Max Temperature")
                     Spacer()
                     TextField("Max", text: $maxTemperatureString)
+                        #if os(iOS)
                         .keyboardType(.decimalPad)
+                        #endif
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                 }

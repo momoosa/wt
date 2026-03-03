@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import MomentumKit
 
 /// Represents a group of intervals (e.g., "4x Heel Stretch, 30s work, 10s break")
 struct IntervalGroup: Identifiable {
@@ -124,7 +125,6 @@ public struct IntervalsEditorView: View {
                 }
             }
             .toolbar {
-                #if os(iOS) || os(macOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
@@ -135,18 +135,6 @@ public struct IntervalsEditorView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-                #else
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        generateIntervalsAndSessions() // TODO:
-                        dismiss()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                #endif
             }
             .navigationTitle("Intervals")
         }

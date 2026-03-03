@@ -54,9 +54,12 @@
 		CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */; };
 		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
+		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436B2F372DB600DE984B /* SessionRowView.swift */; };
 		CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */; };
 		CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */; };
+		CDBC06882F56C95400D87642 /* MomentumWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CDBC069A2F56C98600D87642 /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CDBC06992F56C98600D87642 /* MomentumKit */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
 		CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */; };
@@ -95,6 +98,27 @@
 			remoteGlobalIDString = CD75CC5A2E2FE5E600890F20;
 			remoteInfo = Weektime;
 		};
+		CDBC06752F56C95400D87642 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CDBC06672F56C95200D87642;
+			remoteInfo = "MomentumWatch Watch App";
+		};
+		CDBC067F2F56C95400D87642 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CDBC06672F56C95200D87642;
+			remoteInfo = "MomentumWatch Watch App";
+		};
+		CDBC06862F56C95400D87642 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CD75CC532E2FE5E600890F20 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CDBC06672F56C95200D87642;
+			remoteInfo = "MomentumWatch Watch App";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -107,6 +131,17 @@
 				CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD936C002F5629D700D81B86 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CDBC06882F56C95400D87642 /* MomentumWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -160,10 +195,14 @@
 		CD75CC5B2E2FE5E600890F20 /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
 		CDA4436B2F372DB600DE984B /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendedSessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalNotificationManager.swift; sourceTree = "<group>"; };
+		CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MomentumWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDBC06742F56C95400D87642 /* MomentumWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDBC067E2F56C95400D87642 /* MomentumWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
 		CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CDEBAA272EE9FA1000C1C411 /* ChecklistDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistDetailView.swift; sourceTree = "<group>"; };
@@ -210,6 +249,31 @@
 			path = WeektimeUITests;
 			sourceTree = "<group>";
 		};
+		CD936C1C2F562A1E00D81B86 /* MomentumWatch Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MomentumWatch Watch AppTests";
+			sourceTree = "<group>";
+		};
+		CD936C262F562A1E00D81B86 /* MomentumWatch Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MomentumWatch Watch AppUITests";
+			sourceTree = "<group>";
+		};
+		CDBC06692F56C95200D87642 /* MomentumWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MomentumWatch Watch App";
+			sourceTree = "<group>";
+		};
+		CDBC06772F56C95400D87642 /* MomentumWatch Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MomentumWatch Watch AppTests";
+			sourceTree = "<group>";
+		};
+		CDBC06812F56C95400D87642 /* MomentumWatch Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MomentumWatch Watch AppUITests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -239,6 +303,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CD75CC732E2FE5E800890F20 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC06652F56C95200D87642 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CDBC069A2F56C98600D87642 /* MomentumKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC06712F56C95400D87642 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC067B2F56C95400D87642 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -282,6 +368,11 @@
 				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
 				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
 				CD39BD302F2F633800F7265A /* MomentumWidget */,
+				CD936C1C2F562A1E00D81B86 /* MomentumWatch Watch AppTests */,
+				CD936C262F562A1E00D81B86 /* MomentumWatch Watch AppUITests */,
+				CDBC06692F56C95200D87642 /* MomentumWatch Watch App */,
+				CDBC06772F56C95400D87642 /* MomentumWatch Watch AppTests */,
+				CDBC06812F56C95400D87642 /* MomentumWatch Watch AppUITests */,
 				CD06684F2E34C3620063AC1F /* Frameworks */,
 				CD75CC5C2E2FE5E600890F20 /* Products */,
 			);
@@ -294,6 +385,9 @@
 				CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */,
 				CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */,
 				CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */,
+				CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */,
+				CDBC06742F56C95400D87642 /* MomentumWatch Watch AppTests.xctest */,
+				CDBC067E2F56C95400D87642 /* MomentumWatch Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -360,6 +454,7 @@
 				CD13E01C2F44962C00E65CCA /* FocusFilterIntent.swift */,
 				CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */,
 				CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */,
+				CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -406,11 +501,13 @@
 				CD75CC582E2FE5E600890F20 /* Frameworks */,
 				CD75CC592E2FE5E600890F20 /* Resources */,
 				CD39BD412F2F633A00F7265A /* Embed Foundation Extensions */,
+				CD936C002F5629D700D81B86 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				CD39BD3F2F2F633A00F7265A /* PBXTargetDependency */,
+				CDBC06872F56C95400D87642 /* PBXTargetDependency */,
 			);
 			name = Momentum;
 			packageProductDependencies = (
@@ -466,6 +563,75 @@
 			productReference = CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		CDBC06672F56C95200D87642 /* MomentumWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CDBC06892F56C95400D87642 /* Build configuration list for PBXNativeTarget "MomentumWatch Watch App" */;
+			buildPhases = (
+				CDBC06642F56C95200D87642 /* Sources */,
+				CDBC06652F56C95200D87642 /* Frameworks */,
+				CDBC06662F56C95200D87642 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CDBC06692F56C95200D87642 /* MomentumWatch Watch App */,
+			);
+			name = "MomentumWatch Watch App";
+			packageProductDependencies = (
+				CDBC06992F56C98600D87642 /* MomentumKit */,
+			);
+			productName = "MomentumWatch Watch App";
+			productReference = CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CDBC06732F56C95400D87642 /* MomentumWatch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CDBC068C2F56C95400D87642 /* Build configuration list for PBXNativeTarget "MomentumWatch Watch AppTests" */;
+			buildPhases = (
+				CDBC06702F56C95400D87642 /* Sources */,
+				CDBC06712F56C95400D87642 /* Frameworks */,
+				CDBC06722F56C95400D87642 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CDBC06762F56C95400D87642 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CDBC06772F56C95400D87642 /* MomentumWatch Watch AppTests */,
+			);
+			name = "MomentumWatch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "MomentumWatch Watch AppTests";
+			productReference = CDBC06742F56C95400D87642 /* MomentumWatch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CDBC067D2F56C95400D87642 /* MomentumWatch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CDBC068F2F56C95400D87642 /* Build configuration list for PBXNativeTarget "MomentumWatch Watch AppUITests" */;
+			buildPhases = (
+				CDBC067A2F56C95400D87642 /* Sources */,
+				CDBC067B2F56C95400D87642 /* Frameworks */,
+				CDBC067C2F56C95400D87642 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CDBC06802F56C95400D87642 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CDBC06812F56C95400D87642 /* MomentumWatch Watch AppUITests */,
+			);
+			name = "MomentumWatch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "MomentumWatch Watch AppUITests";
+			productReference = CDBC067E2F56C95400D87642 /* MomentumWatch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -473,7 +639,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					CD39BD2A2F2F633800F7265A = {
@@ -489,6 +655,17 @@
 					CD75CC752E2FE5E800890F20 = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = CD75CC5A2E2FE5E600890F20;
+					};
+					CDBC06672F56C95200D87642 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					CDBC06732F56C95400D87642 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = CDBC06672F56C95200D87642;
+					};
+					CDBC067D2F56C95400D87642 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = CDBC06672F56C95200D87642;
 					};
 				};
 			};
@@ -510,6 +687,9 @@
 				CD75CC6B2E2FE5E700890F20 /* MomentumTests */,
 				CD75CC752E2FE5E800890F20 /* MomentumUITests */,
 				CD39BD2A2F2F633800F7265A /* MomentumWidgetExtension */,
+				CDBC06672F56C95200D87642 /* MomentumWatch Watch App */,
+				CDBC06732F56C95400D87642 /* MomentumWatch Watch AppTests */,
+				CDBC067D2F56C95400D87642 /* MomentumWatch Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -550,6 +730,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CDBC06662F56C95200D87642 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC06722F56C95400D87642 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC067C2F56C95400D87642 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -577,6 +778,7 @@
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
+				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
@@ -633,6 +835,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CDBC06642F56C95200D87642 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC06702F56C95400D87642 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CDBC067A2F56C95400D87642 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -650,6 +873,21 @@
 			isa = PBXTargetDependency;
 			target = CD75CC5A2E2FE5E600890F20 /* Momentum */;
 			targetProxy = CD75CC772E2FE5E800890F20 /* PBXContainerItemProxy */;
+		};
+		CDBC06762F56C95400D87642 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CDBC06672F56C95200D87642 /* MomentumWatch Watch App */;
+			targetProxy = CDBC06752F56C95400D87642 /* PBXContainerItemProxy */;
+		};
+		CDBC06802F56C95400D87642 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CDBC06672F56C95200D87642 /* MomentumWatch Watch App */;
+			targetProxy = CDBC067F2F56C95400D87642 /* PBXContainerItemProxy */;
+		};
+		CDBC06872F56C95400D87642 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CDBC06672F56C95200D87642 /* MomentumWatch Watch App */;
+			targetProxy = CDBC06862F56C95400D87642 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1031,6 +1269,167 @@
 			};
 			name = Release;
 		};
+		CDBC068A2F56C95400D87642 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "MomentumWatch Watch App/MomentumWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moosa.momentum;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		CDBC068B2F56C95400D87642 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "MomentumWatch Watch App/MomentumWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MomentumWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moosa.momentum;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.moosa.momentum.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		CDBC068D2F56C95400D87642 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.moosa.momentum.MomentumWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MomentumWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MomentumWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		CDBC068E2F56C95400D87642 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.moosa.momentum.MomentumWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MomentumWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MomentumWatch Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		CDBC06902F56C95400D87642 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.moosa.momentum.MomentumWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "MomentumWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		CDBC06912F56C95400D87642 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = D6W66G49J8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.moosa.momentum.MomentumWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "MomentumWatch Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1079,6 +1478,33 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CDBC06892F56C95400D87642 /* Build configuration list for PBXNativeTarget "MomentumWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CDBC068A2F56C95400D87642 /* Debug */,
+				CDBC068B2F56C95400D87642 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CDBC068C2F56C95400D87642 /* Build configuration list for PBXNativeTarget "MomentumWatch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CDBC068D2F56C95400D87642 /* Debug */,
+				CDBC068E2F56C95400D87642 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CDBC068F2F56C95400D87642 /* Build configuration list for PBXNativeTarget "MomentumWatch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CDBC06902F56C95400D87642 /* Debug */,
+				CDBC06912F56C95400D87642 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1087,6 +1513,10 @@
 			productName = MomentumKit;
 		};
 		CD39BD4B2F2F66EF00F7265A /* MomentumKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MomentumKit;
+		};
+		CDBC06992F56C98600D87642 /* MomentumKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MomentumKit;
 		};

@@ -20,7 +20,11 @@ public struct CardStyle: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
+                    #if os(watchOS)
+                    .fill(backgroundColor ?? Color.black)
+                    #else
                     .fill(backgroundColor ?? Color(.systemBackground))
+                    #endif
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .shadow(

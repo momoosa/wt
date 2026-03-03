@@ -1,0 +1,114 @@
+//
+//  WatchSessionRow.swift
+//  MomentumWatch Watch App
+//
+//  Created by Mo Moosa on 02/03/2026.
+//
+
+import SwiftUI
+import MomentumKit
+
+struct WatchSessionRow: View {
+    let session: GoalSession
+    let day: Day
+    
+    private var todayMinutes: Int {
+        // Get today's elapsed time from historical sessions
+        let calendar = Calendar.current
+        let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+        
+        let todaySessions = day.historicalSessions.filter { historical in
+            let sessionComponents = calendar.dateComponents([.year, .month, .day], from: historical.startDate)
+            return historical.goalIDs.contains(session.goal.id.uuidString) &&
+                   sessionComponents.year == todayComponents.year &&
+                   sessionComponents.month == todayComponents.month &&
+                   sessionComponents.day == todayComponents.day
+        }
+        
+        return todaySessions.reduce(into: 0) { $0 += Int($1.duration / 60) }
+    }
+    
+    private var progress: Double {
+        guard session.dailyTarget > 0 else { return 0 }
+        return min(Double(todayMinutes) / Double(session.dailyTarget), 1.0)
+    }
+    
+    private var remainingMinutes: Int {
+        max(0, Int(session.dailyTarget) - todayMinutes)
+    }
+    
+    var body: some View {
+        Button {
+            // Start session via App Intent or UserDefaults
+            startSession()
+        } label: {
+            HStack(spacing: 12) {
+                // Progress ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 3)
+                    
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(
+                            session.goal.primaryTag.theme.color(for: .dark),
+                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                    
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 10))
+                        .fontWeight(.semibold)
+                }
+                .frame(width: 40, height: 40)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.goal.title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 4) {
+                        if remainingMinutes > 0 {
+                            Text("\(remainingMinutes)m")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text("left")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                            Text("Done")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                Image(systemName: "play.fill")
+                    .font(.caption)
+                    .foregroundStyle(session.goal.primaryTag.theme.color(for: .dark))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func startSession() {
+        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
+        
+        let activeSessionIDKey = "ActiveSessionIDV1"
+        let activeSessionStartDateKey = "ActiveSessionStartDateV1"
+        let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
+        
+        // Set this session as active
+        defaults.set(session.id.uuidString, forKey: activeSessionIDKey)
+        defaults.set(Date().timeIntervalSince1970, forKey: activeSessionStartDateKey)
+        defaults.set(0.0, forKey: activeSessionElapsedTimeKey)
+        defaults.synchronize()
+    }
+}

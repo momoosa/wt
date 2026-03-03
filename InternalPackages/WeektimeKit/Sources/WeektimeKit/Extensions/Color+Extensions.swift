@@ -50,7 +50,7 @@ extension Color {
     /// Calculates the relative luminance of a color
     /// Returns a value between 0 (darkest) and 1 (lightest)
     public var luminance: Double? {
-        #if os(iOS)
+        #if os(iOS) || os(watchOS)
         guard let components = UIColor(self).cgColor.components else { return nil }
         #elseif os(macOS)
         guard let components = NSColor(self).cgColor.components else { return nil }
