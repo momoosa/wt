@@ -157,7 +157,7 @@ struct PlannerConfigurationSheet: View {
         
         return ForEach(timeOptions, id: \.self) { minutes in
             Button {
-                withAnimation(.spring(response: 0.3)) {
+                withAnimation(AnimationPresets.quickSpring) {
                     availableTimeMinutes = minutes
                     showingTimePicker = false
                 }
@@ -178,7 +178,7 @@ struct PlannerConfigurationSheet: View {
     
     private var timeButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(AnimationPresets.quickSpring) {
                 showingTimePicker = true
             }
         } label: {
@@ -205,7 +205,7 @@ struct PlannerConfigurationSheet: View {
                 theme: theme,
                 isSelected: selectedThemes.contains(theme.theme.id)
             ) {
-                withAnimation(.spring(response: 0.3)) {
+                withAnimation(AnimationPresets.quickSpring) {
                     if selectedThemes.contains(theme.theme.id) {
                         selectedThemes.remove(theme.theme.id)
                     } else {
@@ -213,17 +213,14 @@ struct PlannerConfigurationSheet: View {
                     }
                 }
                 
-                #if os(iOS)
-                let impact = UIImpactFeedbackGenerator(style: .light)
-                impact.impactOccurred()
-                #endif
+                HapticFeedbackManager.trigger(.light)
             }
         }
     }
     
     private var themeButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(AnimationPresets.quickSpring) {
                 showingThemePicker = true
             }
         } label: {

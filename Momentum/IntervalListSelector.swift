@@ -29,6 +29,6 @@ struct IntervalListSelector: View {
             .padding(.horizontal, 8)
             .animation(.easeInOut, value: selectedListID)
         }
-        .frame(height: 40)
+        .frame(height: LayoutConstants.Heights.rowHeight)
     }
 }

@@ -95,9 +95,9 @@ struct NowPlayingView: View {
                     Circle()
                         .stroke(
                             Color.white.opacity(0.3),
-                            lineWidth: 20
+                            lineWidth: LayoutConstants.ProgressCircle.largeLineWidth
                         )
-                        .frame(width: 280, height: 280)
+                        .frame(width: LayoutConstants.ProgressCircle.largeDiameter, height: LayoutConstants.ProgressCircle.largeDiameter)
                     
                     // Progress circle with gradient
                     Circle()
@@ -113,9 +113,9 @@ struct NowPlayingView: View {
                                 startAngle: .degrees(0),
                                 endAngle: .degrees(360)
                             ),
-                            style: StrokeStyle(lineWidth: 20, lineCap: .round)
+                            style: StrokeStyle(lineWidth: LayoutConstants.ProgressCircle.largeLineWidth, lineCap: .round)
                         )
-                        .frame(width: 280, height: 280)
+                        .frame(width: LayoutConstants.ProgressCircle.largeDiameter, height: LayoutConstants.ProgressCircle.largeDiameter)
                         .rotationEffect(.degrees(-90))
                         .animation(.spring(response: 0.6), value: activeSessionDetails.progress)
                     
@@ -203,17 +203,14 @@ struct NowPlayingView: View {
                     
                     // Stop/Pause button (large)
                     Button {
-                        #if os(iOS)
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
-                        #endif
+                        HapticFeedbackManager.trigger(.medium)
                         onStopTapped()
                         dismiss()
                     } label: {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 32))
                             .foregroundStyle(session.goal.primaryTag.themePreset.dark)
-                            .frame(width: 80, height: 80)
+                            .frame(width: LayoutConstants.ProgressCircle.standardDiameter, height: LayoutConstants.ProgressCircle.standardDiameter)
                             .background(
                                 Circle()
                                     .fill(.white)

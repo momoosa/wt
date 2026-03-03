@@ -62,7 +62,7 @@ struct InlinePlannerPrompt: View {
     
     private var timeButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(AnimationPresets.quickSpring) {
                 showingTimePicker.toggle()
                 if showingTimePicker {
                     showingThemePicker = false
@@ -88,7 +88,7 @@ struct InlinePlannerPrompt: View {
     
     private var themeButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(AnimationPresets.quickSpring) {
                 showingThemePicker.toggle()
                 if showingThemePicker {
                     showingTimePicker = false
@@ -119,7 +119,7 @@ struct InlinePlannerPrompt: View {
                 HStack(spacing: 12) {
                     ForEach([30, 60, 90, 120, 180, 240], id: \.self) { minutes in
                         Button {
-                            withAnimation(.spring(response: 0.3)) {
+                            withAnimation(AnimationPresets.quickSpring) {
                                 availableTimeMinutes = minutes
                             }
                         } label: {
@@ -178,7 +178,7 @@ struct InlinePlannerPrompt: View {
                 
                 if !selectedThemes.isEmpty {
                     Button("Clear All") {
-                        withAnimation(.spring(response: 0.3)) {
+                        withAnimation(AnimationPresets.quickSpring) {
                             selectedThemes.removeAll()
                         }
                     }
@@ -204,7 +204,7 @@ struct InlinePlannerPrompt: View {
                             theme: theme,
                             isSelected: selectedThemes.contains(theme.theme.id)
                         ) {
-                            withAnimation(.spring(response: 0.3)) {
+                            withAnimation(AnimationPresets.quickSpring) {
                                 if selectedThemes.contains(theme.theme.id) {
                                     selectedThemes.remove(theme.theme.id)
                                 } else {
@@ -212,10 +212,7 @@ struct InlinePlannerPrompt: View {
                                 }
                             }
                             
-                            #if os(iOS)
-                            let impact = UIImpactFeedbackGenerator(style: .light)
-                            impact.impactOccurred()
-                            #endif
+                            HapticFeedbackManager.trigger(.light)
                         }
                     }
                 }

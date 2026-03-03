@@ -107,10 +107,10 @@ struct ChecklistDetailView: View {
                                             .font(.system(size: 14, weight: .medium))
                                             .foregroundStyle(isScheduled ? Color.white : Color.clear)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .frame(height: 20)
+                                            .frame(height: LayoutConstants.Heights.iconPlaceholder)
                                     }
                                 }
-                                .frame(height: 20)
+                                .frame(height: LayoutConstants.Heights.iconPlaceholder)
                             }
                         }
                     }
@@ -128,7 +128,7 @@ struct ChecklistDetailView: View {
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(isScheduled ? Color.clear : Color.secondary.opacity(0.15))
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        .frame(height: 20)
+                                        .frame(height: LayoutConstants.Heights.iconPlaceholder)
                                 }
                             }
                             .frame(height: 20)

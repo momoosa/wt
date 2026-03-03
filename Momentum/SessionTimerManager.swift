@@ -363,7 +363,7 @@ public final class SessionTimerManager {
     
     /// Starts or stops the timer for a given session
     public func toggleTimer(for session: GoalSession, in day: Day) {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+        withAnimation(AnimationPresets.smoothSpring) {
             if let activeSession, activeSession.id == session.id {
                 // Check if paused - if so, resume
                 if activeSession.isPaused {
@@ -512,8 +512,7 @@ public final class SessionTimerManager {
         playCompletionSound()
         
         // Medium impact haptic feedback
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        HapticFeedbackManager.trigger(.medium)
         #endif
     }
     

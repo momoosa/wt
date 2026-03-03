@@ -147,7 +147,7 @@ struct DayOverviewView: View {
             // Large circular progress
             ZStack {
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 12)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: LayoutConstants.ProgressCircle.standardLineWidth)
                     .frame(width: 120, height: 120)
 
                 Circle()
@@ -158,11 +158,11 @@ struct DayOverviewView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                        style: StrokeStyle(lineWidth: LayoutConstants.ProgressCircle.standardLineWidth, lineCap: .round)
                     )
                     .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: dailyProgress)
+                    .animation(AnimationPresets.slowSpring, value: dailyProgress)
 
                 VStack(spacing: 4) {
                     Text("\(Int(dailyProgress * 100))%")

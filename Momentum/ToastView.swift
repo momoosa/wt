@@ -74,7 +74,7 @@ struct ToastView: View {
         .offset(y: offset)
         .opacity(opacity)
         .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(AnimationPresets.smoothSpring) {
                 offset = 0
                 opacity = 1
             }

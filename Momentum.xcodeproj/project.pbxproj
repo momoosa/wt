@@ -40,6 +40,11 @@
 		CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8112F3BA166001F2406 /* GoalRow.swift */; };
 		CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C8092F3BA109001F2406 /* GoalManager.swift */; };
 		CD22C81C2F3BB8CA001F2406 /* PlanningViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */; };
+		CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FB62F576B5F00F5503A /* HapticFeedbackManager.swift */; };
+		CD2A6FB92F576B6B00F5503A /* LayoutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FB82F576B6B00F5503A /* LayoutConstants.swift */; };
+		CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */; };
+		CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */; };
+		CD2A6FBF2F576B9100F5503A /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBE2F576B9100F5503A /* AppLogger.swift */; };
 		CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2C2F2F633800F7265A /* WidgetKit.framework */; };
 		CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2E2F2F633800F7265A /* SwiftUI.framework */; };
 		CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -180,6 +185,11 @@
 		CD22C8112F3BA166001F2406 /* GoalRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalRow.swift; sourceTree = "<group>"; };
 		CD22C8132F3BA180001F2406 /* ManualLogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualLogSheet.swift; sourceTree = "<group>"; };
 		CD22C81B2F3BB8CA001F2406 /* PlanningViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningViewModel.swift; sourceTree = "<group>"; };
+		CD2A6FB62F576B5F00F5503A /* HapticFeedbackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticFeedbackManager.swift; sourceTree = "<group>"; };
+		CD2A6FB82F576B6B00F5503A /* LayoutConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConstants.swift; sourceTree = "<group>"; };
+		CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayConstants.swift; sourceTree = "<group>"; };
+		CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationPresets.swift; sourceTree = "<group>"; };
+		CD2A6FBE2F576B9100F5503A /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -351,6 +361,25 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		CD2A6FB42F576B5600F5503A /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				CD2A6FB62F576B5F00F5503A /* HapticFeedbackManager.swift */,
+				CD2A6FBE2F576B9100F5503A /* AppLogger.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		CD2A6FB52F576B5600F5503A /* Constants */ = {
+			isa = PBXGroup;
+			children = (
+				CD2A6FB82F576B6B00F5503A /* LayoutConstants.swift */,
+				CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */,
+				CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */,
+			);
+			path = Constants;
+			sourceTree = "<group>";
+		};
 		CD5601642EEB2FC4001D0BB0 /* Screentime */ = {
 			isa = PBXGroup;
 			children = (
@@ -455,6 +484,8 @@
 				CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */,
 				CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */,
 				CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */,
+				CD2A6FB42F576B5600F5503A /* Utilities */,
+				CD2A6FB52F576B5600F5503A /* Constants */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -769,12 +800,15 @@
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
+				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
+				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
+				CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
 				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
@@ -782,6 +816,7 @@
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
+				CD2A6FBF2F576B9100F5503A /* AppLogger.swift in Sources */,
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
@@ -815,6 +850,7 @@
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
+				CD2A6FB92F576B6B00F5503A /* LayoutConstants.swift in Sources */,
 				CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */,
 				CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */,
 			);

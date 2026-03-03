@@ -61,7 +61,7 @@ struct CircularProgressView: View {
             }
         }
         .onChange(of: progress) { oldValue, newValue in
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            withAnimation(AnimationPresets.slowSpring) {
                 animatedProgress = newValue
             }
         }
@@ -154,7 +154,7 @@ struct ProgressSummaryCard: View {
                             CircularProgressView(
                                 progress: currentProgress,
                                 lineWidth: 8,
-                                size: 80,
+                                size: LayoutConstants.ProgressCircle.standardDiameter,
                                 foregroundColor: textColor,
                                 backgroundColor: textColor.opacity(0.3)
                             )

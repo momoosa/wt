@@ -127,7 +127,7 @@ struct SessionRowView: View {
             .buttonStyle(.plain)
             .listRowBackground(colorScheme == .dark ? (session.goal.primaryTag.themePreset.light.opacity(0.03) ?? Color(.systemBackground)) : Color(.systemBackground))
             .onTapGesture {
-                withAnimation(.spring(response: 0.3)) {
+                withAnimation(AnimationPresets.quickSpring) {
                     selectedSession = session
                 }
             }

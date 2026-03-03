@@ -220,7 +220,7 @@ struct SevenDayBarChart: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: 40)
+        .frame(height: LayoutConstants.Heights.rowHeight)
     }
     
     private func barColor(for progress: TimeInterval) -> Color {

@@ -62,15 +62,7 @@ struct GoalEditorView: View {
     }()
     
     // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
-    private let weekdays: [(Int, String)] = [
-        (2, "Mon"),
-        (3, "Tue"),
-        (4, "Wed"),
-        (5, "Thu"),
-        (6, "Fri"),
-        (7, "Sat"),
-        (1, "Sun")
-    ]
+    private let weekdays = WeekdayConstants.weekdays
     
     // Scheduling state
     enum TimeRelation: String, CaseIterable, Identifiable { case before, after; var id: String { rawValue } }
@@ -225,15 +217,12 @@ struct GoalEditorView: View {
                                                     RemindersTab(isSelected: selectedCategoryIndex == -1)
                                                         .id(-1)
                                                         .onTapGesture {
-                                                            withAnimation(.spring(response: 0.3)) {
+                                                            withAnimation(AnimationPresets.quickSpring) {
                                                                 selectedCategoryIndex = -1
                                                             }
                                                             
                                                             // Haptic feedback
-#if os(iOS)
-                                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                                            generator.impactOccurred()
-#endif
+                                                            HapticFeedbackManager.trigger(.light)
                                                         }
                                                     
                                                     ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
@@ -243,15 +232,12 @@ struct GoalEditorView: View {
                                                         )
                                                         .id(index) // Add ID for scrolling
                                                         .onTapGesture {
-                                                            withAnimation(.spring(response: 0.3)) {
+                                                            withAnimation(AnimationPresets.quickSpring) {
                                                                 selectedCategoryIndex = index
                                                             }
                                                             
                                                             // Haptic feedback
-#if os(iOS)
-                                                            let generator = UIImpactFeedbackGenerator(style: .light)
-                                                            generator.impactOccurred()
-#endif
+                                                            HapticFeedbackManager.trigger(.light)
                                                         }
                                                     }
                                                 }
@@ -292,7 +278,7 @@ struct GoalEditorView: View {
                                         }
                                     }
                                     .tabViewStyle(.page(indexDisplayMode: .never))
-                                    .frame(height: 400)
+                                    .frame(height: LayoutConstants.Heights.suggestionPanel)
                                 }
                                 
                             } header: {
@@ -413,10 +399,7 @@ struct GoalEditorView: View {
                                                 goalTheme: goalTheme,
                                                 isSelected: true,
                                                 action: {
-                                                    #if os(iOS)
-                                                    let generator = UIImpactFeedbackGenerator(style: .light)
-                                                    generator.impactOccurred()
-                                                    #endif
+                                                    HapticFeedbackManager.trigger(.light)
                                                 },
                                                 onRemove: {
                                                     removeGoalTheme(goalTheme)
@@ -520,10 +503,10 @@ struct GoalEditorView: View {
                         }
                         
                         Spacer()
-                            .frame(height: 60.0)
+                            .frame(height: LayoutConstants.Heights.filterBar)
                     }
                     .animation(.spring(), value: result)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStage)
+                    .animation(AnimationPresets.smoothSpring, value: currentStage)
                     
             .overlay(alignment: .bottom) {
                 // Bottom button (hide when keyboard is active)
@@ -563,7 +546,7 @@ struct GoalEditorView: View {
                             .padding()
                         }
                     }
-                    .frame(height: 60.0)
+                    .frame(height: LayoutConstants.Heights.filterBar)
                     .background(Color(.systemBackground))
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -919,7 +902,7 @@ struct GoalEditorView: View {
      
     /// Remove a theme from the selected themes list
     private func removeGoalTheme(_ goalTheme: GoalTag) {
-        withAnimation(.spring(response: 0.3)) {
+        withAnimation(AnimationPresets.quickSpring) {
             selectedTags.removeAll(where: { $0.title == goalTheme.title })
             
             // If we removed the currently selected theme, select the first available
@@ -988,10 +971,7 @@ struct GoalEditorView: View {
             dayTimePreferences[weekday, default: []].insert(timeOfDay)
         }
         
-        #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
-        #endif
+        HapticFeedbackManager.trigger(.light)
     }
     
     // MARK: - Active Days Management
@@ -1010,10 +990,7 @@ struct GoalEditorView: View {
             dailyTargets[weekday] = dailyMinimumMinutes ?? 10
         }
         
-        #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
-        #endif
+        HapticFeedbackManager.trigger(.light)
     }
     
     private func isDayActive(_ weekday: Int) -> Bool {
@@ -1725,16 +1702,13 @@ struct CategorySuggestionsView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowBackground(Color.clear)
                     .onTapGesture {
-                        withAnimation(.spring(response: 0.3)) {
+                        withAnimation(AnimationPresets.quickSpring) {
                             selectedTemplate = suggestion
                             userInput = suggestion.title // Prefill textfield
                         }
                         
                         // Haptic feedback
-                        #if os(iOS)
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        #endif
+                        HapticFeedbackManager.trigger(.light)
                     }
                 }
             }
@@ -1949,7 +1923,7 @@ struct ThemeColorButton: View {
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.1 : 1.0)
-        .animation(.spring(response: 0.3), value: isSelected)
+        .animation(AnimationPresets.quickSpring, value: isSelected)
     }
 }
 
@@ -2041,7 +2015,7 @@ struct SuggestedThemeCard: View {
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.spring(response: 0.3), value: isSelected)
+        .animation(AnimationPresets.quickSpring, value: isSelected)
     }
 }
 
@@ -2103,7 +2077,7 @@ struct ThemeTagButton: View {
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.spring(response: 0.3), value: isSelected)
+        .animation(AnimationPresets.quickSpring, value: isSelected)
     }
 }
 
@@ -2221,7 +2195,7 @@ struct TagSelectionSheet: View {
     private func toggleTagSelection(_ tag: GoalTag) {
         if let index = selectedTags.firstIndex(where: { $0.id == tag.id }) {
             // Deselect
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(AnimationPresets.quickSpring) {
                 selectedTags.remove(at: index)
                 
                 // If this was the selected theme, update it
@@ -2231,7 +2205,7 @@ struct TagSelectionSheet: View {
             }
         } else {
             // Select
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(AnimationPresets.quickSpring) {
                 selectedTags.append(tag)
                 
                 // If no theme is selected, make this the selected theme
@@ -2241,10 +2215,7 @@ struct TagSelectionSheet: View {
             }
         }
         
-        #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
-        #endif
+        HapticFeedbackManager.trigger(.light)
     }
 }
 
@@ -2301,7 +2272,7 @@ struct TagButton: View { // TODO: Combine with theme
         }
         .buttonStyle(.plain)
         .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(.spring(response: 0.3), value: isSelected)
+        .animation(AnimationPresets.quickSpring, value: isSelected)
     }
 }
 
@@ -2504,7 +2475,7 @@ struct IconPickerSheet: View {
                                 isSelected: selectedCategory == category,
                                 themeColor: themeColor
                             ) {
-                                withAnimation(.spring(response: 0.3)) {
+                                withAnimation(AnimationPresets.quickSpring) {
                                     selectedCategory = category
                                 }
                             }

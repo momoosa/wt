@@ -105,21 +105,63 @@ struct MomentumApp: App {
         let schema = Schema([
             Goal.self,
             GoalTag.self,
+            GoalSession.self,
+            Day.self,
+            HistoricalSession.self
         ])
         
         // Use App Group container for widget access
         let appGroupIdentifier = "group.com.moosa.ios.momentum"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            print("❌ iOS: App Group container not found for '\(appGroupIdentifier)'")
             fatalError("App Group container not found. Make sure '\(appGroupIdentifier)' is configured.")
         }
         
         let storeURL = containerURL.appendingPathComponent("default.store")
+        print("✅ iOS: Using shared container at: \(storeURL.path)")
+        
+        // Check if the database file exists
+        if FileManager.default.fileExists(atPath: storeURL.path) {
+            print("✅ iOS: Database file exists")
+            // Get file size
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: storeURL.path),
+               let fileSize = attrs[.size] as? UInt64 {
+                print("✅ iOS: Database file size: \(fileSize) bytes")
+            }
+        } else {
+            print("⚠️ iOS: Database file does NOT exist - will be created")
+        }
+        
         let modelConfiguration = ModelConfiguration(url: storeURL)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            print("✅ iOS: ModelContainer created successfully")
+            
+            // Debug: Query data counts
+            let context = container.mainContext
+            let goalDescriptor = FetchDescriptor<Goal>()
+            let sessionDescriptor = FetchDescriptor<GoalSession>()
+            let dayDescriptor = FetchDescriptor<Day>()
+            
+            do {
+                let goals = try context.fetch(goalDescriptor)
+                let sessions = try context.fetch(sessionDescriptor)
+                let days = try context.fetch(dayDescriptor)
+                print("📊 iOS Data Counts: Goals=\(goals.count), Sessions=\(sessions.count), Days=\(days.count)")
+                
+                #if targetEnvironment(simulator)
+                print("ℹ️ iOS: Running in simulator. Note that Watch simulator uses a separate App Group container.")
+                print("ℹ️ iOS: Data will be shared correctly on real devices (paired iPhone + Apple Watch).")
+                #endif
+            } catch {
+                print("❌ iOS: Error fetching data counts: \(error)")
+            }
+            
+            return container
         } catch {
+            print("❌ iOS: Failed to create ModelContainer: \(error)")
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()

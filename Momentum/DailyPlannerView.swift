@@ -225,7 +225,7 @@ struct DailyPlannerView: View {
                             session: session,
                             isExpanded: expandedSessionIds.contains(session.id)
                         ) {
-                            withAnimation(.spring(response: 0.3)) {
+                            withAnimation(AnimationPresets.quickSpring) {
                                 if expandedSessionIds.contains(session.id) {
                                     expandedSessionIds.remove(session.id)
                                 } else {

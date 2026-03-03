@@ -61,8 +61,8 @@ struct ContentView: View {
     var body: some View {
         mainListView
             .animation(.spring(), value: goals)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sessions.count)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: getRecommendedSessions().map { $0.id })
+            .animation(AnimationPresets.smoothSpring, value: sessions.count)
+            .animation(AnimationPresets.smoothSpring, value: getRecommendedSessions().map { $0.id })
             .overlay {
                 VStack(spacing: 0) {
                     if focusFilterStore.isFocusFilterActive {
@@ -238,7 +238,7 @@ struct ContentView: View {
                 
             } footer: {
                 Spacer()
-                    .frame(height: 10.0)
+                    .frame(height: LayoutConstants.Heights.smallSpacer)
             }
 
             if !day.historicalSessions.isEmpty && activeFilter == .activeToday {

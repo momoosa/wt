@@ -12,7 +12,9 @@ import MomentumKit
 struct WatchContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var sessions: [GoalSession]
+    @Query private var allSessions: [GoalSession]
     @Query private var days: [Day]
+    @Query private var goals: [Goal]
     
     private var today: Day {
         let calendar = Calendar.current
@@ -59,6 +61,32 @@ struct WatchContentView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Debug info
+                Section("Debug Info") {
+                    Text("Goals: \(goals.count)")
+                    Text("All Sessions: \(allSessions.count)")
+                    Text("Sessions w/ target: \(sessions.count)")
+                    Text("Filtered: \(filteredSessions.count)")
+                    Text("Days: \(days.count)")
+                    
+                    // Show first few goals
+                    if !goals.isEmpty {
+                        ForEach(goals.prefix(3)) { goal in
+                            Text("Goal: \(goal.title)")
+                                .font(.system(size: 8))
+                        }
+                    }
+                    
+                    // Show first few sessions
+                    if !allSessions.isEmpty {
+                        ForEach(allSessions.prefix(3)) { session in
+                            Text("Session: \(session.goal.title) - target: \(Int(session.dailyTarget))")
+                                .font(.system(size: 8))
+                        }
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 // Show active session at the top
                 if let activeSession = activeSession {
                     Section {

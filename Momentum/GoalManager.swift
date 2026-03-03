@@ -87,10 +87,7 @@ class GoalManager {
             print("Failed to archive goal: \(error)")
         }
         
-        #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
-        #endif
+        HapticFeedbackManager.trigger(.medium)
     }
     
     /// Duplicate a goal
