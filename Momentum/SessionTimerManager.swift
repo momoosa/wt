@@ -10,6 +10,7 @@ import SwiftData
 import MomentumKit
 import Foundation
 import AVFoundation
+import OSLog
 
 #if canImport(WidgetKit)
 import WidgetKit
@@ -100,7 +101,7 @@ public final class SessionTimerManager {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            print("📬 Received external change notification from intent")
+            AppLogger.sessionTimer.debug("Received external change notification from intent")
             self?.checkForExternalChanges()
         }
     }
@@ -108,34 +109,34 @@ public final class SessionTimerManager {
     /// Handles a session that was stopped externally (from widget/Live Activity)
     @MainActor
     private func handleStoppedSession(sessionID: String) async {
-        print("🔍 handleStoppedSession: Called for session \(sessionID)")
-        print("🔍 handleStoppedSession: Thread = \(Thread.isMainThread ? "MAIN" : "BACKGROUND")")
+        AppLogger.sessionTimer.debug("handleStoppedSession: Called for session \(sessionID)")
+        AppLogger.sessionTimer.debug("handleStoppedSession: Thread = \(Thread.isMainThread ? "MAIN" : "BACKGROUND")")
         
         guard let defaults = sharedDefaults else {
-            print("❌ handleStoppedSession: No shared defaults")
+            AppLogger.sessionTimer.error("handleStoppedSession: No shared defaults")
             return
         }
         
         // Get the elapsed time that was accumulated
         let elapsedTime = defaults.double(forKey: activeSessionElapsedTimeKey)
-        print("🔍 handleStoppedSession: Elapsed time = \(elapsedTime)s")
+        AppLogger.sessionTimer.debug("handleStoppedSession: Elapsed time = \(elapsedTime)s")
         
         // Check all relevant keys
         let allKeys = defaults.dictionaryRepresentation().filter { $0.key.contains("Session") || $0.key.contains("Elapsed") || $0.key.contains("Active") }
-        print("🔍 handleStoppedSession: All session-related keys in UserDefaults:")
+        AppLogger.sessionTimer.debug("handleStoppedSession: All session-related keys in UserDefaults:")
         for (key, value) in allKeys {
-            print("   - \(key): \(value)")
+            AppLogger.sessionTimer.debug("   - \(key): \(String(describing: value))")
         }
         
         guard elapsedTime > 0 else {
-            print("⚠️ SessionTimerManager: No elapsed time for stopped session (elapsed=\(elapsedTime))")
+            AppLogger.sessionTimer.warning("SessionTimerManager: No elapsed time for stopped session (elapsed=\(elapsedTime))")
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
             return
         }
         
         // Find the session in the data store
         guard let sessionUUID = UUID(uuidString: sessionID) else {
-            print("⚠️ SessionTimerManager: Invalid session ID")
+            AppLogger.sessionTimer.warning("SessionTimerManager: Invalid session ID")
             return
         }
         
@@ -146,7 +147,7 @@ public final class SessionTimerManager {
         
         // Fetch the session - if it doesn't exist, the goal was likely deleted (cascade)
         guard let session = try? context.fetch(descriptor).first else {
-            print("⚠️ SessionTimerManager: Session not found for ID \(sessionUUID) - goal may have been deleted")
+            AppLogger.sessionTimer.warning("SessionTimerManager: Session not found for ID \(sessionUUID) - goal may have been deleted")
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
             defaults.removeObject(forKey: "StoppedSessionIDV1")
             defaults.synchronize()
@@ -158,7 +159,7 @@ public final class SessionTimerManager {
         let sessionTitle = session.title
         let goalID = goal.id.uuidString
         
-        print("🔍 handleStoppedSession: Found session '\(sessionTitle)' for goal '\(goal.title)'")
+        AppLogger.sessionTimer.debug("handleStoppedSession: Found session '\(sessionTitle)' for goal '\(goal.title)'")
         
         // Create historical session from accumulated time
         let endDate = Date()
@@ -172,7 +173,7 @@ public final class SessionTimerManager {
         )
         historicalSession.goalIDs = [goalID]
         
-        print("🔍 handleStoppedSession: Creating historical session from \(startDate) to \(endDate)")
+        AppLogger.sessionTimer.debug("handleStoppedSession: Creating historical session from \(startDate) to \(endDate)")
         
         session.day.add(historicalSession: historicalSession)
         context.insert(historicalSession)
@@ -183,25 +184,25 @@ public final class SessionTimerManager {
         
         do {
             try context.save()
-            print("✅ SessionTimerManager: Created historical session for stopped session (elapsed: \(elapsedTime)s)")
+            AppLogger.sessionTimer.info("SessionTimerManager: Created historical session for stopped session (elapsed: \(elapsedTime)s)")
         } catch {
-            print("❌ SessionTimerManager: Failed to save historical session: \(error)")
+            AppLogger.sessionTimer.error("SessionTimerManager: Failed to save historical session: \(error)")
         }
     }
     
     /// Syncs a session started from the widget to the main app
     @MainActor
     private func syncExternalSessionToApp(sessionID: String) async {
-        print("🔄 syncExternalSessionToApp: Syncing session \(sessionID) from widget to app")
+        AppLogger.sessionTimer.debug("syncExternalSessionToApp: Syncing session \(sessionID) from widget to app")
         
         guard let defaults = sharedDefaults else {
-            print("❌ syncExternalSessionToApp: No shared defaults")
+            AppLogger.sessionTimer.error("syncExternalSessionToApp: No shared defaults")
             return
         }
         
         // Find the session in the model context
         guard let sessionUUID = UUID(uuidString: sessionID) else {
-            print("❌ syncExternalSessionToApp: Invalid session UUID")
+            AppLogger.sessionTimer.error("syncExternalSessionToApp: Invalid session UUID")
             return
         }
         
@@ -210,7 +211,7 @@ public final class SessionTimerManager {
         )
         
         guard let session = try? modelContext.fetch(fetchDescriptor).first else {
-            print("❌ syncExternalSessionToApp: Could not find session")
+            AppLogger.sessionTimer.error("syncExternalSessionToApp: Could not find session")
             return
         }
         
@@ -219,7 +220,7 @@ public final class SessionTimerManager {
         let startDateInterval = defaults.double(forKey: activeSessionStartDateKey)
         let startDate = startDateInterval > 0 ? Date(timeIntervalSince1970: startDateInterval) : Date()
         
-        print("🔍 syncExternalSessionToApp: Creating ActiveSessionDetails with elapsed=\(elapsedTime)s, start=\(startDate)")
+        AppLogger.sessionTimer.debug("syncExternalSessionToApp: Creating ActiveSessionDetails with elapsed=\(elapsedTime)s, start=\(startDate)")
         
         // Create ActiveSessionDetails
         let newActiveSession = ActiveSessionDetails(
@@ -243,7 +244,7 @@ public final class SessionTimerManager {
         
         // Start Live Activity (widget extensions cannot create Live Activities, only the main app can)
         #if canImport(ActivityKit)
-        print("🎬 syncExternalSessionToApp: Creating Live Activity from main app")
+        AppLogger.sessionTimer.debug("syncExternalSessionToApp: Creating Live Activity from main app")
         startLiveActivity(for: session, activeSession: newActiveSession)
         
         // Clear the flag now that we've created the Live Activity
@@ -253,15 +254,15 @@ public final class SessionTimerManager {
         startLiveActivity(for: session, activeSession: newActiveSession)
         #endif
         
-        print("✅ syncExternalSessionToApp: Session synced successfully")
+        AppLogger.sessionTimer.info("syncExternalSessionToApp: Session synced successfully")
     }
     
     /// Checks if timer state was changed externally (e.g., by widget) and syncs
     public func checkForExternalChanges() {
-        print("🔄 checkForExternalChanges: Called")
+        AppLogger.sessionTimer.debug("checkForExternalChanges: Called")
         
         guard let defaults = sharedDefaults else {
-            print("❌ checkForExternalChanges: No shared defaults")
+            AppLogger.sessionTimer.error("checkForExternalChanges: No shared defaults")
             return
         }
         
@@ -270,11 +271,11 @@ public final class SessionTimerManager {
         let stoppedSessionID = defaults.string(forKey: "StoppedSessionIDV1")
         let currentSessionID = activeSession?.id.uuidString
         
-        print("🔍 checkForExternalChanges: stored=\(storedSessionID ?? "nil"), paused=\(pausedSessionID ?? "nil"), stopped=\(stoppedSessionID ?? "nil"), current=\(currentSessionID ?? "nil")")
+        AppLogger.sessionTimer.debug("checkForExternalChanges: stored=\(storedSessionID ?? "nil"), paused=\(pausedSessionID ?? "nil"), stopped=\(stoppedSessionID ?? "nil"), current=\(currentSessionID ?? "nil")")
         
         // Check if a session was stopped externally and needs to be saved
         if let stoppedSessionID = stoppedSessionID, !isProcessingStoppedSession {
-            print("🔄 SessionTimerManager: Found stopped session \(stoppedSessionID), creating historical session")
+            AppLogger.sessionTimer.debug("SessionTimerManager: Found stopped session \(stoppedSessionID), creating historical session")
             
             // Clear the flag immediately to prevent re-processing
             defaults.removeObject(forKey: "StoppedSessionIDV1")
@@ -295,7 +296,7 @@ public final class SessionTimerManager {
             let activitySessionID = activity.attributes.sessionID
             // If the activity's session is not active and not paused, end it
             if storedSessionID != activitySessionID && pausedSessionID != activitySessionID {
-                print("🔄 SessionTimerManager: Live Activity session is stopped, ending it")
+                AppLogger.sessionTimer.debug("SessionTimerManager: Live Activity session is stopped, ending it")
                 endLiveActivity()
             }
         }
@@ -305,12 +306,12 @@ public final class SessionTimerManager {
         if let activeSession, activeSession.isPaused {
             // If the session is marked as paused but storedSessionID now matches (resumed)
             if storedSessionID == activeSession.id.uuidString {
-                print("🔄 SessionTimerManager: Session resumed")
+                AppLogger.sessionTimer.debug("SessionTimerManager: Session resumed")
                 activeSession.isPaused = false
                 activeSession.startUITimer()
                 
                 // Notify that external change occurred so UI can refresh
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.onExternalChange?()
                 }
             }
@@ -318,21 +319,21 @@ public final class SessionTimerManager {
         
         // If states don't match, something changed externally
         if storedSessionID != currentSessionID {
-            print("🔄 SessionTimerManager: Detected external state change")
-            print("   Current: \(currentSessionID ?? "none"), Stored: \(storedSessionID ?? "none"), Paused: \(pausedSessionID ?? "none")")
+            AppLogger.sessionTimer.debug("SessionTimerManager: Detected external state change")
+            AppLogger.sessionTimer.debug("   Current: \(currentSessionID ?? "none"), Stored: \(storedSessionID ?? "none"), Paused: \(pausedSessionID ?? "none")")
             
             // Stop current timer if we have one but it's not active (and not paused)
             if let activeSession, storedSessionID == nil {
                 // Check if it's paused instead of stopped
                 if pausedSessionID == activeSession.id.uuidString {
-                    print("   → Timer is paused (keeping session visible)")
+                    AppLogger.sessionTimer.debug("   → Timer is paused (keeping session visible)")
                     activeSession.stopUITimer()
                     activeSession.isPaused = true
                     // Keep the session in activeSession so it remains visible in UI
                     // Don't end Live Activity - it's just paused
                     // The Live Activity will continue showing the paused state
                 } else {
-                    print("   → Stopping timer (was stopped externally)")
+                    AppLogger.sessionTimer.debug("   → Stopping timer (was stopped externally)")
                     activeSession.stopUITimer()
                     self.activeSession = nil
                     // Live Activity already ended above if needed
@@ -340,20 +341,20 @@ public final class SessionTimerManager {
             }
             // Or if the session ID changed
             else if let activeSession, let storedID = storedSessionID, storedID != activeSession.id.uuidString {
-                print("   → Stopping timer (different session started externally)")
+                AppLogger.sessionTimer.debug("   → Stopping timer (different session started externally)")
                 activeSession.stopUITimer()
                 self.activeSession = nil
             }
             // New session started from widget (no current session, but stored session exists)
             else if activeSession == nil, let storedID = storedSessionID {
-                print("   → New session started from widget, syncing to app")
+                AppLogger.sessionTimer.debug("   → New session started from widget, syncing to app")
                 Task { @MainActor in
                     await self.syncExternalSessionToApp(sessionID: storedID)
                 }
             }
             
             // Notify that external change occurred so UI can refresh
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.onExternalChange?()
             }
         }
@@ -383,7 +384,7 @@ public final class SessionTimerManager {
     public func resumeTimer() {
         guard let activeSession, activeSession.isPaused else { return }
         
-        print("▶️ Resuming paused session")
+        AppLogger.sessionTimer.debug("Resuming paused session")
         
         // Clear paused flag
         activeSession.isPaused = false
@@ -418,7 +419,7 @@ public final class SessionTimerManager {
         // If this session was marked as complete, unmark it
         if session.markedComplete {
             session.markedComplete = false
-            print("🔄 Unmarked session as complete - resuming work")
+            AppLogger.sessionTimer.debug("Unmarked session as complete - resuming work")
         }
         
         // Create new active session
@@ -492,9 +493,9 @@ public final class SessionTimerManager {
                     historicalSession.setHealthKitType(metric.rawValue)
                     historicalSession.needsHealthKitRecord = false
                     
-                    print("✅ Wrote session to HealthKit: \(metric.displayName)")
+                    AppLogger.healthKit.info("Wrote session to HealthKit: \(metric.displayName)")
                 } catch {
-                    print("❌ Failed to write session to HealthKit: \(error)")
+                    AppLogger.healthKit.error("Failed to write session to HealthKit: \(error)")
                 }
             }
         }
@@ -544,7 +545,7 @@ public final class SessionTimerManager {
     /// Saves the current timer state to UserDefaults
     private func saveTimerState() {
         guard let defaults = sharedDefaults else {
-            print("⚠️ SessionTimerManager: Failed to access shared UserDefaults")
+            AppLogger.sessionTimer.warning("SessionTimerManager: Failed to access shared UserDefaults")
             return
         }
         
@@ -572,7 +573,7 @@ public final class SessionTimerManager {
         // Check for stopped sessions first (in case app wasn't running when stopped)
         if let stoppedSessionID = sharedDefaults?.string(forKey: "StoppedSessionIDV1"),
            !isProcessingStoppedSession {
-            print("🔍 loadTimerState: Found stopped session on app launch: \(stoppedSessionID)")
+            AppLogger.sessionTimer.debug("loadTimerState: Found stopped session on app launch: \(stoppedSessionID)")
             
             // Clear the flag immediately to prevent re-processing
             sharedDefaults?.removeObject(forKey: "StoppedSessionIDV1")
@@ -679,7 +680,7 @@ public final class SessionTimerManager {
     #if canImport(ActivityKit)
     private func startLiveActivity(for session: GoalSession, activeSession: ActiveSessionDetails) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("⚠️ Live Activities are not enabled")
+            AppLogger.sessionTimer.warning("Live Activities are not enabled")
             return
         }
         
@@ -709,12 +710,12 @@ public final class SessionTimerManager {
                 content: .init(state: contentState, staleDate: nil),
                 pushType: nil
             )
-            print("✅ Live Activity started: \(session.title)")
+            AppLogger.sessionTimer.info("Live Activity started: \(session.title)")
             
             // Set up observation of ActiveSessionDetails timer
             setupLiveActivityObservation()
         } catch {
-            print("❌ Failed to start Live Activity: \(error)")
+            AppLogger.sessionTimer.error("Failed to start Live Activity: \(error)")
         }
     }
     
@@ -730,7 +731,7 @@ public final class SessionTimerManager {
     /// Call this method from the ActiveSessionDetails timer callback
     public func updateFromActiveSession() {
         guard let activeSession = activeSession else { 
-            print("⚠️ updateFromActiveSession called but no active session")
+            AppLogger.sessionTimer.warning("updateFromActiveSession called but no active session")
             return 
         }
         
@@ -741,7 +742,7 @@ public final class SessionTimerManager {
             startDate: activeSession.startDate,
             isActive: true
         )
-        print("🔄 Updated Live Activity: \(activeSession.elapsedTime)s")
+        AppLogger.sessionTimer.debug("Updated Live Activity: \(activeSession.elapsedTime)s")
         #endif
     }
     
@@ -773,7 +774,7 @@ public final class SessionTimerManager {
                 dismissalPolicy: .immediate
             )
             liveActivity = nil
-            print("✅ Live Activity ended")
+            AppLogger.sessionTimer.info("Live Activity ended")
         }
     }
     #endif

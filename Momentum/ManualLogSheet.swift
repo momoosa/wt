@@ -77,13 +77,10 @@ struct ManualLogSheet: View {
             start: startDate,
             end: endDate,
             healthKitType: nil, // Manual entry, not from HealthKit
-            needsHealthKitRecord: false
+            needsHealthKitRecord: false,
+            notes: notes.isEmpty ? nil : notes
         )
         historicalSession.goalIDs.append(session.goal.id.uuidString)
-        
-        if !notes.isEmpty {
-            // TODO: Add notes property to HistoricalSession if needed
-        }
         
         // Add to day
         day.add(historicalSession: historicalSession)

@@ -9,6 +9,7 @@ import Foundation
 import UserNotifications
 import SwiftUI
 import Combine
+import OSLog
 /// Schedules intelligent notifications based on AI-generated plans
 @MainActor
 public class SmartNotificationScheduler: ObservableObject {
@@ -385,7 +386,7 @@ public struct SmartNotificationView: View {
                 userActivity: userActivity
             )
         } catch {
-            print("Failed to schedule notifications: \(error)")
+            AppLogger.notifications.error("Failed to schedule notifications: \(error)")
         }
     }
 }

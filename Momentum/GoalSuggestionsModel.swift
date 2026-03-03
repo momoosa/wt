@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import OSLog
 
 // MARK: - Root Model
 
@@ -66,7 +67,7 @@ class GoalSuggestionsLoader {
         
         // Load from bundle
         guard let url = Bundle.main.url(forResource: "GoalSuggestions", withExtension: "json") else {
-            print("❌ Could not find GoalSuggestions.json")
+            AppLogger.app.error("Could not find GoalSuggestions.json")
             return GoalSuggestionsData(categories: [])
         }
         
@@ -75,10 +76,10 @@ class GoalSuggestionsLoader {
             let decoder = JSONDecoder()
             let suggestionsData = try decoder.decode(GoalSuggestionsData.self, from: data)
             cachedData = suggestionsData
-            print("✅ Loaded \(suggestionsData.categories.count) goal categories")
+            AppLogger.app.info("Loaded \(suggestionsData.categories.count) goal categories")
             return suggestionsData
         } catch {
-            print("❌ Failed to decode GoalSuggestions.json: \(error)")
+            AppLogger.app.error("Failed to decode GoalSuggestions.json: \(error)")
             return GoalSuggestionsData(categories: [])
         }
     }

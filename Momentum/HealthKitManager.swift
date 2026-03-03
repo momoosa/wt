@@ -9,6 +9,7 @@ import Foundation
 import HealthKit
 import Observation
 import MomentumKit
+import OSLog
 /// Manages HealthKit data access and queries
 @MainActor
 @Observable
@@ -251,7 +252,7 @@ public final class HealthKitManager {
                     let duration = try await self.fetchTodayDuration(for: metric)
                     onChange(duration)
                 } catch {
-                    print("Error fetching updated metric: \(error)")
+                    AppLogger.healthKit.error("Error fetching updated metric: \(error)")
                 }
                 completionHandler()
             }

@@ -9,6 +9,7 @@ import Foundation
 import UserNotifications
 import SwiftData
 import MomentumKit
+import OSLog
 
 @MainActor
 public class GoalNotificationManager {
@@ -38,7 +39,7 @@ public class GoalNotificationManager {
         await cancelScheduleNotifications(for: goal)
         
         guard goal.scheduleNotificationsEnabled && goal.hasSchedule else {
-            print("⏭️ Skipping schedule notifications for '\(goal.title)': disabled or no schedule")
+            AppLogger.notifications.debug("Skipping schedule notifications for '\(goal.title)': disabled or no schedule")
             return
         }
         
@@ -64,7 +65,7 @@ public class GoalNotificationManager {
             }
         }
         
-        print("✅ Scheduled notifications for '\(goal.title)' for next 7 days")
+        AppLogger.notifications.info("Scheduled notifications for '\(goal.title)' for next 7 days")
     }
     
     /// Schedule a single notification for a goal at a specific date and time
@@ -116,7 +117,7 @@ public class GoalNotificationManager {
             let formatter = DateFormatter()
             formatter.dateStyle = .short
             formatter.timeStyle = .short
-            print("📅 Scheduled: '\(goal.title)' for \(formatter.string(from: notificationDate))")
+            AppLogger.notifications.debug("Scheduled: '\(goal.title)' for \(formatter.string(from: notificationDate))")
         }
     }
     
@@ -145,9 +146,9 @@ public class GoalNotificationManager {
         
         do {
             try await notificationCenter.add(request)
-            print("▶️ Sent session start notification for '\(goal.title)'")
+            AppLogger.notifications.info("Sent session start notification for '\(goal.title)'")
         } catch {
-            print("❌ Failed to send session start notification: \(error)")
+            AppLogger.notifications.error("Failed to send session start notification: \(error)")
         }
     }
     
@@ -177,9 +178,9 @@ public class GoalNotificationManager {
         
         do {
             try await notificationCenter.add(request)
-            print("🎉 Sent completion notification for '\(goal.title)'")
+            AppLogger.notifications.info("Sent completion notification for '\(goal.title)'")
         } catch {
-            print("❌ Failed to send completion notification: \(error)")
+            AppLogger.notifications.error("Failed to send completion notification: \(error)")
         }
     }
     
@@ -218,7 +219,7 @@ public class GoalNotificationManager {
         
         notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
         
-        print("🗑️ Cancelled schedule notifications for '\(goal.title)'")
+        AppLogger.notifications.info("Cancelled schedule notifications for '\(goal.title)'")
     }
     
     /// Cancel all notifications (both schedule and completion) for a goal
@@ -231,7 +232,7 @@ public class GoalNotificationManager {
         
         notificationCenter.removePendingNotificationRequests(withIdentifiers: goalIdentifiers)
         
-        print("🗑️ Cancelled all notifications for '\(goal.title)'")
+        AppLogger.notifications.info("Cancelled all notifications for '\(goal.title)'")
     }
     
     /// Cancel all goal notifications across all goals
@@ -243,7 +244,7 @@ public class GoalNotificationManager {
         
         notificationCenter.removePendingNotificationRequests(withIdentifiers: goalIdentifiers)
         
-        print("🗑️ Cancelled all goal notifications")
+        AppLogger.notifications.info("Cancelled all goal notifications")
     }
     
     // MARK: - Batch Operations

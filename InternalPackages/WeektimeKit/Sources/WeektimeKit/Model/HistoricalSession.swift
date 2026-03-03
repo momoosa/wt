@@ -26,14 +26,16 @@ public final class HistoricalSession {
     public var startDate: Date
     public var endDate: Date
     public var needsHealthKitRecord: Bool
+    public var notes: String?
     
-    public init(id: String = UUID().uuidString, title: String, start: Date, end: Date, healthKitType: String? = nil, needsHealthKitRecord: Bool) {
+    public init(id: String = UUID().uuidString, title: String, start: Date, end: Date, healthKitType: String? = nil, needsHealthKitRecord: Bool, notes: String? = nil) {
         self.id = id
         self.title = title
         self.startDate = start
         self.healthKitType = healthKitType
         self.endDate = end
         self.needsHealthKitRecord = needsHealthKitRecord
+        self.notes = notes
     }
     
     public var duration: Double { // TODO: Extension

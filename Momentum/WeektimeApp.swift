@@ -10,6 +10,7 @@ import SwiftData
 import MomentumKit
 import UserNotifications
 import BackgroundTasks
+import OSLog
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -47,7 +48,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             // Reload widgets with fresh data
             #if canImport(WidgetKit)
             WidgetKit.WidgetCenter.shared.reloadAllTimelines()
-            print("🔄 Background refresh: Reloaded widget timelines")
+            AppLogger.background.info("Background refresh: Reloaded widget timelines")
             #endif
         }
         
@@ -70,9 +71,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         do {
             try BGTaskScheduler.shared.submit(request)
-            print("📅 Scheduled background refresh")
+            AppLogger.background.info("Scheduled background refresh")
         } catch {
-            print("❌ Could not schedule app refresh: \(error)")
+            AppLogger.background.error("Could not schedule app refresh: \(error)")
         }
     }
     
@@ -88,7 +89,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         // Handle different notification types
         if let goalId = userInfo["goalId"] as? String {
-            print("📱 User tapped notification for goal: \(goalId)")
+            AppLogger.notifications.debug("User tapped notification for goal: \(goalId)")
             // TODO: Navigate to goal detail if needed
         }
         
@@ -114,30 +115,30 @@ struct MomentumApp: App {
         let appGroupIdentifier = "group.com.moosa.ios.momentum"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("❌ iOS: App Group container not found for '\(appGroupIdentifier)'")
+            AppLogger.data.error("iOS: App Group container not found for '\(appGroupIdentifier)'")
             fatalError("App Group container not found. Make sure '\(appGroupIdentifier)' is configured.")
         }
         
         let storeURL = containerURL.appendingPathComponent("default.store")
-        print("✅ iOS: Using shared container at: \(storeURL.path)")
+        AppLogger.data.info("iOS: Using shared container at: \(storeURL.path)")
         
         // Check if the database file exists
         if FileManager.default.fileExists(atPath: storeURL.path) {
-            print("✅ iOS: Database file exists")
+            AppLogger.data.info("iOS: Database file exists")
             // Get file size
             if let attrs = try? FileManager.default.attributesOfItem(atPath: storeURL.path),
                let fileSize = attrs[.size] as? UInt64 {
-                print("✅ iOS: Database file size: \(fileSize) bytes")
+                AppLogger.data.info("iOS: Database file size: \(fileSize) bytes")
             }
         } else {
-            print("⚠️ iOS: Database file does NOT exist - will be created")
+            AppLogger.data.warning("iOS: Database file does NOT exist - will be created")
         }
         
         let modelConfiguration = ModelConfiguration(url: storeURL)
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            print("✅ iOS: ModelContainer created successfully")
+            AppLogger.data.info("iOS: ModelContainer created successfully")
             
             // Debug: Query data counts
             let context = container.mainContext
@@ -149,19 +150,19 @@ struct MomentumApp: App {
                 let goals = try context.fetch(goalDescriptor)
                 let sessions = try context.fetch(sessionDescriptor)
                 let days = try context.fetch(dayDescriptor)
-                print("📊 iOS Data Counts: Goals=\(goals.count), Sessions=\(sessions.count), Days=\(days.count)")
+                AppLogger.data.debug("iOS Data Counts: Goals=\(goals.count), Sessions=\(sessions.count), Days=\(days.count)")
                 
                 #if targetEnvironment(simulator)
-                print("ℹ️ iOS: Running in simulator. Note that Watch simulator uses a separate App Group container.")
-                print("ℹ️ iOS: Data will be shared correctly on real devices (paired iPhone + Apple Watch).")
+                AppLogger.data.info("iOS: Running in simulator. Note that Watch simulator uses a separate App Group container.")
+                AppLogger.data.info("iOS: Data will be shared correctly on real devices (paired iPhone + Apple Watch).")
                 #endif
             } catch {
-                print("❌ iOS: Error fetching data counts: \(error)")
+                AppLogger.data.error("iOS: Error fetching data counts: \(error)")
             }
             
             return container
         } catch {
-            print("❌ iOS: Failed to create ModelContainer: \(error)")
+            AppLogger.data.error("iOS: Failed to create ModelContainer: \(error)")
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
@@ -215,10 +216,10 @@ struct MomentumApp: App {
     
     // Handle deep link URLs from widgets
     private func handleURL(_ url: URL) {
-        print("📱 Received URL: \(url.absoluteString)")
+        AppLogger.app.debug("Received URL: \(url.absoluteString)")
         
         guard url.scheme == "momentum" else {
-            print("⚠️ Invalid URL scheme")
+            AppLogger.app.warning("Invalid URL scheme")
             return
         }
         
@@ -227,24 +228,24 @@ struct MomentumApp: App {
             // Parse URL like: momentum://goal/{sessionID}
             guard let sessionID = url.pathComponents.last,
                   sessionID != "/" else {
-                print("⚠️ Invalid goal URL format")
+                AppLogger.app.warning("Invalid goal URL format")
                 return
             }
-            print("✅ Opening session: \(sessionID)")
+            AppLogger.app.info("Opening session: \(sessionID)")
             NotificationCenter.default.post(name: NSNotification.Name("OpenSessionFromWidget"), object: sessionID)
             
         case "search":
             // momentum://search
-            print("✅ Opening search")
+            AppLogger.app.info("Opening search")
             NotificationCenter.default.post(name: NSNotification.Name("OpenSearch"), object: nil)
             
         case "new":
             // momentum://new
-            print("✅ Opening new goal editor")
+            AppLogger.app.info("Opening new goal editor")
             NotificationCenter.default.post(name: NSNotification.Name("OpenNewGoal"), object: nil)
             
         default:
-            print("⚠️ Unknown URL host: \(url.host ?? "none")")
+            AppLogger.app.warning("Unknown URL host: \(url.host ?? "none")")
         }
     }
 }

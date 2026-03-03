@@ -8,6 +8,7 @@
 import SwiftUI
 import MomentumKit
 import SwiftData
+import OSLog
 
 @main
 struct MomentumWatch_Watch_AppApp: App {
@@ -25,26 +26,26 @@ struct MomentumWatch_Watch_AppApp: App {
         let appGroupIdentifier = "group.com.moosa.ios.momentum"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("❌ Watch: App Group container not found for '\(appGroupIdentifier)'")
-            print("❌ Watch: Make sure the App Group is configured in the watch target's capabilities")
+            AppLogger.watch.error("Watch: App Group container not found for '\(appGroupIdentifier)'")
+            AppLogger.watch.error("Watch: Make sure the App Group is configured in the watch target's capabilities")
             fatalError("App Group container not found. Make sure '\(appGroupIdentifier)' is configured.")
         }
         
         let storeURL = containerURL.appendingPathComponent("default.store")
-        print("✅ Watch: Using shared container at: \(storeURL.path)")
+        AppLogger.watch.info("Watch: Using shared container at: \(storeURL.path)")
         
         // Check if the database file exists
         if FileManager.default.fileExists(atPath: storeURL.path) {
-            print("✅ Watch: Database file exists")
+            AppLogger.watch.info("Watch: Database file exists")
         } else {
-            print("⚠️ Watch: Database file does NOT exist - will be created")
+            AppLogger.watch.warning("Watch: Database file does NOT exist - will be created")
         }
         
         let modelConfiguration = ModelConfiguration(url: storeURL)
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            print("✅ Watch: ModelContainer created successfully")
+            AppLogger.watch.info("Watch: ModelContainer created successfully")
             
             // Debug: Query data counts
             let context = container.mainContext
@@ -56,13 +57,13 @@ struct MomentumWatch_Watch_AppApp: App {
                 let goals = try context.fetch(goalDescriptor)
                 let sessions = try context.fetch(sessionDescriptor)
                 let days = try context.fetch(dayDescriptor)
-                print("📊 Watch Data Counts: Goals=\(goals.count), Sessions=\(sessions.count), Days=\(days.count)")
+                AppLogger.watch.debug("Watch Data Counts: Goals=\(goals.count), Sessions=\(sessions.count), Days=\(days.count)")
                 
                 #if targetEnvironment(simulator)
                 if goals.isEmpty && sessions.isEmpty {
-                    print("⚠️ Watch: No data found. NOTE: In iOS Simulator, iPhone and Watch use separate App Group containers.")
-                    print("⚠️ Watch: Data sharing between iPhone and Watch simulators is not supported.")
-                    print("⚠️ Watch: Creating sample data for simulator testing...")
+                    AppLogger.watch.warning("Watch: No data found. NOTE: In iOS Simulator, iPhone and Watch use separate App Group containers.")
+                    AppLogger.watch.warning("Watch: Data sharing between iPhone and Watch simulators is not supported.")
+                    AppLogger.watch.warning("Watch: Creating sample data for simulator testing...")
                     
                     // Create sample data for simulator testing
                     let calendar = Calendar.current
@@ -88,17 +89,17 @@ struct MomentumWatch_Watch_AppApp: App {
                     
                     // Save the context
                     try? context.save()
-                    print("✅ Watch: Created sample data for simulator testing")
-                    print("ℹ️ Watch: On real devices, data will sync from iPhone automatically.")
+                    AppLogger.watch.info("Watch: Created sample data for simulator testing")
+                    AppLogger.watch.info("Watch: On real devices, data will sync from iPhone automatically.")
                 }
                 #endif
             } catch {
-                print("❌ Watch: Error fetching data counts: \(error)")
+                AppLogger.watch.error("Watch: Error fetching data counts: \(error)")
             }
             
             return container
         } catch {
-            print("❌ Watch: Failed to create ModelContainer: \(error)")
+            AppLogger.watch.error("Watch: Failed to create ModelContainer: \(error)")
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()

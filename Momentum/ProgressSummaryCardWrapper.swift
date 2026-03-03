@@ -302,7 +302,8 @@ struct ProgressSummaryCard: View {
                     shimmerOffset = shimmerOffset == -200 ? 200 : -200
                 }
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 800_000_000)
                     withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
                         shimmerOffset = -200
                     }

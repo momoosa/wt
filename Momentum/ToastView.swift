@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 /// Toast configuration for displaying temporary messages with optional undo action
 struct ToastConfig: Identifiable, Equatable {
@@ -80,7 +81,8 @@ struct ToastView: View {
             }
             
             // Auto-dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
                 dismiss()
             }
         }
@@ -92,7 +94,8 @@ struct ToastView: View {
             opacity = 0
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
             onDismiss()
         }
     }
@@ -107,7 +110,7 @@ struct ToastView: View {
                 message: "Goal skipped",
                 showUndo: true,
                 onUndo: {
-                    print("Undo tapped")
+                    AppLogger.app.debug("Undo tapped")
                 }
             ),
             onDismiss: {}

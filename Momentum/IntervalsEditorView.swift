@@ -113,7 +113,8 @@ public struct IntervalsEditorView: View {
                                     let newGroup = IntervalGroup()
                                     intervalGroups.append(newGroup)
                                     // Focus the new group's text field after animation
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    Task { @MainActor in
+                                        try? await Task.sleep(nanoseconds: 300_000_000)
                                         focusedGroupID = newGroup.id
                                     }
                                 }

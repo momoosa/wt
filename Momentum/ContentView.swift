@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import HealthKit
+import OSLog
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -601,26 +602,26 @@ struct ContentView: View {
         let notificationGoals = goals.filter { $0.scheduleNotificationsEnabled && $0.hasSchedule && $0.status == .active }
         
         guard !notificationGoals.isEmpty else {
-            print("⏭️ No goals with notifications enabled")
+            AppLogger.notifications.debug("No goals with notifications enabled")
             return
         }
         
-        print("📅 Rescheduling notifications for \(notificationGoals.count) goals...")
+        AppLogger.notifications.info("Rescheduling notifications for \(notificationGoals.count) goals...")
         
         do {
             try await notificationManager.rescheduleAllGoals(goals: notificationGoals)
         } catch {
-            print("❌ Failed to reschedule notifications: \(error)")
+            AppLogger.notifications.error("Failed to reschedule notifications: \(error)")
         }
     }
     
     /// Check if we should auto-plan and run it if needed
     private func checkAndRunAutoPlan() async {
-        print("🔍 Auto-plan check: hasAutoPlannedToday=\(planningViewModel.hasAutoPlannedToday), goals.count=\(goals.count)")
+        AppLogger.planner.debug("Auto-plan check: hasAutoPlannedToday=\(planningViewModel.hasAutoPlannedToday), goals.count=\(goals.count)")
         
         // Skip if we've already auto-planned in this session (prevents duplicate runs)
         guard !planningViewModel.hasAutoPlannedToday else {
-            print("⏭️ Skipping: already planned in this session")
+            AppLogger.planner.debug("Skipping: already planned in this session")
             return
         }
         
@@ -629,7 +630,7 @@ struct ContentView: View {
         
         // Skip if there are no goals
         guard !goals.isEmpty else {
-            print("⏭️ Skipping: no goals available")
+            AppLogger.planner.debug("Skipping: no goals available")
             planningViewModel.hasAutoPlannedToday = false // Reset so it can try again if goals are added
             return
         }
@@ -641,12 +642,12 @@ struct ContentView: View {
         
         if lastPlanGeneratedTimestamp > 0 && timeSinceLastPlan < oneHourInSeconds {
             let remainingMinutes = Int((oneHourInSeconds - timeSinceLastPlan) / 60)
-            print("⏭️ Skipping: Plan generated \(Int(timeSinceLastPlan / 60)) minutes ago. Will regenerate in \(remainingMinutes) minutes")
+            AppLogger.planner.debug("Skipping: Plan generated \(Int(timeSinceLastPlan / 60)) minutes ago. Will regenerate in \(remainingMinutes) minutes")
             planningViewModel.hasAutoPlannedToday = false // Reset so it can try again later
             return
         }
         
-        print("✅ Starting auto-plan...")
+        AppLogger.planner.info("Starting auto-plan...")
         
         
         await generateDailyPlan()
@@ -681,7 +682,7 @@ struct ContentView: View {
                     do {
                         try await healthKitManager.requestAuthorization(for: newMetrics)
                     } catch {
-                        print("HealthKit authorization failed for new goals: \(error)")
+                        AppLogger.healthKit.error("HealthKit authorization failed for new goals: \(error)")
                     }
                 }
             }
@@ -963,7 +964,7 @@ struct ContentView: View {
             do {
                 try await healthKitManager.requestAuthorization(for: metrics)
             } catch {
-                print("HealthKit authorization failed: \(error)")
+                AppLogger.healthKit.error("HealthKit authorization failed: \(error)")
                 return
             }
             
@@ -995,7 +996,7 @@ struct ContentView: View {
                         }
                     }
                 } catch {
-                    print("Failed to fetch HealthKit data for \(goal.title): \(error)")
+                    AppLogger.healthKit.error("Failed to fetch HealthKit data for \(goal.title): \(error)")
                 }
             }
         }
@@ -1140,7 +1141,7 @@ struct ContentView: View {
                 }
                 healthKitObservers.append(observer)
             } catch {
-                print("Failed to start observer for \(metric.displayName): \(error)")
+                AppLogger.healthKit.error("Failed to start observer for \(metric.displayName): \(error)")
             }
         }
     }
@@ -1208,7 +1209,7 @@ struct ContentView: View {
                 
                 // Update timestamp to cache when plan was last generated
                 lastPlanGeneratedTimestamp = Date().timeIntervalSince1970
-                print("📝 Updated plan generation timestamp")
+                AppLogger.planner.debug("Updated plan generation timestamp")
                 
                 // Reload widgets to show updated sessions
                 #if canImport(WidgetKit)
@@ -1259,7 +1260,7 @@ struct ContentView: View {
             for try await partialPlan in stream {
                 // Check if task was cancelled
                 guard !Task.isCancelled else {
-                    print("🚫 Planning cancelled by user")
+                    AppLogger.planner.debug("Planning cancelled by user")
                     return
                 }
                 
@@ -1332,7 +1333,7 @@ struct ContentView: View {
             }
             
         } catch {
-            print("Planning failed: \(error)")
+            AppLogger.planner.error("Planning failed: \(error)")
             
             // Show error alert
             #if os(iOS)
@@ -1465,7 +1466,7 @@ struct ContentView: View {
                 }
                 
                 guard let matchedGoal = goal else {
-                    print("⚠️ Could not find goal for planned session: \(plannedSession.goalTitle) (ID: \(plannedSession.id))")
+                    AppLogger.planner.warning("Could not find goal for planned session: \(plannedSession.goalTitle) (ID: \(plannedSession.id))")
                     continue
                 }
                 
@@ -1519,11 +1520,11 @@ struct ContentView: View {
         guard let sessionID = sessionID,
               let uuid = UUID(uuidString: sessionID),
               let session = sessions.first(where: { $0.id == uuid }) else {
-            print("⚠️ Session not found for ID: \(sessionID ?? "nil")")
+            AppLogger.app.warning("Session not found for ID: \(sessionID ?? "nil")")
             return
         }
         
-        print("✅ Found session to open: \(session.title)")
+        AppLogger.app.info("Found session to open: \(session.title)")
         
         // Open the session detail using selectedSession which triggers NavigationLink
         selectedSession = session
