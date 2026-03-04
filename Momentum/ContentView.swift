@@ -1244,8 +1244,13 @@ struct ContentView: View {
                 max(1, timeBasedMaxSessions)
             )
             
-            // Don't remove all sessions - we want to keep sessions for goals not in the plan
-            // The applyPlan function will create/update sessions as needed
+            // Clear planning details at the start to give a "from scratch" appearance
+            await MainActor.run {
+                for session in sessions {
+                    session.clearPlanningDetails()
+                }
+                try? modelContext.save()
+            }
             
             // Use streaming to get real-time updates
             let stream = planningViewModel.planner.streamDailyPlan(
@@ -1286,22 +1291,20 @@ struct ContentView: View {
                         )
                     }
                     
-                    // Only update if we have at least one fully generated session
+                    // Only update latestPlan - don't apply yet to avoid reordering during streaming
                     if !fullyGeneratedSessions.isEmpty {
                         let plan = DailyPlan(
                             sessions: fullyGeneratedSessions,
                             overallStrategy: partialPlan.overallStrategy ?? nil
                         )
                         latestPlan = plan
-                        
-                        // Apply the partial plan as it streams in
-                        await applyPlan(plan)
                     }
                 }
             }
             
-            // Use the final plan for animation or direct application
+            // Apply the final plan once after streaming completes
             if let plan = latestPlan {
+                await applyPlan(plan)
                 await animatePlannedSessions(plan)
 
                 

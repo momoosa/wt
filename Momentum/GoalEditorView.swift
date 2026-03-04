@@ -1279,6 +1279,42 @@ struct GoalEditorView: View {
                     )
                 }
             }
+        } else {
+            // Show toast for new goal creation
+            let calendar = Calendar.current
+            let todayWeekday = calendar.component(.weekday, from: Date())
+            let isScheduledForToday = !goal.timesForWeekday(todayWeekday).isEmpty
+            
+            let message: String
+            if isScheduledForToday {
+                message = "'\(goal.title)' created and available in Today"
+            } else {
+                // Get the next scheduled day
+                let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+                var nextScheduledDay: String?
+                
+                // Check days starting from tomorrow
+                for offset in 1...7 {
+                    let futureDate = calendar.date(byAdding: .day, value: offset, to: Date())!
+                    let futureWeekday = calendar.component(.weekday, from: futureDate)
+                    if !goal.timesForWeekday(futureWeekday).isEmpty {
+                        nextScheduledDay = weekdayNames[futureWeekday]
+                        break
+                    }
+                }
+                
+                if let nextDay = nextScheduledDay {
+                    message = "'\(goal.title)' created. Next scheduled: \(nextDay)"
+                } else {
+                    message = "'\(goal.title)' created with no schedule set"
+                }
+            }
+            
+            // Post notification to show toast in ContentView
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ShowToast"),
+                object: message
+            )
         }
         
         // Reload widgets to show the new goal

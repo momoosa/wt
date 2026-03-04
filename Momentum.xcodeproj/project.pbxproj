@@ -45,6 +45,9 @@
 		CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */; };
 		CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */; };
 		CD2A6FBF2F576B9100F5503A /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBE2F576B9100F5503A /* AppLogger.swift */; };
+		CD2A6FC12F5778EB00F5503A /* ColorConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FC02F5778EB00F5503A /* ColorConstants.swift */; };
+		CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */; };
+		CD2A6FC72F57795400F5503A /* CommonModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FC62F57795400F5503A /* CommonModifiers.swift */; };
 		CD39BD2D2F2F633800F7265A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2C2F2F633800F7265A /* WidgetKit.framework */; };
 		CD39BD2F2F2F633800F7265A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD39BD2E2F2F633800F7265A /* SwiftUI.framework */; };
 		CD39BD402F2F633A00F7265A /* MomentumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -190,6 +193,9 @@
 		CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayConstants.swift; sourceTree = "<group>"; };
 		CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationPresets.swift; sourceTree = "<group>"; };
 		CD2A6FBE2F576B9100F5503A /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
+		CD2A6FC02F5778EB00F5503A /* ColorConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorConstants.swift; sourceTree = "<group>"; };
+		CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeColorHelper.swift; sourceTree = "<group>"; };
+		CD2A6FC62F57795400F5503A /* CommonModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonModifiers.swift; sourceTree = "<group>"; };
 		CD39BD2B2F2F633800F7265A /* MomentumWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MomentumWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -376,8 +382,25 @@
 				CD2A6FB82F576B6B00F5503A /* LayoutConstants.swift */,
 				CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */,
 				CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */,
+				CD2A6FC02F5778EB00F5503A /* ColorConstants.swift */,
 			);
 			path = Constants;
+			sourceTree = "<group>";
+		};
+		CD2A6FC22F5778F300F5503A /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		CD2A6FC52F57794700F5503A /* Modifiers */ = {
+			isa = PBXGroup;
+			children = (
+				CD2A6FC62F57795400F5503A /* CommonModifiers.swift */,
+			);
+			path = Modifiers;
 			sourceTree = "<group>";
 		};
 		CD5601642EEB2FC4001D0BB0 /* Screentime */ = {
@@ -486,6 +509,8 @@
 				CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */,
 				CD2A6FB42F576B5600F5503A /* Utilities */,
 				CD2A6FB52F576B5600F5503A /* Constants */,
+				CD2A6FC22F5778F300F5503A /* Helpers */,
+				CD2A6FC52F57794700F5503A /* Modifiers */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -804,6 +829,7 @@
 				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
+				CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
@@ -827,12 +853,14 @@
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
 				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
+				CD2A6FC12F5778EB00F5503A /* ColorConstants.swift in Sources */,
 				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
 				CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */,
 				CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */,
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
 				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
+				CD2A6FC72F57795400F5503A /* CommonModifiers.swift in Sources */,
 				CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */,
 				CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */,
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,

@@ -24,8 +24,8 @@ extension ContentView {
                 "skippedSessions"
             case .inactive:
                 "inactive"
-            case .theme(let theme):
-                "theme_\(theme.id)"
+            case .theme(let tag):
+                "theme_\(tag.persistentModelID)"
             }
         }
         
@@ -41,8 +41,8 @@ extension ContentView {
                 return "Skipped"
             case .inactive:
                 return "Inactive"
-            case .theme(let theme):
-                return theme.title
+            case .theme(let tag):
+                return tag.title
             }
         }
         
@@ -56,8 +56,8 @@ extension ContentView {
                 return .orange
             case .inactive:
                 return .gray
-            case .theme(let goalTheme):
-                return goalTheme.theme.dark
+            case .theme(let tag):
+                return tag.theme.dark
             }
         }
         case activeToday
