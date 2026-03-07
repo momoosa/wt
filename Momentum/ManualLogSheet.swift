@@ -48,7 +48,7 @@ struct ManualLogSheet: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("Log \(session.goal.title)")
+            .navigationTitle("Log \(session.goal?.title ?? "Goal")")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -73,14 +73,16 @@ struct ManualLogSheet: View {
         
         let historicalSession = HistoricalSession(
             id: UUID().uuidString,
-            title: "\(session.goal.title) - Manual Entry",
+            title: "\(session.goal?.title ?? "Goal") - Manual Entry",
             start: startDate,
             end: endDate,
             healthKitType: nil, // Manual entry, not from HealthKit
             needsHealthKitRecord: false,
             notes: notes.isEmpty ? nil : notes
         )
-        historicalSession.goalIDs.append(session.goal.id.uuidString)
+        if let goalID = session.goal?.id.uuidString {
+            historicalSession.goalIDs.append(goalID)
+        }
         
         // Add to day
         day.add(historicalSession: historicalSession)

@@ -31,12 +31,12 @@ struct ThemeColorHelper {
     
     /// Get the appropriate tint color for a goal session
     func tintColor(for session: GoalSession) -> Color {
-        return accentColor(for: session.goal.primaryTag.theme)
+        return accentColor(for: session.goal?.primaryTag?.theme ?? Theme.default)
     }
     
     /// Get the appropriate tint color for a goal
     func tintColor(for goal: Goal) -> Color {
-        return accentColor(for: goal.primaryTag.theme)
+        return accentColor(for: goal.primaryTag?.theme ?? Theme.default)
     }
     
     /// Get the appropriate tint color for a goal tag

@@ -59,9 +59,9 @@ struct WatchActiveSessionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Goal title
-            Text(session.goal.title)
+            Text(session.goal?.title ?? "Unknown")
                 .font(.headline)
-                .foregroundStyle(session.goal.primaryTag.theme.color(for: .dark))
+                .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark))
             
             // Progress ring and time
             HStack {
@@ -72,7 +72,7 @@ struct WatchActiveSessionView: View {
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(
-                            session.goal.primaryTag.theme.color(for: .dark),
+                            (session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark),
                             style: StrokeStyle(lineWidth: 4, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
@@ -110,7 +110,7 @@ struct WatchActiveSessionView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(session.goal.primaryTag.theme.color(for: .dark).opacity(0.2))
+                .fill((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark).opacity(0.2))
         )
         .onAppear {
             updateElapsedTime()

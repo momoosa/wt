@@ -17,15 +17,17 @@ import SwiftData
 
 @Model
 public final class HistoricalSession {
-    public private(set) var id: String
+    public var id: String = UUID().uuidString
     public var goalIDs: [String] = []
-    public private(set) var title: String
-    public private(set) var healthKitType: String?
-    @Relationship
-    public private(set) var day: Day?
-    public var startDate: Date
-    public var endDate: Date
-    public var needsHealthKitRecord: Bool
+    public var title: String = ""
+    public var healthKitType: String?
+    
+    @Relationship(deleteRule: .nullify)
+    public var day: Day?
+    
+    public var startDate: Date = Date()
+    public var endDate: Date = Date()
+    public var needsHealthKitRecord: Bool = false
     public var notes: String?
     
     public init(id: String = UUID().uuidString, title: String, start: Date, end: Date, healthKitType: String? = nil, needsHealthKitRecord: Bool, notes: String? = nil) {

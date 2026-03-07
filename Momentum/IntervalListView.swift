@@ -19,7 +19,7 @@ private struct IntervalRow: View {
     let onTogglePlayback: () -> Void
     
     private var currentIndex: Int { index + 1 }
-    private var duration: TimeInterval { TimeInterval(item.interval.durationSeconds) }
+    private var duration: TimeInterval { TimeInterval(item.interval?.durationSeconds ?? 0) }
     private var progress: Double { 
         isActive ? min(max(elapsed / max(duration, 0.001), 0), 1) : 0
     }
@@ -34,7 +34,7 @@ private struct IntervalRow: View {
                         return isActive ? min(elapsed, duration) : 0
                     }()
                     
-                    Text("\(item.interval.name) \(currentIndex)/\(totalCount)")
+                    Text("\(item.interval?.name ?? "Interval") \(currentIndex)/\(totalCount)")
                         .fontWeight(.semibold)
                         .strikethrough(isCompleted, pattern: .solid, color: .primary)
                         .opacity(isCompleted ? 0.6 : 1)
@@ -94,7 +94,7 @@ struct IntervalListView: View {
     
     // Pre-compute sorted intervals to avoid recomputing on every update
     private var sortedIntervals: [IntervalSession] {
-        let allIntervals = listSession.intervals.sorted(by: { $0.interval.orderIndex < $1.interval.orderIndex })
+        let allIntervals = (listSession.intervals ?? []).sorted(by: { ($0.interval?.orderIndex ?? 0) < ($1.interval?.orderIndex ?? 0) })
         if let limit {
             return Array(allIntervals.prefix(limit))
         }
@@ -103,7 +103,7 @@ struct IntervalListView: View {
     
     // Cache whether all intervals are completed
     private var allIntervalsCompleted: Bool {
-        listSession.intervals.allSatisfy({ $0.isCompleted })
+        (listSession.intervals ?? []).allSatisfy({ $0.isCompleted })
     }
     
     // Cache total count
@@ -130,11 +130,11 @@ struct IntervalListView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 12)
-                    .foregroundStyle(listSession.list.goal?.primaryTag.theme.neon ?? .blue)
+                    .foregroundStyle(listSession.list?.goal?.primaryTag?.theme.neon ?? .blue)
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(
-                    (listSession.list.goal?.primaryTag.theme.neon ?? .blue)
+                    (listSession.list?.goal?.primaryTag?.theme.neon ?? .blue)
                         .opacity(0.1)
                 )
             }
@@ -146,13 +146,13 @@ struct IntervalListView: View {
                     totalCount: totalIntervalCount,
                     isActive: activeIntervalID == item.id,
                     elapsed: activeIntervalID == item.id ? intervalElapsed : 0,
-                    themeLight: listSession.list.goal?.primaryTag.theme.light ?? .blue,
+                    themeLight: listSession.list?.goal?.primaryTag?.theme.light ?? .blue,
                     onTogglePlayback: { toggleIntervalPlayback(for: item) }
                 )
             }
         } footer: {
             if let limit {
-                let totalCount = listSession.intervals.count
+                let totalCount = listSession.intervals?.count ?? 0
                 let remaining = totalCount - limit
                 if remaining > 0 {
                     Text("And \(remaining) more")
@@ -182,7 +182,7 @@ struct IntervalListView: View {
             // Starting or resuming a specific item
             var remainingOffset: TimeInterval = 0
             if activeIntervalID == nil, let start = intervalStartDate, item.id == activeIntervalID {
-                let duration = TimeInterval(item.interval.durationSeconds)
+                let duration = TimeInterval(item.interval?.durationSeconds ?? 0)
                 let elapsed = Date().timeIntervalSince(start)
                 remainingOffset = max(duration - elapsed, 0)
             }
@@ -220,10 +220,10 @@ struct IntervalListView: View {
         guard let activeIntervalID, let start = intervalStartDate else {
             return
         }
-        guard let current = listSession.intervals.first(where: { $0.id == activeIntervalID }) else {
+        guard let current = (listSession.intervals ?? []).first(where: { $0.id == activeIntervalID }) else {
             return
         }
-        let duration = TimeInterval(current.interval.durationSeconds)
+        let duration = TimeInterval(current.interval?.durationSeconds ?? 0)
         let newElapsed = Date().timeIntervalSince(start)
         
         // Update timer manager with current interval info (throttled to reduce CPU usage)
@@ -243,7 +243,7 @@ struct IntervalListView: View {
                 let currentIndex = sorted.firstIndex(where: { $0.id == activeIntervalID }).map { $0 + 1 } ?? 0
                 let totalCount = sorted.count
                 
-                timerManager.currentIntervalName = "\(current.interval.name) \(currentIndex)/\(totalCount)"
+                timerManager.currentIntervalName = "\(current.interval?.name ?? "Interval") \(currentIndex)/\(totalCount)"
                 timerManager.intervalProgress = newProgress
                 timerManager.intervalTimeRemaining = newRemaining
             }
@@ -255,7 +255,7 @@ struct IntervalListView: View {
         if newElapsed >= duration {
             // mark completed
             current.isCompleted = true
-            intervalElapsed = TimeInterval(current.interval.durationSeconds)
+            intervalElapsed = TimeInterval(current.interval?.durationSeconds ?? 0)
             // advance to next
             advanceToNextInterval(after: current)
         }
@@ -263,7 +263,7 @@ struct IntervalListView: View {
 
     private func advanceToNextInterval(after current: IntervalSession) {
         stopUITimer()
-        let sorted = listSession.intervals.sorted { $0.interval.orderIndex < $1.interval.orderIndex }
+        let sorted = (listSession.intervals ?? []).sorted { ($0.interval?.orderIndex ?? 0) < ($1.interval?.orderIndex ?? 0) }
         guard let idx = sorted.firstIndex(where: { $0.id == current.id }) else { return }
         let nextIndex = sorted.index(after: idx)
         if nextIndex < sorted.endIndex {
@@ -292,12 +292,12 @@ struct IntervalListView: View {
     
     private func startAllIntervals() {
         // Reset all intervals to not completed
-        for interval in listSession.intervals {
+        for interval in listSession.intervals ?? [] {
             interval.isCompleted = false
         }
         
         // Start the first interval
-        let sorted = listSession.intervals.sorted { $0.interval.orderIndex < $1.interval.orderIndex }
+        let sorted = (listSession.intervals ?? []).sorted { ($0.interval?.orderIndex ?? 0) < ($1.interval?.orderIndex ?? 0) }
         if let first = sorted.first {
             startInterval(item: first)
         }

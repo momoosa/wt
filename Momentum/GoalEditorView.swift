@@ -1003,8 +1003,8 @@ struct GoalEditorView: View {
         selectedGoalTheme = goal.primaryTag
         
         // Add to selected themes
-        if !selectedTags.contains(where: { $0.id == goal.primaryTag.id }) {
-            selectedTags.append(goal.primaryTag)
+        if let primaryTag = goal.primaryTag, !selectedTags.contains(where: { $0.id == primaryTag.id }) {
+            selectedTags.append(primaryTag)
         }
         
         // Load schedule
@@ -1766,7 +1766,7 @@ struct GoalEditorView: View {
     /// Find a theme that isn't currently used by any active goal
     func findUnusedTheme() -> Theme {
         // Get all theme IDs currently in use by active goals
-        let usedThemeIDs = Set(allGoals.filter { $0.status == .active }.map { $0.primaryTag.themeID })
+        let usedThemeIDs = Set(allGoals.filter { $0.status == .active }.compactMap { $0.primaryTag?.themeID })
         
         // Find first unused theme
         if let unusedPreset = themePresets.first(where: { !usedThemeIDs.contains($0.id) }) {

@@ -13,7 +13,7 @@ struct HealthKitInfoRow: View {
     let session: GoalSession
     
     var body: some View {
-        if session.goal.healthKitSyncEnabled, let metric = session.goal.healthKitMetric {
+        if session.goal?.healthKitSyncEnabled == true, let metric = session.goal?.healthKitMetric {
             VStack(spacing: 8) {
                 HStack {
                     Image(systemName: "heart.text.square.fill")

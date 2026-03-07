@@ -6,14 +6,20 @@ import SwiftData
 @Model
 public final class IntervalListSession: Identifiable {
     /// Unique identifier for the IntervalList.
-    public var id: String
+    public var id: String = UUID().uuidString
     /// The order index of the IntervalList.
-    public var orderIndex: Int
+    public var orderIndex: Int = 0
+    
     /// The Goal associated with this IntervalList.
-    public var goalSession: GoalSession?
+    @Relationship(deleteRule: .nullify)
+    public var session: GoalSession?
+    
     /// The collection of Interval items belonging to this list.
-    public var list: IntervalList
-    public var intervals: [IntervalSession]
+    @Relationship(deleteRule: .nullify)
+    public var list: IntervalList?
+    
+    @Relationship(deleteRule: .cascade)
+    public var intervals: [IntervalSession]? = []
 
     /// Initializes a new IntervalList.
     /// - Parameters:
@@ -23,22 +29,23 @@ public final class IntervalListSession: Identifiable {
     ///   - intervals: An optional array of Interval items. Defaults to empty.
     public init(list: IntervalList,
         orderIndex: Int = 0,
-        goal: GoalSession? = nil,
+        goal: GoalSession? = nil
     ) {
         self.id = UUID().uuidString
         self.orderIndex = orderIndex
-        self.goalSession = goal
+        self.session = goal
         self.list = list
         var intervals = [IntervalSession]()
-        for (index, interval) in list.intervals.enumerated() {
-            let interval = IntervalSession(interval: interval)
-            intervals.append(interval)
+        for interval in list.intervals ?? [] {
+            let intervalSession = IntervalSession(interval: interval)
+            intervalSession.listSession = self
+            intervals.append(intervalSession)
         }
         
         self.intervals = intervals
     }
     
     public func contains(id: String) -> Bool {
-        intervals.contains(where: { $0.id == id })
+        intervals?.contains(where: { $0.id == id }) ?? false
     }
 }

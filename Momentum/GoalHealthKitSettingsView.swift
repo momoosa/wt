@@ -52,7 +52,7 @@ struct GoalHealthKitSettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: metric.symbolName)
-                                    .foregroundStyle(goal.primaryTag.theme.dark)
+                                    .foregroundStyle(goal.primaryTag?.theme.dark ?? Theme.default.dark)
                                 Text(metric.description)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)

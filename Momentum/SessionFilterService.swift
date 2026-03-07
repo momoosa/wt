@@ -22,13 +22,13 @@ struct SessionFilterService {
         case .skippedSessions:
             return sessions.filter { $0.status == .skipped }.count
         case .activeToday:
-            return sessions.filter { $0.goal.status != .archived && $0.status != .skipped && $0.dailyTarget > 0 }.count
+            return sessions.filter { $0.goal?.status != .archived && $0.status != .skipped && $0.dailyTarget > 0 }.count
         case .allGoals:
             return sessions.count
         case .theme(let goalTheme):
             return sessions.filter {
-                $0.goal.primaryTag.themeID == goalTheme.themeID &&
-                $0.goal.status != .archived &&
+                $0.goal?.primaryTag?.themeID == goalTheme.themeID &&
+                $0.goal?.status != .archived &&
                 $0.status != .skipped &&
                 $0.dailyTarget > 0
             }.count
@@ -64,9 +64,9 @@ struct SessionFilterService {
             }
             
             // Apply weather filtering if enabled for this goal
-            if let weatherManager = weatherManager, session.goal.hasWeatherTriggers {
+            if let weatherManager = weatherManager, let goal = session.goal, goal.hasWeatherTriggers {
                 // If goal has weather triggers but they're not met, filter it out
-                guard meetsWeatherRequirements(session.goal, weatherManager: weatherManager) else {
+                guard meetsWeatherRequirements(goal, weatherManager: weatherManager) else {
                     return false
                 }
             }
@@ -76,7 +76,7 @@ struct SessionFilterService {
             let isSkipped: Bool
             
             do {
-                isArchived = session.goal.status == .archived
+                isArchived = session.goal?.status == .archived
                 isSkipped = session.status == .skipped
             } catch {
                 // If we can't access the status, assume it's not valid
@@ -91,7 +91,7 @@ struct SessionFilterService {
             case .skippedSessions:
                 return isSkipped
             case .theme(let goalTheme):
-                return session.goal.primaryTag.themeID == goalTheme.themeID && !isArchived && !isSkipped && !session.hasMetDailyTarget && session.dailyTarget > 0
+                return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && !session.hasMetDailyTarget && session.dailyTarget > 0
             case .completedToday:
                 return session.hasMetDailyTarget && session.dailyTarget > 0
             case .inactive:
@@ -116,7 +116,7 @@ struct SessionFilterService {
                 return false
             } else {
                 // Neither has a planned time - sort by goal title
-                return session1.goal.title < session2.goal.title
+                return (session1.goal?.title ?? "") < (session2.goal?.title ?? "")
             }
         }
     }
@@ -168,10 +168,10 @@ struct SessionFilterService {
         
         // Fallback: Use scoring algorithm (soft refresh)
         let scored = filtered.compactMap { session -> (GoalSession, Double)? in
-            guard validationCheck(session) else { return nil }
+            guard validationCheck(session), let goal = session.goal else { return nil }
             
             let score = planner.scoreSession(
-                for: session.goal,
+                for: goal,
                 session: session,
                 at: Date(),
                 preferences: preferences
@@ -224,7 +224,7 @@ struct SessionFilterService {
     /// - Returns: True if weather requirements are met or not enabled
     static func meetsWeatherRequirements(_ goal: Goal, weatherManager: WeatherManager) -> Bool {
         // If weather triggers aren't enabled, always show the goal
-        guard goal.weatherEnabled || goal.primaryTag.isSmart else {
+        guard goal.weatherEnabled || goal.primaryTag?.isSmart == true else {
             return true
         }
         

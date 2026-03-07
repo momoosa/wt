@@ -16,15 +16,20 @@ struct WatchSessionRow: View {
         // Get today's elapsed time from historical sessions
         let calendar = Calendar.current
         let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
-        
-        let todaySessions = day.historicalSessions.filter { historical in
+
+        guard let historicalSessions = day.historicalSessions,
+              let goalID = session.goal?.id.uuidString else {
+            return 0
+        }
+
+        let todaySessions = historicalSessions.filter { historical in
             let sessionComponents = calendar.dateComponents([.year, .month, .day], from: historical.startDate)
-            return historical.goalIDs.contains(session.goal.id.uuidString) &&
+            return historical.goalIDs.contains(goalID) &&
                    sessionComponents.year == todayComponents.year &&
                    sessionComponents.month == todayComponents.month &&
                    sessionComponents.day == todayComponents.day
         }
-        
+
         return todaySessions.reduce(into: 0) { $0 += Int($1.duration / 60) }
     }
     
@@ -51,7 +56,7 @@ struct WatchSessionRow: View {
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(
-                            session.goal.primaryTag.theme.color(for: .dark),
+                            (session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark),
                             style: StrokeStyle(lineWidth: 3, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
@@ -63,7 +68,7 @@ struct WatchSessionRow: View {
                 .frame(width: 40, height: 40)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(session.goal.title)
+                    Text(session.goal?.title ?? "Unknown")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .lineLimit(1)
@@ -91,7 +96,7 @@ struct WatchSessionRow: View {
                 
                 Image(systemName: "play.fill")
                     .font(.caption)
-                    .foregroundStyle(session.goal.primaryTag.theme.color(for: .dark))
+                    .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark))
             }
         }
         .buttonStyle(.plain)

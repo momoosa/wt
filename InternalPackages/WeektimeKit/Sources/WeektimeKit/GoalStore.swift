@@ -33,7 +33,7 @@ public final class GoalStore {
     public func getTodaySession(for goal: Goal) -> GoalSession? {
         let todayID = Date().yearMonthDayID(with: Calendar.current)
         return sessions.first { session in
-            session.goal.id == goal.id && session.day.id == todayID
+            session.goal?.id == goal.id && session.day?.id == todayID
         }
     }
     
@@ -51,7 +51,7 @@ public final class GoalStore {
             let dayID = date.yearMonthDayID(with: calendar)
             
             if let session = sessions.first(where: { 
-                $0.goal.id == goal.id && $0.day.id == dayID
+                $0.goal?.id == goal.id && $0.day?.id == dayID
             }) {
                 totalTime += session.elapsedTime
                 totalTime += session.healthKitTime

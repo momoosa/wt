@@ -5,15 +5,23 @@ import SwiftData
 @Model
 public final class IntervalList {
     /// Unique identifier for the IntervalList.
-    public var id: String
+    public var id: String = UUID().uuidString
     /// The name of the IntervalList.
-    public var name: String
+    public var name: String = ""
     /// The order index of the IntervalList.
-    public var orderIndex: Int
+    public var orderIndex: Int = 0
+    
     /// The Goal associated with this IntervalList.
+    @Relationship(deleteRule: .nullify)
     public var goal: Goal?
+    
     /// The collection of Interval items belonging to this list.
-    public var intervals: [Interval]
+    @Relationship(deleteRule: .cascade, inverse: \Interval.list)
+    public var intervals: [Interval]? = []
+    
+    /// Inverse relationship for sessions using this list
+    @Relationship(deleteRule: .nullify, inverse: \IntervalListSession.list)
+    public var sessions: [IntervalListSession]? = []
 
     /// Initializes a new IntervalList.
     /// - Parameters:
@@ -32,7 +40,7 @@ public final class IntervalList {
         self.orderIndex = orderIndex
         self.goal = goal
         self.intervals = intervals
-        for (index, interval) in self.intervals.enumerated() {
+        for (index, interval) in intervals.enumerated() {
             interval.list = self
             interval.orderIndex = index
         }
@@ -41,19 +49,25 @@ public final class IntervalList {
     /// Adds a single Interval to the list.
     /// - Parameter interval: The Interval to add.
     public func addInterval(_ interval: Interval) {
+        if intervals == nil {
+            intervals = []
+        }
         interval.list = self
-        interval.orderIndex = intervals.count
-        intervals.append(interval)
+        interval.orderIndex = intervals?.count ?? 0
+        intervals?.append(interval)
     }
 
     /// Adds multiple Intervals to the list.
     /// - Parameter intervals: The array of Intervals to add.
     public func addIntervals(_ intervals: [Interval]) {
-        let startIndex = self.intervals.count
+        if self.intervals == nil {
+            self.intervals = []
+        }
+        let startIndex = self.intervals?.count ?? 0
         for (offset, interval) in intervals.enumerated() {
             interval.list = self
             interval.orderIndex = startIndex + offset
         }
-        self.intervals.append(contentsOf: intervals)
+        self.intervals?.append(contentsOf: intervals)
     }
 }

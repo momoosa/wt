@@ -47,7 +47,8 @@ struct GoalRow: View {
         var totalTime: TimeInterval = 0
         
         for day in allDays {
-            if let session = day.sessions.first(where: { $0.goal.id == goal.id }) {
+            if let sessions = day.sessions,
+               let session = sessions.first(where: { $0.goal?.id == goal.id }) {
                 // Add manual elapsed time
                 totalTime += session.elapsedTime
                 
@@ -55,8 +56,8 @@ struct GoalRow: View {
                 totalTime += session.healthKitTime
                 
                 // Add manual historical sessions
-                let manualHistoricalTime = session.historicalSessions
-                    .filter { $0.healthKitType == nil }
+                let historicalSessions = session.historicalSessions
+                let manualHistoricalTime = historicalSessions.filter { $0.healthKitType == nil }
                     .reduce(0.0) { $0 + $1.duration }
                 totalTime += manualHistoricalTime
             }
@@ -156,7 +157,7 @@ struct SevenDayBarChart: View {
         // Create a lookup dictionary for faster access
         let daysByID = Dictionary(uniqueKeysWithValues: allDays.map { ($0.id, $0) })
         
-        return (0..<7).map { dayOffset in
+        return (0..<7).map { dayOffset -> (String, TimeInterval, Date) in
             guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek) else {
                 return ("", 0, Date())
             }
@@ -164,7 +165,7 @@ struct SevenDayBarChart: View {
             let dayID = date.yearMonthDayID(with: calendar)
             
             // Find the session for this goal
-            let session = daysByID[dayID]?.sessions.first(where: { $0.goal.id == goal.id })
+            let session = daysByID[dayID]?.sessions?.first(where: { $0.goal?.id == goal.id })
             
             // Calculate total progress from manual tracking + HealthKit + historical sessions
             var totalProgress: TimeInterval = 0
@@ -178,8 +179,8 @@ struct SevenDayBarChart: View {
             // Add historical sessions for this goal (manual logs, not HealthKit as those are already in healthKitTime)
             // Only count manual historical sessions to avoid double-counting HealthKit data
             if let session = session {
-                let manualHistoricalTime = session.historicalSessions
-                    .filter { $0.healthKitType == nil } // Only manual entries
+                let historicalSessions = session.historicalSessions
+                let manualHistoricalTime = historicalSessions.filter { $0.healthKitType == nil } // Only manual entries
                     .reduce(0.0) { $0 + $1.duration }
                 totalProgress += manualHistoricalTime
             }
@@ -213,14 +214,14 @@ struct SevenDayBarChart: View {
                         .overlay(alignment: .bottom) {
                             if isToday {
                                 RoundedRectangle(cornerRadius: 1.5)
-                                    .strokeBorder(goal.primaryTag.themePreset.color(for: colorScheme), lineWidth: 0.75)
+                                    .strokeBorder(goal.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme), lineWidth: 0.75)
                             }
                         }
                     
                     // Day label
                     Text(data.day)
                         .font(.caption2)
-                        .foregroundStyle(isToday ? goal.primaryTag.themePreset.color(for: colorScheme) : .secondary)
+                        .foregroundStyle(isToday ? (goal.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)) : .secondary)
                         .fontWeight(isToday ? .semibold : .regular)
                 }
                 .frame(maxWidth: .infinity)
@@ -231,9 +232,9 @@ struct SevenDayBarChart: View {
     
     private func barColor(for progress: TimeInterval) -> Color {
         if progress >= dailyTarget {
-            return goal.primaryTag.themePreset.neon
+            return goal.primaryTag?.themePreset.neon ?? themePresets[0].neon
         } else if progress > 0 {
-            return goal.primaryTag.themePreset.light.opacity(0.6)
+            return (goal.primaryTag?.themePreset.light ?? themePresets[0].light).opacity(0.6)
         } else {
             return Color(.systemGray5)
         }

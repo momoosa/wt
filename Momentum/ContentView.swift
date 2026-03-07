@@ -63,10 +63,12 @@ struct ContentView: View {
     @State private var weatherManager = WeatherManager.shared
     
     var body: some View {
+        let recommendedSessionIDs = getRecommendedSessions().map { $0.id }
+        
         mainListView
             .animation(.spring(), value: goals)
             .animation(AnimationPresets.smoothSpring, value: sessions.count)
-            .animation(AnimationPresets.smoothSpring, value: getRecommendedSessions().map { $0.id })
+            .animation(AnimationPresets.smoothSpring, value: recommendedSessionIDs)
             .overlay {
                 VStack(spacing: 0) {
                     if focusFilterStore.isFocusFilterActive {
@@ -189,7 +191,7 @@ struct ContentView: View {
                             )
                         }
                     )
-                    .tint(session.goal.primaryTag.themePreset.dark)
+                    .tint(session.goal?.primaryTag?.themePreset.dark ?? .blue)
                     .environment(goalStore)
                 }
             }
@@ -249,7 +251,7 @@ struct ContentView: View {
                     .frame(height: LayoutConstants.Heights.smallSpacer)
             }
 
-            if !day.historicalSessions.isEmpty && activeFilter == .activeToday {
+            if !(day.historicalSessions?.isEmpty ?? true) && activeFilter == .activeToday {
                 Section {
                     dailyProgressCard
                         .matchedTransitionSource(id: "dayOverviewCard", in: animation)
@@ -551,7 +553,7 @@ struct ContentView: View {
         var total = 0
         for session in sessions {
             guard session.status != .skipped else { continue }
-            guard session.goal.status != .archived else { continue }
+            guard session.goal?.status != .archived else { continue }
             total += Int(session.dailyTarget / 60)
         }
         return total
@@ -560,7 +562,7 @@ struct ContentView: View {
     private var completedGoalsCount: Int {
         sessions.filter { session in
             guard session.status != .skipped else { return false }
-            guard session.goal.status != .archived else { return false }
+            guard session.goal?.status != .archived else { return false }
             return session.hasMetDailyTarget
         }.count
     }
@@ -568,7 +570,7 @@ struct ContentView: View {
     private var totalActiveGoals: Int {
         sessions.filter { session in
             guard session.status != .skipped else { return false }
-            guard session.goal.status != .archived else { return false }
+            guard session.goal?.status != .archived else { return false }
             return true
         }.count
     }
@@ -767,7 +769,8 @@ struct ContentView: View {
     private func updateExistingSessionReasons() async {
         await MainActor.run {
             for session in sessions where session.plannedStartTime != nil {
-                let reasons = calculateRecommendationReasons(for: session, goal: session.goal)
+                guard let goal = session.goal else { continue }
+                let reasons = calculateRecommendationReasons(for: session, goal: goal)
                 session.recommendationReasons = reasons
             }
             try? modelContext.save()
@@ -882,9 +885,10 @@ struct ContentView: View {
         var seenIDs: Set<String> = []
         
         for goal in activeGoals {
-            let themeID = goal.primaryTag.themeID
+            guard let primaryTag = goal.primaryTag else { continue }
+            let themeID = primaryTag.themeID
             if !seenIDs.contains(themeID) {
-                uniqueThemes.append(goal.primaryTag)
+                uniqueThemes.append(primaryTag)
                 seenIDs.insert(themeID)
             }
         }
@@ -910,7 +914,8 @@ struct ContentView: View {
         let activeTags = focusFilterStore.activeFocusTagTitles
         guard !activeTags.isEmpty else { return Array(sessions) }
         return sessions.filter { session in
-            activeTags.contains(session.goal.primaryTag.title)
+            guard let primaryTag = session.goal?.primaryTag else { return false }
+            return activeTags.contains(primaryTag.title)
         }
     }
 
@@ -921,7 +926,7 @@ struct ContentView: View {
         
         self._sessions = Query(
             filter: #Predicate<GoalSession> { event in
-                event.day.id == dayID
+                event.day?.id == dayID
             }
         )
     }
@@ -982,9 +987,10 @@ struct ContentView: View {
         
         do {
             _ = session.status
-            _ = session.goal.id
-            _ = session.goal.title
-            _ = session.goal.status
+            guard let goal = session.goal else { return false }
+            _ = goal.id
+            _ = goal.title
+            _ = goal.status
             return true
         } catch {
             return false
@@ -1099,7 +1105,7 @@ struct ContentView: View {
                     
                     // Update the corresponding session
                     await MainActor.run {
-                        if let session = sessions.first(where: { $0.goal.id == goal.id }) {
+                        if let session = sessions.first(where: { $0.goal?.id == goal.id }) {
                             session.updateHealthKitTime(duration)
                             
                             // Create or update historical sessions from HealthKit samples
@@ -1120,7 +1126,7 @@ struct ContentView: View {
         
         // Get existing HealthKit-sourced historical sessions for this goal and day
         let existingHealthKitSessionIDs = Set(
-            day.historicalSessions
+            (day.historicalSessions ?? [])
                 .filter { $0.healthKitType != nil && $0.goalIDs.contains(goal.id.uuidString) }
                 .map { $0.id }
         )
@@ -1153,7 +1159,7 @@ struct ContentView: View {
         }
         
         // Remove historical sessions that no longer exist in HealthKit
-        let sessionsToRemove = day.historicalSessions.filter { session in
+        let sessionsToRemove = (day.historicalSessions ?? []).filter { session in
             guard session.healthKitType != nil,
                   session.goalIDs.contains(goal.id.uuidString) else {
                 return false
@@ -1336,7 +1342,8 @@ struct ContentView: View {
             // Filter by selected themes if any are selected
             if !planningViewModel.selectedThemes.isEmpty {
                 activeGoals = activeGoals.filter { goal in
-                    planningViewModel.selectedThemes.contains(goal.primaryTag.themeID)
+                    guard let primaryTag = goal.primaryTag else { return false }
+                    return planningViewModel.selectedThemes.contains(primaryTag.themeID)
                 }
             }
             
@@ -1422,8 +1429,11 @@ struct ContentView: View {
                 // Clear planning details for sessions NOT in the plan
                 await MainActor.run {
                     let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
-                    for session in sessions where !plannedGoalIDs.contains(session.goal.id) {
-                        session.clearPlanningDetails()
+                    for session in sessions {
+                        guard let goalID = session.goal?.id else { continue }
+                        if !plannedGoalIDs.contains(goalID) {
+                            session.clearPlanningDetails()
+                        }
                     }
                     try? modelContext.save()
                 }
@@ -1432,7 +1442,7 @@ struct ContentView: View {
             // Ensure all active goals have sessions (even if not in the plan)
             await MainActor.run {
                 let allActiveGoals = goals.filter { $0.status == .active }
-                let existingSessionGoalIDs = Set(sessions.map { $0.goal.id })
+                let existingSessionGoalIDs = Set(sessions.compactMap { $0.goal?.id })
                 
                 for goal in allActiveGoals {
                     if !existingSessionGoalIDs.contains(goal.id) {
@@ -1534,7 +1544,7 @@ struct ContentView: View {
         }
         
         // 5. Planned Theme - check if matches selected themes
-        if planningViewModel.selectedThemes.contains(goal.primaryTag.themeID) {
+        if let primaryTag = goal.primaryTag, planningViewModel.selectedThemes.contains(primaryTag.themeID) {
             reasons.append(.plannedTheme)
         }
         
@@ -1550,7 +1560,7 @@ struct ContentView: View {
     @MainActor
     private func applyPlan(_ plan: DailyPlan) async {
             // Get existing sessions to avoid duplicates during streaming
-            let existingSessionGoalIDs = Set(sessions.map { $0.goal.id })
+            let existingSessionGoalIDs = Set(sessions.compactMap { $0.goal?.id })
             
             // Sort planned sessions by start time to maintain stable order during streaming
             let sortedPlannedSessions = plan.sessions.sorted { session1, session2 in
@@ -1585,7 +1595,7 @@ struct ContentView: View {
                 }
                 
                 // Check if a session already exists for this goal
-                if let existingSession = sessions.first(where: { $0.goal.id == matchedGoal.id }) {
+                if let existingSession = sessions.first(where: { $0.goal?.id == matchedGoal.id }) {
                     // Update existing session's planning details
                     // Convert time string (e.g., "09:30") to Date for today
                     if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {

@@ -66,7 +66,7 @@ struct StartGoalTimerIntent: AppIntent {
         let sessions = try context.fetch(sessionDescriptor)
         
         let session: GoalSession
-        if let existingSession = sessions.first(where: { $0.goalID == selectedGoal.id.uuidString && $0.day.id == todayID }) {
+        if let existingSession = sessions.first(where: { $0.goalID == selectedGoal.id.uuidString && $0.day?.id == todayID }) {
             session = existingSession
         } else {
             // Create new session
@@ -283,7 +283,7 @@ struct CheckGoalProgressIntent: AppIntent {
             let sessionDescriptor = FetchDescriptor<GoalSession>()
             
             let sessions = try? context.fetch(sessionDescriptor)
-            if let session = sessions?.first(where: { $0.goalID == selectedGoal.id.uuidString && $0.day.id == dayID }) {
+            if let session = sessions?.first(where: { $0.goalID == selectedGoal.id.uuidString && $0.day?.id == dayID }) {
                 totalTime += session.elapsedTime
                 totalTime += session.healthKitTime
             }
@@ -394,7 +394,7 @@ struct GoalSummary: Codable {
         let descriptor = FetchDescriptor<GoalSession>()
         
         let sessions = try? context.fetch(descriptor)
-        if let session = sessions?.first(where: { $0.goalID == goal.id.uuidString && $0.day.id == todayID }) {
+        if let session = sessions?.first(where: { $0.goalID == goal.id.uuidString && $0.day?.id == todayID }) {
             let dailyTarget = session.dailyTarget
             let elapsed = session.elapsedTime + session.healthKitTime
             self.progress = dailyTarget > 0 ? Double(elapsed / dailyTarget) : 0.0
@@ -480,7 +480,13 @@ func createSharedModelContainer() throws -> ModelContainer {
     }
     
     let storeURL = groupContainer.appendingPathComponent("default.store")
-    let modelConfiguration = ModelConfiguration(url: storeURL)
+    
+    // CloudKit sync enabled (same as main app)
+    let cloudKitIdentifier = "iCloud.com.moosa.ios.momentum"
+    let modelConfiguration = ModelConfiguration(
+        url: storeURL,
+        cloudKitDatabase: .private(cloudKitIdentifier)
+    )
     
     return try ModelContainer(for: schema, configurations: [modelConfiguration])
 }

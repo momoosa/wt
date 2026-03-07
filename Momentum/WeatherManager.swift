@@ -159,17 +159,17 @@ class WeatherManager: NSObject, CLLocationManagerDelegate {
     /// Check if goal's weather requirements are met
     func meetsGoalWeatherRequirements(_ goal: Goal) -> Bool {
         // Check tag weather conditions
-        if let weatherConditions = goal.primaryTag.weatherConditionsTyped,
+        if let weatherConditions = goal.primaryTag?.weatherConditionsTyped,
            !weatherConditions.isEmpty {
             guard matchesAnyCondition(weatherConditions) else { return false }
         }
         
         // Check temperature requirements
-        if let minTemp = goal.primaryTag.minTemperature {
+        if let minTemp = goal.primaryTag?.minTemperature {
             guard temperatureAbove(minTemp) else { return false }
         }
         
-        if let maxTemp = goal.primaryTag.maxTemperature {
+        if let maxTemp = goal.primaryTag?.maxTemperature {
             guard temperatureBelow(maxTemp) else { return false }
         }
         

@@ -16,10 +16,10 @@ struct ListsOverviewView: View {
 
     var body: some View {
         VStack {
-            IntervalListSelector(lists: session.intervalLists, selectedListID: $selectedListID, tintColor: tintColor)
+            IntervalListSelector(lists: session.intervalLists ?? [], selectedListID: $selectedListID, tintColor: tintColor)
             TabView(selection: $selectedListID) {
                 
-                ForEach(session.intervalLists) { listSession in
+                ForEach(session.intervalLists ?? []) { listSession in
                     List {
                         IntervalListView(listSession: listSession, activeIntervalID: $activeIntervalID, intervalStartDate: $intervalStartDate, intervalElapsed: $intervalElapsed, uiTimer: $uiTimer, timerManager: timerManager, goalSession: session)
                     }

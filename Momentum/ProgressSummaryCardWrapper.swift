@@ -86,15 +86,15 @@ struct ProgressSummaryCardWrapper: View {
     }
     
     var tintColor: Color {
-        let primaryTag = session.goal.primaryTag
-        return colorScheme == .dark ? primaryTag.theme.neon : primaryTag.theme.dark
+        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        return colorScheme == .dark ? theme.neon : theme.dark
     }
 
     var body: some View {
         ProgressSummaryCard(
             goalTitle: session.title,
-            themeName: session.goal.primaryTag.title,
-            themeColors: session.goal.primaryTag.theme,
+            themeName: session.goal?.primaryTag?.title ?? "Default",
+            themeColors: session.goal?.primaryTag?.theme ?? Theme.default,
             dailyProgress: session.progress,
             dailyElapsed: session.elapsedTime,
             dailyTarget: session.dailyTarget,
@@ -218,7 +218,9 @@ struct ProgressSummaryCard: View {
                             
                             // Start/Stop button
                             Button {
-                                timerManager.toggleTimer(for: session, in: session.day)
+                                if let day = session.day {
+                                    timerManager.toggleTimer(for: session, in: day)
+                                }
                             } label: {
                                 let isActive = timerManager.isActive(session)
                                 let isPaused = timerManager.activeSession?.isPaused ?? false

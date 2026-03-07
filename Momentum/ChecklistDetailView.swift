@@ -36,7 +36,7 @@ struct ChecklistDetailView: View {
     private let notificationManager = GoalNotificationManager()
 
     var tintColor: Color {
-        let theme = session.goal.primaryTag.theme
+        let theme = session.goal?.primaryTag?.theme ?? Theme.default
         return colorScheme == .dark ? theme.light : theme.dark
     }
     
@@ -57,7 +57,7 @@ struct ChecklistDetailView: View {
         var points: [SchedulePoint] = []
         for (weekdayNum, dayLabel) in weekdays {
             for timeOfDay in TimeOfDay.allCases {
-                if session.goal.isScheduled(weekday: weekdayNum, time: timeOfDay) {
+                if session.goal?.isScheduled(weekday: weekdayNum, time: timeOfDay) ?? false {
                     points.append(SchedulePoint(weekday: dayLabel, timeOfDay: timeOfDay.displayName))
                 }
             }
@@ -71,7 +71,7 @@ struct ChecklistDetailView: View {
             (5, "T"), (6, "F"), (7, "S"), (1, "S")
         ]
         let times = Array(TimeOfDay.allCases)
-        let theme = session.goal.primaryTag.theme
+        let theme = session.goal?.primaryTag?.theme ?? Theme.default
         let goal = session.goal
         
         return VStack(spacing: 4) {
@@ -101,7 +101,7 @@ struct ChecklistDetailView: View {
                             ForEach(times, id: \.self) { time in
                                 HStack(spacing: 8) {
                                     ForEach(weekdays, id: \.0) { weekday, _ in
-                                        let isScheduled = session.goal.isScheduled(weekday: weekday, time: time)
+                                        let isScheduled = session.goal?.isScheduled(weekday: weekday, time: time) ?? false
                                         
                                         Image(systemName: time.icon)
                                             .font(.system(size: 14, weight: .medium))
@@ -122,7 +122,7 @@ struct ChecklistDetailView: View {
                         ForEach(times, id: \.self) { time in
                             HStack(spacing: 8) {
                                 ForEach(weekdays, id: \.0) { weekday, _ in
-                                    let isScheduled = session.goal.isScheduled(weekday: weekday, time: time)
+                                    let isScheduled = session.goal?.isScheduled(weekday: weekday, time: time) ?? false
                                     
                                     Image(systemName: time.icon)
                                         .font(.system(size: 14, weight: .medium))
@@ -142,7 +142,7 @@ struct ChecklistDetailView: View {
     
     // Weekly progress calculation
     var weeklyProgress: Double {
-        let target = session.goal.weeklyTarget
+        let target = session.goal?.weeklyTarget ?? 0
         guard target > 0 else { return 0 }
         return weeklyElapsedTime / target
     }
@@ -152,8 +152,8 @@ struct ChecklistDetailView: View {
         return session.elapsedTime
     }
     
-    var body: some View {
-        List {
+    @ViewBuilder
+    private var progressSection: some View {
             // Progress Summary Card
             Section {
             } header: {
@@ -173,7 +173,7 @@ struct ChecklistDetailView: View {
             }
             
             // Schedule Display
-            if session.goal.hasSchedule {
+            if session.goal?.hasSchedule == true {
                 Section {
                     scheduleChartView
                 } header: {
@@ -186,11 +186,14 @@ struct ChecklistDetailView: View {
                     }
                 }
             }
-            
+    }
+    
+    @ViewBuilder
+    private var settingsSection: some View {
             // Goal Settings Info
             Section {
                 // HealthKit Integration
-                if session.goal.healthKitSyncEnabled, let metric = session.goal.healthKitMetric {
+                if let goal = session.goal, goal.healthKitSyncEnabled == true, let metric = goal.healthKitMetric {
                     HStack {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
@@ -229,75 +232,79 @@ struct ChecklistDetailView: View {
                 }
                 
                 // Schedule Notifications Toggle
-                Toggle(isOn: Binding(
-                    get: { session.goal.scheduleNotificationsEnabled },
-                    set: { newValue in
-                        session.goal.scheduleNotificationsEnabled = newValue
-                        try? context.save()
-                        
-                        // Schedule or cancel schedule notifications
-                        Task {
-                            if newValue {
-                                try? await notificationManager.scheduleNotifications(for: session.goal)
-                            } else {
-                                await notificationManager.cancelScheduleNotifications(for: session.goal)
+                if let goal = session.goal {
+                    Toggle(isOn: Binding(
+                        get: { goal.scheduleNotificationsEnabled },
+                        set: { newValue in
+                            goal.scheduleNotificationsEnabled = newValue
+                            try? context.save()
+                            
+                            // Schedule or cancel schedule notifications
+                            Task {
+                                if newValue {
+                                    try? await notificationManager.scheduleNotifications(for: goal)
+                                } else {
+                                    await notificationManager.cancelScheduleNotifications(for: goal)
+                                }
                             }
                         }
-                    }
-                )) {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Start Notifications")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            if session.goal.hasSchedule {
-                                Text(session.goal.scheduleNotificationsEnabled ? "Notify when starting sessions" : "Tap to enable")
+                    )) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Start Notifications")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                if goal.hasSchedule {
+                                    Text(goal.scheduleNotificationsEnabled ? "Notify when starting sessions" : "Tap to enable")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             } else {
-                                Text(session.goal.scheduleNotificationsEnabled ? "Notify when starting sessions" : "Tap to enable")
+                                Text(goal.scheduleNotificationsEnabled ? "Notify when starting sessions" : "Tap to enable")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
                     } icon: {
-                        Image(systemName: session.goal.scheduleNotificationsEnabled ? "bell.badge.fill" : "bell.badge")
-                            .foregroundStyle(session.goal.scheduleNotificationsEnabled ? tintColor : .secondary)
+                        Image(systemName: goal.scheduleNotificationsEnabled ? "bell.badge.fill" : "bell.badge")
+                            .foregroundStyle(goal.scheduleNotificationsEnabled ? tintColor : .secondary)
                     }
+                    }
+                    .tint(tintColor)
                 }
-                .tint(tintColor)
                 
                 // Completion Notifications Toggle
-                Toggle(isOn: Binding(
-                    get: { session.goal.completionNotificationsEnabled },
-                    set: { newValue in
-                        session.goal.completionNotificationsEnabled = newValue
-                        try? context.save()
-                    }
-                )) {
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Finish Notifications")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Text(session.goal.completionNotificationsEnabled ? "Notify when goal is completed" : "Tap to enable")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                if let goal = session.goal {
+                    Toggle(isOn: Binding(
+                        get: { goal.completionNotificationsEnabled },
+                        set: { newValue in
+                            goal.completionNotificationsEnabled = newValue
+                            try? context.save()
                         }
-                    } icon: {
-                        Image(systemName: session.goal.completionNotificationsEnabled ? "checkmark.circle.fill" : "checkmark.circle")
-                            .foregroundStyle(session.goal.completionNotificationsEnabled ? tintColor : .secondary)
+                    )) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Finish Notifications")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text(goal.completionNotificationsEnabled ? "Notify when goal is completed" : "Tap to enable")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: goal.completionNotificationsEnabled ? "checkmark.circle.fill" : "checkmark.circle")
+                                .foregroundStyle(goal.completionNotificationsEnabled ? tintColor : .secondary)
+                        }
                     }
+                    .tint(tintColor)
                 }
-                .tint(tintColor)
             } header: {
                 Text("Settings")
             }
             
             // Notes and Link section
-            if session.goal.notes != nil || session.goal.link != nil {
+            if session.goal?.notes != nil || session.goal?.link != nil {
                 Section {
-                    if let notes = session.goal.notes {
+                    if let notes = session.goal?.notes {
                         VStack(alignment: .leading, spacing: 8) {
                             Label {
                                 Text("Notes")
@@ -316,7 +323,7 @@ struct ChecklistDetailView: View {
                         .padding(.vertical, 4)
                     }
                     
-                    if let link = session.goal.link, let url = URL(string: link) {
+                    if let link = session.goal?.link, let url = URL(string: link) {
                         Button {
                             UIApplication.shared.open(url)
                         } label: {
@@ -341,7 +348,10 @@ struct ChecklistDetailView: View {
                     Text("Resources")
                 }
             }
-            
+    }
+    
+    @ViewBuilder
+    private var historySection: some View {
             // History section remains as-is
             Section {
                 if !session.historicalSessions.isEmpty {
@@ -378,7 +388,7 @@ struct ChecklistDetailView: View {
                         .foregroundStyle(Color(.systemBackground))
                         .padding(4)
                         .frame(minWidth: 20)
-                        .background(Capsule().fill(session.goal.primaryTag.theme.dark))
+                        .background(Capsule().fill(session.goal?.primaryTag?.theme.dark ?? Theme.default.dark))
                     Spacer()
                     Button { } label: { Image(systemName: "plus.circle.fill").symbolRenderingMode(.hierarchical) }
                 }
@@ -387,11 +397,14 @@ struct ChecklistDetailView: View {
                     HStack { Spacer(); Button { } label: { Text("View all") }; Spacer() }
                 }
             }
-
+    }
+    
+    @ViewBuilder
+    private var listsSection: some View {
             // NEW: Horizontal tabs for lists
             Section {
                 TabView(selection: $selectedListID) {
-                    ForEach(session.intervalLists) { listSession in
+                    ForEach(session.intervalLists ?? []) { listSession in
                         IntervalListView(listSession: listSession, activeIntervalID: $activeIntervalID, intervalStartDate: $intervalStartDate, intervalElapsed: $intervalElapsed, uiTimer: $uiTimer, timerManager: timerManager, goalSession: session, limit: 3)
                             .tag(listSession.id)
                     }
@@ -400,7 +413,7 @@ struct ChecklistDetailView: View {
                 .frame(minHeight: 200)
                 .onAppear {
                     if selectedListID == nil {
-                        selectedListID = session.intervalLists.first?.id
+                        selectedListID = session.intervalLists?.first?.id
                     }
                 }
             } header: {
@@ -410,7 +423,7 @@ struct ChecklistDetailView: View {
                             isShowingListsOverview = true
                         } label: {
                             Text("Lists")
-                            Text("\(session.intervalLists.count)")
+                            Text("\(session.intervalLists?.count ?? 0)")
                                 .font(.caption2)
                                 .foregroundStyle(Color(.systemBackground))
                                 .padding(2)
@@ -427,18 +440,35 @@ struct ChecklistDetailView: View {
                         } label: { Image(systemName: "plus.circle.fill").symbolRenderingMode(.hierarchical) }
                     }
                     
-                    IntervalListSelector(lists: session.intervalLists, selectedListID: $selectedListID, tintColor: tintColor)
+                    IntervalListSelector(lists: session.intervalLists ?? [], selectedListID: $selectedListID, tintColor: tintColor)
                 }
 
             }
+    }
+    
+    var body: some View {
+        let list = List {
+            progressSection
+            settingsSection
+            historySection
+            listsSection
         }
+        
+        let backgroundColor = (session.goal?.primaryTag?.theme.dark ?? Theme.default.dark).opacity(0.1)
+        
+        return list
         .scrollContentBackground(.hidden)
-        .background(session.goal.primaryTag.theme.dark.opacity(0.1))
-        .navigationTitle(session.goal.title)
+        .background(backgroundColor)
+        .navigationTitle(session.goal?.title ?? "Goal")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button {
+                        isShowingIntervalsEditor.toggle()
+                    } label: {
+                        Label("Add Interval List", systemImage: "list.bullet.circle")
+                    }
                     
                     Button {
                         withAnimation {
@@ -456,38 +486,32 @@ struct ChecklistDetailView: View {
                     
                     Divider()
                     
-                    Button {
-                        withAnimation {
-                            session.goal.status = .archived
-                        }
-                    } label: {
-                        if session.goal.status == .archived {
-                            Text("Unarchive")
-                        } else {
-                            Text("Archive")
+                    if let goal = session.goal {
+                        Button {
+                            withAnimation {
+                                goal.status = .archived
+                            }
+                        } label: {
+                            if goal.status == .archived {
+                                Text("Unarchive")
+                            } else {
+                                Text("Archive")
+                            }
                         }
                     }
                 } label: {
-                    
                     Image(systemName: "ellipsis.circle.fill")
                         .symbolRenderingMode(.hierarchical)
-                    
                 }
-                
-                
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     isShowingEditScreen.toggle()
-                    
                 } label: {
                     Image(systemName: "pencil.circle.fill")
                         .symbolRenderingMode(.hierarchical)
-                    
                 }
-                
             }
-            
         }
         .tint(tintColor)
         .navigationDestination(isPresented: $isShowingListsOverview) {
@@ -495,20 +519,26 @@ struct ChecklistDetailView: View {
         }
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
         .sheet(isPresented: $isShowingIntervalsEditor) {
-            let list = IntervalList(name: "", goal: session.goal)
-            IntervalsEditorView(list: list, goalSession: session)
+            if let goal = session.goal {
+                let list = IntervalList(name: "", goal: goal)
+                IntervalsEditorView(list: list, goalSession: session)
+            }
         }
         .sheet(isPresented: $isShowingEditScreen) {
-            GoalEditorView(existingGoal: session.goal)
+            if let goal = session.goal {
+                GoalEditorView(existingGoal: goal)
+            }
         }
         .onDisappear {
-            let emptyItems = session.checklist.filter { $0.checklistItem.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            let emptyItems = session.checklist?.filter { $0.checklistItem?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true } ?? []
             for item in emptyItems {
-                if let index = session.checklist.firstIndex(where: { $0.id == item.id }) {
-                    session.checklist.remove(at: index)
+                if let index = session.checklist?.firstIndex(where: { $0.id == item.id }) {
+                    session.checklist?.remove(at: index)
                 }
                 context.delete(item)
-                context.delete(item.checklistItem)
+                if let checklistItem = item.checklistItem {
+                    context.delete(checklistItem)
+                }
             }
         }
     }
@@ -519,7 +549,10 @@ struct ChecklistDetailView: View {
     private func addChecklistItem(to session: GoalSession) {
         let item = ChecklistItem(title: "")
         let checklistSession = ChecklistItemSession(checklistItem: item, isCompleted: false, session: session)
-        session.checklist.append(checklistSession)
+        if session.checklist == nil {
+            session.checklist = []
+        }
+        session.checklist?.append(checklistSession)
         context.insert(checklistSession)
     }
     
@@ -541,7 +574,7 @@ struct ChecklistDetailView: View {
             }
         }()
         
-        return session.goal.isScheduled(weekday: weekday, time: currentTime)
+        return session.goal?.isScheduled(weekday: weekday, time: currentTime) ?? false
     }
     
     /// Get a human-readable status of current schedule
@@ -560,11 +593,11 @@ struct ChecklistDetailView: View {
             }
         }()
         
-        if session.goal.isScheduled(weekday: weekday, time: currentTime) {
+        if session.goal?.isScheduled(weekday: weekday, time: currentTime) ?? false {
             return "Active now"
         } else {
             // Find next scheduled time
-            let times = session.goal.timesForWeekday(weekday)
+            let times = session.goal?.timesForWeekday(weekday) ?? []
             if !times.isEmpty {
                 return "Scheduled today"
             } else {
@@ -577,7 +610,8 @@ struct ChecklistDetailView: View {
     
     private func markGoalAsDone() {
         withAnimation {
-            timerManager.markGoalAsDone(session: session, day: session.day, context: context)
+            guard let day = session.day else { return }
+            timerManager.markGoalAsDone(session: session, day: day, context: context)
         }
         
         // Provide haptic feedback

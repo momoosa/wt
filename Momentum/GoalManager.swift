@@ -28,8 +28,9 @@ class GoalManager {
     ) {
         // Check if active session needs clearing
         if let timerManager = timerManager,
-           let activeSession = timerManager.activeSession {
-            let sessionIDs = goal.goalSessions.map { $0.id }
+           let activeSession = timerManager.activeSession,
+           let goalSessions = goal.goalSessions {
+            let sessionIDs = goalSessions.map { $0.id }
             if sessionIDs.contains(activeSession.id) {
                 timerManager.clearActiveSession()
             }
@@ -37,19 +38,24 @@ class GoalManager {
         
         // CRITICAL: Delete sessions first to allow SwiftUI @Query to update
         // This prevents crashes from accessing deleted goal relationships
-        let sessionsToDelete = goal.goalSessions
-        for session in sessionsToDelete {
-            context.delete(session)
+        if let sessionsToDelete = goal.goalSessions {
+            for session in sessionsToDelete {
+                context.delete(session)
+            }
         }
         
         // Delete checklist items
-        for item in goal.checklistItems {
-            context.delete(item)
+        if let checklistItems = goal.checklistItems {
+            for item in checklistItems {
+                context.delete(item)
+            }
         }
         
         // Delete interval lists
-        for list in goal.intervalLists {
-            context.delete(list)
+        if let intervalLists = goal.intervalLists {
+            for list in intervalLists {
+                context.delete(list)
+            }
         }
         
         // Now delete the goal itself

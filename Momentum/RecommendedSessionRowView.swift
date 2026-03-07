@@ -14,7 +14,7 @@ struct RecommendedSessionRowView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        let primaryTag = session.goal.primaryTag
+        let themePreset = session.goal?.primaryTag?.themePreset ?? themePresets[0]
         
         return SessionRowView(
             session: session,
@@ -28,10 +28,10 @@ struct RecommendedSessionRowView: View {
         )
         .padding()
        
-        .foregroundStyle(primaryTag.themePreset.textColor)
+        .foregroundStyle(themePreset.textColor)
         .listRowInsets(EdgeInsets())
         .listRowBackground(
-            primaryTag.themePreset.gradient
+            themePreset.gradient
                 .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
         )
     }

@@ -155,7 +155,10 @@ public final class SessionTimerManager {
         }
         
         // Access the goal directly from the session
-        let goal = session.goal
+        guard let goal = session.goal else {
+            AppLogger.sessionTimer.error("handleStoppedSession: Session has no goal")
+            return
+        }
         let sessionTitle = session.title
         let goalID = goal.id.uuidString
         
@@ -175,7 +178,7 @@ public final class SessionTimerManager {
         
         AppLogger.sessionTimer.debug("handleStoppedSession: Creating historical session from \(startDate) to \(endDate)")
         
-        session.day.add(historicalSession: historicalSession)
+        session.day?.add(historicalSession: historicalSession)
         context.insert(historicalSession)
         
         // Clear elapsed time (flag was already cleared by caller)
@@ -447,10 +450,10 @@ public final class SessionTimerManager {
         startLiveActivity(for: session, activeSession: newActiveSession)
         
         // Send start notification if enabled
-        if session.goal.scheduleNotificationsEnabled {
+        if session.goal?.scheduleNotificationsEnabled == true, let goal = session.goal {
             Task { @MainActor in
                 let notificationManager = GoalNotificationManager()
-                await notificationManager.sendSessionStartNotification(for: session.goal)
+                await notificationManager.sendSessionStartNotification(for: goal)
             }
         }
         
@@ -477,9 +480,10 @@ public final class SessionTimerManager {
         )
         
         // Write to HealthKit if the goal has a writable metric
-        if let metric = session.goal.healthKitMetric,
+        if let goal = session.goal,
+           let metric = goal.healthKitMetric,
            metric.supportsWrite,
-           session.goal.healthKitSyncEnabled,
+           goal.healthKitSyncEnabled == true,
            let historicalSession = historicalSession {
             Task { @MainActor in
                 do {
@@ -634,19 +638,21 @@ public final class SessionTimerManager {
         session.markedComplete = true
         
         // Mark all checklist items as complete
-        for item in session.checklist {
-            item.isCompleted = true
+        if let checklist = session.checklist {
+            for item in checklist {
+                item.isCompleted = true
+            }
         }
         
         // Save context
         try? context.save()
         
         // Send completion notification
-        if session.goal.completionNotificationsEnabled {
+        if session.goal?.completionNotificationsEnabled == true, let goal = session.goal {
             Task { @MainActor in
                 let notificationManager = GoalNotificationManager()
                 await notificationManager.sendCompletionNotification(
-                    for: session.goal,
+                    for: goal,
                     elapsedTime: session.elapsedTime
                 )
             }
@@ -663,11 +669,11 @@ public final class SessionTimerManager {
         #endif
         
         // Send completion notification if enabled
-        if session.goal.completionNotificationsEnabled {
+        if session.goal?.completionNotificationsEnabled == true, let goal = session.goal {
             Task { @MainActor in
                 let notificationManager = GoalNotificationManager()
                 await notificationManager.sendCompletionNotification(
-                    for: session.goal,
+                    for: goal,
                     elapsedTime: session.elapsedTime
                 )
             }
@@ -687,10 +693,10 @@ public final class SessionTimerManager {
         // End any existing activity
         endLiveActivity()
         
-        let theme = session.goal.primaryTag.theme
+        let theme = session.goal?.primaryTag?.theme ?? Theme.default
         let attributes = MomentumWidgetAttributes(
             sessionID: session.id.uuidString,
-            dayID: session.day.id,
+            dayID: session.day?.id ?? "",
             goalTitle: session.title,
             dailyTarget: session.dailyTarget,
             themeLight: theme.light.toHex(),

@@ -9,10 +9,13 @@ import SwiftData
 @Model
 public final class ChecklistItem {
     public var id: String = UUID().uuidString
-    public var title: String
+    public var title: String = ""
     
-    @Relationship(inverse: \Goal.checklistItems)
+    @Relationship(deleteRule: .nullify)
     public var goal: Goal?
+    
+    @Relationship(deleteRule: .cascade, inverse: \ChecklistItemSession.checklistItem)
+    public var sessions: [ChecklistItemSession]? = []
     
     public init(title: String, goal: Goal? = nil) {
         self.title = title

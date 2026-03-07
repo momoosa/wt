@@ -40,7 +40,7 @@ struct WatchContentView: View {
     
     private var filteredSessions: [GoalSession] {
         return sessions.sorted { (lhs: GoalSession, rhs: GoalSession) in
-            return lhs.goal.title < rhs.goal.title
+            return (lhs.goal?.title ?? "") < (rhs.goal?.title ?? "")
         }
     }
     
@@ -80,7 +80,7 @@ struct WatchContentView: View {
                     // Show first few sessions
                     if !allSessions.isEmpty {
                         ForEach(allSessions.prefix(3)) { session in
-                            Text("Session: \(session.goal.title) - target: \(Int(session.dailyTarget))")
+                            Text("Session: \(session.goal?.title ?? "Unknown") - target: \(Int(session.dailyTarget))")
                                 .font(.system(size: 8))
                         }
                     }

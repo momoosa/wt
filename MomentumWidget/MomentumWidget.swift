@@ -110,7 +110,7 @@ struct Provider: AppIntentTimelineProvider {
         // Fetch sessions for today
         let dayID = day.id
         let sessionPredicate = #Predicate<GoalSession> { session in
-            session.day.id == dayID
+            session.day?.id == dayID
         }
         let sessionDescriptor = FetchDescriptor<GoalSession>(predicate: sessionPredicate)
         let sessions = (try? context.fetch(sessionDescriptor)) ?? []
@@ -119,7 +119,7 @@ struct Provider: AppIntentTimelineProvider {
         
         // Filter active, non-skipped, non-completed sessions
         let activeSessions = sessions.filter { session in
-            session.goal.status != .archived && session.status != .skipped && !session.hasMetDailyTarget
+            session.goal?.status != .archived && session.status != .skipped && !session.hasMetDailyTarget
         }
         
         print("✅ Widget: \(activeSessions.count) active sessions")
@@ -153,10 +153,9 @@ struct Provider: AppIntentTimelineProvider {
             let unpinnedSessions = activeSessions.filter { !pinnedIDs.contains($0.id) }
             
             // Second: Show planned sessions with recommendation reasons (top 3)
-            let plannedSessions = unpinnedSessions
-                .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
-                .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
-                .prefix(3)
+            let filtered = unpinnedSessions.filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
+            let sorted = filtered.sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
+            let plannedSessions = Array(sorted.prefix(3))
             
             orderedSessions.append(contentsOf: plannedSessions)
             
@@ -178,8 +177,9 @@ struct Provider: AppIntentTimelineProvider {
                         return false
                     } else {
                         // Use scoring for unplanned sessions
-                        let score1 = planner.scoreSession(for: session1.goal, session: session1, at: now, preferences: preferences)
-                        let score2 = planner.scoreSession(for: session2.goal, session: session2, at: now, preferences: preferences)
+                        guard let goal1 = session1.goal, let goal2 = session2.goal else { return false }
+                        let score1 = planner.scoreSession(for: goal1, session: session1, at: now, preferences: preferences)
+                        let score2 = planner.scoreSession(for: goal2, session: session2, at: now, preferences: preferences)
                         return score1 > score2
                     }
                 }
@@ -193,8 +193,8 @@ struct Provider: AppIntentTimelineProvider {
             .prefix(10)
             .map { session in
                 let isActive = activeTimerSessionID == session.id.uuidString
-                let isHealthKitSynced = session.goal.healthKitSyncEnabled && session.goal.healthKitMetric != nil
-                let supportsWrite = session.goal.healthKitMetric?.supportsWrite ?? true
+                let isHealthKitSynced = (session.goal?.healthKitSyncEnabled == true) && (session.goal?.healthKitMetric != nil)
+                let supportsWrite = session.goal?.healthKitMetric?.supportsWrite ?? true
                 
                 // Get timer data if this session is active
                 var timerStart: Date? = nil
@@ -210,7 +210,7 @@ struct Provider: AppIntentTimelineProvider {
                 return RecommendedSession(
                     id: session.id,
                     title: session.title,
-                    theme: session.goal.primaryTag.theme,
+                    theme: session.goal?.primaryTag?.theme ?? Theme.default,
                     progress: session.progress,
                     formattedTime: session.formattedTime,
                     hasMetTarget: session.hasMetDailyTarget,

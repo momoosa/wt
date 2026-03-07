@@ -11,7 +11,7 @@ struct IntervalListSelector: View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 8) {
                 ForEach(lists) { list in
-                    Text(list.list.name)
+                    Text(list.list?.name ?? "Interval List")
                         .font(.footnote.weight(.semibold))
                         .foregroundColor(selectedListID == list.id ? .white : tintColor)
                         .padding(.horizontal, 14)

@@ -26,7 +26,7 @@ struct DayOverviewView: View {
             guard session.status != .skipped else { continue }
 
             // Skip archived goals
-            guard session.goal.status != .archived else { continue }
+            guard session.goal?.status != .archived else { continue }
 
             // Use cached daily target (already calculated from weekly target / 7 if needed)
             total += Int(session.dailyTarget / 60)
@@ -38,7 +38,7 @@ struct DayOverviewView: View {
         sessions.filter { session in
             guard session.status != .skipped else { return false }
             // Skip archived goals
-            guard session.goal.status != .archived else { return false }
+            guard session.goal?.status != .archived else { return false }
             return session.hasMetDailyTarget
         }.count
     }
@@ -47,7 +47,7 @@ struct DayOverviewView: View {
         sessions.filter { session in
             guard session.status != .skipped else { return false }
             // Skip archived goals
-            guard session.goal.status != .archived else { return false }
+            guard session.goal?.status != .archived else { return false }
             return true
         }.count
     }

@@ -139,7 +139,14 @@ struct MomentumApp: App {
             AppLogger.data.warning("iOS: Database file does NOT exist - will be created")
         }
         
-        let modelConfiguration = ModelConfiguration(url: storeURL)
+        // CloudKit sync enabled - all models have been updated to meet requirements
+        let cloudKitIdentifier = "iCloud.com.moosa.ios.momentum"
+        let modelConfiguration = ModelConfiguration(
+            url: storeURL,
+            cloudKitDatabase: .private(cloudKitIdentifier)
+        )
+        
+        AppLogger.data.info("iOS: CloudKit sync enabled with container: \(cloudKitIdentifier)")
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])

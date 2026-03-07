@@ -33,8 +33,8 @@ struct NowPlayingView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    session.goal.primaryTag.themePreset.light,
-                    session.goal.primaryTag.themePreset.dark
+                    session.goal?.primaryTag?.themePreset.light ?? themePresets[0].light,
+                    session.goal?.primaryTag?.themePreset.dark ?? themePresets[0].dark
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -79,12 +79,12 @@ struct NowPlayingView: View {
                 
                 // Goal title
                 VStack(spacing: 8) {
-                    Text(session.goal.title)
+                    Text(session.goal?.title ?? "Goal")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
                     
-                    Text(session.goal.primaryTag.title)
+                    Text(session.goal?.primaryTag?.title ?? "")
                         .font(.title3)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -106,7 +106,7 @@ struct NowPlayingView: View {
                             AngularGradient(
                                 gradient: Gradient(colors: [
                                     .white,
-                                    session.goal.primaryTag.themePreset.neon,
+                                    session.goal?.primaryTag?.themePreset.neon ?? themePresets[0].neon,
                                     .white
                                 ]),
                                 center: .center,
@@ -209,7 +209,7 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(session.goal.primaryTag.themePreset.dark)
+                            .foregroundStyle(session.goal?.primaryTag?.themePreset.dark ?? themePresets[0].dark)
                             .frame(width: LayoutConstants.ProgressCircle.standardDiameter, height: LayoutConstants.ProgressCircle.standardDiameter)
                             .background(
                                 Circle()

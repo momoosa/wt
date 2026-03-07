@@ -79,7 +79,10 @@ class RemindersManager {
         // Add notes as a checklist item if available
         if let notes = reminder.notes, !notes.isEmpty {
             let checklistItem = ChecklistItem(title: notes)
-            goal.checklistItems.append(checklistItem)
+            if goal.checklistItems == nil {
+                goal.checklistItems = []
+            }
+            goal.checklistItems?.append(checklistItem)
         }
         
         context.insert(goal)

@@ -156,17 +156,21 @@ public struct IntervalsEditorView: View {
 
     private func generateIntervalsAndSessions() {
         // Clear existing intervals from the list
-        for interval in list.intervals {
-            modelContext.delete(interval)
+        if let intervals = list.intervals {
+            for interval in intervals {
+                modelContext.delete(interval)
+            }
         }
-        list.intervals.removeAll()
+        list.intervals?.removeAll()
         
         // Clear existing interval sessions if they exist
         if let session = session {
-            for intervalSession in session.intervals {
-                modelContext.delete(intervalSession)
+            if let intervalSessions = session.intervals {
+                for intervalSession in intervalSessions {
+                    modelContext.delete(intervalSession)
+                }
             }
-            session.intervals.removeAll()
+            session.intervals?.removeAll()
         }
         
         var order = 0
@@ -174,12 +178,18 @@ public struct IntervalsEditorView: View {
             guard seconds > 0 else { return }
             
             let interval = Interval(name: name, durationSeconds: seconds, orderIndex: order, list: list, kind: kind)
-            list.intervals.append(interval)
+            if list.intervals == nil {
+                list.intervals = []
+            }
+            list.intervals?.append(interval)
             modelContext.insert(interval)
             
             if let session = session {
                 let intervalSession = IntervalSession(interval: interval)
-                session.intervals.append(intervalSession)
+                if session.intervals == nil {
+                    session.intervals = []
+                }
+                session.intervals?.append(intervalSession)
                 modelContext.insert(intervalSession)
             }
             order += 1

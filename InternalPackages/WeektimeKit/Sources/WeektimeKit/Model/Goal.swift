@@ -11,17 +11,22 @@ import SwiftUI
 
 @Model
 public final class Goal {
-    public private(set) var id: UUID
-    public var title: String
+    public private(set) var id: UUID = UUID()
+    public var title: String = ""
     public var iconName: String? // SF Symbol name for the goal icon
-    public var status: Status
-    public var primaryTag: GoalTag // Optional tag that provides both theme and smart triggers
-    public var otherTags: [GoalTag]
-    public var weeklyTarget: TimeInterval // Target duration in seconds for the week
+    private var statusRawValue: String = "active"
+    
+    @Relationship(deleteRule: .nullify)
+    public var primaryTag: GoalTag? // Optional tag that provides both theme and smart triggers
+    
+    @Relationship(deleteRule: .nullify)
+    public var otherTags: [GoalTag]? = []
+    
+    public var weeklyTarget: TimeInterval = 0 // Target duration in seconds for the week
     public var dailyMinimum: TimeInterval? // Optional minimum time required each day (for strict daily habits)
     
     // Notifications
-    public var notificationsEnabled: Bool // Legacy: kept for backward compatibility
+    public var notificationsEnabled: Bool = false // Legacy: kept for backward compatibility
     public var scheduleNotificationsEnabled: Bool = false // Whether to send notifications at scheduled times
     public var completionNotificationsEnabled: Bool = false // Whether to send notifications when daily target is reached
     
@@ -46,13 +51,21 @@ public final class Goal {
     public var weatherEnabled: Bool = false // Whether weather-based visibility is enabled
     
     @Relationship(deleteRule: .cascade)
-    public var goalSessions: [GoalSession] = []
+    public var goalSessions: [GoalSession]? = []
+    
     @Relationship(deleteRule: .cascade) 
-    public var checklistItems: [ChecklistItem] = []
+    public var checklistItems: [ChecklistItem]? = []
+    
     @Relationship(deleteRule: .cascade) 
-    public var intervalLists: [IntervalList] = []
+    public var intervalLists: [IntervalList]? = []
+    
+    // Computed property for status
+    public var status: Status {
+        get { Status(rawValue: statusRawValue) ?? .active }
+        set { statusRawValue = newValue.rawValue }
+    }
 
-    public init(title: String, primaryTag: GoalTag, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
+    public init(title: String, primaryTag: GoalTag? = nil, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
         self.title = title
         self.status = .active
@@ -163,7 +176,7 @@ public extension Goal {
 
 public extension Goal {
     func tintColor(for colorScheme: ColorScheme) -> Color {
-        return primaryTag.theme.color(for: colorScheme)
+        return primaryTag?.theme.color(for: colorScheme) ?? Theme.default.color(for: colorScheme)
     }
     
     // MARK: - Weather Helpers
@@ -189,6 +202,7 @@ public extension Goal {
         if weatherEnabled && (weatherConditions != nil || minTemperature != nil || maxTemperature != nil) {
             return true
         }
+        guard let primaryTag = primaryTag else { return false }
         return primaryTag.isSmart && (
             primaryTag.weatherConditions != nil ||
             primaryTag.minTemperature != nil ||
@@ -201,7 +215,7 @@ public extension Goal {
         if weatherEnabled, let conditions = weatherConditionsTyped {
             return conditions
         }
-        return primaryTag.weatherConditionsTyped
+        return primaryTag?.weatherConditionsTyped
     }
     
     /// Get effective min temperature (goal overrides tag)
@@ -209,7 +223,7 @@ public extension Goal {
         if weatherEnabled, let temp = minTemperature {
             return temp
         }
-        return primaryTag.minTemperature
+        return primaryTag?.minTemperature
     }
     
     /// Get effective max temperature (goal overrides tag)
@@ -217,6 +231,6 @@ public extension Goal {
         if weatherEnabled, let temp = maxTemperature {
             return temp
         }
-        return primaryTag.maxTemperature
+        return primaryTag?.maxTemperature
     }
 }

@@ -89,7 +89,7 @@ struct SearchSheet: View {
         } else {
             // Filter by search text
             matchingSessions = sessions.filter { session in
-                session.goal.title.localizedCaseInsensitiveContains(searchText)
+                session.goal?.title.localizedCaseInsensitiveContains(searchText) == true
             }
         }
         

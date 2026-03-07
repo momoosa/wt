@@ -12,8 +12,15 @@ import WeatherKit
 /// A tag that can be applied to goals, providing both visual theming and smart recommendation triggers
 @Model
 public final class GoalTag {
-    public var title: String
-    public var themeID: String
+    public var title: String = ""
+    public var themeID: String = ""
+    
+    // Inverse relationships for CloudKit
+    @Relationship(deleteRule: .nullify, inverse: \Goal.primaryTag)
+    public var goalsAsPrimary: [Goal]? = []
+    
+    @Relationship(deleteRule: .nullify, inverse: \Goal.otherTags)
+    public var goalsAsOther: [Goal]? = []
     
     // Computed property to get the theme preset (lightweight)
     public var themePreset: ThemePreset {

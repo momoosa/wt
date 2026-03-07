@@ -27,8 +27,13 @@ public final class Interval {
             kindRawValue = newValue.rawValue
         }
     }
-    // Relationship to IntervalList without inverse to avoid compile-time coupling
+    // Relationship to IntervalList with inverse for CloudKit compatibility
+    @Relationship(deleteRule: .nullify)
     public var list: IntervalList?
+    
+    // Inverse relationship for sessions using this interval
+    @Relationship(deleteRule: .nullify, inverse: \IntervalSession.interval)
+    public var sessions: [IntervalSession]? = []
     
     public init(name: String, durationSeconds: Int, orderIndex: Int = 0, list: IntervalList? = nil, kind: Kind) {
         self.name = name

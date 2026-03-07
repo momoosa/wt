@@ -69,19 +69,32 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
 
 @Model
 public final class GoalSession: SessionProgressProvider {
-    public var id: UUID
-    public var title: String
-    public var status: Status
-    public private(set) var goal: Goal
-    public private(set) var day: Day
+    public var id: UUID = UUID()
+    public var title: String = ""
+    private var statusRawValue: String = "active"
+    
+    // Computed property for status
+    public var status: Status {
+        get { Status(rawValue: statusRawValue) ?? .active }
+        set { statusRawValue = newValue.rawValue }
+    }
+    
+    @Relationship(deleteRule: .nullify)
+    public var goal: Goal?
+    
+    @Relationship(deleteRule: .nullify)
+    public var day: Day?
     
     /// Cached goal ID to avoid accessing deleted goal
-    public private(set) var goalID: String
+    public var goalID: String = ""
     
-    @Relationship public var checklist: [ChecklistItemSession] = []
-    @Relationship public var intervalLists: [IntervalListSession] = []
+    @Relationship(deleteRule: .cascade)
+    public var checklist: [ChecklistItemSession]? = []
+    
+    @Relationship(deleteRule: .cascade)
+    public var intervalLists: [IntervalListSession]? = []
     public var historicalSessions: [HistoricalSession] {
-        day.historicalSessions.filter({ $0.goalIDs.contains(goalID)})
+        day?.historicalSessions?.filter({ $0.goalIDs.contains(goalID)}) ?? []
     }
     
     /// Time tracked from HealthKit for this session (if enabled)
@@ -109,7 +122,7 @@ public final class GoalSession: SessionProgressProvider {
     
     /// Cached daily target to avoid accessing deleted goal
     /// This is set when the session is created and doesn't change
-    public private(set) var dailyTarget: TimeInterval
+    public var dailyTarget: TimeInterval = 0
     
     /// Whether this session has been manually marked as complete for the day
     public var markedComplete: Bool = false
@@ -154,9 +167,9 @@ public final class GoalSession: SessionProgressProvider {
         // Cache goal properties at creation time to avoid accessing goal after deletion
         self.goalID = goal.id.uuidString
         self.dailyTarget = goal.dailyTargetFromSchedule()
-        self.intervalLists = goal.intervalLists.map({ interval in
+        self.intervalLists = goal.intervalLists?.map({ interval in
             IntervalListSession(list: interval)
-        })
+        }) ?? []
     }
 }
 
@@ -199,6 +212,6 @@ public extension GoalSession {
     /// Update the cached daily target from the goal's current schedule
     /// Call this when the goal's schedule changes
     func updateDailyTarget() {
-        self.dailyTarget = goal.dailyTargetFromSchedule()
+        self.dailyTarget = goal?.dailyTargetFromSchedule() ?? 0
     }
 }

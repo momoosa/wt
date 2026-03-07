@@ -27,10 +27,10 @@ struct AllGoalsView: View {
     
     // Group active goals by theme
     var activeGoalsByTheme: [(theme: GoalTag, goals: [Goal])] {
-        let grouped = Dictionary(grouping: activeGoals) { $0.primaryTag.themeID }
-        return grouped.map { (themeID, goals) in
+        let grouped = Dictionary(grouping: activeGoals) { $0.primaryTag?.themeID ?? "" }
+        return grouped.compactMap { (themeID, goals) in
             // Use the first goal's tag as representative
-            let theme = goals.first!.primaryTag
+            guard let theme = goals.first?.primaryTag else { return nil }
             return (theme, goals.sorted { $0.title < $1.title })
         }
         .sorted { $0.theme.title < $1.theme.title }
@@ -38,9 +38,9 @@ struct AllGoalsView: View {
     
     // Group archived goals by theme
     var archivedGoalsByTheme: [(theme: GoalTag, goals: [Goal])] {
-        let grouped = Dictionary(grouping: archivedGoals) { $0.primaryTag.themeID }
-        return grouped.map { (themeID, goals) in
-            let theme = goals.first!.primaryTag
+        let grouped = Dictionary(grouping: archivedGoals) { $0.primaryTag?.themeID ?? "" }
+        return grouped.compactMap { (themeID, goals) in
+            guard let theme = goals.first?.primaryTag else { return nil }
             return (theme, goals.sorted { $0.title < $1.title })
         }
         .sorted { $0.theme.title < $1.theme.title }

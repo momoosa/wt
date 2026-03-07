@@ -15,12 +15,34 @@ struct SessionRowView: View {
     @Environment(GoalStore.self) private var goalStore
     @Environment(\.colorScheme) private var colorScheme
     
+    private var tintColor: Color {
+        session.goal?.primaryTag?.themePreset.dark ?? themePresets[0].dark
+    }
+    
+    private var textForegroundColor: Color {
+        if isRecommended {
+            return session.goal?.primaryTag?.theme.textColor ?? .primary
+        } else if colorScheme == .dark {
+            return session.goal?.primaryTag?.themePreset.neon ?? .gray
+        } else {
+            return session.goal?.primaryTag?.themePreset.dark ?? .gray
+        }
+    }
+    
+    private var rowBackground: Color {
+        if colorScheme == .dark {
+            return (session.goal?.primaryTag?.themePreset.light ?? .gray).opacity(0.03)
+        } else {
+            return Color(.systemBackground)
+        }
+    }
+    
     var body: some View {
         ZStack {
             NavigationLink {
                 if let timerManager {
                     ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
-                        .tint(session.goal.primaryTag.themePreset.dark)
+                        .tint(tintColor)
                         .environment(goalStore)
                 }
             } label: {
@@ -32,7 +54,7 @@ struct SessionRowView: View {
                 VStack(alignment: .leading) {
                         Text(session.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(isRecommended ? (session.goal.primaryTag.theme.textColor ?? .primary) : .primary)
+                            .foregroundStyle(isRecommended ? (session.goal?.primaryTag?.theme.textColor ?? .primary) : .primary)
                     
                     HStack {
                         if let activeSession = timerManager?.activeSession,
@@ -62,21 +84,22 @@ struct SessionRowView: View {
                         }
                         
                         HealthKitBadge(
-                            metric: session.goal.healthKitMetric,
-                            isEnabled: session.goal.healthKitSyncEnabled
+                            metric: session.goal?.healthKitMetric,
+                            isEnabled: session.goal?.healthKitSyncEnabled == true
                         )
                         
                         Spacer()
                     }
                     .opacity(0.7)
-                    .foregroundStyle(isRecommended ? session.goal.primaryTag.theme.textColor : (colorScheme == .dark ? session.goal.primaryTag.themePreset.neon : session.goal.primaryTag.themePreset.dark))
+                    .foregroundStyle(textForegroundColor)
                 }
                 
                 Spacer()
                 
                 // Differentiate HealthKit-synced goals from manual tracking goals
-                if session.goal.healthKitSyncEnabled && session.goal.healthKitMetric != nil {
-                    let metric = session.goal.healthKitMetric!
+                if let goal = session.goal,
+                   goal.healthKitSyncEnabled == true,
+                   let metric = goal.healthKitMetric {
                     
                     if metric.supportsWrite {
                         // HealthKit metric that supports writing: Show BOTH play button AND log button
@@ -91,7 +114,7 @@ struct SessionRowView: View {
                                     .font(.title2)
                             }
                         }
-                        .foregroundStyle(isRecommended ? session.goal.primaryTag.theme.textColor : session.goal.primaryTag.themePreset.color(for: colorScheme))
+                        .foregroundStyle(textForegroundColor)
                     } else {
                         // Read-only HealthKit metric: Show only log button
                         Button {
@@ -100,7 +123,7 @@ struct SessionRowView: View {
                             Image(systemName: "pencil.circle.fill")
                                 .font(.title3)
                         }
-                        .foregroundStyle(isRecommended ? session.goal.primaryTag.theme.textColor : session.goal.primaryTag.themePreset.color(for: colorScheme))
+                        .foregroundStyle(textForegroundColor)
                         .opacity(0.6)
                     }
                 } else {
@@ -116,16 +139,16 @@ struct SessionRowView: View {
                                 .contentTransition(.symbolEffect(.replace))
                                 .font(.title2)
                         } else {
-                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal.primaryTag.themePreset.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal?.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme), font: .title2, gaugeScale: 0.4)
                                 .contentTransition(.symbolEffect(.replace))
                                 .font(.title2)
                         }
                     }
-                    .foregroundStyle(isRecommended ? (session.goal.primaryTag.theme.textColor ?? .primary) : (colorScheme == .dark ? (session.goal.primaryTag.themePreset.neon ?? .gray) : (session.goal.primaryTag.themePreset.dark ?? .gray)))
+                    .foregroundStyle(textForegroundColor)
                 }
             }
             .buttonStyle(.plain)
-            .listRowBackground(colorScheme == .dark ? (session.goal.primaryTag.themePreset.light.opacity(0.03) ?? Color(.systemBackground)) : Color(.systemBackground))
+            .listRowBackground(rowBackground)
             .onTapGesture {
                 withAnimation(AnimationPresets.quickSpring) {
                     selectedSession = session
