@@ -34,7 +34,6 @@
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
 		CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */; };
-		CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
 		CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
 		CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */; };
 		CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80F2F3BA157001F2406 /* AllGoalsView.swift */; };
@@ -904,7 +903,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CD22C80C2F3BA12F001F2406 /* SessionFilterService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
