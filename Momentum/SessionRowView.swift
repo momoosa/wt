@@ -16,22 +16,22 @@ struct SessionRowView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     private var tintColor: Color {
-        session.goal?.primaryTag?.themePreset.dark ?? themePresets[0].dark
+        session.themeDark
     }
     
     private var textForegroundColor: Color {
         if isRecommended {
-            return session.goal?.primaryTag?.theme.textColor ?? .primary
+            return session.themeTextColor
         } else if colorScheme == .dark {
-            return session.goal?.primaryTag?.themePreset.neon ?? .gray
+            return session.themeNeon
         } else {
-            return session.goal?.primaryTag?.themePreset.dark ?? .gray
+            return session.themeDark
         }
     }
     
     private var rowBackground: Color {
         if colorScheme == .dark {
-            return (session.goal?.primaryTag?.themePreset.light ?? .gray).opacity(0.03)
+            return session.themeLight.opacity(0.03)
         } else {
             return Color(.systemBackground)
         }
@@ -54,7 +54,7 @@ struct SessionRowView: View {
                 VStack(alignment: .leading) {
                         Text(session.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(isRecommended ? (session.goal?.primaryTag?.theme.textColor ?? .primary) : .primary)
+                            .foregroundStyle(isRecommended ? session.themeTextColor : .primary)
                     
                     HStack {
                         if let activeSession = timerManager?.activeSession,
@@ -139,7 +139,7 @@ struct SessionRowView: View {
                                 .contentTransition(.symbolEffect(.replace))
                                 .font(.title2)
                         } else {
-                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.goal?.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.themeColor(for: colorScheme), font: .title2, gaugeScale: 0.4)
                                 .contentTransition(.symbolEffect(.replace))
                                 .font(.title2)
                         }
@@ -169,5 +169,29 @@ struct SessionRowView: View {
             }
             .tint(.orange)
         }
+    }
+}
+
+// MARK: - Convenience Extensions
+
+private extension GoalSession {
+    var themeTextColor: Color {
+        goal?.primaryTag?.theme.textColor ?? .primary
+    }
+    
+    var themeNeon: Color {
+        goal?.primaryTag?.themePreset.neon ?? .gray
+    }
+    
+    var themeDark: Color {
+        goal?.primaryTag?.themePreset.dark ?? .gray
+    }
+    
+    var themeLight: Color {
+        goal?.primaryTag?.themePreset.light ?? .gray
+    }
+    
+    func themeColor(for colorScheme: ColorScheme) -> Color {
+        goal?.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
     }
 }

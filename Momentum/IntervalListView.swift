@@ -19,7 +19,7 @@ private struct IntervalRow: View {
     let onTogglePlayback: () -> Void
     
     private var currentIndex: Int { index + 1 }
-    private var duration: TimeInterval { TimeInterval(item.interval?.durationSeconds ?? 0) }
+    private var duration: TimeInterval { item.durationSeconds }
     private var progress: Double { 
         isActive ? min(max(elapsed / max(duration, 0.001), 0), 1) : 0
     }
@@ -130,12 +130,11 @@ struct IntervalListView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 12)
-                    .foregroundStyle(listSession.list?.goal?.primaryTag?.theme.neon ?? .blue)
+                    .foregroundStyle(listSession.themeNeon)
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(
-                    (listSession.list?.goal?.primaryTag?.theme.neon ?? .blue)
-                        .opacity(0.1)
+                    listSession.themeNeon.opacity(0.1)
                 )
             }
             
@@ -146,13 +145,13 @@ struct IntervalListView: View {
                     totalCount: totalIntervalCount,
                     isActive: activeIntervalID == item.id,
                     elapsed: activeIntervalID == item.id ? intervalElapsed : 0,
-                    themeLight: listSession.list?.goal?.primaryTag?.theme.light ?? .blue,
+                    themeLight: listSession.themeLight,
                     onTogglePlayback: { toggleIntervalPlayback(for: item) }
                 )
             }
         } footer: {
             if let limit {
-                let totalCount = listSession.intervals?.count ?? 0
+                let totalCount = listSession.intervalCount
                 let remaining = totalCount - limit
                 if remaining > 0 {
                     Text("And \(remaining) more")
@@ -182,7 +181,7 @@ struct IntervalListView: View {
             // Starting or resuming a specific item
             var remainingOffset: TimeInterval = 0
             if activeIntervalID == nil, let start = intervalStartDate, item.id == activeIntervalID {
-                let duration = TimeInterval(item.interval?.durationSeconds ?? 0)
+                let duration = item.durationSeconds
                 let elapsed = Date().timeIntervalSince(start)
                 remainingOffset = max(duration - elapsed, 0)
             }
@@ -223,7 +222,7 @@ struct IntervalListView: View {
         guard let current = (listSession.intervals ?? []).first(where: { $0.id == activeIntervalID }) else {
             return
         }
-        let duration = TimeInterval(current.interval?.durationSeconds ?? 0)
+        let duration = current.durationSeconds
         let newElapsed = Date().timeIntervalSince(start)
         
         // Update timer manager with current interval info (throttled to reduce CPU usage)
@@ -255,7 +254,7 @@ struct IntervalListView: View {
         if newElapsed >= duration {
             // mark completed
             current.isCompleted = true
-            intervalElapsed = TimeInterval(current.interval?.durationSeconds ?? 0)
+            intervalElapsed = current.durationSeconds
             // advance to next
             advanceToNextInterval(after: current)
         }
@@ -263,7 +262,7 @@ struct IntervalListView: View {
 
     private func advanceToNextInterval(after current: IntervalSession) {
         stopUITimer()
-        let sorted = (listSession.intervals ?? []).sorted { ($0.interval?.orderIndex ?? 0) < ($1.interval?.orderIndex ?? 0) }
+        let sorted = listSession.sortedIntervals
         guard let idx = sorted.firstIndex(where: { $0.id == current.id }) else { return }
         let nextIndex = sorted.index(after: idx)
         if nextIndex < sorted.endIndex {
@@ -304,3 +303,34 @@ struct IntervalListView: View {
     }
 
 }
+
+// MARK: - Convenience Extensions
+
+private extension IntervalSession {
+    var durationSeconds: TimeInterval {
+        TimeInterval(interval?.durationSeconds ?? 0)
+    }
+    
+    var orderIndex: Int {
+        interval?.orderIndex ?? 0
+    }
+}
+
+private extension IntervalListSession {
+    var intervalCount: Int {
+        intervals?.count ?? 0
+    }
+    
+    var themeNeon: Color {
+        list?.goal?.primaryTag?.theme.neon ?? .blue
+    }
+    
+    var themeLight: Color {
+        list?.goal?.primaryTag?.theme.light ?? .blue
+    }
+    
+    var sortedIntervals: [IntervalSession] {
+        (intervals ?? []).sorted { $0.orderIndex < $1.orderIndex }
+    }
+}
+

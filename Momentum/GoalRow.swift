@@ -118,6 +118,22 @@ struct GoalRow: View {
     }
 }
 
+// MARK: - Convenience Extensions
+
+private extension Goal {
+    func themeColor(for colorScheme: ColorScheme) -> Color {
+        primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
+    }
+    
+    var themeNeon: Color {
+        primaryTag?.themePreset.neon ?? themePresets[0].neon
+    }
+    
+    var themeLight: Color {
+        primaryTag?.themePreset.light ?? themePresets[0].light
+    }
+}
+
 // MARK: - 7-Day Bar Chart
 
 struct SevenDayBarChart: View {
@@ -214,14 +230,14 @@ struct SevenDayBarChart: View {
                         .overlay(alignment: .bottom) {
                             if isToday {
                                 RoundedRectangle(cornerRadius: 1.5)
-                                    .strokeBorder(goal.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme), lineWidth: 0.75)
+                                    .strokeBorder(goal.themeColor(for: colorScheme), lineWidth: 0.75)
                             }
                         }
                     
                     // Day label
                     Text(data.day)
                         .font(.caption2)
-                        .foregroundStyle(isToday ? (goal.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)) : .secondary)
+                        .foregroundStyle(isToday ? goal.themeColor(for: colorScheme) : .secondary)
                         .fontWeight(isToday ? .semibold : .regular)
                 }
                 .frame(maxWidth: .infinity)
@@ -232,9 +248,9 @@ struct SevenDayBarChart: View {
     
     private func barColor(for progress: TimeInterval) -> Color {
         if progress >= dailyTarget {
-            return goal.primaryTag?.themePreset.neon ?? themePresets[0].neon
+            return goal.themeNeon
         } else if progress > 0 {
-            return (goal.primaryTag?.themePreset.light ?? themePresets[0].light).opacity(0.6)
+            return goal.themeLight.opacity(0.6)
         } else {
             return Color(.systemGray5)
         }

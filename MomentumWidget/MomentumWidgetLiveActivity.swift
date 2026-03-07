@@ -72,6 +72,18 @@ struct CircularProgressView: View {
     }
 }
 
+// MARK: - Theme Color Helpers
+
+extension ActivityViewContext where Attributes == MomentumWidgetAttributes {
+    var themeNeonColor: Color {
+        Color(hex: attributes.themeNeon) ?? .blue
+    }
+    
+    var themeDarkColor: Color {
+        Color(hex: attributes.themeDark)?.opacity(0.3) ?? .gray.opacity(0.3)
+    }
+}
+
 // MARK: - Live Activity Widget
 
 struct MomentumWidgetLiveActivity: Widget {
@@ -94,8 +106,8 @@ struct MomentumWidgetLiveActivity: Widget {
                             progress: progress,
                             lineWidth: 6,
                             size: 50,
-                            foregroundColor: Color(hex: context.attributes.themeNeon) ?? .blue,
-                            backgroundColor: Color(hex: context.attributes.themeDark)?.opacity(0.3) ?? .gray.opacity(0.3),
+                            foregroundColor: context.themeNeonColor,
+                            backgroundColor: context.themeDarkColor,
                             animateOnAppear: false
                         )
                         .overlay {
@@ -161,7 +173,7 @@ struct MomentumWidgetLiveActivity: Widget {
                     
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color(hex: context.attributes.themeNeon) ?? .blue)
+                            .fill(context.themeNeonColor)
                             .frame(width: 8, height: 8)
                         Text("\(Int(progress * 100))%")
                             .font(.caption2)
@@ -186,7 +198,7 @@ struct MomentumWidgetLiveActivity: Widget {
                 }
             } minimal: {
                 Circle()
-                    .fill(Color(hex: context.attributes.themeNeon) ?? .blue)
+                    .fill(context.themeNeonColor)
                     .frame(width: 12, height: 12)
             }
             .keylineTint(Color(hex: context.attributes.themeNeon))
@@ -206,8 +218,8 @@ struct LiveActivityLockScreenView: View {
                     progress: currentProgress(at: timelineContext.date),
                     lineWidth: 8,
                     size: 60,
-                    foregroundColor: Color(hex: context.attributes.themeNeon) ?? .blue,
-                    backgroundColor: Color(hex: context.attributes.themeDark)?.opacity(0.3) ?? .gray.opacity(0.3),
+                    foregroundColor: context.themeNeonColor,
+                    backgroundColor: context.themeDarkColor,
                     animateOnAppear: false
                 )
                 .overlay {

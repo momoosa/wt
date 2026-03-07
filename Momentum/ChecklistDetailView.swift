@@ -57,7 +57,7 @@ struct ChecklistDetailView: View {
         var points: [SchedulePoint] = []
         for (weekdayNum, dayLabel) in weekdays {
             for timeOfDay in TimeOfDay.allCases {
-                if session.goal?.isScheduled(weekday: weekdayNum, time: timeOfDay) ?? false {
+                if session.isScheduled(weekday: weekdayNum, time: timeOfDay) {
                     points.append(SchedulePoint(weekday: dayLabel, timeOfDay: timeOfDay.displayName))
                 }
             }
@@ -101,7 +101,7 @@ struct ChecklistDetailView: View {
                             ForEach(times, id: \.self) { time in
                                 HStack(spacing: 8) {
                                     ForEach(weekdays, id: \.0) { weekday, _ in
-                                        let isScheduled = session.goal?.isScheduled(weekday: weekday, time: time) ?? false
+                                        let isScheduled = session.isScheduled(weekday: weekday, time: time)
                                         
                                         Image(systemName: time.icon)
                                             .font(.system(size: 14, weight: .medium))
@@ -122,7 +122,7 @@ struct ChecklistDetailView: View {
                         ForEach(times, id: \.self) { time in
                             HStack(spacing: 8) {
                                 ForEach(weekdays, id: \.0) { weekday, _ in
-                                    let isScheduled = session.goal?.isScheduled(weekday: weekday, time: time) ?? false
+                                    let isScheduled = session.isScheduled(weekday: weekday, time: time)
                                     
                                     Image(systemName: time.icon)
                                         .font(.system(size: 14, weight: .medium))
@@ -574,7 +574,7 @@ struct ChecklistDetailView: View {
             }
         }()
         
-        return session.goal?.isScheduled(weekday: weekday, time: currentTime) ?? false
+        return session.isScheduled(weekday: weekday, time: currentTime)
     }
     
     /// Get a human-readable status of current schedule
@@ -593,7 +593,7 @@ struct ChecklistDetailView: View {
             }
         }()
         
-        if session.goal?.isScheduled(weekday: weekday, time: currentTime) ?? false {
+        if session.isScheduled(weekday: weekday, time: currentTime) {
             return "Active now"
         } else {
             // Find next scheduled time
@@ -651,5 +651,12 @@ struct ChecklistDetailView: View {
     }
     
     // MARK: - Chart Helpers
+}
+
+// MARK: - Convenience Extensions
+private extension GoalSession {
+    func isScheduled(weekday: Int, time: TimeOfDay) -> Bool {
+        goal?.isScheduled(weekday: weekday, time: time) ?? false
+    }
 }
 
