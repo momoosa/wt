@@ -11,6 +11,7 @@ import MomentumKit
 import UserNotifications
 import BackgroundTasks
 import OSLog
+import AppIntents
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -101,6 +102,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 struct MomentumApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Environment(\.scenePhase) private var scenePhase
+    
+    static var appShortcutsProvider: MomentumAppShortcutsProvider {
+        MomentumAppShortcutsProvider()
+    }
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([

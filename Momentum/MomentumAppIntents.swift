@@ -11,33 +11,113 @@ import MomentumKit
 import SwiftData
 import SwiftUI
 
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
+
 // MARK: - Start Goal Timer
 
 struct StartGoalTimerIntent: AppIntent {
     static var title: LocalizedStringResource = "Start Goal Timer"
     static var description = IntentDescription("Start tracking time for a goal")
-    static var openAppWhenRun: Bool = true
+    static var openAppWhenRun: Bool = false
     
     @Parameter(title: "Goal")
     var goal: GoalEntity
     
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
+        print("🎯 StartGoalTimerIntent: Starting timer for goal \(goal.id)")
+        
         // Access SwiftData directly using the app group
         let container = try createSharedModelContainer()
         let context = ModelContext(container)
         
+        // Find the goal
         let goalDescriptor = FetchDescriptor<Goal>()
-        
         let goals = try context.fetch(goalDescriptor)
-        guard goals.first(where: { $0.id.uuidString == goal.id }) != nil else {
+        guard let selectedGoal = goals.first(where: { $0.id.uuidString == goal.id }) else {
             throw IntentError.goalNotFound
         }
         
-        // This opens the app due to openAppWhenRun = true
-        // The user can then start the timer from there
+        // Get or create today's session
+        let calendar = Calendar.current
+        let todayID = Date().yearMonthDayID(with: calendar)
         
-        return .result(dialog: "Opening Momentum to start timer for \(goal.title)")
+        // Fetch or create today's day
+        let dayDescriptor = FetchDescriptor<Day>(
+            predicate: #Predicate<Day> { $0.id == todayID }
+        )
+        
+        let day: Day
+        if let existingDay = try? context.fetch(dayDescriptor).first {
+            day = existingDay
+        } else {
+            // Create new day
+            let startOfDay = calendar.startOfDay(for: Date())
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+            day = Day(start: startOfDay, end: endOfDay, calendar: calendar)
+            context.insert(day)
+            try context.save()
+        }
+        
+        // Find or create session for this goal today
+        let sessionDescriptor = FetchDescriptor<GoalSession>()
+        let sessions = try context.fetch(sessionDescriptor)
+        
+        let session: GoalSession
+        if let existingSession = sessions.first(where: { $0.goalID == selectedGoal.id.uuidString && $0.day.id == todayID }) {
+            session = existingSession
+        } else {
+            // Create new session
+            session = GoalSession(title: selectedGoal.title, goal: selectedGoal, day: day)
+            context.insert(session)
+            try context.save()
+        }
+        
+        print("✅ StartGoalTimerIntent: Found/created session \(session.id)")
+        
+        // Use UserDefaults to communicate with the app
+        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            print("❌ StartGoalTimerIntent: Failed to access UserDefaults")
+            throw IntentError.sessionNotFound
+        }
+        
+        let activeSessionIDKey = "ActiveSessionIDV1"
+        let activeSessionStartDateKey = "ActiveSessionStartDateV1"
+        let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
+        
+        // Stop any existing timer first
+        if let existingSessionID = defaults.string(forKey: activeSessionIDKey) {
+            print("⚠️ StartGoalTimerIntent: Stopping existing timer for session \(existingSessionID)")
+            defaults.removeObject(forKey: activeSessionIDKey)
+            defaults.removeObject(forKey: activeSessionStartDateKey)
+            defaults.removeObject(forKey: activeSessionElapsedTimeKey)
+        }
+        
+        // Start the new timer
+        let startDate = Date()
+        let sessionID = session.id.uuidString
+        let elapsedTime = session.elapsedTime
+        
+        defaults.set(sessionID, forKey: activeSessionIDKey)
+        defaults.set(startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
+        defaults.set(elapsedTime, forKey: activeSessionElapsedTimeKey)
+        defaults.synchronize()
+        
+        print("✅ StartGoalTimerIntent: Timer started at \(startDate)")
+        
+        // Notify the main app to sync the session
+        NotificationCenter.default.post(name: NSNotification.Name("SessionTimerExternalChange"), object: nil)
+        
+        // Reload widgets
+        #if canImport(WidgetKit)
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+        #endif
+        
+        return .result(dialog: "Started timer for \(goal.title)")
     }
 }
 
@@ -273,6 +353,17 @@ struct MomentumAppShortcutsProvider: AppShortcutsProvider {
             ],
             shortTitle: "Weather Recommendations",
             systemImageName: "cloud.sun"
+        )
+        
+        AppShortcut(
+            intent: StartGoalTimerIntent(),
+            phrases: [
+                "Start \(\.$goal) in \(.applicationName)",
+                "Begin tracking \(\.$goal) in \(.applicationName)",
+                "Start timer for \(\.$goal) in \(.applicationName)"
+            ],
+            shortTitle: "Start Goal",
+            systemImageName: "play.circle"
         )
         
         AppShortcut(
