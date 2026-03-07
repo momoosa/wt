@@ -39,6 +39,12 @@ public final class Goal {
     public var notes: String? // User's notes about the goal
     public var link: String? // Optional URL for reference (tutorial, article, etc.)
     
+    // Weather-based triggers (overrides tag settings if set)
+    public var weatherConditions: [String]? // WeatherCondition raw values
+    public var minTemperature: Double? // Celsius
+    public var maxTemperature: Double? // Celsius
+    public var weatherEnabled: Bool = false // Whether weather-based visibility is enabled
+    
     @Relationship(deleteRule: .cascade)
     public var goalSessions: [GoalSession] = []
     @Relationship(deleteRule: .cascade) 
@@ -158,5 +164,59 @@ public extension Goal {
 public extension Goal {
     func tintColor(for colorScheme: ColorScheme) -> Color {
         return primaryTag.theme.color(for: colorScheme)
+    }
+    
+    // MARK: - Weather Helpers
+    
+    /// Get weather conditions as typed enum array
+    var weatherConditionsTyped: [WeatherCondition]? {
+        get {
+            weatherConditions?.compactMap { WeatherCondition(rawValue: $0) }
+        }
+        set {
+            weatherConditions = newValue?.map { $0.rawValue }
+        }
+    }
+    
+    /// Get temperature range if both min and max are set
+    var temperatureRange: ClosedRange<Double>? {
+        guard let min = minTemperature, let max = maxTemperature else { return nil }
+        return min...max
+    }
+    
+    /// Check if goal has any weather-based triggers (either on goal or primary tag)
+    var hasWeatherTriggers: Bool {
+        if weatherEnabled && (weatherConditions != nil || minTemperature != nil || maxTemperature != nil) {
+            return true
+        }
+        return primaryTag.isSmart && (
+            primaryTag.weatherConditions != nil ||
+            primaryTag.minTemperature != nil ||
+            primaryTag.maxTemperature != nil
+        )
+    }
+    
+    /// Get effective weather conditions (goal overrides tag)
+    var effectiveWeatherConditions: [WeatherCondition]? {
+        if weatherEnabled, let conditions = weatherConditionsTyped {
+            return conditions
+        }
+        return primaryTag.weatherConditionsTyped
+    }
+    
+    /// Get effective min temperature (goal overrides tag)
+    var effectiveMinTemperature: Double? {
+        if weatherEnabled, let temp = minTemperature {
+            return temp
+        }
+        return primaryTag.minTemperature
+    }
+    
+    /// Get effective max temperature (goal overrides tag)
+    var effectiveMaxTemperature: Double? {
+        if weatherEnabled, let temp = maxTemperature {
+            return temp
+        }
+        return primaryTag.maxTemperature
     }
 }

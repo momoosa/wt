@@ -8,6 +8,8 @@
 	<string>Momentum will save your tracked sessions to the Health app so your progress is recorded across all your devices.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Momentum can import your reminders to help you quickly create time-tracked goals based on your existing to-dos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Momentum uses your location to suggest goals based on current weather conditions.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

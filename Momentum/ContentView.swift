@@ -59,6 +59,9 @@ struct ContentView: View {
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
     
+    // Weather
+    @State private var weatherManager = WeatherManager.shared
+    
     var body: some View {
         mainListView
             .animation(.spring(), value: goals)
@@ -105,6 +108,10 @@ struct ContentView: View {
             }
             .onChange(of: goals) { old, new in
                 handleGoalsChange(old: old, new: new)
+                goalStore.goals = new
+            }
+            .onChange(of: sessions) { old, new in
+                goalStore.sessions = new
             }
 #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -256,26 +263,34 @@ struct ContentView: View {
             }
 
             if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
-                // Only show recommended section for "Today" filter
+                // Only show contextual sections for "Today" filter
                 if activeFilter == .activeToday {
                     let recommendedSessions = getRecommendedSessions()
-                    if !recommendedSessions.isEmpty {
-                        recommendedSection(sessions: recommendedSessions)
-                    }
+                    let allSessions = SessionFilterService.filter(
+                        focusFilteredSessions,
+                        by: activeFilter,
+                        validationCheck: isGoalValid,
+                        weatherManager: weatherManager
+                    )
                     
-                    if !focusFilteredSessions.isEmpty {
-                        let recommendedSessionIDs = Set(recommendedSessions.map { $0.id })
-                        let laterSessions = SessionFilterService.filter(focusFilteredSessions, by: activeFilter, validationCheck: isGoalValid)
-                            .filter { !recommendedSessionIDs.contains($0.id) }
-                        
-                        if !laterSessions.isEmpty {
-                            laterSection(sessions: laterSessions)
-                        }
+                    // Group sessions into contextual sections
+                    let contextualSections = ContextualSection.groupSessions(
+                        allSessions,
+                        recommendedSessions: recommendedSessions
+                    )
+                    
+                    ForEach(contextualSections) { section in
+                        contextualSectionView(section: section)
                     }
                 } else {
                     // For other filters, show all sessions as regular rows
                     if !focusFilteredSessions.isEmpty {
-                        let allSessions = SessionFilterService.filter(focusFilteredSessions, by: activeFilter, validationCheck: isGoalValid)
+                        let allSessions = SessionFilterService.filter(
+                            focusFilteredSessions,
+                            by: activeFilter,
+                            validationCheck: isGoalValid,
+                            weatherManager: weatherManager
+                        )
                         
                         if !allSessions.isEmpty {
                             laterSection(sessions: allSessions)
@@ -327,6 +342,94 @@ struct ContentView: View {
                 insertion: .scale(scale: 0.8).combined(with: .opacity),
                 removal: .opacity
             ))
+        }
+    }
+    
+    @ViewBuilder
+    private func contextualSectionView(section: ContextualSection) -> some View {
+        switch section.type {
+        case .recommendedNow:
+            // Recommended Now section with featured card style
+            Section {
+            } header: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(.yellow)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                    }
+                    
+                    if let explanation = section.explanation {
+                        Text(explanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .listSectionSpacing(.compact)
+            
+            // Individual featured cards
+            ForEach(section.sessions) { session in
+                Section {
+                    RecommendedSessionRowView(
+                        session: session,
+                        day: day,
+                        timerManager: timerManager,
+                        animation: animation,
+                        selectedSession: $selectedSession,
+                        sessionToLogManually: $sessionToLogManually,
+                        onSkip: skip
+                    )
+                }
+                .listSectionSpacing(.compact)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.8).combined(with: .opacity),
+                    removal: .opacity
+                ))
+            }
+            
+        case .weatherWindow, .timeWindow, .energyWindow:
+            // Contextual time-based sections
+            Section {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session)
+                }
+            } header: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(.blue)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                    }
+                    
+                    if let explanation = section.explanation {
+                        Text(explanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .listSectionSpacing(.compact)
+            
+        case .later:
+            // Later section (standard rows)
+            Section {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session)
+                }
+            } header: {
+                if sessions.count > 4 {
+                    Text(section.type.title)
+                        .font(.headline)
+                }
+            }
+            .listSectionSpacing(.compact)
         }
     }
     
@@ -580,10 +683,17 @@ struct ContentView: View {
         // Load saved timer states from UserDefaults
         timerManager?.loadTimerState(sessions: sessions)
         
+        // Update GoalStore for App Intents
+        goalStore.goals = goals
+        goalStore.sessions = sessions
+        
         // Use Task to ensure proper async data loading
         Task {
             refreshGoals()
             syncHealthKitData()
+            
+            // Initialize weather data
+            weatherManager.refreshWeatherIfNeeded()
             
             // Auto-plan once per day on launch if we haven't already
             await checkAndRunAutoPlan()
@@ -890,7 +1000,8 @@ struct ContentView: View {
             filter: activeFilter,
             planner: planningViewModel.planner,
             preferences: planningViewModel.plannerPreferences,
-            validationCheck: isGoalValid
+            validationCheck: isGoalValid,
+            weatherManager: weatherManager
         )
     }
     

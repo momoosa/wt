@@ -8,7 +8,6 @@
 import Foundation
 import MomentumKit
 import SwiftData
-// TODO: Not static
 
 /// Service for filtering and counting goal sessions
 struct SessionFilterService {
@@ -45,11 +44,13 @@ struct SessionFilterService {
     ///   - sessions: All sessions to filter
     ///   - filter: The filter to apply
     ///   - validationCheck: Closure to check if a session's goal is still valid
+    ///   - weatherManager: Optional weather manager for weather-based filtering
     /// - Returns: Filtered and sorted sessions
     static func filter(
         _ sessions: [GoalSession],
         by filter: ContentView.Filter,
-        validationCheck: (GoalSession) -> Bool
+        validationCheck: (GoalSession) -> Bool,
+        weatherManager: WeatherManager? = nil
     ) -> [GoalSession] {
         let filtered = sessions.filter { session in
             // Check if not deleted first, before accessing any properties
@@ -60,6 +61,14 @@ struct SessionFilterService {
             // Filter out sessions with deleted goals
             guard validationCheck(session) else {
                 return false
+            }
+            
+            // Apply weather filtering if enabled for this goal
+            if let weatherManager = weatherManager, session.goal.hasWeatherTriggers {
+                // If goal has weather triggers but they're not met, filter it out
+                guard meetsWeatherRequirements(session.goal, weatherManager: weatherManager) else {
+                    return false
+                }
             }
             
             // Safely access status properties that might be faults
@@ -125,11 +134,12 @@ struct SessionFilterService {
         filter: ContentView.Filter,
         planner: GoalSessionPlanner,
         preferences: PlannerPreferences,
-        validationCheck: (GoalSession) -> Bool
+        validationCheck: (GoalSession) -> Bool,
+        weatherManager: WeatherManager? = nil
     ) -> [GoalSession] {
         // Filter out deleted/invalid sessions first
         let validSessions = sessions.filter { (try? $0.persistentModelID) != nil }
-        let filtered = self.filter(validSessions, by: filter, validationCheck: validationCheck)
+        let filtered = self.filter(validSessions, by: filter, validationCheck: validationCheck, weatherManager: weatherManager)
         
         // During planning or if we have planned sessions, show top 3 with planning details as recommended
         let plannedSessions = filtered
@@ -203,5 +213,42 @@ struct SessionFilterService {
         filters.append(contentsOf: themeFilters)
         
         return filters
+    }
+    
+    // MARK: - Weather Filtering
+    
+    /// Check if a goal's weather requirements are met
+    /// - Parameters:
+    ///   - goal: The goal to check
+    ///   - weatherManager: Weather manager with current conditions
+    /// - Returns: True if weather requirements are met or not enabled
+    static func meetsWeatherRequirements(_ goal: Goal, weatherManager: WeatherManager) -> Bool {
+        // If weather triggers aren't enabled, always show the goal
+        guard goal.weatherEnabled || goal.primaryTag.isSmart else {
+            return true
+        }
+        
+        // Check weather conditions
+        if let conditions = goal.effectiveWeatherConditions, !conditions.isEmpty {
+            guard weatherManager.matchesAnyCondition(conditions) else {
+                return false
+            }
+        }
+        
+        // Check minimum temperature
+        if let minTemp = goal.effectiveMinTemperature {
+            guard weatherManager.temperatureAbove(minTemp) else {
+                return false
+            }
+        }
+        
+        // Check maximum temperature
+        if let maxTemp = goal.effectiveMaxTemperature {
+            guard weatherManager.temperatureBelow(maxTemp) else {
+                return false
+            }
+        }
+        
+        return true
     }
 }

@@ -88,6 +88,14 @@ struct GoalEditorView: View {
     @State private var showingTagPicker: Bool = false
     @State private var editingTag: GoalTag?
     
+    // Weather-based triggers
+    @State private var weatherEnabled: Bool = false
+    @State private var selectedWeatherConditions: Set<WeatherCondition> = []
+    @State private var hasMinTemperature: Bool = false
+    @State private var minTemperature: Double = 10
+    @State private var hasMaxTemperature: Bool = false
+    @State private var maxTemperature: Double = 25
+    
     // Track if user has made any changes
     private var hasUnsavedChanges: Bool {
         // Check if user has entered text
@@ -500,6 +508,117 @@ struct GoalEditorView: View {
                                 }
                                 .padding(.vertical, 4)
                             }
+                            
+                            // Weather-based visibility
+                            Section {
+                                Toggle(isOn: $weatherEnabled) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "cloud.sun.fill")
+                                                .foregroundStyle(activeThemeColor)
+                                            Text("Weather-Based Visibility")
+                                                .font(.subheadline)
+                                                .fontWeight(.medium)
+                                        }
+                                        Text("Show this goal only when weather conditions match")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                
+                                if weatherEnabled {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // Weather conditions
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("Weather Conditions")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            
+                                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
+                                                ForEach(WeatherCondition.allCases, id: \.self) { condition in
+                                                    Button(action: {
+                                                        if selectedWeatherConditions.contains(condition) {
+                                                            selectedWeatherConditions.remove(condition)
+                                                        } else {
+                                                            selectedWeatherConditions.insert(condition)
+                                                        }
+                                                    }) {
+                                                        VStack(spacing: 4) {
+                                                            Image(systemName: condition.icon)
+                                                                .font(.title3)
+                                                            Text(condition.displayName)
+                                                                .font(.caption2)
+                                                        }
+                                                        .frame(maxWidth: .infinity)
+                                                        .padding(.vertical, 8)
+                                                        .background(
+                                                            RoundedRectangle(cornerRadius: 8)
+                                                                .fill(selectedWeatherConditions.contains(condition) ? activeThemeColor.opacity(0.2) : Color(.systemGray6))
+                                                        )
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 8)
+                                                                .strokeBorder(selectedWeatherConditions.contains(condition) ? activeThemeColor : Color.clear, lineWidth: 2)
+                                                        )
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                }
+                                            }
+                                        }
+                                        
+                                        Divider()
+                                        
+                                        // Temperature range
+                                        VStack(alignment: .leading, spacing: 12) {
+                                            Text("Temperature Range (°C)")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            
+                                            Toggle(isOn: $hasMinTemperature) {
+                                                Text("Minimum Temperature")
+                                                    .font(.subheadline)
+                                            }
+                                            
+                                            if hasMinTemperature {
+                                                HStack {
+                                                    Text("\(Int(minTemperature))°C")
+                                                        .font(.subheadline)
+                                                        .foregroundStyle(.secondary)
+                                                        .frame(width: 50)
+                                                    Slider(value: $minTemperature, in: -10...40, step: 1)
+                                                }
+                                            }
+                                            
+                                            Toggle(isOn: $hasMaxTemperature) {
+                                                Text("Maximum Temperature")
+                                                    .font(.subheadline)
+                                            }
+                                            
+                                            if hasMaxTemperature {
+                                                HStack {
+                                                    Text("\(Int(maxTemperature))°C")
+                                                        .font(.subheadline)
+                                                        .foregroundStyle(.secondary)
+                                                        .frame(width: 50)
+                                                    Slider(value: $maxTemperature, in: -10...40, step: 1)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            } header: {
+                                if weatherEnabled {
+                                    HStack {
+                                        Text("Weather Triggers")
+                                        Spacer()
+                                        if selectedWeatherConditions.isEmpty && !hasMinTemperature && !hasMaxTemperature {
+                                            Text("Select at least one condition")
+                                                .font(.caption2)
+                                                .foregroundStyle(.orange)
+                                        }
+                                    }
+                                }
+                            }
                         }
                         
                         Spacer()
@@ -896,6 +1015,20 @@ struct GoalEditorView: View {
             }
         }
         
+        // Load weather settings
+        weatherEnabled = goal.weatherEnabled
+        if let conditions = goal.weatherConditionsTyped {
+            selectedWeatherConditions = Set(conditions)
+        }
+        if let minTemp = goal.minTemperature {
+            hasMinTemperature = true
+            minTemperature = minTemp
+        }
+        if let maxTemp = goal.maxTemperature {
+            hasMaxTemperature = true
+            maxTemperature = maxTemp
+        }
+        
         // Go straight to duration stage when editing
         currentStage = .duration
     }
@@ -1199,8 +1332,25 @@ struct GoalEditorView: View {
             }
         }
         
+        // ✅ Save weather settings
+        goal.weatherEnabled = weatherEnabled
+        if weatherEnabled {
+            goal.weatherConditionsTyped = selectedWeatherConditions.isEmpty ? nil : Array(selectedWeatherConditions)
+            goal.minTemperature = hasMinTemperature ? minTemperature : nil
+            goal.maxTemperature = hasMaxTemperature ? maxTemperature : nil
+        } else {
+            goal.weatherConditionsTyped = nil
+            goal.minTemperature = nil
+            goal.maxTemperature = nil
+        }
+        
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
         print(goal.scheduleSummary)
+        if weatherEnabled {
+            print("🌤️ Weather triggers: \(selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))")
+            if hasMinTemperature { print("   Min temp: \(Int(minTemperature))°C") }
+            if hasMaxTemperature { print("   Max temp: \(Int(maxTemperature))°C") }
+        }
         
         // Request notification permissions if enabled
         if scheduleNotificationsEnabled || completionNotificationsEnabled {

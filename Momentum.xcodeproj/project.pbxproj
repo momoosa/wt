@@ -20,6 +20,8 @@
 		CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */; };
 		CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */; };
 		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
+		CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */; };
+		CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */; };
 		CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0B80982F43A590006EDA47 /* SearchSheet.swift */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
@@ -62,6 +64,7 @@
 		CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */; };
 		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
+		CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7578E32F5AD039003D7CFE /* WeatherManager.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436B2F372DB600DE984B /* SessionRowView.swift */; };
 		CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */; };
@@ -82,6 +85,7 @@
 		CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA312EE9FA1000C1C411 /* Item.swift */; };
 		CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */; };
 		CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */; };
+		CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA6512F59786500661146 /* ContextualSection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -169,6 +173,8 @@
 		CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerIntegrationExamples.swift; sourceTree = "<group>"; };
 		CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartNotificationScheduler.swift; sourceTree = "<group>"; };
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
+		CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEntity.swift; sourceTree = "<group>"; };
+		CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumAppIntents.swift; sourceTree = "<group>"; };
 		CD0B80982F43A590006EDA47 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
@@ -208,6 +214,7 @@
 		CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerConfigurationSheet.swift; sourceTree = "<group>"; };
 		CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNING_PERFORMANCE.md; sourceTree = "<group>"; };
 		CD713B202F20261B003F901D /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
+		CD7578E32F5AD039003D7CFE /* WeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherManager.swift; sourceTree = "<group>"; };
 		CD75CC5B2E2FE5E600890F20 /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -234,6 +241,7 @@
 		CDEBAA312EE9FA1000C1C411 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
 		CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeektimeApp.swift; sourceTree = "<group>"; };
 		CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHandler.swift; sourceTree = "<group>"; };
+		CDEFA6512F59786500661146 /* ContextualSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualSection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -511,6 +519,10 @@
 				CD2A6FB52F576B5600F5503A /* Constants */,
 				CD2A6FC22F5778F300F5503A /* Helpers */,
 				CD2A6FC52F57794700F5503A /* Modifiers */,
+				CDEFA6512F59786500661146 /* ContextualSection.swift */,
+				CD7578E32F5AD039003D7CFE /* WeatherManager.swift */,
+				CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */,
+				CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -835,7 +847,9 @@
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
 				CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */,
+				CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* ChecklistDetailView.swift in Sources */,
+				CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */,
 				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
@@ -849,6 +863,7 @@
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
+				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
@@ -874,6 +889,7 @@
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
+				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,

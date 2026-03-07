@@ -94,6 +94,12 @@ struct GoalRow: View {
                             .font(.caption)
                             .foregroundStyle(.pink)
                     }
+                    
+                    if goal.hasWeatherTriggers {
+                        Image(systemName: "cloud.sun.fill")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                    }
                 }
             }
             
