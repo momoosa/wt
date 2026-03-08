@@ -29,6 +29,41 @@ extension ContentView {
             }
         }
         
+        // Custom hash implementation to use persistentModelID for theme case
+        func hash(into hasher: inout Hasher) {
+            switch self {
+            case .activeToday:
+                hasher.combine("activeToday")
+            case .allGoals:
+                hasher.combine("allGoals")
+            case .completedToday:
+                hasher.combine("completedToday")
+            case .skippedSessions:
+                hasher.combine("skippedSessions")
+            case .inactive:
+                hasher.combine("inactive")
+            case .theme(let tag):
+                hasher.combine("theme")
+                hasher.combine(tag.persistentModelID)
+            }
+        }
+        
+        // Custom equality to compare persistentModelID for theme case
+        static func == (lhs: Filter, rhs: Filter) -> Bool {
+            switch (lhs, rhs) {
+            case (.activeToday, .activeToday),
+                 (.allGoals, .allGoals),
+                 (.completedToday, .completedToday),
+                 (.skippedSessions, .skippedSessions),
+                 (.inactive, .inactive):
+                return true
+            case (.theme(let lhsTag), .theme(let rhsTag)):
+                return lhsTag.persistentModelID == rhsTag.persistentModelID
+            default:
+                return false
+            }
+        }
+        
         var text: String {
             switch self {
             case .activeToday:

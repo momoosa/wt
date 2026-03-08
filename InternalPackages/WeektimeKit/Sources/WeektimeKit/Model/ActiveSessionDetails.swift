@@ -81,5 +81,10 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
         timer?.invalidate()
         timer = nil
     }
+    
+    /// Adjust the start time by a given offset (positive = earlier, negative = later)
+    public func adjustStartTime(by offset: TimeInterval) {
+        startDate = startDate.addingTimeInterval(offset)
+    }
 
 }

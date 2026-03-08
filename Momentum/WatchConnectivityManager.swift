@@ -114,6 +114,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
             handleToggleTimer(message)
         case "startTimer":
             handleStartTimer(message)
+        case "quickLog":
+            handleQuickLog(message)
         default:
             logger.warning("Unknown message type from Watch: \(type)")
         }
@@ -153,6 +155,26 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 name: NSNotification.Name("StartTimerFromWatch"),
                 object: nil,
                 userInfo: ["sessionID": sessionID]
+            )
+        }
+    }
+    
+    private func handleQuickLog(_ message: [String: Any]) {
+        guard let sessionIDString = message["sessionID"] as? String,
+              let sessionID = UUID(uuidString: sessionIDString),
+              let minutes = message["minutes"] as? Int else {
+            logger.error("Invalid quickLog message format")
+            return
+        }
+        
+        logger.info("Received quick log request for session: \(sessionID), minutes: \(minutes)")
+        
+        // Post notification to quick log time
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("QuickLogFromWatch"),
+                object: nil,
+                userInfo: ["sessionID": sessionID, "minutes": minutes]
             )
         }
     }

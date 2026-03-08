@@ -7,10 +7,14 @@
 
 import SwiftUI
 import MomentumKit
+import WatchKit
 
 struct WatchSessionRow: View {
     let session: GoalSession
     let day: Day
+    
+    @State private var showingStartAlert = false
+    @StateObject private var connectivityManager = WatchConnectivityManager.shared
     
     private var todayMinutes: Int {
         // Get today's elapsed time from historical sessions
@@ -44,7 +48,6 @@ struct WatchSessionRow: View {
     
     var body: some View {
         Button {
-            // Start session via App Intent or UserDefaults
             startSession()
         } label: {
             HStack(spacing: 12) {
@@ -100,10 +103,48 @@ struct WatchSessionRow: View {
             }
         }
         .buttonStyle(.plain)
+        .alert("Timer Request", isPresented: $showingStartAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if connectivityManager.isReachable {
+                Text("Starting timer for \(session.goal?.title ?? "session")")
+            } else {
+                Text("iPhone not reachable. Command queued.")
+            }
+        }
+        .swipeActions(edge: .leading) {
+            Button {
+                quickLog(minutes: 5)
+            } label: {
+                Label("+5m", systemImage: "plus.circle.fill")
+            }
+            .tint(.green)
+            
+            Button {
+                quickLog(minutes: 15)
+            } label: {
+                Label("+15m", systemImage: "plus.circle.fill")
+            }
+            .tint(.blue)
+        }
     }
     
     private func startSession() {
+        // Haptic feedback
+        WKInterfaceDevice.current().play(.start)
+        
+        // Show feedback
+        showingStartAlert = true
+        
         // Send start timer request to iPhone via WatchConnectivity
         WatchConnectivityManager.shared.requestStartTimer(sessionID: session.id)
+    }
+    
+    private func quickLog(minutes: Int) {
+        // Haptic feedback
+        WKInterfaceDevice.current().play(.success)
+        
+        // Send quick log request to iPhone via WatchConnectivity
+        WatchConnectivityManager.shared.requestQuickLog(sessionID: session.id, minutes: minutes)
     }
 }

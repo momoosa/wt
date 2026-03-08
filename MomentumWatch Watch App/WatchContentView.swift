@@ -54,32 +54,28 @@ struct WatchContentView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Debug info
-                Section("Debug Info") {
-                    Text("Goals: \(goals.count)")
-                    Text("All Sessions: \(allSessions.count)")
-                    Text("Sessions w/ target: \(sessions.count)")
-                    Text("Filtered: \(filteredSessions.count)")
-                    Text("Days: \(days.count)")
-                    
-                    // Show first few goals
-                    if !goals.isEmpty {
-                        ForEach(goals.prefix(3)) { goal in
-                            Text("Goal: \(goal.title)")
-                                .font(.system(size: 8))
-                        }
-                    }
-                    
-                    // Show first few sessions
-                    if !allSessions.isEmpty {
-                        ForEach(allSessions.prefix(3)) { session in
-                            Text("Session: \(session.goal?.title ?? "Unknown") - target: \(Int(session.dailyTarget))")
-                                .font(.system(size: 8))
+                // Connection status indicator
+                if !connectivityManager.isReachable {
+                    Section {
+                        HStack {
+                            Image(systemName: "iphone.slash")
+                                .foregroundStyle(.orange)
+                            Text("iPhone not reachable")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                
+                // Show error if any
+                if let error = connectivityManager.lastError {
+                    Section {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+                
                 // Show active session at the top
                 if let activeSession = activeSession, let timerState = connectivityManager.activeTimerState {
                     Section {

@@ -12,20 +12,24 @@ struct NowPlayingView: View {
     let session: GoalSession
     let activeSessionDetails: ActiveSessionDetails
     let onStopTapped: () -> Void
+    let onAdjustStartTime: ((TimeInterval) -> Void)?
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var showingAdjustments = false
     
     // Optional interval information
     let currentIntervalName: String?
     let intervalProgress: Double?
     let intervalTimeRemaining: TimeInterval?
     
-    init(session: GoalSession, activeSessionDetails: ActiveSessionDetails, currentIntervalName: String? = nil, intervalProgress: Double? = nil, intervalTimeRemaining: TimeInterval? = nil, onStopTapped: @escaping () -> Void) {
+    init(session: GoalSession, activeSessionDetails: ActiveSessionDetails, currentIntervalName: String? = nil, intervalProgress: Double? = nil, intervalTimeRemaining: TimeInterval? = nil, onStopTapped: @escaping () -> Void, onAdjustStartTime: ((TimeInterval) -> Void)? = nil) {
         self.session = session
         self.activeSessionDetails = activeSessionDetails
         self.currentIntervalName = currentIntervalName
         self.intervalProgress = intervalProgress
         self.intervalTimeRemaining = intervalTimeRemaining
         self.onStopTapped = onStopTapped
+        self.onAdjustStartTime = onAdjustStartTime
     }
     
     var body: some View {
@@ -54,6 +58,9 @@ struct NowPlayingView: View {
                 // Dismiss indicator at top
                 VStack(spacing: 16) {
                     // Grab handle
+                    Spacer()
+                        .frame(height: 30)
+                    
                     RoundedRectangle(cornerRadius: 3)
                         .fill(.white.opacity(0.5))
                         .frame(width: 40, height: 5)
@@ -218,11 +225,11 @@ struct NowPlayingView: View {
                             )
                     }
                     
-                    // Info button (placeholder for future features)
+                    // Adjustments button
                     Button {
-                        // TODO: Show session details/notes
+                        showingAdjustments = true
                     } label: {
-                        Image(systemName: "info.circle")
+                        Image(systemName: "slider.horizontal.3")
                             .font(.title2)
                             .foregroundStyle(.white)
                             .frame(width: 60, height: 60)
@@ -238,9 +245,69 @@ struct NowPlayingView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingAdjustments) {
+            SessionAdjustmentsSheet(
+                activeSessionDetails: activeSessionDetails,
+                onAdjustStartTime: onAdjustStartTime
+            )
+            .presentationDetents([.height(180)])
+            .presentationDragIndicator(.visible)
+            .presentationBackgroundInteraction(.enabled)
+        }
     }
     
 
+}
+
+struct SessionAdjustmentsSheet: View {
+    let activeSessionDetails: ActiveSessionDetails
+    let onAdjustStartTime: ((TimeInterval) -> Void)?
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var startTime: Date
+    
+    init(activeSessionDetails: ActiveSessionDetails, onAdjustStartTime: ((TimeInterval) -> Void)?) {
+        self.activeSessionDetails = activeSessionDetails
+        self.onAdjustStartTime = onAdjustStartTime
+        _startTime = State(initialValue: activeSessionDetails.startDate)
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Adjust Start Time")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding()
+            
+            Divider()
+            
+            // Date picker
+            VStack(alignment: .leading, spacing: 12) {
+                DatePicker("Started at", selection: $startTime, in: ...Date(), displayedComponents: [.hourAndMinute])
+                    .datePickerStyle(.compact)
+                    .onChange(of: startTime) { oldValue, newValue in
+                        let adjustment = newValue.timeIntervalSince(oldValue)
+                        onAdjustStartTime?(adjustment)
+                        HapticFeedbackManager.trigger(.light)
+                    }
+                
+                Text("Original: \(activeSessionDetails.startDate.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+        }
+    }
 }
 
 #Preview {

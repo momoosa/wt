@@ -131,6 +131,20 @@ public final class SessionTimerManager {
                 await self?.handleStartFromWatch(sessionID: sessionID)
             }
         }
+        
+        // Observe quick log requests from Watch
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("QuickLogFromWatch"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let sessionID = notification.userInfo?["sessionID"] as? UUID,
+                  let minutes = notification.userInfo?["minutes"] as? Int else { return }
+            AppLogger.sessionTimer.info("Received quick log request from Watch for session: \(sessionID), minutes: \(minutes)")
+            Task { @MainActor in
+                await self?.handleQuickLogFromWatch(sessionID: sessionID, minutes: minutes)
+            }
+        }
         #endif
     }
     
@@ -186,6 +200,73 @@ public final class SessionTimerManager {
         
         // Use the existing startTimer method
         startTimer(for: session)
+    }
+    
+    /// Handles quick log request from Watch - adds time without starting timer
+    @MainActor
+    private func handleQuickLogFromWatch(sessionID: UUID, minutes: Int) async {
+        AppLogger.sessionTimer.info("handleQuickLogFromWatch: Processing quick log for session \(sessionID), minutes: \(minutes)")
+        
+        // Fetch the session
+        let descriptor = FetchDescriptor<GoalSession>(
+            predicate: #Predicate { $0.id == sessionID }
+        )
+        
+        guard let session = try? modelContext.fetch(descriptor).first else {
+            AppLogger.sessionTimer.error("handleQuickLogFromWatch: Session not found")
+            return
+        }
+        
+        // Get today
+        let calendar = Calendar.current
+        let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+        
+        let dayDescriptor = FetchDescriptor<Day>()
+        guard let allDays = try? modelContext.fetch(dayDescriptor),
+              let today = allDays.first(where: { day in
+                  let dayComponents = calendar.dateComponents([.year, .month, .day], from: day.startDate)
+                  return dayComponents.year == todayComponents.year &&
+                         dayComponents.month == todayComponents.month &&
+                         dayComponents.day == todayComponents.day
+              }) else {
+            AppLogger.sessionTimer.error("handleQuickLogFromWatch: Today not found")
+            return
+        }
+        
+        // Create a historical session for the quick log
+        let duration = TimeInterval(minutes * 60)
+        let now = Date()
+        let startDate = now.addingTimeInterval(-duration)
+        
+        let historicalSession = HistoricalSession(
+            title: session.goal?.title ?? "Quick Log",
+            start: startDate,
+            end: now,
+            needsHealthKitRecord: false
+        )
+        historicalSession.goalIDs = [session.goal?.id.uuidString ?? ""]
+        
+        // Add to today and insert into context
+        modelContext.insert(historicalSession)
+        today.historicalSessions?.append(historicalSession)
+        
+        do {
+            try modelContext.save()
+            AppLogger.sessionTimer.info("Quick log saved: \(minutes) minutes for session \(sessionID)")
+            
+            #if os(iOS)
+            // Haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            
+            // Reload widgets
+            #if canImport(WidgetKit)
+            WidgetCenter.shared.reloadAllTimelines()
+            #endif
+            #endif
+        } catch {
+            AppLogger.sessionTimer.error("Failed to save quick log: \(error.localizedDescription)")
+        }
     }
     
     /// Handles a session that was stopped externally (from widget/Live Activity)

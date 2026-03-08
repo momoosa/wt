@@ -8,15 +8,29 @@
 import SwiftUI
 import MomentumKit
 import Combine
+import WatchKit
 
 struct WatchActiveSessionView: View {
     let session: GoalSession
     let timerState: WatchConnectivityManager.ActiveTimerState
     
     @State private var currentTime = Date()
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var hasReachedTarget = false
+    @State private var showCelebration = false
+    @State private var updateInterval: TimeInterval = 1.0
+    
+    private var timer: Publishers.Autoconnect<Timer.TimerPublisher> {
+        Timer.publish(every: updateInterval, on: .main, in: .common).autoconnect()
+    }
     
     private func toggleTimer() {
+        // Haptic feedback - different based on state
+        if timerState.isPaused {
+            WKInterfaceDevice.current().play(.start)
+        } else {
+            WKInterfaceDevice.current().play(.stop)
+        }
+        
         WatchConnectivityManager.shared.requestTimerToggle(sessionID: timerState.sessionID)
     }
     
@@ -43,7 +57,8 @@ struct WatchActiveSessionView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        ZStack {
+            VStack(alignment: .leading, spacing: 8) {
             // Goal title
             Text(session.goal?.title ?? "Unknown")
                 .font(.headline)
@@ -93,16 +108,61 @@ struct WatchActiveSessionView: View {
                 }
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark).opacity(0.2))
-        )
-        .onTapGesture {
-            toggleTimer()
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark).opacity(0.2))
+            )
+            .onTapGesture {
+                toggleTimer()
+            }
+            .onReceive(timer) { time in
+                currentTime = time
+                checkForCompletion()
+            }
+            
+            // Celebration overlay
+            if showCelebration {
+                ZStack {
+                    Color.clear
+                    
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.green)
+                            .symbolEffect(.bounce, value: showCelebration)
+                        
+                        Text("Target Reached!")
+                            .font(.headline)
+                            .foregroundStyle(.green)
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
         }
-        .onReceive(timer) { time in
-            currentTime = time
+    }
+    
+    private func checkForCompletion() {
+        let targetMinutes = Int(timerState.dailyTarget / 60)
+        if totalElapsedMinutes >= targetMinutes && !hasReachedTarget {
+            hasReachedTarget = true
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                showCelebration = true
+            }
+            WKInterfaceDevice.current().play(.success)
+            
+            // Reduce update frequency after target reached (battery optimization)
+            updateInterval = 5.0
+            
+            // Hide celebration after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    showCelebration = false
+                }
+            }
+        } else if totalElapsedMinutes < targetMinutes {
+            hasReachedTarget = false
+            updateInterval = 1.0
         }
     }
     

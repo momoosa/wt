@@ -821,10 +821,14 @@ struct ContentView: View {
                     activeSessionDetails: activeSession,
                     currentIntervalName: timerManager.currentIntervalName,
                     intervalProgress: timerManager.intervalProgress,
-                    intervalTimeRemaining: timerManager.intervalTimeRemaining
-                ) {
-                    handleTimerToggle(for: session)
-                }
+                    intervalTimeRemaining: timerManager.intervalTimeRemaining,
+                    onStopTapped: {
+                        handleTimerToggle(for: session)
+                    },
+                    onAdjustStartTime: { adjustment in
+                        handleStartTimeAdjustment(for: session, adjustment: adjustment)
+                    }
+                )
             }
         }
     }
@@ -1014,6 +1018,59 @@ struct ContentView: View {
                 showUndo: false
             )
         }
+    }
+    
+    func handleStartTimeAdjustment(for session: GoalSession, adjustment: TimeInterval) {
+        guard let timerManager,
+              let activeSession = timerManager.activeSession,
+              activeSession.id == session.id else { return }
+        
+        // Adjust start time using the ActiveSessionDetails method
+        activeSession.adjustStartTime(by: adjustment)
+        
+        // Save to UserDefaults
+        if let defaults = UserDefaults(suiteName: "group.com.moosa.momentum.ios") {
+            defaults.set(activeSession.startDate.timeIntervalSince1970, forKey: "ActiveSessionStartDateV1")
+            defaults.synchronize()
+        }
+        
+        let minutes = Int(abs(adjustment) / 60)
+        let direction = adjustment > 0 ? "earlier" : "later"
+        toastConfig = ToastConfig(
+            message: "Adjusted start time: \(minutes)m \(direction)",
+            showUndo: false
+        )
+        
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+    }
+    
+    func handleDailyGoalAdjustment(for session: GoalSession, adjustment: TimeInterval) {
+        // Adjust the session's daily target
+        let newTarget = max(60, session.dailyTarget + adjustment) // Minimum 1 minute
+        session.dailyTarget = newTarget
+        
+        // Update active session if needed
+        if let timerManager,
+           let activeSession = timerManager.activeSession,
+           activeSession.id == session.id {
+            activeSession.dailyTarget = newTarget
+        }
+        
+        // Save context
+        try? modelContext.save()
+        
+        let minutes = Int(abs(adjustment) / 60)
+        let direction = adjustment > 0 ? "increased" : "decreased"
+        toastConfig = ToastConfig(
+            message: "Daily goal \(direction) by \(minutes)m",
+            showUndo: false
+        )
+        
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
     
     func handle(event: ActionView.Event) {
