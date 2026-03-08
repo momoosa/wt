@@ -57,7 +57,7 @@ public final class SessionTimerManager {
     private let activeSessionIDKey = "ActiveSessionIDV1"
     
     // App Group identifier for sharing data with widgets
-    private let appGroupIdentifier = "group.com.moosa.ios.momentum"
+    private let appGroupIdentifier = "group.com.moosa.momentum.ios"
     
     // Shared UserDefaults for widget communication
     private var sharedDefaults: UserDefaults? {

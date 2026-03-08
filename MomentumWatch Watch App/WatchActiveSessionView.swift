@@ -26,7 +26,7 @@ struct WatchActiveSessionView: View {
     }
     
     private func updateElapsedTime() {
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
         
         let activeSessionIDKey = "ActiveSessionIDV1"

@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.moosa.ios.momentum</string>
+		<string>group.com.moosa.momentum.ios</string>
 	</array>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>

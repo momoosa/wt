@@ -72,7 +72,7 @@ public struct ToggleTimerIntent: AppIntent {
     public func perform() async throws -> some IntentResult {
         print("🎯 ToggleTimerIntent: Starting for session \(sessionID)")
         
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         
         // Check if timer is currently running by reading from UserDefaults
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
@@ -292,7 +292,7 @@ public struct PauseResumeTimerIntent: LiveActivityIntent {
     public func perform() async throws -> some IntentResult {
         print("⏸️ PauseResumeTimerIntent: Starting for session \(sessionID)")
         
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
             print("❌ Intent: Failed to access UserDefaults for app group")
@@ -409,7 +409,7 @@ public struct PauseResumeTimerIntent: AppIntent {
         // Same logic as iOS version but without Live Activities
         print("⏯️ Intent: Pause/Resume Timer requested for session: \(sessionID)")
         
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
             print("❌ Intent: Failed to access UserDefaults for app group")

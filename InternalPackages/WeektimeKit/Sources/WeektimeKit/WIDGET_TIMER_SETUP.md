@@ -46,7 +46,7 @@ You need to enable App Groups to share data between your app and widget:
 2. Select your **main app target**
 3. Go to **Signing & Capabilities**
 4. Click **+ Capability** and add **App Groups**
-5. Click **+** and add: `group.com.moosa.ios.momentum`
+5. Click **+** and add: `group.com.moosa.momentum.ios`
 6. Repeat steps 2-5 for your **widget extension target**
 
 > **Note:** Make sure both targets use the exact same App Group identifier.
@@ -57,7 +57,7 @@ Ensure your main app uses the App Group container for SwiftData:
 
 ```swift
 // In your App struct or wherever you set up ModelContainer
-let appGroupIdentifier = "group.com.moosa.ios.momentum"
+let appGroupIdentifier = "group.com.moosa.momentum.ios"
 guard let containerURL = FileManager.default.containerURL(
     forSecurityApplicationGroupIdentifier: appGroupIdentifier
 ) else {

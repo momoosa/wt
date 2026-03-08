@@ -49,7 +49,7 @@ extension ContentView {
         var tintColor: Color {
             switch self {
             case .activeToday, .allGoals:
-                return themePresets.first(where: { $0.id == "blue" })?.toTheme().dark ?? .blue
+                return .primary
             case .completedToday:
                 return .green
             case .skippedSessions:

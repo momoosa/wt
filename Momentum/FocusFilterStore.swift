@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-private let appGroupID = "group.com.moosa.ios.momentum"
+private let appGroupID = "group.com.moosa.momentum.ios"
 private let focusTagsKey = "focusFilterActiveTags"
 
 /// Persists and vends the tag titles that the active Focus filter has requested.

@@ -78,7 +78,7 @@ struct StartGoalTimerIntent: AppIntent {
         print("✅ StartGoalTimerIntent: Found/created session \(session.id)")
         
         // Use UserDefaults to communicate with the app
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
             print("❌ StartGoalTimerIntent: Failed to access UserDefaults")
             throw IntentError.sessionNotFound
@@ -473,7 +473,7 @@ func createSharedModelContainer() throws -> ModelContainer {
         IntervalSession.self
     ])
     
-    let groupContainerIdentifier = "group.com.moosa.ios.momentum"
+    let groupContainerIdentifier = "group.com.moosa.momentum.ios"
     
     guard let groupContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupContainerIdentifier) else {
         throw IntentError.sessionNotFound // Reusing this error

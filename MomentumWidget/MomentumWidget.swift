@@ -60,7 +60,7 @@ struct Provider: AppIntentTimelineProvider {
         
         // Use App Group container for shared data access
         // You need to configure this App Group in your target settings
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
             print("❌ Widget: Failed to get App Group container URL")

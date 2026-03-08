@@ -117,7 +117,7 @@ struct MomentumApp: App {
         ])
         
         // Use App Group container for widget access
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
             AppLogger.data.error("iOS: App Group container not found for '\(appGroupIdentifier)'")
@@ -184,6 +184,11 @@ struct MomentumApp: App {
     @Query var days: [Day]
     private let permissionHandler = PermissionsHandler()
     
+    // CloudKit sync toast state
+    @AppStorage("hasShownCloudKitToast") private var hasShownCloudKitToast = false
+    @State private var showCloudKitToast = false
+    @State private var cloudKitToastStatus: CloudKitSyncToast.SyncStatus = .enabled
+    
     var body: some Scene {
         WindowGroup {
             if let day {
@@ -194,11 +199,28 @@ struct MomentumApp: App {
                         .environment(goalStore)
                         .task {
                             await permissionHandler.requestScreentimeAuthorization() // TODO: MOve somewhere...
+                            
+                            // Show CloudKit sync toast on first launch
+                            if !hasShownCloudKitToast {
+                                // Wait a bit for the UI to settle
+                                try? await Task.sleep(for: .seconds(1.5))
+                                
+                                // Check if CloudKit is properly configured
+                                let syncStatus = await checkCloudKitStatus()
+                                cloudKitToastStatus = syncStatus
+                                
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    showCloudKitToast = true
+                                }
+                                
+                                hasShownCloudKitToast = true
+                            }
                         }
                 }
                 .onOpenURL { url in
                     handleURL(url)
                 }
+                .cloudKitSyncToast(isShowing: $showCloudKitToast, status: cloudKitToastStatus)
             } else {
                 Text("")
                     .task {
@@ -206,6 +228,9 @@ struct MomentumApp: App {
                             // TODO: Switch day
                             do {
                                 let weekStore = WeekStore(modelContext: sharedModelContainer.mainContext)
+                                
+                                // Clean up any duplicate days from sync conflicts
+                                try? weekStore.cleanupDuplicateDays()
                                 
                                 self.day = try weekStore.fetchCurrentDay()
                                 
@@ -258,6 +283,29 @@ struct MomentumApp: App {
             
         default:
             AppLogger.app.warning("Unknown URL host: \(url.host ?? "none")")
+        }
+    }
+    
+    // Check CloudKit sync status
+    private func checkCloudKitStatus() async -> CloudKitSyncToast.SyncStatus {
+        // Check if CloudKit container is accessible
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.moosa.ios.momentum") else {
+            return .error("iCloud sync not configured")
+        }
+        
+        let storeURL = containerURL.appendingPathComponent("default.store")
+        
+        // Check if store file exists
+        guard FileManager.default.fileExists(atPath: storeURL.path) else {
+            return .syncing
+        }
+        
+        // Check if we can read the store
+        do {
+            _ = try FileManager.default.attributesOfItem(atPath: storeURL.path)
+            return .enabled
+        } catch {
+            return .error("Failed to access sync storage")
         }
     }
 }

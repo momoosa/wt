@@ -23,7 +23,7 @@ struct MomentumWatch_Watch_AppApp: App {
         ])
         
         // Use App Group container for shared access with iPhone app
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
             AppLogger.watch.error("Watch: App Group container not found for '\(appGroupIdentifier)'")

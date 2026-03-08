@@ -1207,6 +1207,18 @@ struct GoalEditorView: View {
            let metric = HealthKitMetric(rawValue: metricRawValue) {
             selectedHealthKitMetric = metric
             healthKitSyncEnabled = true
+            
+            // Request HealthKit authorization immediately
+            Task {
+                let healthKitManager = HealthKitManager()
+                do {
+                    try await healthKitManager.requestAuthorization(for: [metric])
+                    print("✅ HealthKit authorization requested for \(metric.displayName)")
+                } catch {
+                    print("⚠️ Failed to request HealthKit authorization: \(error.localizedDescription)")
+                    // Don't disable sync - user might grant permission later
+                }
+            }
         } else {
             selectedHealthKitMetric = nil
             healthKitSyncEnabled = false

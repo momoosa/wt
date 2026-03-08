@@ -27,12 +27,18 @@ struct GoalFilterBar: View {
     }
     
     private func filterChip(for filter: ContentView.Filter) -> some View {
-        filterText(for: filter)
-            .foregroundStyle(filter.id == activeFilter.id ? filter.tintColor : .primary)
+        let isSelected = filter.id == activeFilter.id
+        
+        return filterText(for: filter)
+            .foregroundStyle(isSelected ? Color(uiColor: .systemBackground) : .primary)
             .fontWeight(.semibold)
             .padding([.top, .bottom], 6)
             .padding([.leading, .trailing], 10)
             .frame(minWidth: 60.0, minHeight: 40)
+            .background(
+                Capsule()
+                    .fill(isSelected ? filter.tintColor : Color.clear)
+            )
             .glassEffect(in: Capsule())
             .onTapGesture {
                 withAnimation {

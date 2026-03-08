@@ -171,7 +171,8 @@ struct SevenDayBarChart: View {
         }
         
         // Create a lookup dictionary for faster access
-        let daysByID = Dictionary(uniqueKeysWithValues: allDays.map { ($0.id, $0) })
+        // Use uniquingKeysWith to handle potential duplicate day IDs from sync conflicts
+        let daysByID = Dictionary(allDays.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         
         return (0..<7).map { dayOffset -> (String, TimeInterval, Date) in
             guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek) else {

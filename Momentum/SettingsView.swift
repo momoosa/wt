@@ -74,6 +74,16 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    NavigationLink {
+                        CloudKitSyncDetailView()
+                    } label: {
+                        CloudKitSyncStatusView()
+                    }
+                } header: {
+                    Label("Data & Sync", systemImage: "icloud")
+                }
+                
+                Section {
                     Button {
                         showingRemindersImport = true
                     } label: {

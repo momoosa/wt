@@ -46,7 +46,7 @@ struct WatchContentView: View {
     
     // Check UserDefaults for active session
     private var activeSessionID: String? {
-        let appGroupIdentifier = "group.com.moosa.ios.momentum"
+        let appGroupIdentifier = "group.com.moosa.momentum.ios"
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
             return nil
         }
