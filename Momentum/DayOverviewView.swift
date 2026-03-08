@@ -12,7 +12,7 @@ struct DayOverviewView: View {
 
     private var dailyProgress: Double {
         guard totalDailyTarget > 0 else { return 0 }
-        return min(Double(totalDailyMinutes) / Double(totalDailyTarget), 1.0)
+        return Double(totalDailyMinutes) / Double(totalDailyTarget)
     }
 
     private var totalDailyMinutes: Int {

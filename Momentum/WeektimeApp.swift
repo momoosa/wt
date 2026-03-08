@@ -140,7 +140,7 @@ struct MomentumApp: App {
         }
         
         // CloudKit sync enabled - all models have been updated to meet requirements
-        let cloudKitIdentifier = "iCloud.com.moosa.ios.momentum"
+        let cloudKitIdentifier = "iCloud.com.moosa.momentum.ios"
         let modelConfiguration = ModelConfiguration(
             url: storeURL,
             cloudKitDatabase: .private(cloudKitIdentifier)
@@ -289,7 +289,7 @@ struct MomentumApp: App {
     // Check CloudKit sync status
     private func checkCloudKitStatus() async -> CloudKitSyncToast.SyncStatus {
         // Check if CloudKit container is accessible
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.moosa.ios.momentum") else {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.moosa.momentum.ios") else {
             return .error("iCloud sync not configured")
         }
         

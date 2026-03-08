@@ -11,49 +11,35 @@ import Combine
 
 struct WatchActiveSessionView: View {
     let session: GoalSession
-    @State private var elapsedMinutes: Int = 0
-    @State private var isPaused: Bool = false
+    let timerState: WatchConnectivityManager.ActiveTimerState
     
+    @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
+    private func toggleTimer() {
+        WatchConnectivityManager.shared.requestTimerToggle(sessionID: timerState.sessionID)
+    }
+    
+    private var totalElapsedMinutes: Int {
+        if timerState.isPaused {
+            return Int(timerState.elapsedTime / 60)
+        } else {
+            // Calculate current elapsed time based on start date
+            let duration = currentTime.timeIntervalSince(timerState.startDate)
+            let totalElapsed = timerState.elapsedTime + duration
+            return Int(totalElapsed / 60)
+        }
+    }
+    
     private var progress: Double {
-        guard session.dailyTarget > 0 else { return 0 }
-        return min(Double(elapsedMinutes) / Double(session.dailyTarget), 1.0)
+        guard timerState.dailyTarget > 0 else { return 0 }
+        let minutesTarget = timerState.dailyTarget / 60
+        return Double(totalElapsedMinutes) / minutesTarget
     }
     
     private var remainingMinutes: Int {
-        max(0, Int(session.dailyTarget) - elapsedMinutes)
-    }
-    
-    private func updateElapsedTime() {
-        let appGroupIdentifier = "group.com.moosa.momentum.ios"
-        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
-        
-        let activeSessionIDKey = "ActiveSessionIDV1"
-        let activeSessionStartDateKey = "ActiveSessionStartDateV1"
-        let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
-        let pausedSessionIDKey = "PausedSessionIDV1"
-        
-        guard let activeID = defaults.string(forKey: activeSessionIDKey),
-              activeID == session.id.uuidString else {
-            // Check if paused
-            if let pausedID = defaults.string(forKey: pausedSessionIDKey),
-               pausedID == session.id.uuidString {
-                isPaused = true
-                let elapsed = defaults.double(forKey: activeSessionElapsedTimeKey)
-                elapsedMinutes = Int(elapsed / 60)
-            }
-            return
-        }
-        
-        isPaused = false
-        let startTimeInterval = defaults.double(forKey: activeSessionStartDateKey)
-        let startDate = Date(timeIntervalSince1970: startTimeInterval)
-        let initialElapsed = defaults.double(forKey: activeSessionElapsedTimeKey)
-        let duration = Date().timeIntervalSince(startDate)
-        let totalElapsed = initialElapsed + duration
-        
-        elapsedMinutes = Int(totalElapsed / 60)
+        let targetMinutes = Int(timerState.dailyTarget / 60)
+        return max(0, targetMinutes - totalElapsedMinutes)
     }
     
     var body: some View {
@@ -77,7 +63,7 @@ struct WatchActiveSessionView: View {
                         )
                         .rotationEffect(.degrees(-90))
                     
-                    Text(formatElapsedTime(elapsedMinutes))
+                    Text(formatElapsedTime(totalElapsedMinutes))
                         .font(.caption2)
                         .fontWeight(.semibold)
                 }
@@ -95,7 +81,7 @@ struct WatchActiveSessionView: View {
                     }
                     
                     // Status
-                    if isPaused {
+                    if timerState.isPaused {
                         Text("Paused")
                             .font(.caption2)
                             .foregroundStyle(.orange)
@@ -112,11 +98,11 @@ struct WatchActiveSessionView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark).opacity(0.2))
         )
-        .onAppear {
-            updateElapsedTime()
+        .onTapGesture {
+            toggleTimer()
         }
-        .onReceive(timer) { _ in
-            updateElapsedTime()
+        .onReceive(timer) { time in
+            currentTime = time
         }
     }
     

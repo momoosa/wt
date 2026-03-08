@@ -486,53 +486,19 @@ struct ContentView: View {
     }
     
     private var dailyProgressCard: some View {
-        HStack(spacing: 16) {
+        HStack {
             // Large circular progress
             Spacer()
             ZStack {
                 CircularProgressView(progress: dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
-//                    .frame(height: 60)
-
-                VStack(spacing: 2) {
-                    Text("\(Int(dailyProgress * 100))%")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.primary)
-
-                    Text("Complete")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+//
             }
             Spacer()
             // Stats
-            VStack {
-                VStack(spacing: 4) {
-                    Text("\(totalDailyMinutes)")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Text("Minutes")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            Text("\(Int(dailyProgress * 100))%")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.primary)
 
-                VStack(spacing: 4) {
-                    Text("\(completedGoalsCount)")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Text("Goals Done")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(spacing: 4) {
-                    Text("\(totalActiveGoals)")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Text("Total Goals")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
             Spacer()
         }
         .padding()
@@ -542,7 +508,7 @@ struct ContentView: View {
     
     private var dailyProgress: Double {
         guard totalDailyTarget > 0 else { return 0 }
-        return min(Double(totalDailyMinutes) / Double(totalDailyTarget), 1.0)
+        return Double(totalDailyMinutes) / Double(totalDailyTarget)
     }
 
     private var totalDailyMinutes: Int {

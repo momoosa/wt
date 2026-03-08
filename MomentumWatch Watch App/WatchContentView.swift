@@ -16,6 +16,8 @@ struct WatchContentView: View {
     @Query private var days: [Day]
     @Query private var goals: [Goal]
     
+    @StateObject private var connectivityManager = WatchConnectivityManager.shared
+    
     private var today: Day {
         let calendar = Calendar.current
         let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
@@ -44,18 +46,9 @@ struct WatchContentView: View {
         }
     }
     
-    // Check UserDefaults for active session
-    private var activeSessionID: String? {
-        let appGroupIdentifier = "group.com.moosa.momentum.ios"
-        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else {
-            return nil
-        }
-        return defaults.string(forKey: "ActiveSessionIDV1")
-    }
-    
     private var activeSession: GoalSession? {
-        guard let activeID = activeSessionID else { return nil }
-        return sessions.first(where: { $0.id.uuidString == activeID })
+        guard let timerState = connectivityManager.activeTimerState else { return nil }
+        return sessions.first(where: { $0.id == timerState.sessionID })
     }
     
     var body: some View {
@@ -88,9 +81,12 @@ struct WatchContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 // Show active session at the top
-                if let activeSession = activeSession {
+                if let activeSession = activeSession, let timerState = connectivityManager.activeTimerState {
                     Section {
-                        WatchActiveSessionView(session: activeSession)
+                        WatchActiveSessionView(
+                            session: activeSession,
+                            timerState: timerState
+                        )
                     }
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)

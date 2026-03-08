@@ -15,10 +15,10 @@ public protocol SessionProgressProvider {
 }
 
 public extension SessionProgressProvider {
-    /// Progress as a value between 0.0 and 1.0
+    /// Progress as a value from 0.0 onwards (can exceed 1.0 when over target)
     var progress: Double {
         guard dailyTarget > 0 else { return 0 }
-        return min(elapsedTime / dailyTarget, 1.0)
+        return elapsedTime / dailyTarget
     }
 
     /// Whether the daily target has been met

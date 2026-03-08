@@ -22,8 +22,8 @@ struct CircularProgressView: View {
     
     init(
         progress: Double,
-        lineWidth: CGFloat = 12,
-        size: CGFloat = 80,
+        lineWidth: CGFloat = 6,
+        size: CGFloat = 44,
         foregroundColor: Color,
         backgroundColor: Color,
         animateOnAppear: Bool = true
@@ -136,7 +136,7 @@ struct ProgressSummaryCard: View {
     
     private var currentProgress: Double {
         guard dailyTarget > 0 else { return 0 }
-        return min(currentElapsed / dailyTarget, 1.0)
+        return currentElapsed / dailyTarget
     }
     
     // Compute text color based on background luminance

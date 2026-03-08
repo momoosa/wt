@@ -297,109 +297,60 @@ struct GoalEditorView: View {
                         }
                         
                         if currentStage == .duration {
-                                                                                    
-                            Section(header: Text("Weekly Goal")) {
-                                VStack(alignment: .leading, spacing: 16) {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        HStack {
-                                            Text("Weekly Target")
-                                            Spacer()
-                                            Text("\(calculatedWeeklyTarget) min")
-                                                .foregroundStyle(activeThemeColor)
-                                        }
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-
-                                        Divider()
-                                        
-                                        VStack(spacing: 8) {
-                                            ForEach(weekdays, id: \.0) { weekday, name in
-                                                ExpandableDayRow(
-                                                    weekday: weekday,
-                                                    name: name,
-                                                    isActive: isDayActive(weekday),
-                                                    minutes: dailyTargets[weekday] ?? 30,
-                                                    selectedTimes: dayTimePreferences[weekday] ?? [],
-                                                    themeColor: activeThemeColor,
-                                                    isExpanded: expandedDay == weekday,
-                                                    focusedField: $focusedField,
-                                                    onToggleDay: { toggleActiveDay(weekday) },
-                                                    onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
-                                                    onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
-                                                    onToggleExpand: {
-                                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                                            expandedDay = (expandedDay == weekday) ? nil : weekday
-                                                        }
-                                                    }
-                                                )
-                                                
-                                                if weekday != weekdays.last?.0 {
-                                                    Divider()
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                            
-                            // Color and icon picker buttons
-                            Section {
-                                HStack(spacing: 12) {
-                                    // Color picker button
-                                    Button(action: {
-                                        showingColorPicker = true
-                                    }) {
-                                        HStack(spacing: 8) {
-                                            // Color preview circle
-                                            Circle()
-                                                .fill(
-                                                    LinearGradient(
-                                                        colors: [
-                                                            selectedColorPreset?.neon ?? activeThemeColor,
-                                                            selectedColorPreset?.dark ?? activeThemeColor
-                                                        ],
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                                .frame(width: 24, height: 24)
-                                            
-                                            Text(selectedColorPreset?.title ?? "Color")
-                                                .foregroundStyle(.primary)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Color(.systemGray6))
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    }
-                                    .buttonStyle(.plain)
-                                    
-                                    // Icon picker button
-                                    Button(action: {
-                                        showingIconPicker = true
-                                    }) {
-                                        HStack(spacing: 8) {
-                                            // Icon preview
-                                            Image(systemName: selectedIcon ?? "star.fill")
-                                                .font(.system(size: 20))
-                                                .foregroundStyle(activeThemeColor)
-                                                .frame(width: 24, height: 24)
-                                            
-                                            Text("Icon")
-                                                .foregroundStyle(.primary)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Color(.systemGray6))
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            
+                                         
                             Section(header: Text("Theme")) {
                                 VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        // Color picker button
+                                        Button(action: {
+                                            showingColorPicker = true
+                                        }) {
+                                            HStack(spacing: 8) {
+                                                // Color preview circle
+                                                Circle()
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: [
+                                                                selectedColorPreset?.neon ?? activeThemeColor,
+                                                                selectedColorPreset?.dark ?? activeThemeColor
+                                                            ],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        )
+                                                    )
+                                                    .frame(width: 24, height: 24)
+                                                
+                                                Text(selectedColorPreset?.title ?? "Color")
+                                                    .foregroundStyle(.primary)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                            .background(Color(.systemGray6))
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        }
+                                        .buttonStyle(.plain)
+                                        
+                                        // Icon picker button
+                                        Button(action: {
+                                            showingIconPicker = true
+                                        }) {
+                                            HStack(spacing: 8) {
+                                                // Icon preview
+                                                Image(systemName: selectedIcon ?? "star.fill")
+                                                    .font(.system(size: 20))
+                                                    .foregroundStyle(activeThemeColor)
+                                                    .frame(width: 24, height: 24)
+                                                
+                                                Text("Icon")
+                                                    .foregroundStyle(.primary)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                            .background(Color(.systemGray6))
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                     // Tag cloud with flow layout - show only selected themes
                                     TagFlowLayout(spacing: 8) {
                                         ForEach(selectedTags, id: \.title) { goalTheme in
@@ -446,7 +397,53 @@ struct GoalEditorView: View {
                                     }
                                 }
                             }
-                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                            Section(header: Text("Weekly Goal")) {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Text("Weekly Target")
+                                            Spacer()
+                                            Text("\(calculatedWeeklyTarget) min")
+                                                .foregroundStyle(activeThemeColor)
+                                        }
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+
+                                        Divider()
+                                        
+                                        VStack(spacing: 8) {
+                                            ForEach(weekdays, id: \.0) { weekday, name in
+                                                ExpandableDayRow(
+                                                    weekday: weekday,
+                                                    name: name,
+                                                    isActive: isDayActive(weekday),
+                                                    minutes: dailyTargets[weekday] ?? 30,
+                                                    selectedTimes: dayTimePreferences[weekday] ?? [],
+                                                    themeColor: activeThemeColor,
+                                                    isExpanded: expandedDay == weekday,
+                                                    focusedField: $focusedField,
+                                                    onToggleDay: { toggleActiveDay(weekday) },
+                                                    onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
+                                                    onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
+                                                    onToggleExpand: {
+                                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                                            expandedDay = (expandedDay == weekday) ? nil : weekday
+                                                        }
+                                                    }
+                                                )
+                                                
+                                                if weekday != weekdays.last?.0 {
+                                                    Divider()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            
+                   
+                            
                             Section(header: Text("Notifications")) {
                                 Toggle(isOn: $scheduleNotificationsEnabled) {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -749,20 +746,26 @@ struct GoalEditorView: View {
                         .transition(.scale.combined(with: .opacity))
                     }
                     
-                    // Save button (only on duration stage)G
-                    if currentStage == .duration {
+                    // Apply to All Days button (when editing a specific day's duration and it differs from others)
+                    if case .scheduleDay(let weekday) = focusedField, shouldShowApplyToAll(for: weekday) {
                         Button {
-                            saveGoal()
+                            applyDurationToAllDays(from: weekday)
                         } label: {
-                            Text("Save")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(activeThemeColor)
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar.badge.checkmark")
+                                    .font(.caption)
+                                Text("Apply to All")
+                            }
+                            .fontWeight(.semibold)
+                            .foregroundStyle(activeThemeColor)
                         }
                         .transition(.scale.combined(with: .opacity))
+                        .id("applyToAll-\(weekday)")
                     }
                 }
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: focusedField)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: dailyTargets)
         }
         .sheet(isPresented: $showingAddThemeSheet) {
             TagSelectionSheet(
@@ -1136,6 +1139,32 @@ struct GoalEditorView: View {
     
     private func updateDailyTarget(for weekday: Int, minutes: Int) {
         dailyTargets[weekday] = minutes
+    }
+    
+    private func shouldShowApplyToAll(for weekday: Int) -> Bool {
+        guard let currentDuration = dailyTargets[weekday] else { return false }
+        
+        // Check if any other active day has a different duration
+        for otherWeekday in activeDays where otherWeekday != weekday {
+            if dailyTargets[otherWeekday] != currentDuration {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
+    private func applyDurationToAllDays(from sourceWeekday: Int) {
+        guard let sourceDuration = dailyTargets[sourceWeekday] else { return }
+        
+        // Apply the duration to all active days
+        for weekday in activeDays {
+            dailyTargets[weekday] = sourceDuration
+        }
+        
+        // Dismiss keyboard and provide haptic feedback
+        focusedField = nil
+        HapticFeedbackManager.trigger(.success)
     }
     
     func handleButtonTap() {

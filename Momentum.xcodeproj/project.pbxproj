@@ -68,6 +68,7 @@
 		CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */; };
 		CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */; };
 		CDA398AF2F5D75AE00E03D07 /* CloudKitSyncToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */; };
+		CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */; };
 		CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436B2F372DB600DE984B /* SessionRowView.swift */; };
 		CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */; };
 		CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */; };
@@ -225,6 +226,7 @@
 		CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestDataSeeder.swift; sourceTree = "<group>"; };
 		CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncStatusView.swift; sourceTree = "<group>"; };
 		CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncToast.swift; sourceTree = "<group>"; };
+		CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		CDA4436B2F372DB600DE984B /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendedSessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalNotificationManager.swift; sourceTree = "<group>"; };
@@ -531,6 +533,7 @@
 				CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */,
 				CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */,
 				CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */,
+				CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -898,6 +901,7 @@
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
+				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
 				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
@@ -1089,12 +1093,13 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
@@ -1135,12 +1140,13 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
@@ -1449,12 +1455,13 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Beta;
@@ -1555,6 +1562,7 @@
 				DEVELOPMENT_TEAM = D6W66G49J8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MomentumWatch-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = MomentumWatch;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moosa.momentum.ios;
@@ -1637,6 +1645,7 @@
 				DEVELOPMENT_TEAM = D6W66G49J8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MomentumWatch-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = MomentumWatch;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moosa.momentum.ios;
@@ -1671,6 +1680,7 @@
 				DEVELOPMENT_TEAM = D6W66G49J8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MomentumWatch-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = MomentumWatch;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.moosa.momentum.ios;

@@ -482,7 +482,7 @@ func createSharedModelContainer() throws -> ModelContainer {
     let storeURL = groupContainer.appendingPathComponent("default.store")
     
     // CloudKit sync enabled (same as main app)
-    let cloudKitIdentifier = "iCloud.com.moosa.ios.momentum"
+    let cloudKitIdentifier = "iCloud.com.moosa.momentum.ios"
     let modelConfiguration = ModelConfiguration(
         url: storeURL,
         cloudKitDatabase: .private(cloudKitIdentifier)

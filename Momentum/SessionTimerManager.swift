@@ -104,6 +104,88 @@ public final class SessionTimerManager {
             AppLogger.sessionTimer.debug("Received external change notification from intent")
             self?.checkForExternalChanges()
         }
+        
+        #if os(iOS)
+        // Observe toggle requests from Watch
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("ToggleTimerFromWatch"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let sessionID = notification.userInfo?["sessionID"] as? UUID else { return }
+            AppLogger.sessionTimer.info("Received toggle timer request from Watch for session: \(sessionID)")
+            Task { @MainActor in
+                await self?.handleToggleFromWatch(sessionID: sessionID)
+            }
+        }
+        
+        // Observe start timer requests from Watch
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("StartTimerFromWatch"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let sessionID = notification.userInfo?["sessionID"] as? UUID else { return }
+            AppLogger.sessionTimer.info("Received start timer request from Watch for session: \(sessionID)")
+            Task { @MainActor in
+                await self?.handleStartFromWatch(sessionID: sessionID)
+            }
+        }
+        #endif
+    }
+    
+    /// Handles toggle timer request from Watch
+    @MainActor
+    private func handleToggleFromWatch(sessionID: UUID) async {
+        AppLogger.sessionTimer.info("handleToggleFromWatch: Processing toggle for session \(sessionID)")
+        
+        // Fetch the session and today's day
+        let descriptor = FetchDescriptor<GoalSession>(
+            predicate: #Predicate { $0.id == sessionID }
+        )
+        
+        guard let session = try? modelContext.fetch(descriptor).first else {
+            AppLogger.sessionTimer.error("handleToggleFromWatch: Session not found")
+            return
+        }
+        
+        // Get today's day
+        let calendar = Calendar.current
+        let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+        
+        let dayDescriptor = FetchDescriptor<Day>()
+        guard let allDays = try? modelContext.fetch(dayDescriptor),
+              let today = allDays.first(where: { day in
+                  let dayComponents = calendar.dateComponents([.year, .month, .day], from: day.startDate)
+                  return dayComponents.year == todayComponents.year &&
+                         dayComponents.month == todayComponents.month &&
+                         dayComponents.day == todayComponents.day
+              }) else {
+            AppLogger.sessionTimer.error("handleToggleFromWatch: Today not found")
+            return
+        }
+        
+        // Use the existing toggleTimer method
+        toggleTimer(for: session, in: today)
+    }
+    
+    /// Handles start timer request from Watch
+    @MainActor
+    private func handleStartFromWatch(sessionID: UUID) async {
+        AppLogger.sessionTimer.info("handleStartFromWatch: Processing start for session \(sessionID)")
+        
+        // Fetch the session
+        let descriptor = FetchDescriptor<GoalSession>(
+            predicate: #Predicate { $0.id == sessionID }
+        )
+        
+        guard let session = try? modelContext.fetch(descriptor).first else {
+            AppLogger.sessionTimer.error("handleStartFromWatch: Session not found")
+            return
+        }
+        
+        // Use the existing startTimer method
+        startTimer(for: session)
     }
     
     /// Handles a session that was stopped externally (from widget/Live Activity)
@@ -409,6 +491,22 @@ public final class SessionTimerManager {
         // Success haptic feedback
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
+        
+        // Send timer state to Watch if we can find the session
+        let sessionID = activeSession.id
+        if let session = try? modelContext.fetch(FetchDescriptor<GoalSession>(
+            predicate: #Predicate { $0.id == sessionID }
+        )).first {
+            WatchConnectivityManager.shared.sendTimerState(
+                sessionID: sessionID,
+                isActive: true,
+                isPaused: false,
+                elapsedTime: session.elapsedTime,
+                startDate: activeSession.startDate,
+                goalTitle: session.title,
+                dailyTarget: session.dailyTarget
+            )
+        }
         #endif
     }
     
@@ -518,6 +616,9 @@ public final class SessionTimerManager {
         
         // Medium impact haptic feedback
         HapticFeedbackManager.trigger(.medium)
+        
+        // Notify Watch that timer stopped
+        WatchConnectivityManager.shared.sendTimerStopped(sessionID: session.id)
         #endif
     }
     

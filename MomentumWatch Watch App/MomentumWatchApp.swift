@@ -41,7 +41,14 @@ struct MomentumWatch_Watch_AppApp: App {
             AppLogger.watch.warning("Watch: Database file does NOT exist - will be created")
         }
         
-        let modelConfiguration = ModelConfiguration(url: storeURL)
+        // CloudKit sync enabled (same as iPhone app)
+        let cloudKitIdentifier = "iCloud.com.moosa.momentum.ios"
+        let modelConfiguration = ModelConfiguration(
+            url: storeURL,
+            cloudKitDatabase: .private(cloudKitIdentifier)
+        )
+        
+        AppLogger.watch.info("Watch: CloudKit sync enabled with container: \(cloudKitIdentifier)")
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])

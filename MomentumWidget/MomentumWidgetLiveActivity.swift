@@ -289,7 +289,7 @@ struct LiveActivityLockScreenView: View {
     
     private func currentProgress(at date: Date) -> Double {
         guard context.attributes.dailyTarget > 0 else { return 0 }
-        return min(currentElapsed(at: date) / context.attributes.dailyTarget, 1.0)
+        return currentElapsed(at: date) / context.attributes.dailyTarget
     }
 }
 
@@ -304,7 +304,7 @@ func currentElapsed(context: ActivityViewContext<MomentumWidgetAttributes>, at d
 
 func currentProgress(context: ActivityViewContext<MomentumWidgetAttributes>, at date: Date) -> Double {
     guard context.attributes.dailyTarget > 0 else { return 0 }
-    return min(currentElapsed(context: context, at: date) / context.attributes.dailyTarget, 1.0)
+    return currentElapsed(context: context, at: date) / context.attributes.dailyTarget
 }
 
 func formatCompactTime(_ seconds: TimeInterval) -> String {
@@ -331,7 +331,7 @@ extension ActivityViewContext where Attributes == MomentumWidgetAttributes {
     
     var currentProgress: Double {
         guard attributes.dailyTarget > 0 else { return 0 }
-        return min(currentElapsed / attributes.dailyTarget, 1.0)
+        return currentElapsed / attributes.dailyTarget
     }
 }
 

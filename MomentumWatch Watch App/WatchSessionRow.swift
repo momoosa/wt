@@ -103,17 +103,7 @@ struct WatchSessionRow: View {
     }
     
     private func startSession() {
-        let appGroupIdentifier = "group.com.moosa.momentum.ios"
-        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
-        
-        let activeSessionIDKey = "ActiveSessionIDV1"
-        let activeSessionStartDateKey = "ActiveSessionStartDateV1"
-        let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
-        
-        // Set this session as active
-        defaults.set(session.id.uuidString, forKey: activeSessionIDKey)
-        defaults.set(Date().timeIntervalSince1970, forKey: activeSessionStartDateKey)
-        defaults.set(0.0, forKey: activeSessionElapsedTimeKey)
-        defaults.synchronize()
+        // Send start timer request to iPhone via WatchConnectivity
+        WatchConnectivityManager.shared.requestStartTimer(sessionID: session.id)
     }
 }
