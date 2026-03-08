@@ -65,6 +65,7 @@
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
 		CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7578E32F5AD039003D7CFE /* WeatherManager.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
+		CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */; };
 		CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436B2F372DB600DE984B /* SessionRowView.swift */; };
 		CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */; };
 		CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */; };
@@ -219,6 +220,7 @@
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
+		CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestDataSeeder.swift; sourceTree = "<group>"; };
 		CDA4436B2F372DB600DE984B /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendedSessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalNotificationManager.swift; sourceTree = "<group>"; };
@@ -522,6 +524,7 @@
 				CD7578E32F5AD039003D7CFE /* WeatherManager.swift */,
 				CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */,
 				CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */,
+				CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -834,6 +837,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
+				CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
@@ -1318,7 +1322,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = Weektime;
+				TEST_TARGET_NAME = Momentum;
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
@@ -1342,7 +1346,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = Weektime;
+				TEST_TARGET_NAME = Momentum;
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
