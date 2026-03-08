@@ -1923,23 +1923,44 @@ struct SuggestionRow: View {
     let isSelected: Bool
     let categoryColor: Color
     
+    // Calculate text colors based on luminance
+    private var iconAndTextColor: Color {
+        if isSelected {
+            let luminance = categoryColor.luminance ?? 0.5
+            return luminance > 0.5 ? .black : .white
+        } else {
+            return .primary
+        }
+    }
+    
+    private var durationBadgeTextColor: Color {
+        if isSelected {
+            // When selected, badge background is white, so use black text
+            return .black
+        } else {
+            // When not selected, badge background is categoryColor
+            let luminance = categoryColor.luminance ?? 0.5
+            return luminance > 0.5 ? .black : .white
+        }
+    }
+    
     var body: some View {
         HStack(spacing: 16) {
             // Icon
             Image(systemName: suggestion.icon)
                 .font(.system(size: 32))
-                .foregroundStyle(isSelected ? .white : categoryColor)
+                .foregroundStyle(isSelected ? iconAndTextColor : categoryColor)
                 .frame(width: 50)
             
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(suggestion.title)
                     .font(.headline)
-                    .foregroundStyle(isSelected ? .white : .primary)
+                    .foregroundStyle(iconAndTextColor)
                 
                 Text(suggestion.subtitle)
                     .font(.caption)
-                    .foregroundStyle(isSelected ? .white.opacity(0.9) : .secondary)
+                    .foregroundStyle(isSelected ? iconAndTextColor.opacity(0.9) : .secondary)
                     .lineLimit(2)
             }
             
@@ -1949,7 +1970,7 @@ struct SuggestionRow: View {
             Text("\(suggestion.duration) min")
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? categoryColor : .white)
+                .foregroundStyle(durationBadgeTextColor)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(

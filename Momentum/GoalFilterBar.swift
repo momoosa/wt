@@ -29,8 +29,18 @@ struct GoalFilterBar: View {
     private func filterChip(for filter: ContentView.Filter) -> some View {
         let isSelected = filter.id == activeFilter.id
         
+        // Calculate text color based on background luminance for better contrast
+        let textColor: Color = {
+            if isSelected {
+                let luminance = filter.tintColor.luminance ?? 0.5
+                return luminance > 0.5 ? .black : .white
+            } else {
+                return .primary
+            }
+        }()
+        
         return filterText(for: filter)
-            .foregroundStyle(isSelected ? Color(uiColor: .systemBackground) : .primary)
+            .foregroundStyle(textColor)
             .fontWeight(.semibold)
             .padding([.top, .bottom], 6)
             .padding([.leading, .trailing], 10)

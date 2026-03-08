@@ -48,7 +48,9 @@ extension ContentView {
         
         var tintColor: Color {
             switch self {
-            case .activeToday, .allGoals:
+            case .activeToday:
+                return .blue
+            case .allGoals:
                 return .primary
             case .completedToday:
                 return .green

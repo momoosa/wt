@@ -195,7 +195,25 @@ struct SessionFilterService {
         from tags: [GoalTag],
         sessions: [GoalSession]
     ) -> [ContentView.Filter] {
-        var filters: [ContentView.Filter] = [.activeToday, .completedToday, .skippedSessions, .inactive]
+        var filters: [ContentView.Filter] = [.activeToday]
+        
+        // Only add completed filter if there are completed sessions
+        let completedCount = count(sessions, for: .completedToday)
+        if completedCount > 0 {
+            filters.append(.completedToday)
+        }
+        
+        // Only add skipped filter if there are skipped sessions
+        let skippedCount = count(sessions, for: .skippedSessions)
+        if skippedCount > 0 {
+            filters.append(.skippedSessions)
+        }
+        
+        // Only add inactive filter if there are inactive sessions
+        let inactiveCount = count(sessions, for: .inactive)
+        if inactiveCount > 0 {
+            filters.append(.inactive)
+        }
         
         // Add theme filters for unique themes
         var uniqueThemes: [GoalTag] = []
