@@ -1858,32 +1858,8 @@ struct CategorySuggestionsView: View {
     @Binding var userInput: String
     
     // Helper to get category theme colors
+    // Use the category's defined color to ensure consistency across all suggestions
     private var categoryThemeColor: Color {
-        let themeKeywords: [String: String] = [
-            "fitness": "exercise",
-            "wellness": "wellness",
-            "learning": "learning",
-            "creative": "creative",
-            "productivity": "productivity",
-            "lifestyle": "home",
-            "social": "social",
-            "personal growth": "growth"
-        ]
-        
-        let normalizedName = category.name.lowercased()
-        
-        // Try to find matching theme
-        if let themeId = themeKeywords[normalizedName],
-           let theme = themePresets.first(where: { $0.id == themeId })?.toTheme() {
-            return theme.dark
-        }
-        
-        // Fallback to first theme with matching title
-        if let theme = themePresets.first(where: { $0.title.lowercased() == normalizedName })?.toTheme() {
-            return theme.dark
-        }
-        
-        // Use category color as fallback
         return category.colorValue
     }
     
