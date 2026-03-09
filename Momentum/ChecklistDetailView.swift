@@ -28,6 +28,10 @@ struct ChecklistDetailView: View {
     @State private var selectedListID: String?
     @State private var isShowingListsOverview = false
     
+    // Historical session editing
+    @State private var editingHistoricalSession: HistoricalSession?
+    @State private var isShowingHistoricalSessionEditor = false
+    
     // Card tilt and shimmer states
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
@@ -356,22 +360,38 @@ struct ChecklistDetailView: View {
             Section {
                 if !session.historicalSessions.isEmpty {
                     ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
-                        HistoricalSessionRow(session: historicalSession, showsTimeSummaryInsteadOfTitle: true, allSessions: Array(session.historicalSessions))
-                            .foregroundStyle(.primary)
-                            .swipeActions {
-                                // Only allow deletion of manual entries, not HealthKit synced ones
-                                if historicalSession.healthKitType == nil {
-                                    Button {
-                                        withAnimation {
-                                            context.delete(historicalSession)
-                                            Task { try context.save() }
-                                        }
-                                    } label: {
-                                        Label { Text("Delete") } icon: { Image(systemName: "xmark.bin") }
-                                    }
-                                    .tint(.red)
+                        HStack {
+                            HistoricalSessionRow(session: historicalSession, showsTimeSummaryInsteadOfTitle: true, allSessions: Array(session.historicalSessions))
+                                .foregroundStyle(.primary)
+                            
+                            // Show edit button for non-HealthKit sessions
+                            if historicalSession.healthKitType == nil {
+                                Spacer()
+                                Button {
+                                    editingHistoricalSession = historicalSession
+                                    isShowingHistoricalSessionEditor = true
+                                } label: {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .foregroundStyle(tintColor)
+                                        .font(.title3)
                                 }
+                                .buttonStyle(.plain)
                             }
+                        }
+                        .swipeActions {
+                            // Only allow deletion of manual entries, not HealthKit synced ones
+                            if historicalSession.healthKitType == nil {
+                                Button {
+                                    withAnimation {
+                                        context.delete(historicalSession)
+                                        Task { try context.save() }
+                                    }
+                                } label: {
+                                    Label { Text("Delete") } icon: { Image(systemName: "xmark.bin") }
+                                }
+                                .tint(.red)
+                            }
+                        }
                     }
                 } else {
                     ContentUnavailableView {
@@ -529,6 +549,9 @@ struct ChecklistDetailView: View {
                 GoalEditorView(existingGoal: goal)
             }
         }
+        .sheet(item: $editingHistoricalSession, content: { session in
+            HistoricalSessionEditorView(session: session)
+        })
         .onDisappear {
             let emptyItems = session.checklist?.filter { $0.checklistItem?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true } ?? []
             for item in emptyItems {
