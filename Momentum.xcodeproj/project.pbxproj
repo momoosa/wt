@@ -33,6 +33,7 @@
 		CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
+		CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */; };
 		CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */; };
 		CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
 		CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */; };
@@ -189,6 +190,7 @@
 		CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusFilterStore.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
+		CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricalSessionEditorView.swift; sourceTree = "<group>"; };
 		CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlinePlannerPrompt.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
 		CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFilterService.swift; sourceTree = "<group>"; };
@@ -534,6 +536,7 @@
 				CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */,
 				CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */,
 				CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */,
+				CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -901,6 +904,7 @@
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
+				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
