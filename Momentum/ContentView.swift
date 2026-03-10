@@ -176,7 +176,7 @@ struct ContentView: View {
             }
             .navigationDestination(item: $selectedSession) { session in
                 if let timerManager = timerManager {
-                    ChecklistDetailView(
+                    GoalSessionDetailView(
                         session: session,
                         animation: animation,
                         timerManager: timerManager,

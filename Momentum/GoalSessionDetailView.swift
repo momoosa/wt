@@ -7,7 +7,7 @@ import Charts
 import WidgetKit
 #endif
 
-struct ChecklistDetailView: View {
+struct GoalSessionDetailView: View {
     var session: GoalSession
     @Environment(\.editMode) private var editMode
     @Environment(\.colorScheme) private var colorScheme

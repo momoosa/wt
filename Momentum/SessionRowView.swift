@@ -41,7 +41,7 @@ struct SessionRowView: View {
         ZStack {
             NavigationLink {
                 if let timerManager {
-                    ChecklistDetailView(session: session, animation: animation, timerManager: timerManager)
+                    GoalSessionDetailView(session: session, animation: animation, timerManager: timerManager)
                         .tint(tintColor)
                         .environment(goalStore)
                 }
