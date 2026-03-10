@@ -106,7 +106,15 @@ extension WatchConnectivityManager: WCSessionDelegate {
 
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         logger.debug("Received message from Watch: \(message)")
-        
+        handleWatchMessage(message)
+    }
+    
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+        logger.debug("Received userInfo from Watch: \(userInfo)")
+        handleWatchMessage(userInfo)
+    }
+    
+    private func handleWatchMessage(_ message: [String: Any]) {
         guard let type = message["type"] as? String else { return }
         
         switch type {

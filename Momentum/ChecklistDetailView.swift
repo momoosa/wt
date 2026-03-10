@@ -31,6 +31,7 @@ struct ChecklistDetailView: View {
     // Historical session editing
     @State private var editingHistoricalSession: HistoricalSession?
     @State private var isShowingHistoricalSessionEditor = false
+    @State private var isCreatingNewHistoricalSession = false
     
     // Card tilt and shimmer states
     @State private var cardRotationY: Double = 0
@@ -49,6 +50,155 @@ struct ChecklistDetailView: View {
         let id = UUID()
         let weekday: String
         let timeOfDay: String
+    }
+    
+    // Weekly progress data
+    struct DailyProgress: Identifiable {
+        let id = UUID()
+        let weekday: String
+        let weekdayShort: String
+        let minutes: Double
+        let week: String // "This Week" or "Last Week"
+        let date: Date
+        let weekdayNumber: Int
+        let dailyGoal: Double
+    }
+    
+    private var weeklyProgressData: [DailyProgress] {
+        guard let goal = session.goal else { return [] }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Get start of this week (Monday)
+        var thisWeekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now))!
+        // Adjust to Monday if needed (calendar default might be Sunday)
+        let weekday = calendar.component(.weekday, from: thisWeekStart)
+        if weekday == 1 { // Sunday
+            thisWeekStart = calendar.date(byAdding: .day, value: 1, to: thisWeekStart)!
+        }
+        
+        // Get start of last week
+        let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart)!
+        
+        // Calculate daily goal per weekday based on schedule
+        var scheduledDaysCount = 0
+        for wd in 1...7 {
+            if goal.hasSchedule {
+                // Check if this weekday is scheduled
+                let times = goal.timesForWeekday(wd)
+                if !times.isEmpty {
+                    scheduledDaysCount += 1
+                }
+            }
+        }
+        
+        // If no schedule or all days scheduled, divide evenly
+        let hasSchedule = goal.hasSchedule && scheduledDaysCount > 0
+        let defaultDailyGoal = (goal.weeklyTarget / 60.0) / 7.0
+        
+        var progressData: [DailyProgress] = []
+        
+        // Process both weeks
+        for (weekLabel, weekStart) in [("This Week", thisWeekStart), ("Last Week", lastWeekStart)] {
+            for dayOffset in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: weekStart) else { continue }
+                
+                let weekdayNum = calendar.component(.weekday, from: date)
+                let weekdayShort = calendar.shortWeekdaySymbols[weekdayNum - 1]
+                
+                // Calculate daily goal for this specific weekday
+                let dailyGoal: Double
+                if hasSchedule {
+                    let times = goal.timesForWeekday(weekdayNum)
+                    if !times.isEmpty && scheduledDaysCount > 0 {
+                        // This day is scheduled, allocate portion of weekly target
+                        dailyGoal = (goal.weeklyTarget / 60.0) / Double(scheduledDaysCount)
+                    } else {
+                        // Not scheduled, no goal
+                        dailyGoal = 0
+                    }
+                } else {
+                    // No schedule, divide evenly
+                    dailyGoal = defaultDailyGoal
+                }
+                
+                // Get all historical sessions for this goal on this day
+                let dayID = date.yearMonthDayID(with: calendar)
+                
+                // Find the day and its sessions
+                let dayMinutes: Double
+                if let day = try? context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first,
+                   let historicalSessions = day.historicalSessions {
+                    // Sum up time for this goal
+                    let goalIDString = goal.id.uuidString
+                    let totalSeconds = historicalSessions
+                        .filter { $0.goalIDs.contains(goalIDString) }
+                        .reduce(0.0) { $0 + $1.duration }
+                    dayMinutes = totalSeconds / 60.0
+                } else {
+                    dayMinutes = 0
+                }
+                
+                progressData.append(DailyProgress(
+                    weekday: calendar.weekdaySymbols[weekdayNum - 1],
+                    weekdayShort: weekdayShort,
+                    minutes: dayMinutes,
+                    week: weekLabel,
+                    date: date,
+                    weekdayNumber: weekdayNum,
+                    dailyGoal: dailyGoal
+                ))
+            }
+        }
+        
+        return progressData
+    }
+    
+    private var dailyTargetMinutes: Double {
+        return (session.dailyTarget / 60.0)
+    }
+    
+    private var weeklyProgressChart: some View {
+        let data = weeklyProgressData
+        let maxGoal = data.map { $0.dailyGoal }.max() ?? 0
+        let maxActual = data.map { $0.minutes }.max() ?? 0
+        let maxValue = max(maxGoal, maxActual)
+        
+        return Chart {
+            // Bar marks for each day
+            ForEach(data) { item in
+                BarMark(
+                    x: .value("Day", item.weekdayShort),
+                    y: .value("Minutes", item.minutes)
+                )
+                .foregroundStyle(item.week == "This Week" ? tintColor : Color.secondary.opacity(0.5))
+                .position(by: .value("Week", item.week))
+            }
+        }
+        .chartYScale(domain: 0...(maxValue * 1.2))
+        .chartXAxis {
+            AxisMarks(values: .automatic) { value in
+                AxisValueLabel {
+                    if let day = value.as(String.self) {
+                        Text(day)
+                            .font(.caption2)
+                    }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisValueLabel {
+                    if let minutes = value.as(Double.self) {
+                        Text("\(Int(minutes))m")
+                            .font(.caption2)
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .chartLegend(.hidden)
     }
     
     var schedulePoints: [SchedulePoint] {
@@ -174,6 +324,26 @@ struct ChecklistDetailView: View {
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 
+            }
+            
+            // Weekly Progress Chart
+            Section {
+                weeklyProgressChart
+                    .frame(height: 160)
+            } header: {
+                HStack {
+                    Text("Weekly Progress")
+                    Spacer()
+                    HStack(spacing: 12) {
+                        Label("This Week", systemImage: "circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(tintColor)
+                        Label("Last Week", systemImage: "circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .labelStyle(.titleAndIcon)
+                }
             }
             
             // Schedule Display
@@ -397,7 +567,11 @@ struct ChecklistDetailView: View {
                     ContentUnavailableView {
                         Text("No progress for this goal today.")
                     } description: { } actions: {
-                        Button { } label: { Text("Add manual entry") }
+                        Button {
+                            isCreatingNewHistoricalSession = true
+                        } label: {
+                            Text("Add manual entry")
+                        }
                     }
                 }
             } header: {
@@ -410,7 +584,13 @@ struct ChecklistDetailView: View {
                         .frame(minWidth: 20)
                         .background(Capsule().fill(session.goal?.primaryTag?.theme.dark ?? Theme.default.dark))
                     Spacer()
-                    Button { } label: { Image(systemName: "plus.circle.fill").symbolRenderingMode(.hierarchical) }
+                    Button {
+                        isCreatingNewHistoricalSession = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(tintColor)
+                    }
                 }
             } footer: {
                 if session.historicalSessions.count > historicalSessionLimit {
@@ -552,6 +732,23 @@ struct ChecklistDetailView: View {
         .sheet(item: $editingHistoricalSession, content: { session in
             HistoricalSessionEditorView(session: session)
         })
+        .sheet(isPresented: $isCreatingNewHistoricalSession) {
+            if let goal = session.goal, let day = session.day {
+                NavigationStack {
+                    HistoricalSessionEditorView(
+                        session: HistoricalSession(
+                            title: goal.title,
+                            start: Date(),
+                            end: Date().addingTimeInterval(1800), // Default 30 min session
+                            needsHealthKitRecord: false
+                        ),
+                        goalSession: session,
+                        day: day,
+                        isNewSession: true
+                    )
+                }
+            }
+        }
         .onDisappear {
             let emptyItems = session.checklist?.filter { $0.checklistItem?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true } ?? []
             for item in emptyItems {

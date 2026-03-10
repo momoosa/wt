@@ -145,6 +145,9 @@ struct SettingsView: View {
         for debugGoal in DebugGoals.allCases {
             addDebugGoal(debugGoal)
         }
+        
+        // Add historical sessions for the previous week to test weekly progress chart
+        addDebugHistoricalSessions()
     }
     
     private func addDebugGoal(_ debugGoal: DebugGoals) {
@@ -160,6 +163,56 @@ struct SettingsView: View {
         withAnimation {
             modelContext.insert(goal)
         }
+    }
+    
+    private func addDebugHistoricalSessions() {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Fetch all goals to add historical sessions to
+        let descriptor = FetchDescriptor<Goal>()
+        guard let goals = try? modelContext.fetch(descriptor) else { return }
+        
+        // Create historical sessions for last week (7-13 days ago)
+        for dayOffset in 7...13 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+            
+            let startOfDay = calendar.startOfDay(for: date)
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+            
+            // Create or fetch the day
+            let day = Day(start: startOfDay, end: endOfDay, calendar: calendar)
+            modelContext.insert(day)
+            
+            // Add sessions for each goal with some randomness
+            for goal in goals {
+                // Create a session for this goal on this day
+                let session = GoalSession(title: goal.title, goal: goal, day: day)
+                modelContext.insert(session)
+                
+                // Add 1-3 historical sessions per day for variety
+                let sessionCount = Int.random(in: 1...3)
+                for _ in 0..<sessionCount {
+                    // Random duration between 5-45 minutes
+                    let duration = TimeInterval.random(in: 300...2700)
+                    // Random time during the day
+                    let startOffset = TimeInterval.random(in: 3600...72000) // Between 1am and 8pm
+                    let sessionStart = startOfDay.addingTimeInterval(startOffset)
+                    let sessionEnd = sessionStart.addingTimeInterval(duration)
+                    
+                    let historicalSession = HistoricalSession(
+                        title: goal.title,
+                        start: sessionStart,
+                        end: sessionEnd,
+                        needsHealthKitRecord: false
+                    )
+                    historicalSession.goalIDs = [session.goalID]
+                    day.add(historicalSession: historicalSession)
+                }
+            }
+        }
+        
+        try? modelContext.save()
     }
 }
 

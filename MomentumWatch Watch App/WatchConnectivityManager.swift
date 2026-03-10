@@ -83,12 +83,10 @@ class WatchConnectivityManager: NSObject, ObservableObject {
     }
     
     private func sendMessageWithRetry(message: [String: Any], commandType: String, retryCount: Int = 0) {
+        // Try sendMessage first for immediate delivery if possible
         guard session.isReachable else {
-            logger.debug("iPhone not reachable, queueing \(commandType) command")
-            queueCommand(type: commandType, data: message)
-            DispatchQueue.main.async {
-                self.lastError = "iPhone not reachable. Command queued."
-            }
+            logger.debug("iPhone not reachable, using transferUserInfo for \(commandType)")
+            transferCommand(message: message, commandType: commandType)
             return
         }
         
@@ -98,19 +96,38 @@ class WatchConnectivityManager: NSObject, ObservableObject {
                 self.lastError = nil
             }
         }) { error in
-            self.logger.error("Failed to send \(commandType) command: \(error.localizedDescription)")
+            let errorMessage = error.localizedDescription
+            self.logger.error("Failed to send \(commandType) command: \(errorMessage)")
             
-            if retryCount < self.maxRetries {
+            // Check for specific error indicating iPhone app isn't available
+            if errorMessage.contains("Payload could not be delivered") {
+                self.logger.warning("iPhone app not available - using transferUserInfo for \(commandType)")
+                self.transferCommand(message: message, commandType: commandType)
+            } else if retryCount < self.maxRetries {
                 self.logger.info("Retrying \(commandType) command, attempt \(retryCount + 1)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.sendMessageWithRetry(message: message, commandType: commandType, retryCount: retryCount + 1)
                 }
             } else {
                 self.logger.error("Max retries reached for \(commandType) command")
-                self.queueCommand(type: commandType, data: message)
-                DispatchQueue.main.async {
-                    self.lastError = "Failed to send command after \(self.maxRetries) attempts"
-                }
+                self.transferCommand(message: message, commandType: commandType)
+            }
+        }
+    }
+    
+    private func transferCommand(message: [String: Any], commandType: String) {
+        // Use transferUserInfo for guaranteed delivery (even if iPhone app isn't running)
+        session.transferUserInfo(message)
+        logger.info("Transferred \(commandType) command via transferUserInfo")
+        
+        DispatchQueue.main.async {
+            self.lastError = "Command sent. Will sync when iPhone app opens."
+        }
+        
+        // Clear error after a few seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            if self.lastError == "Command sent. Will sync when iPhone app opens." {
+                self.lastError = nil
             }
         }
     }

@@ -16,91 +16,49 @@ struct WatchSessionRow: View {
     @State private var showingStartAlert = false
     @StateObject private var connectivityManager = WatchConnectivityManager.shared
     
-    private var todayMinutes: Int {
-        // Get today's elapsed time from historical sessions
-        let calendar = Calendar.current
-        let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
-
-        guard let historicalSessions = day.historicalSessions,
-              let goalID = session.goal?.id.uuidString else {
-            return 0
-        }
-
-        let todaySessions = historicalSessions.filter { historical in
-            let sessionComponents = calendar.dateComponents([.year, .month, .day], from: historical.startDate)
-            return historical.goalIDs.contains(goalID) &&
-                   sessionComponents.year == todayComponents.year &&
-                   sessionComponents.month == todayComponents.month &&
-                   sessionComponents.day == todayComponents.day
-        }
-
-        return todaySessions.reduce(into: 0) { $0 += Int($1.duration / 60) }
-    }
-    
-    private var progress: Double {
-        guard session.dailyTarget > 0 else { return 0 }
-        return min(Double(todayMinutes) / Double(session.dailyTarget), 1.0)
-    }
-    
-    private var remainingMinutes: Int {
-        max(0, Int(session.dailyTarget) - todayMinutes)
+    private var formattedTime: String {
+        let elapsedMinutes = Int(session.elapsedTime / 60)
+        return "\(elapsedMinutes)m"
     }
     
     var body: some View {
         Button {
             startSession()
         } label: {
-            HStack(spacing: 12) {
-                // Progress ring
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 3)
-                    
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            (session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                    
-                    Text("\(Int(progress * 100))%")
-                        .font(.system(size: 10))
-                        .fontWeight(.semibold)
-                }
-                .frame(width: 40, height: 40)
-                
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(session.goal?.title ?? "Unknown")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(.caption)
+                        .fontWeight(.semibold)
                         .lineLimit(1)
+                        .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor)
                     
                     HStack(spacing: 4) {
-                        if remainingMinutes > 0 {
-                            Text("\(remainingMinutes)m")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text("left")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                            Text("Done")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                        }
+                        Text(formattedTime)
+                            .font(.caption2)
+                            .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor.opacity(0.7))
+                        
+                        Spacer(minLength: 0)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Spacer()
-                
-                Image(systemName: "play.fill")
-                    .font(.caption)
-                    .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).color(for: .dark))
+                // Play button
+                Image(systemName: "play.circle.fill")
+                    .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor)
             }
+            .padding(6)
+            .background(
+                LinearGradient(
+                    colors: [
+                        (session.goal?.primaryTag?.theme ?? Theme.default).neon,
+                        (session.goal?.primaryTag?.theme ?? Theme.default).dark
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .alert("Timer Request", isPresented: $showingStartAlert) {

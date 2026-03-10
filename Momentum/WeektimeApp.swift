@@ -26,6 +26,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Register background refresh task
         registerBackgroundTasks()
         
+        #if os(iOS)
+        // Initialize WatchConnectivity early to start listening for Watch messages
+        _ = WatchConnectivityManager.shared
+        AppLogger.app.info("WatchConnectivityManager initialized")
+        #endif
+        
         return true
     }
     

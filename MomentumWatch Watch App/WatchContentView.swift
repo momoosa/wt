@@ -11,7 +11,6 @@ import MomentumKit
 
 struct WatchContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var sessions: [GoalSession]
     @Query private var allSessions: [GoalSession]
     @Query private var days: [Day]
     @Query private var goals: [Goal]
@@ -40,15 +39,33 @@ struct WatchContentView: View {
         return newDay
     }
     
+    private var todaySessions: [GoalSession] {
+        // Filter sessions to only include today's sessions
+        let calendar = Calendar.current
+        let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+        
+        return allSessions.filter { session in
+            guard session.dailyTarget > 0,
+                  let dayStartDate = session.day?.startDate else {
+                return false
+            }
+            
+            let sessionDayComponents = calendar.dateComponents([.year, .month, .day], from: dayStartDate)
+            return sessionDayComponents.year == todayComponents.year &&
+                   sessionDayComponents.month == todayComponents.month &&
+                   sessionDayComponents.day == todayComponents.day
+        }
+    }
+    
     private var filteredSessions: [GoalSession] {
-        return sessions.sorted { (lhs: GoalSession, rhs: GoalSession) in
+        return todaySessions.sorted { (lhs: GoalSession, rhs: GoalSession) in
             return (lhs.goal?.title ?? "") < (rhs.goal?.title ?? "")
         }
     }
     
     private var activeSession: GoalSession? {
         guard let timerState = connectivityManager.activeTimerState else { return nil }
-        return sessions.first(where: { $0.id == timerState.sessionID })
+        return todaySessions.first(where: { $0.id == timerState.sessionID })
     }
     
     var body: some View {
