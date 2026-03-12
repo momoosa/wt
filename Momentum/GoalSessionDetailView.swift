@@ -37,12 +37,29 @@ struct GoalSessionDetailView: View {
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
     
+    // Chart tab selection
+    @State private var selectedChartTab: ChartTab = .daily
+    
+    enum ChartTab: String, CaseIterable {
+        case daily = "Daily"
+        case weekly = "Weekly"
+    }
+    
     // Notification manager (created as needed)
     private let notificationManager = GoalNotificationManager()
 
     var tintColor: Color {
         let theme = session.goal?.primaryTag?.theme ?? Theme.default
         return colorScheme == .dark ? theme.light : theme.dark
+    }
+    
+    var chartGradient: LinearGradient {
+        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        return LinearGradient(
+            colors: [theme.dark, theme.neon],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
     
     // Schedule data for chart
@@ -62,6 +79,14 @@ struct GoalSessionDetailView: View {
         let date: Date
         let weekdayNumber: Int
         let dailyGoal: Double
+    }
+    
+    // Hourly progress data for daily chart
+    struct HourlyProgress: Identifiable {
+        let id = UUID()
+        let hour: Int
+        let minutes: Double
+        let isScheduled: Bool
     }
     
     private var weeklyProgressData: [DailyProgress] {
@@ -159,6 +184,127 @@ struct GoalSessionDetailView: View {
         return (session.dailyTarget / 60.0)
     }
     
+    private var dailyProgressData: [HourlyProgress] {
+        guard let goal = session.goal else { return [] }
+        
+        let calendar = Calendar.current
+        let today = session.day?.startDate ?? Date()
+        let dayID = today.yearMonthDayID(with: calendar)
+        
+        // Get today's weekday for schedule checking
+        let weekdayNum = calendar.component(.weekday, from: today)
+        
+        // Get all historical sessions for this goal on this day
+        let historicalSessions: [HistoricalSession]
+        if let day = try? context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first,
+           let sessions = day.historicalSessions {
+            let goalIDString = goal.id.uuidString
+            historicalSessions = sessions.filter { $0.goalIDs.contains(goalIDString) }
+        } else {
+            historicalSessions = []
+        }
+        
+        // Create hourly buckets (0-23)
+        var hourlyData: [HourlyProgress] = []
+        
+        for hour in 0..<24 {
+            // Calculate minutes in this hour
+            var minutesInHour: Double = 0
+            
+            for session in historicalSessions {
+                let sessionStart = session.startDate
+                let sessionEnd = session.endDate
+                
+                let hourStart = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: today)!
+                let hourEnd = calendar.date(bySettingHour: hour, minute: 59, second: 59, of: today)!
+                
+                // Check if session overlaps with this hour
+                if sessionEnd > hourStart && sessionStart < hourEnd {
+                    // Calculate overlap
+                    let overlapStart = max(sessionStart, hourStart)
+                    let overlapEnd = min(sessionEnd, hourEnd)
+                    let overlapSeconds = overlapEnd.timeIntervalSince(overlapStart)
+                    minutesInHour += overlapSeconds / 60.0
+                }
+            }
+            
+            // Determine if this hour is scheduled
+            let timeOfDay: TimeOfDay? = {
+                switch hour {
+                case 6..<11: return .morning
+                case 11..<14: return .midday
+                case 14..<17: return .afternoon
+                case 17..<22: return .evening
+                default: return nil
+                }
+            }()
+            
+            let isScheduled = timeOfDay != nil && goal.isScheduled(weekday: weekdayNum, time: timeOfDay!)
+            
+            hourlyData.append(HourlyProgress(
+                hour: hour,
+                minutes: minutesInHour,
+                isScheduled: isScheduled
+            ))
+        }
+        
+        return hourlyData
+    }
+    
+    private var dailyProgressChart: some View {
+        let data = dailyProgressData
+        let maxValue = data.map { $0.minutes }.max() ?? 1
+        
+        return Chart {
+            ForEach(data.filter { $0.isScheduled }) { item in
+                BarMark(
+                    x: .value("Hour", item.hour),
+                    y: .value("Minutes", item.minutes)
+                )
+                .foregroundStyle(chartGradient)
+            }
+            
+            ForEach(data.filter { !$0.isScheduled }) { item in
+                BarMark(
+                    x: .value("Hour", item.hour),
+                    y: .value("Minutes", item.minutes)
+                )
+                .foregroundStyle(Color.secondary.opacity(0.7))
+            }
+            
+            // Add target line if there's a daily target
+            if dailyTargetMinutes > 0 {
+                let targetPerHour = dailyTargetMinutes / 24.0
+                RuleMark(y: .value("Target", targetPerHour))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                    .foregroundStyle(tintColor.opacity(0.5))
+            }
+        }
+        .chartYScale(domain: 0...(max(maxValue, dailyTargetMinutes / 24.0) * 1.2))
+        .chartXAxis {
+            AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                AxisValueLabel {
+                    if let hour = value.as(Int.self) {
+                        Text("\(hour)")
+                            .font(.caption2)
+                    }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisValueLabel {
+                    if let minutes = value.as(Double.self) {
+                        Text("\(Int(minutes))m")
+                            .font(.caption2)
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .chartLegend(.hidden)
+    }
+    
     private var weeklyProgressChart: some View {
         let data = weeklyProgressData
         let maxGoal = data.map { $0.dailyGoal }.max() ?? 0
@@ -166,13 +312,23 @@ struct GoalSessionDetailView: View {
         let maxValue = max(maxGoal, maxActual)
         
         return Chart {
-            // Bar marks for each day
-            ForEach(data) { item in
+            // Bar marks for this week
+            ForEach(data.filter { $0.week == "This Week" }) { item in
                 BarMark(
                     x: .value("Day", item.weekdayShort),
                     y: .value("Minutes", item.minutes)
                 )
-                .foregroundStyle(item.week == "This Week" ? tintColor : Color.secondary.opacity(0.5))
+                .foregroundStyle(chartGradient)
+                .position(by: .value("Week", item.week))
+            }
+            
+            // Bar marks for last week
+            ForEach(data.filter { $0.week == "Last Week" }) { item in
+                BarMark(
+                    x: .value("Day", item.weekdayShort),
+                    y: .value("Minutes", item.minutes)
+                )
+                .foregroundStyle(Color.secondary.opacity(0.5))
                 .position(by: .value("Week", item.week))
             }
         }
@@ -326,23 +482,58 @@ struct GoalSessionDetailView: View {
                 
             }
             
-            // Weekly Progress Chart
+            // Progress Charts (Daily & Weekly)
             Section {
-                weeklyProgressChart
-                    .frame(height: 160)
+                TabView(selection: $selectedChartTab) {
+                    // Daily Chart
+                    VStack(spacing: 12) {
+                        dailyProgressChart
+                            .frame(height: 140)
+                        
+                        HStack(spacing: 16) {
+                            if session.goal?.hasSchedule == true {
+                                Label("Scheduled", systemImage: "circle.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(tintColor)
+                            }
+                            Label("Unscheduled", systemImage: "circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .labelStyle(.titleAndIcon)
+                    }
+                    .tag(ChartTab.daily)
+                    
+                    // Weekly Chart
+                    VStack(spacing: 12) {
+                        weeklyProgressChart
+                            .frame(height: 140)
+                        
+                        HStack(spacing: 16) {
+                            Label("This Week", systemImage: "circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(tintColor)
+                            Label("Last Week", systemImage: "circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .labelStyle(.titleAndIcon)
+                    }
+                    .tag(ChartTab.weekly)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .always))
+                .frame(height: 200)
             } header: {
                 HStack {
-                    Text("Weekly Progress")
+                    Text("Progress")
                     Spacer()
-                    HStack(spacing: 12) {
-                        Label("This Week", systemImage: "circle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(tintColor)
-                        Label("Last Week", systemImage: "circle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                    Picker("Chart Type", selection: $selectedChartTab) {
+                        ForEach(ChartTab.allCases, id: \.self) { tab in
+                            Text(tab.rawValue).tag(tab)
+                        }
                     }
-                    .labelStyle(.titleAndIcon)
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
                 }
             }
             
@@ -600,6 +791,39 @@ struct GoalSessionDetailView: View {
     }
     
     @ViewBuilder
+    private var checklistSection: some View {
+        if let goal = session.goal, let checklistItems = goal.checklistItems, !checklistItems.isEmpty {
+            Section {
+                ForEach(session.checklist ?? []) { itemSession in
+                    ChecklistRow(item: itemSession)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                itemSession.isCompleted.toggle()
+                            }
+                        }
+                }
+            } header: {
+                HStack {
+                    Text("Checklist")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    
+                    Spacer()
+                    
+                    let completedCount = session.checklist?.filter { $0.isCompleted }.count ?? 0
+                    let totalCount = session.checklist?.count ?? 0
+                    
+                    Text("\(completedCount)/\(totalCount)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+    
+    @ViewBuilder
     private var listsSection: some View {
             // NEW: Horizontal tabs for lists
             Section {
@@ -651,7 +875,8 @@ struct GoalSessionDetailView: View {
             progressSection
             settingsSection
             historySection
-            listsSection
+            checklistSection
+            // listsSection // Disabled for now
         }
         
         let backgroundColor = (session.goal?.primaryTag?.theme.dark ?? Theme.default.dark).opacity(0.1)
@@ -664,11 +889,12 @@ struct GoalSessionDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button {
-                        isShowingIntervalsEditor.toggle()
-                    } label: {
-                        Label("Add Interval List", systemImage: "list.bullet.circle")
-                    }
+                    // Interval feature disabled for now
+                    // Button {
+                    //     isShowingIntervalsEditor.toggle()
+                    // } label: {
+                    //     Label("Add Interval List", systemImage: "list.bullet.circle")
+                    // }
                     
                     Button {
                         withAnimation {

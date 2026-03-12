@@ -48,6 +48,8 @@ struct GoalEditorView: View {
     @State private var healthKitSyncEnabled: Bool = false
     @State private var goalNotes: String = ""
     @State private var goalLink: String = ""
+    @State private var checklistItems: [String] = []
+    @State private var newChecklistItem: String = ""
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
@@ -506,6 +508,49 @@ struct GoalEditorView: View {
                                 .padding(.vertical, 4)
                             }
                             
+                            // Checklist Section
+                            Section(header: Text("Checklist")) {
+                                ForEach(Array(checklistItems.enumerated()), id: \.offset) { index, item in
+                                    HStack {
+                                        Image(systemName: "circle")
+                                            .foregroundStyle(.secondary)
+                                        Text(item)
+                                        Spacer()
+                                        Button {
+                                            checklistItems.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundStyle(.red)
+                                        }
+                                    }
+                                }
+                                
+                                // Add new item
+                                HStack {
+                                    Image(systemName: "circle")
+                                        .foregroundStyle(.secondary)
+                                    TextField("Add checklist item...", text: $newChecklistItem)
+                                        .onSubmit {
+                                            if !newChecklistItem.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                checklistItems.append(newChecklistItem)
+                                                newChecklistItem = ""
+                                            }
+                                        }
+                                    
+                                    if !newChecklistItem.isEmpty {
+                                        Button {
+                                            if !newChecklistItem.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                checklistItems.append(newChecklistItem)
+                                                newChecklistItem = ""
+                                            }
+                                        } label: {
+                                            Image(systemName: "plus.circle.fill")
+                                                .foregroundStyle(activeThemeColor)
+                                        }
+                                    }
+                                }
+                            }
+                            
                             // Weather-based visibility
                             Section {
                                 Toggle(isOn: $weatherEnabled) {
@@ -625,8 +670,8 @@ struct GoalEditorView: View {
                     .animation(AnimationPresets.smoothSpring, value: currentStage)
                     
             .overlay(alignment: .bottom) {
-                // Bottom button (hide when keyboard is active)
-                if focusedField == nil {
+                // Bottom button (hide when keyboard is active or when editing existing goal on duration stage)
+                if focusedField == nil && !(existingGoal != nil && currentStage == .duration) {
                     VStack(spacing: 0) {
                         Divider()
                         if currentStage == .name {
@@ -694,15 +739,22 @@ struct GoalEditorView: View {
 
                 }
                 
-                // Close button on duration stage
+                // Save/Close button on duration stage
                 if currentStage == .duration {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            dismiss()
+                            if existingGoal != nil {
+                                // Save when editing
+                                handleButtonTap()
+                            } else {
+                                // Close when creating new
+                                dismiss()
+                            }
                         } label: {
-                            Text("Close")
+                            Text(existingGoal != nil ? "Save" : "Close")
                                 .fontWeight(.semibold)
                         }
+                        .disabled(existingGoal != nil && !buttonEnabled)
                     }
                 }
                 
@@ -1001,6 +1053,9 @@ struct GoalEditorView: View {
         healthKitSyncEnabled = goal.healthKitSyncEnabled
         goalNotes = goal.notes ?? ""
         goalLink = goal.link ?? ""
+        
+        // Load checklist items
+        checklistItems = goal.checklistItems?.map { $0.title } ?? []
         
         // Load tag/theme
         selectedGoalTheme = goal.primaryTag
@@ -1383,6 +1438,22 @@ struct GoalEditorView: View {
             goal.weatherConditionsTyped = nil
             goal.minTemperature = nil
             goal.maxTemperature = nil
+        }
+        
+        // ✅ Save checklist items
+        // Remove old checklist items
+        if let existingItems = goal.checklistItems {
+            for item in existingItems {
+                modelContext.delete(item)
+            }
+        }
+        goal.checklistItems = []
+        
+        // Add new checklist items
+        for itemTitle in checklistItems where !itemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+            let checklistItem = ChecklistItem(title: itemTitle, goal: goal)
+            modelContext.insert(checklistItem)
+            goal.checklistItems?.append(checklistItem)
         }
         
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")

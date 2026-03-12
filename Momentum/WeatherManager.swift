@@ -59,6 +59,13 @@ class WeatherManager: NSObject, CLLocationManagerDelegate {
             return
         }
         
+        // If we had an error, wait a bit before retrying
+        if let lastUpdate = lastUpdate,
+           error != nil,
+           Date().timeIntervalSince(lastUpdate) < 60 { // Wait at least 1 minute between retries
+            return
+        }
+        
         requestLocationPermission()
     }
     
@@ -80,11 +87,26 @@ class WeatherManager: NSObject, CLLocationManagerDelegate {
                 self.currentLocation = location
                 self.lastUpdate = Date()
                 self.isLoading = false
+                print("✅ WeatherKit: Successfully fetched weather data")
             }
         } catch {
             await MainActor.run {
                 self.error = error
                 self.isLoading = false
+                
+                // Log detailed error information
+                print("❌ WeatherKit Error: \(error.localizedDescription)")
+                if let nsError = error as NSError? {
+                    print("   Domain: \(nsError.domain)")
+                    print("   Code: \(nsError.code)")
+                    print("   UserInfo: \(nsError.userInfo)")
+                }
+                
+                // Provide helpful troubleshooting info
+                #if targetEnvironment(simulator)
+                print("⚠️  Running on simulator - WeatherKit may not work properly")
+                print("   Try running on a physical device for better results")
+                #endif
             }
         }
     }

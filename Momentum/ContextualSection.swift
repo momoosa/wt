@@ -20,6 +20,7 @@ struct ContextualSection: Identifiable {
         case weatherWindow(time: String, condition: String, icon: String)
         case timeWindow(time: String, reason: String, icon: String)
         case energyWindow(time: String, energyLevel: String)
+        case available
         case later
         
         var title: String {
@@ -32,6 +33,8 @@ struct ContextualSection: Identifiable {
                 return "\(time) - \(reason)"
             case .energyWindow(let time, let energyLevel):
                 return "\(time) (\(energyLevel) energy)"
+            case .available:
+                return "Available Goals"
             case .later:
                 return "Later"
             }
@@ -47,6 +50,8 @@ struct ContextualSection: Identifiable {
                 return icon
             case .energyWindow:
                 return "bolt.fill"
+            case .available:
+                return "lightbulb.fill"
             case .later:
                 return nil
             }
@@ -54,7 +59,7 @@ struct ContextualSection: Identifiable {
         
         var shouldShowExplanation: Bool {
             switch self {
-            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow:
+            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .available:
                 return true
             case .later:
                 return false
@@ -68,6 +73,7 @@ extension ContextualSection {
     static func groupSessions(
         _ sessions: [GoalSession],
         recommendedSessions: [GoalSession],
+        allGoals: [GoalSession]? = nil,
         currentDate: Date = Date()
     ) -> [ContextualSection] {
         var sections: [ContextualSection] = []
@@ -102,6 +108,39 @@ extension ContextualSection {
                 sessions: laterSessions,
                 explanation: nil
             ))
+        }
+        
+        // 4. Available Goals section (goals not scheduled for today but could be worked on)
+        if let allGoals = allGoals {
+            let scheduledIDs = Set(sessions.map { $0.id })
+            let availableGoals = allGoals.filter { goal in
+                // Not already scheduled for today
+                !scheduledIDs.contains(goal.id) &&
+                // Goal is active (not skipped or archived)
+                goal.status != .skipped &&
+                goal.goal?.status != .archived &&
+                // Goal has a weekly target (is a real goal, not just a placeholder)
+                (goal.goal?.weeklyTarget ?? 0) > 0 &&
+                // Not yet completed
+                !goal.hasMetDailyTarget
+            }
+            
+            if !availableGoals.isEmpty {
+                let explanation = generateAvailableGoalsExplanation(
+                    availableGoals: availableGoals,
+                    scheduledSessions: sessions,
+                    currentDate: currentDate
+                )
+                
+                // Limit to top 3-5 most relevant
+                let topAvailable = selectTopAvailableGoals(availableGoals, currentDate: currentDate)
+                
+                sections.append(ContextualSection(
+                    type: .available,
+                    sessions: topAvailable,
+                    explanation: explanation
+                ))
+            }
         }
         
         return sections
@@ -251,5 +290,95 @@ extension ContextualSection {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+    
+    /// Generate contextual explanation for available goals section
+    private static func generateAvailableGoalsExplanation(
+        availableGoals: [GoalSession],
+        scheduledSessions: [GoalSession],
+        currentDate: Date
+    ) -> String {
+        let scheduledCompleted = scheduledSessions.filter { $0.hasMetDailyTarget }.count
+        let totalScheduled = scheduledSessions.count
+        
+        // Case 1: All scheduled goals completed
+        if totalScheduled > 0 && scheduledCompleted == totalScheduled {
+            return "All scheduled tasks done! Consider working on these"
+        }
+        
+        // Case 2: No goals scheduled for today
+        if totalScheduled == 0 {
+            return "Nothing scheduled today • You could work on these"
+        }
+        
+        // Case 3: Some scheduled goals completed, extra time available
+        if scheduledCompleted > 0 {
+            return "Ahead of schedule • Extra goals you could tackle"
+        }
+        
+        // Default
+        return "Goals you could work on when you have time"
+    }
+    
+    /// Select the most relevant available goals to show
+    private static func selectTopAvailableGoals(
+        _ availableGoals: [GoalSession],
+        currentDate: Date
+    ) -> [GoalSession] {
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: currentDate)
+        let currentWeekday = calendar.component(.weekday, from: currentDate)
+        
+        // Score each goal based on relevance
+        let scored = availableGoals.map { goal -> (session: GoalSession, score: Double) in
+            var score: Double = 0
+            
+            // 1. Behind on weekly progress (high priority)
+            if let weeklyTarget = goal.goal?.weeklyTarget, weeklyTarget > 0 {
+                let progress = goal.elapsedTime / weeklyTarget
+                if progress < 0.5 {
+                    score += 10 // Behind schedule
+                } else if progress < 0.7 {
+                    score += 5 // Could use more work
+                }
+            }
+            
+            // 2. Usually done at this time of day (on other days)
+            let currentTimeOfDay: TimeOfDay? = {
+                switch currentHour {
+                case 6..<11: return .morning
+                case 11..<14: return .midday
+                case 14..<17: return .afternoon
+                case 17..<22: return .evening
+                default: return nil
+                }
+            }()
+            
+            if let timeOfDay = currentTimeOfDay {
+                // Check if this goal is scheduled for this time on other days
+                for weekday in 1...7 where weekday != currentWeekday {
+                    let times = goal.goal?.timesForWeekday(weekday) ?? []
+                    if times.contains(timeOfDay) {
+                        score += 3 // Sometimes done at this time
+                    }
+                }
+            }
+            
+            // 3. Recent activity (worked on in past week)
+            if goal.elapsedTime > 0 {
+                score += 2
+            }
+            
+            // 4. Quick wins (can be completed soon)
+            if goal.progress > 0.7 {
+                score += 4
+            }
+            
+            return (goal, score)
+        }
+        
+        // Sort by score and take top 5
+        let sorted = scored.sorted { $0.score > $1.score }
+        return Array(sorted.prefix(5).map { $0.session })
     }
 }

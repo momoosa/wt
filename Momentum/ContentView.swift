@@ -10,6 +10,8 @@ import SwiftData
 import MomentumKit
 import HealthKit
 import OSLog
+import EventKit
+import WeatherKit
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -61,6 +63,10 @@ struct ContentView: View {
     
     // Weather
     @State private var weatherManager = WeatherManager.shared
+    
+    // Calendar
+    @State private var nextCalendarEvent: EKEvent?
+    @State private var calendarEventStore = EKEventStore()
     
     var body: some View {
         let recommendedSessionIDs = getRecommendedSessions().map { $0.id }
@@ -251,13 +257,9 @@ struct ContentView: View {
                     .frame(height: LayoutConstants.Heights.smallSpacer)
             }
 
-            if !(day.historicalSessions?.isEmpty ?? true) && activeFilter == .activeToday {
+            if activeFilter == .activeToday {
                 Section {
                     dailyProgressCard
-                        .matchedTransitionSource(id: "dayOverviewCard", in: animation)
-                        .onTapGesture {
-                            showDayOverview = true
-                        }
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
@@ -278,7 +280,8 @@ struct ContentView: View {
                     // Group sessions into contextual sections
                     let contextualSections = ContextualSection.groupSessions(
                         allSessions,
-                        recommendedSessions: recommendedSessions
+                        recommendedSessions: recommendedSessions,
+                        allGoals: sessions
                     )
                     
                     ForEach(contextualSections) { section in
@@ -419,6 +422,32 @@ struct ContentView: View {
             }
             .listSectionSpacing(.compact)
             
+        case .available:
+            // Available goals section (backup goals not scheduled today)
+            Section {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session)
+                }
+            } header: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(.orange)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                    }
+                    
+                    if let explanation = section.explanation {
+                        Text(explanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .listSectionSpacing(.compact)
+            
         case .later:
             // Later section (standard rows)
             Section {
@@ -486,23 +515,78 @@ struct ContentView: View {
     }
     
     private var dailyProgressCard: some View {
-        HStack {
-            // Large circular progress
-            Spacer()
-            ZStack {
-                CircularProgressView(progress: dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
-//
-            }
-            Spacer()
-            // Stats
-            Text("\(Int(dailyProgress * 100))%")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(.primary)
+        let size = 60.0
+        return HStack(spacing: 12) {
+            // Progress Ring
+            CircularProgressView(progress: dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
+                .overlay {
+                    VStack(spacing: 2) {
+                        Text("\(Int(dailyProgress * 100))%")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("done")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: size, height: size)
+                .glassCardStyle(shadowColor: .black)
+                .matchedTransitionSource(id: "dayOverviewCard", in: animation)
+                .onTapGesture {
+                    showDayOverview = true
+                }
 
+            // Weather Card
+            if let weather = weatherManager.currentWeather {
+                VStack(spacing: 6) {
+                    Image(systemName: weatherSymbol(for: weather.condition))
+                        .font(.title)
+                        .foregroundStyle(.blue)
+                    
+                    Text("\(Int(weather.temperature.value))°")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    
+                    Text(weatherDescription(for: weather.condition))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .frame(width: size, height: size)
+                .glassCardStyle(shadowColor: .black)
+            }
+            
+            // Calendar Free Time Card
+            if let nextEvent = nextCalendarEvent {
+                VStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.title)
+                        .foregroundStyle(.orange)
+                    
+                    Text(freeTimeText)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .multilineTextAlignment(.center)
+                    
+                }
+                .frame(width: size, height: size)
+                .glassCardStyle(shadowColor: .black)
+            } else {
+                VStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.title)
+                        .foregroundStyle(.green)
+                                    
+                    Text("Free")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: size, height: size)
+                .glassCardStyle(shadowColor: .black)
+            }
+            
             Spacer()
         }
-        .padding()
-        .glassCardStyle(shadowColor: .black)
         .padding()
     }
     
@@ -539,6 +623,142 @@ struct ContentView: View {
             guard session.goal?.status != .archived else { return false }
             return true
         }.count
+    }
+    
+    // MARK: - Weather & Calendar Helpers
+    
+    private func weatherSymbol(for condition: WeatherKit.WeatherCondition) -> String {
+        switch condition {
+        case .clear, .mostlyClear:
+            return "sun.max.fill"
+        case .partlyCloudy:
+            return "cloud.sun.fill"
+        case .cloudy, .mostlyCloudy:
+            return "cloud.fill"
+        case .rain, .drizzle, .heavyRain:
+            return "cloud.rain.fill"
+        case .snow, .blizzard, .flurries, .heavySnow:
+            return "cloud.snow.fill"
+        case .sleet, .freezingDrizzle, .freezingRain:
+            return "cloud.sleet.fill"
+        case .strongStorms, .tropicalStorm, .hurricane:
+            return "cloud.bolt.rain.fill"
+        case .windy, .breezy:
+            return "wind"
+        case .haze, .smoky, .foggy:
+            return "cloud.fog.fill"
+        default:
+            return "cloud.fill"
+        }
+    }
+    
+    private func weatherDescription(for condition: WeatherKit.WeatherCondition) -> String {
+        switch condition {
+        case .clear:
+            return "Clear"
+        case .mostlyClear:
+            return "Mostly Clear"
+        case .partlyCloudy:
+            return "Partly Cloudy"
+        case .cloudy:
+            return "Cloudy"
+        case .mostlyCloudy:
+            return "Mostly Cloudy"
+        case .rain:
+            return "Rain"
+        case .drizzle:
+            return "Drizzle"
+        case .heavyRain:
+            return "Heavy Rain"
+        case .snow:
+            return "Snow"
+        case .flurries:
+            return "Flurries"
+        case .heavySnow:
+            return "Heavy Snow"
+        case .blizzard:
+            return "Blizzard"
+        case .sleet:
+            return "Sleet"
+        case .freezingDrizzle:
+            return "Freezing Drizzle"
+        case .freezingRain:
+            return "Freezing Rain"
+        case .strongStorms:
+            return "Strong Storms"
+        case .tropicalStorm:
+            return "Tropical Storm"
+        case .hurricane:
+            return "Hurricane"
+        case .windy:
+            return "Windy"
+        case .breezy:
+            return "Breezy"
+        case .haze:
+            return "Hazy"
+        case .smoky:
+            return "Smoky"
+        case .foggy:
+            return "Foggy"
+        default:
+            return "Unknown"
+        }
+    }
+    
+    private var freeTimeText: String {
+        guard let event = nextCalendarEvent else { return "All day" }
+        
+        let now = Date()
+        let timeUntilEvent = event.startDate.timeIntervalSince(now)
+        
+        if timeUntilEvent < 0 {
+            // Event is happening now
+            let timeUntilEnd = event.endDate.timeIntervalSince(now)
+            if timeUntilEnd > 0 {
+                return "Busy now"
+            } else {
+                return "All day"
+            }
+        }
+        
+        // Calculate free time
+        let hours = Int(timeUntilEvent / 3600)
+        let minutes = Int((timeUntilEvent.truncatingRemainder(dividingBy: 3600)) / 60)
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "< 1m"
+        }
+    }
+    
+    private func fetchNextCalendarEvent() {
+        Task { @MainActor in
+            do {
+                let granted = try await calendarEventStore.requestFullAccessToEvents()
+                guard granted else { return }
+                
+                let now = Date()
+                let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
+                
+                let predicate = calendarEventStore.predicateForEvents(
+                    withStart: now,
+                    end: endOfDay,
+                    calendars: nil
+                )
+                
+                let events = calendarEventStore.events(matching: predicate)
+                    .filter { !$0.isAllDay }
+                    .sorted { $0.startDate < $1.startDate }
+                
+                nextCalendarEvent = events.first
+            } catch {
+                // Silently fail - calendar is optional
+                nextCalendarEvent = nil
+            }
+        }
     }
     
     // MARK: - Toolbar
@@ -662,6 +882,9 @@ struct ContentView: View {
             
             // Initialize weather data
             weatherManager.refreshWeatherIfNeeded()
+            
+            // Fetch calendar events
+            fetchNextCalendarEvent()
             
             // Auto-plan once per day on launch if we haven't already
             await checkAndRunAutoPlan()
@@ -913,6 +1136,15 @@ struct ContentView: View {
             if !sessions.contains(where: { $0.goal == goal }) {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
                 modelContext.insert(session)
+                
+                // Create checklist item sessions for this goal session
+                if let checklistItems = goal.checklistItems {
+                    for checklistItem in checklistItems {
+                        let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
+                        modelContext.insert(itemSession)
+                        session.checklist?.append(itemSession)
+                    }
+                }
             }
         }
         
@@ -1095,6 +1327,11 @@ struct ContentView: View {
         // Get all goals with HealthKit sync enabled
         let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
         
+        AppLogger.healthKit.info("Starting HealthKit sync for \(healthKitGoals.count) goals")
+        for goal in healthKitGoals {
+            AppLogger.healthKit.info("  - '\(goal.title)' (metric: \(goal.healthKitMetric?.rawValue ?? "none"))")
+        }
+        
         // Request authorization if needed
         let metrics = healthKitGoals.compactMap { $0.healthKitMetric }
         guard !metrics.isEmpty else { return }
@@ -1108,7 +1345,10 @@ struct ContentView: View {
                 return
             }
             
-            // Fetch data for each goal
+            // Track allocated samples to prevent double-counting across goals
+            var allocatedSampleIDs = Set<String>()
+            
+            // Fetch and allocate data for each goal (first-come-first-served)
             for goal in healthKitGoals {
                 guard let metric = goal.healthKitMetric else { continue }
                 
@@ -1120,19 +1360,37 @@ struct ContentView: View {
                         to: day.endDate
                     )
                     
+                    // Filter out samples already allocated to other goals
+                    let availableSamples = samples.filter { !allocatedSampleIDs.contains($0.id) }
+                    
                     // Merge samples to avoid double-counting
-                    let mergedSamples = mergeSamples(samples)
+                    let mergedSamples = mergeSamples(availableSamples)
                     
                     // Calculate total duration from merged samples
                     let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
                     
                     // Update the corresponding session
                     await MainActor.run {
+                        AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue))")
+                        AppLogger.healthKit.info("  - Found \(samples.count) samples, \(availableSamples.count) available after allocation")
+                        AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
+                        AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
+                        AppLogger.healthKit.info("  - Looking for session in \(sessions.count) total sessions")
+                        
                         if let session = sessions.first(where: { $0.goal?.id == goal.id }) {
+                            AppLogger.healthKit.info("  - Found matching session for goal '\(goal.title)'")
                             session.updateHealthKitTime(duration)
+                            
+                            // Mark these samples as allocated
+                            for sample in mergedSamples {
+                                allocatedSampleIDs.insert(sample.id)
+                            }
                             
                             // Create or update historical sessions from HealthKit samples
                             syncHistoricalSessions(from: mergedSamples, for: goal, in: session)
+                        } else {
+                            AppLogger.healthKit.warning("  - No session found for goal '\(goal.title)' (ID: \(goal.id))")
+                            AppLogger.healthKit.warning("  - Available sessions: \(sessions.map { ($0.goal?.title ?? "nil", $0.goal?.id.uuidString ?? "nil") })")
                         }
                     }
                 } catch {
@@ -1473,6 +1731,15 @@ struct ContentView: View {
                         let session = GoalSession(title: goal.title, goal: goal, day: day)
                         session.status = .active
                         modelContext.insert(session)
+                        
+                        // Create checklist item sessions for this goal session
+                        if let checklistItems = goal.checklistItems {
+                            for checklistItem in checklistItems {
+                                let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
+                                modelContext.insert(itemSession)
+                                session.checklist?.append(itemSession)
+                            }
+                        }
                     }
                 }
                 
@@ -1654,6 +1921,15 @@ struct ContentView: View {
                     
                     // Insert into model context
                     modelContext.insert(session)
+                    
+                    // Create checklist item sessions for this goal session
+                    if let checklistItems = matchedGoal.checklistItems {
+                        for checklistItem in checklistItems {
+                            let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
+                            modelContext.insert(itemSession)
+                            session.checklist?.append(itemSession)
+                        }
+                    }
                 }
             }
             

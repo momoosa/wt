@@ -22,6 +22,7 @@
 		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
 		CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */; };
 		CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */; };
+		CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD083F5C2F608C82002802E7 /* GoalDetailView.swift */; };
 		CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0B80982F43A590006EDA47 /* SearchSheet.swift */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
@@ -179,6 +180,7 @@
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEntity.swift; sourceTree = "<group>"; };
 		CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumAppIntents.swift; sourceTree = "<group>"; };
+		CD083F5C2F608C82002802E7 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
 		CD0B80982F43A590006EDA47 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
@@ -537,6 +539,7 @@
 				CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */,
 				CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */,
 				CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */,
+				CD083F5C2F608C82002802E7 /* GoalDetailView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -857,6 +860,7 @@
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */,
+				CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,

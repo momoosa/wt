@@ -16,6 +16,7 @@ struct AllGoalsView: View {
     
     @State private var goalToDelete: Goal?
     @State private var showingDeleteConfirmation = false
+    @State private var selectedGoal: Goal?
     
     var activeGoals: [Goal] {
         goals.filter { $0.status == .active }
@@ -53,15 +54,20 @@ struct AllGoalsView: View {
                     ForEach(activeGoalsByTheme, id: \.theme.themeID) { themeGroup in
                         Section {
                             ForEach(themeGroup.goals) { goal in
-                                GoalRow(goal: goal)
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button(role: .destructive) {
-                                            goalToDelete = goal
-                                            showingDeleteConfirmation = true
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                                Button {
+                                    selectedGoal = goal
+                                } label: {
+                                    GoalRow(goal: goal)
+                                }
+                                .buttonStyle(.plain)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        goalToDelete = goal
+                                        showingDeleteConfirmation = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
+                                }
                             }
                         } header: {
                             HStack(spacing: 6) {
@@ -80,15 +86,20 @@ struct AllGoalsView: View {
                     ForEach(archivedGoalsByTheme, id: \.theme.themeID) { themeGroup in
                         Section {
                             ForEach(themeGroup.goals) { goal in
-                                GoalRow(goal: goal)
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button(role: .destructive) {
-                                            goalToDelete = goal
-                                            showingDeleteConfirmation = true
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                                Button {
+                                    selectedGoal = goal
+                                } label: {
+                                    GoalRow(goal: goal)
+                                }
+                                .buttonStyle(.plain)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        goalToDelete = goal
+                                        showingDeleteConfirmation = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
+                                }
                             }
                         } header: {
                             HStack(spacing: 6) {
@@ -134,6 +145,9 @@ struct AllGoalsView: View {
                 }
             } message: { goal in
                 Text("Are you sure you want to delete \"\(goal.title)\"? This action cannot be undone.")
+            }
+            .navigationDestination(item: $selectedGoal) { goal in
+                GoalDetailView(goal: goal)
             }
         }
     }
