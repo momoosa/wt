@@ -1360,8 +1360,11 @@ struct ContentView: View {
                         to: day.endDate
                     )
                     
+                    // Filter out samples created by this app to prevent double-counting
+                    let externalSamples = samples.filter { !$0.isFromThisApp }
+                    
                     // Filter out samples already allocated to other goals
-                    let availableSamples = samples.filter { !allocatedSampleIDs.contains($0.id) }
+                    let availableSamples = externalSamples.filter { !allocatedSampleIDs.contains($0.id) }
                     
                     // Merge samples to avoid double-counting
                     let mergedSamples = mergeSamples(availableSamples)
@@ -1372,7 +1375,9 @@ struct ContentView: View {
                     // Update the corresponding session
                     await MainActor.run {
                         AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue))")
-                        AppLogger.healthKit.info("  - Found \(samples.count) samples, \(availableSamples.count) available after allocation")
+                        AppLogger.healthKit.info("  - Found \(samples.count) samples total")
+                        AppLogger.healthKit.info("  - Filtered out \(samples.count - externalSamples.count) samples from this app")
+                        AppLogger.healthKit.info("  - \(availableSamples.count) external samples available after allocation")
                         AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
                         AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
                         AppLogger.healthKit.info("  - Looking for session in \(sessions.count) total sessions")

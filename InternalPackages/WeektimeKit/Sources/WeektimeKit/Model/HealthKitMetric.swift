@@ -31,7 +31,7 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .mindfulMinutes:
             return true // Can log meditation sessions
         case .workoutTime, .weightLiftingTime, .ellipticalTime, .rowingTime:
-            return true // Can create workout sessions
+            return false // Read-only workout data from other apps
         }
     }
     

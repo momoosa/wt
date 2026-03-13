@@ -16,8 +16,6 @@ extension ContentView {
             switch self {
             case .activeToday:
                 "activeToday"
-            case .allGoals:
-                "allGoals"
             case .completedToday:
                 "completedToday"
             case .skippedSessions:
@@ -34,8 +32,6 @@ extension ContentView {
             switch self {
             case .activeToday:
                 hasher.combine("activeToday")
-            case .allGoals:
-                hasher.combine("allGoals")
             case .completedToday:
                 hasher.combine("completedToday")
             case .skippedSessions:
@@ -52,7 +48,6 @@ extension ContentView {
         static func == (lhs: Filter, rhs: Filter) -> Bool {
             switch (lhs, rhs) {
             case (.activeToday, .activeToday),
-                 (.allGoals, .allGoals),
                  (.completedToday, .completedToday),
                  (.skippedSessions, .skippedSessions),
                  (.inactive, .inactive):
@@ -68,8 +63,6 @@ extension ContentView {
             switch self {
             case .activeToday:
                 return "Today"
-            case .allGoals:
-                return "All"
             case .completedToday:
                 return "Completed"
             case .skippedSessions:
@@ -85,8 +78,6 @@ extension ContentView {
             switch self {
             case .activeToday:
                 return .blue
-            case .allGoals:
-                return .primary
             case .completedToday:
                 return .green
             case .skippedSessions:
@@ -98,7 +89,6 @@ extension ContentView {
             }
         }
         case activeToday
-        case allGoals
         case completedToday
         case skippedSessions
         case inactive

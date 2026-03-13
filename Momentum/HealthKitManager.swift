@@ -487,6 +487,13 @@ public struct HealthKitSample: Identifiable {
     public let duration: TimeInterval
     public let metric: HealthKitMetric
     public let sourceName: String
+    
+    /// Whether this sample was created by this app (to prevent double-counting)
+    public var isFromThisApp: Bool {
+        // Check if the source name matches common variations of the app name
+        let appNames = ["Momentum", "momentum", "Weektime", "weektime"]
+        return appNames.contains { sourceName.lowercased().contains($0.lowercased()) }
+    }
 }
 
 // MARK: - Errors

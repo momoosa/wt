@@ -23,8 +23,6 @@ struct SessionFilterService {
             return sessions.filter { $0.status == .skipped }.count
         case .activeToday:
             return sessions.filter { $0.goal?.status != .archived && $0.status != .skipped && $0.dailyTarget > 0 }.count
-        case .allGoals:
-            return sessions.count
         case .theme(let goalTheme):
             return sessions.filter {
                 $0.goal?.primaryTag?.themeID == goalTheme.themeID &&
@@ -86,8 +84,6 @@ struct SessionFilterService {
             switch filter {
             case .activeToday:
                 return !isArchived && !isSkipped && !session.hasMetDailyTarget && session.dailyTarget > 0
-            case .allGoals:
-                return true
             case .skippedSessions:
                 return isSkipped
             case .theme(let goalTheme):
