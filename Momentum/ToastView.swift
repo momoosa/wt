@@ -31,6 +31,7 @@ struct ToastView: View {
     let config: ToastConfig
     let onDismiss: () -> Void
     
+    @Environment(\.colorScheme) private var colorScheme
     @State private var offset: CGFloat = 100
     @State private var opacity: Double = 0
     
@@ -39,7 +40,7 @@ struct ToastView: View {
             Text(config.message)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundStyle(.primary)
+                .foregroundStyle(colorScheme == .dark ? .black : .white)
             
             Spacer()
             
@@ -60,7 +61,7 @@ struct ToastView: View {
                 Image(systemName: "xmark")
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(colorScheme == .dark ? .black.opacity(0.6) : .white.opacity(0.6))
             }
             .buttonStyle(.plain)
         }
@@ -68,8 +69,8 @@ struct ToastView: View {
         .padding(.vertical, 12)
         .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+                .fill(colorScheme == .dark ? Color.white : Color.black)
+                .shadow(color: .black.opacity(0.2), radius: 12, y: 6)
         }
         .padding(.horizontal, 16)
         .offset(y: offset)

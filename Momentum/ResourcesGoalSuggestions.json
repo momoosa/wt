@@ -7,12 +7,12 @@
       "color": "red",
       "suggestions": [
         {
-          "id": "morning_run",
-          "title": "Morning Run",
-          "subtitle": "Start your day with energy",
-          "duration": 25,
+          "id": "running",
+          "title": "Running",
+          "subtitle": "Track your runs from other apps",
+          "duration": 30,
           "theme": "Fitness",
-          "healthKitMetric": "apple_exercise_time",
+          "healthKitMetric": "workout_time",
           "icon": "figure.run"
         },
         {

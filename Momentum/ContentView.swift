@@ -57,6 +57,7 @@ struct ContentView: View {
     // HealthKit
     @State private var healthKitManager = HealthKitManager()
     @State private var healthKitObservers = [HKObserverQuery]()
+    @State private var isSyncingHealthKit = false
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
@@ -218,6 +219,8 @@ struct ContentView: View {
             sessionToLogManually: $sessionToLogManually,
             searchText: $searchText,
             onSkip: skip,
+            onSyncHealthKit: syncHealthKitData,
+            isSyncingHealthKit: isSyncingHealthKit,
             isGoalValid: isGoalValid
         )
     }
@@ -339,7 +342,9 @@ struct ContentView: View {
                     animation: animation,
                     selectedSession: $selectedSession,
                     sessionToLogManually: $sessionToLogManually,
-                    onSkip: skip
+                    onSkip: skip,
+                    onSyncHealthKit: syncHealthKitData,
+                    isSyncingHealthKit: isSyncingHealthKit
                 )
             }
             .listSectionSpacing(.compact)
@@ -386,7 +391,9 @@ struct ContentView: View {
                         animation: animation,
                         selectedSession: $selectedSession,
                         sessionToLogManually: $sessionToLogManually,
-                        onSkip: skip
+                        onSkip: skip,
+                        onSyncHealthKit: syncHealthKitData,
+                        isSyncingHealthKit: isSyncingHealthKit
                     )
                 }
                 .listSectionSpacing(.compact)
@@ -1225,7 +1232,9 @@ struct ContentView: View {
             animation: animation,
             selectedSession: $selectedSession,
             sessionToLogManually: $sessionToLogManually,
-            onSkip: skip
+            onSkip: skip,
+            onSyncHealthKit: syncHealthKitData,
+            isSyncingHealthKit: isSyncingHealthKit
         )
     }
     
@@ -1324,6 +1333,9 @@ struct ContentView: View {
     private func syncHealthKitData() {
         guard healthKitManager.isHealthKitAvailable else { return }
         
+        // Set syncing state
+        isSyncingHealthKit = true
+        
         // Get all goals with HealthKit sync enabled
         let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
         
@@ -1334,7 +1346,10 @@ struct ContentView: View {
         
         // Request authorization if needed
         let metrics = healthKitGoals.compactMap { $0.healthKitMetric }
-        guard !metrics.isEmpty else { return }
+        guard !metrics.isEmpty else {
+            isSyncingHealthKit = false
+            return
+        }
         
         Task {
             // Request authorization first (this will be a no-op if already authorized)
@@ -1347,6 +1362,11 @@ struct ContentView: View {
             
             // Track allocated samples to prevent double-counting across goals
             var allocatedSampleIDs = Set<String>()
+            
+            // Track sync results for toast notification
+            var syncedGoalsCount = 0
+            var totalDurationImported: TimeInterval = 0
+            var syncErrors: [String] = []
             
             // Fetch and allocate data for each goal (first-come-first-served)
             for goal in healthKitGoals {
@@ -1391,6 +1411,12 @@ struct ContentView: View {
                                 allocatedSampleIDs.insert(sample.id)
                             }
                             
+                            // Track sync results
+                            if duration > 0 {
+                                syncedGoalsCount += 1
+                                totalDurationImported += duration
+                            }
+                            
                             // Create or update historical sessions from HealthKit samples
                             syncHistoricalSessions(from: mergedSamples, for: goal, in: session)
                         } else {
@@ -1400,6 +1426,33 @@ struct ContentView: View {
                     }
                 } catch {
                     AppLogger.healthKit.error("Failed to fetch HealthKit data for \(goal.title): \(error)")
+                    syncErrors.append(goal.title)
+                }
+            }
+            
+            // Reset syncing state and show toast when done
+            await MainActor.run {
+                isSyncingHealthKit = false
+                
+                // Show toast with sync results
+                if !syncErrors.isEmpty {
+                    // Show error toast
+                    toastConfig = ToastConfig(
+                        message: "Sync failed for \(syncErrors.count) goal\(syncErrors.count == 1 ? "" : "s")"
+                    )
+                } else if syncedGoalsCount > 0 {
+                    // Show success toast with details
+                    let minutes = Int(totalDurationImported / 60)
+                    let goalText = syncedGoalsCount == 1 ? "goal" : "goals"
+                    let minuteText = minutes == 1 ? "minute" : "minutes"
+                    toastConfig = ToastConfig(
+                        message: "Synced \(syncedGoalsCount) \(goalText): \(minutes) \(minuteText) imported"
+                    )
+                } else {
+                    // No data synced
+                    toastConfig = ToastConfig(
+                        message: "No new data to sync"
+                    )
                 }
             }
         }

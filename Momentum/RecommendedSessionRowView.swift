@@ -10,6 +10,8 @@ struct RecommendedSessionRowView: View {
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
     let onSkip: (GoalSession) -> Void
+    let onSyncHealthKit: (() -> Void)?
+    let isSyncingHealthKit: Bool
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -24,6 +26,8 @@ struct RecommendedSessionRowView: View {
             selectedSession: $selectedSession,
             sessionToLogManually: $sessionToLogManually,
             onSkip: onSkip,
+            onSyncHealthKit: onSyncHealthKit,
+            isSyncingHealthKit: isSyncingHealthKit,
             isRecommended: true
         )
         .padding()

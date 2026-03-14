@@ -10,6 +10,8 @@ struct SessionRowView: View {
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
     let onSkip: (GoalSession) -> Void
+    let onSyncHealthKit: (() -> Void)?
+    let isSyncingHealthKit: Bool
     var isRecommended: Bool = false
     
     @Environment(GoalStore.self) private var goalStore
@@ -116,15 +118,17 @@ struct SessionRowView: View {
                         }
                         .foregroundStyle(textForegroundColor)
                     } else {
-                        // Read-only HealthKit metric: Show only log button
+                        // Read-only HealthKit metric: Show sync button
                         Button {
-                            sessionToLogManually = session
+                            onSyncHealthKit?()
                         } label: {
-                            Image(systemName: "pencil.circle.fill")
-                                .font(.title3)
+                            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                .font(.title2)
+                                .rotationEffect(.degrees(isSyncingHealthKit ? 360 : 0))
+                                .animation(isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isSyncingHealthKit)
                         }
                         .foregroundStyle(textForegroundColor)
-                        .opacity(0.6)
+                        .disabled(isSyncingHealthKit)
                     }
                 } else {
                     // Regular goal: Show standard play/stop button (live tracking)

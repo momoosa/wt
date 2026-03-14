@@ -2043,16 +2043,23 @@ struct SuggestionRow: View {
             Spacer()
             
             // Duration badge
-            Text("\(suggestion.duration) min")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(durationBadgeTextColor)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? .white : categoryColor)
-                )
+            VStack(spacing: 2) {
+                Text("\(suggestion.duration) min")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(durationBadgeTextColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(isSelected ? .white : categoryColor)
+                    )
+                
+                Text("weekly")
+                    .font(.footnote)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(isSelected ? iconAndTextColor.opacity(0.7) : .secondary)
+            }
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
