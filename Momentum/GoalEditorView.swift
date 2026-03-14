@@ -44,6 +44,7 @@ struct GoalEditorView: View {
     @State private var notificationsEnabled: Bool = false // Legacy, kept for backward compatibility
     @State private var scheduleNotificationsEnabled: Bool = false
     @State private var completionNotificationsEnabled: Bool = false
+    @State private var selectedCompletionBehaviors: Set<Goal.CompletionBehavior> = []
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
     @State private var goalNotes: String = ""
@@ -446,31 +447,55 @@ struct GoalEditorView: View {
                             
                    
                             
-                            Section(header: Text("Notifications")) {
-                                Toggle(isOn: $scheduleNotificationsEnabled) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Start Notifications")
-                                            .font(.subheadline)
-                                        Text("Notify at scheduled times")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                            Section(header: Text("When Daily Goal Completes")) {
+                                ForEach(Goal.CompletionBehavior.allCases) { behavior in
+                                    Toggle(isOn: Binding(
+                                        get: { selectedCompletionBehaviors.contains(behavior) },
+                                        set: { isOn in
+                                            if isOn {
+                                                selectedCompletionBehaviors.insert(behavior)
+                                            } else {
+                                                selectedCompletionBehaviors.remove(behavior)
+                                            }
+                                            HapticFeedbackManager.trigger(.light)
+                                        }
+                                    )) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: behavior.icon)
+                                                .font(.body)
+                                                .foregroundStyle(selectedCompletionBehaviors.contains(behavior) ? activeThemeColor : .secondary)
+                                                .frame(width: 24)
+                                            
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(behavior.displayName)
+                                                    .font(.subheadline)
+                                                Text(behavior.description)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
                                     }
-                                }
-                                
-                                Toggle(isOn: $completionNotificationsEnabled) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Finish Notifications")
-                                            .font(.subheadline)
-                                        Text("Notify when daily goal is completed")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    .tint(activeThemeColor)
                                 }
                             }
                             
                             HealthKitConfigurationView(
                                 selectedMetric: $selectedHealthKitMetric,
-                                syncEnabled: $healthKitSyncEnabled
+                                syncEnabled: $healthKitSyncEnabled,
+                                dailyTargetMinutes: Binding(
+                                    get: {
+                                        // Return the first active day's target as representative
+                                        return activeDays.sorted().first.flatMap { dailyTargets[$0] }
+                                    },
+                                    set: { newValue in
+                                        // Apply to all active days
+                                        if let minutes = newValue {
+                                            for weekday in activeDays {
+                                                dailyTargets[weekday] = minutes
+                                            }
+                                        }
+                                    }
+                                )
                             )
                             
                             Section(header: Text("Notes & Resources")) {
@@ -1033,8 +1058,13 @@ struct GoalEditorView: View {
             let times = goal.timesForWeekday(weekday)
             if !times.isEmpty {
                 activeDays.insert(weekday)
-                // Use dailyMinimum as the target for all active days when editing
-                dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+                // Check if there's a custom daily target for this day
+                if let customTarget = goal.dailyTargets[String(weekday)] {
+                    dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
+                } else {
+                    // Fall back to dailyMinimum or default
+                    dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+                }
             }
         }
         
@@ -1049,6 +1079,7 @@ struct GoalEditorView: View {
         notificationsEnabled = goal.notificationsEnabled
         scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
         completionNotificationsEnabled = goal.completionNotificationsEnabled
+        selectedCompletionBehaviors = goal.completionBehaviors
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
         goalNotes = goal.notes ?? ""
@@ -1370,6 +1401,7 @@ struct GoalEditorView: View {
             goal.notificationsEnabled = notificationsEnabled
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = completionNotificationsEnabled
+            goal.completionBehaviors = selectedCompletionBehaviors
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
             goal.notes = goalNotes.isEmpty ? nil : goalNotes
@@ -1393,6 +1425,7 @@ struct GoalEditorView: View {
                 goal.iconName = selectedIcon
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
+                goal.completionBehaviors = selectedCompletionBehaviors
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             } else {
@@ -1410,6 +1443,7 @@ struct GoalEditorView: View {
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+                goal.completionBehaviors = selectedCompletionBehaviors
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             }
@@ -1426,6 +1460,12 @@ struct GoalEditorView: View {
                 // Day is not active - clear any time preferences
                 goal.setTimes([], forWeekday: weekday)
             }
+        }
+        
+        // ✅ Save per-day targets
+        goal.dailyTargets.removeAll()
+        for (weekday, minutes) in dailyTargets {
+            goal.dailyTargets[String(weekday)] = TimeInterval(minutes * 60)
         }
         
         // ✅ Save weather settings
@@ -1465,7 +1505,7 @@ struct GoalEditorView: View {
         }
         
         // Request notification permissions if enabled
-        if scheduleNotificationsEnabled || completionNotificationsEnabled {
+        if selectedCompletionBehaviors.contains(.notify) {
             requestNotificationPermissions()
         }
         

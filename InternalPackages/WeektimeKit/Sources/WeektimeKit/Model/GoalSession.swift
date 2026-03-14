@@ -128,11 +128,38 @@ public final class GoalSession: SessionProgressProvider {
     public var markedComplete: Bool = false
     
     /// Total elapsed time including both manual tracking and HealthKit data
+    /// Deduplicates overlapping sessions to avoid double-counting time
     public var elapsedTime: TimeInterval {
         // historicalSessions already includes both manual sessions and HealthKit sessions
         // (HealthKit sessions have healthKitType != nil)
-        let totalTime = historicalSessions.reduce(0) { partialResult, session in
-            partialResult + session.duration
+        
+        // Sort sessions by start date for efficient merging
+        let sortedSessions = historicalSessions.sorted { $0.startDate < $1.startDate }
+        
+        // Merge overlapping time intervals
+        var mergedIntervals: [(start: Date, end: Date)] = []
+        
+        for session in sortedSessions {
+            if mergedIntervals.isEmpty {
+                mergedIntervals.append((session.startDate, session.endDate))
+            } else {
+                let lastIndex = mergedIntervals.count - 1
+                let last = mergedIntervals[lastIndex]
+                
+                // Check if current session overlaps with the last merged interval
+                if session.startDate <= last.end {
+                    // Overlapping - extend the last interval if needed
+                    mergedIntervals[lastIndex].end = max(last.end, session.endDate)
+                } else {
+                    // Non-overlapping - add as new interval
+                    mergedIntervals.append((session.startDate, session.endDate))
+                }
+            }
+        }
+        
+        // Calculate total time from merged intervals
+        let totalTime = mergedIntervals.reduce(0.0) { sum, interval in
+            sum + interval.end.timeIntervalSince(interval.start)
         }
         
         return totalTime
@@ -166,7 +193,25 @@ public final class GoalSession: SessionProgressProvider {
         self.status = .active
         // Cache goal properties at creation time to avoid accessing goal after deletion
         self.goalID = goal.id.uuidString
-        self.dailyTarget = goal.dailyTargetFromSchedule()
+        
+        // Calculate daily target only if today is a scheduled day
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: day.startDate)
+        
+        if goal.hasSchedule {
+            let scheduledWeekdays = goal.scheduledWeekdays
+            
+            if scheduledWeekdays.contains(weekday) {
+                self.dailyTarget = goal.dailyTarget(for: weekday)
+            } else {
+                // Not a scheduled day, so no target
+                self.dailyTarget = 0
+            }
+        } else {
+            // No schedule means all days are active
+            self.dailyTarget = goal.dailyTarget(for: weekday)
+        }
+        
         self.intervalLists = goal.intervalLists?.map({ interval in
             IntervalListSession(list: interval)
         }) ?? []
@@ -212,6 +257,27 @@ public extension GoalSession {
     /// Update the cached daily target from the goal's current schedule
     /// Call this when the goal's schedule changes
     func updateDailyTarget() {
-        self.dailyTarget = goal?.dailyTargetFromSchedule() ?? 0
+        guard let goal = goal, let day = day else {
+            self.dailyTarget = 0
+            return
+        }
+        
+        // Calculate daily target only if today is a scheduled day
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: day.startDate)
+        
+        if goal.hasSchedule {
+            let scheduledWeekdays = goal.scheduledWeekdays
+            
+            if scheduledWeekdays.contains(weekday) {
+                self.dailyTarget = goal.dailyTarget(for: weekday)
+            } else {
+                // Not a scheduled day, so no target
+                self.dailyTarget = 0
+            }
+        } else {
+            // No schedule means all days are active
+            self.dailyTarget = goal.dailyTarget(for: weekday)
+        }
     }
 }

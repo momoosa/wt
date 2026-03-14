@@ -522,13 +522,14 @@ struct ContentView: View {
     }
     
     private var dailyProgressCard: some View {
-        let size = 60.0
+        let size = 80.0
+        let viewModel = progressViewModel
         return HStack(spacing: 12) {
             // Progress Ring
-            CircularProgressView(progress: dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
+            CircularProgressView(progress: viewModel.dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
                 .overlay {
                     VStack(spacing: 2) {
-                        Text("\(Int(dailyProgress * 100))%")
+                        Text("\(Int(viewModel.dailyProgress * 100))%")
                             .font(.title3)
                             .fontWeight(.bold)
                         Text("done")
@@ -553,11 +554,6 @@ struct ContentView: View {
                     Text("\(Int(weather.temperature.value))°")
                         .font(.title3)
                         .fontWeight(.semibold)
-                    
-                    Text(weatherDescription(for: weather.condition))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
                 }
                 .frame(width: size, height: size)
                 .glassCardStyle(shadowColor: .black)
@@ -597,39 +593,8 @@ struct ContentView: View {
         .padding()
     }
     
-    private var dailyProgress: Double {
-        guard totalDailyTarget > 0 else { return 0 }
-        return Double(totalDailyMinutes) / Double(totalDailyTarget)
-    }
-
-    private var totalDailyMinutes: Int {
-        Int(sessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
-    }
-
-    private var totalDailyTarget: Int {
-        var total = 0
-        for session in sessions {
-            guard session.status != .skipped else { continue }
-            guard session.goal?.status != .archived else { continue }
-            total += Int(session.dailyTarget / 60)
-        }
-        return total
-    }
-
-    private var completedGoalsCount: Int {
-        sessions.filter { session in
-            guard session.status != .skipped else { return false }
-            guard session.goal?.status != .archived else { return false }
-            return session.hasMetDailyTarget
-        }.count
-    }
-
-    private var totalActiveGoals: Int {
-        sessions.filter { session in
-            guard session.status != .skipped else { return false }
-            guard session.goal?.status != .archived else { return false }
-            return true
-        }.count
+    private var progressViewModel: DailyProgressViewModel {
+        DailyProgressViewModel(sessions: Array(sessions))
     }
     
     // MARK: - Weather & Calendar Helpers
@@ -656,59 +621,6 @@ struct ContentView: View {
             return "cloud.fog.fill"
         default:
             return "cloud.fill"
-        }
-    }
-    
-    private func weatherDescription(for condition: WeatherKit.WeatherCondition) -> String {
-        switch condition {
-        case .clear:
-            return "Clear"
-        case .mostlyClear:
-            return "Mostly Clear"
-        case .partlyCloudy:
-            return "Partly Cloudy"
-        case .cloudy:
-            return "Cloudy"
-        case .mostlyCloudy:
-            return "Mostly Cloudy"
-        case .rain:
-            return "Rain"
-        case .drizzle:
-            return "Drizzle"
-        case .heavyRain:
-            return "Heavy Rain"
-        case .snow:
-            return "Snow"
-        case .flurries:
-            return "Flurries"
-        case .heavySnow:
-            return "Heavy Snow"
-        case .blizzard:
-            return "Blizzard"
-        case .sleet:
-            return "Sleet"
-        case .freezingDrizzle:
-            return "Freezing Drizzle"
-        case .freezingRain:
-            return "Freezing Rain"
-        case .strongStorms:
-            return "Strong Storms"
-        case .tropicalStorm:
-            return "Tropical Storm"
-        case .hurricane:
-            return "Hurricane"
-        case .windy:
-            return "Windy"
-        case .breezy:
-            return "Breezy"
-        case .haze:
-            return "Hazy"
-        case .smoky:
-            return "Smoky"
-        case .foggy:
-            return "Foggy"
-        default:
-            return "Unknown"
         }
     }
     
@@ -887,9 +799,6 @@ struct ContentView: View {
             refreshGoals()
             syncHealthKitData()
             
-            // Initialize weather data
-            weatherManager.refreshWeatherIfNeeded()
-            
             // Fetch calendar events
             fetchNextCalendarEvent()
             
@@ -898,6 +807,11 @@ struct ContentView: View {
             
             // Reschedule notifications for all goals with notifications enabled
             await rescheduleGoalNotifications()
+        }
+        
+        // Initialize weather data asynchronously in background to avoid blocking launch
+        Task(priority: .background) {
+            weatherManager.refreshWeatherIfNeeded()
         }
     }
     

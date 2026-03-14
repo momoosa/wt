@@ -507,4 +507,110 @@ struct GoalSessionTests {
         #expect(session.dailyTarget > 0)
         #expect(session.hasMetDailyTarget == false)
     }
+    
+    // MARK: - Scheduled Days Tests
+    
+    @Test("GoalSession daily target is zero on unscheduled days")
+    func goalSessionDailyTargetIsZeroOnUnscheduledDays() {
+        let calendar = Calendar.current
+        
+        // Create a date that is a Sunday (weekday 1)
+        var components = calendar.dateComponents([.year, .month, .day, .weekday], from: Date())
+        components.weekday = 1 // Sunday
+        let sunday = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTime)!
+        
+        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7) // 7 hours per week
+        // Schedule only Monday-Friday (weekdays 2-6)
+        goal.dayTimeSchedule = [
+            "2": [TimeOfDay.morning.rawValue],
+            "3": [TimeOfDay.morning.rawValue],
+            "4": [TimeOfDay.morning.rawValue],
+            "5": [TimeOfDay.morning.rawValue],
+            "6": [TimeOfDay.morning.rawValue]
+        ]
+        
+        let day = Day(start: sunday, end: sunday, calendar: calendar)
+        let session = GoalSession(title: "Test Session", goal: goal, day: day)
+        
+        // Sunday is not scheduled, so daily target should be 0
+        #expect(session.dailyTarget == 0)
+    }
+    
+    @Test("GoalSession daily target is correct on scheduled days")
+    func goalSessionDailyTargetIsCorrectOnScheduledDays() {
+        let calendar = Calendar.current
+        
+        // Create a date that is a Monday (weekday 2)
+        var components = calendar.dateComponents([.year, .month, .day, .weekday], from: Date())
+        components.weekday = 2 // Monday
+        let monday = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTime)!
+        
+        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 5) // 5 hours per week
+        // Schedule only Monday-Friday (weekdays 2-6)
+        goal.dayTimeSchedule = [
+            "2": [TimeOfDay.morning.rawValue],
+            "3": [TimeOfDay.morning.rawValue],
+            "4": [TimeOfDay.morning.rawValue],
+            "5": [TimeOfDay.morning.rawValue],
+            "6": [TimeOfDay.morning.rawValue]
+        ]
+        
+        let day = Day(start: monday, end: monday, calendar: calendar)
+        let session = GoalSession(title: "Test Session", goal: goal, day: day)
+        
+        // Monday is scheduled, and there are 5 scheduled days total
+        // 5 hours / 5 days = 1 hour per day = 3600 seconds
+        #expect(session.dailyTarget == 3600)
+    }
+    
+    @Test("GoalSession daily target uses all 7 days when no schedule is set")
+    func goalSessionDailyTargetUsesAll7DaysWhenNoScheduleIsSet() {
+        let calendar = Calendar.current
+        let date = Date()
+        
+        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7) // 7 hours per week
+        // No schedule set (hasSchedule will be false)
+        
+        let day = Day(start: date, end: date, calendar: calendar)
+        let session = GoalSession(title: "Test Session", goal: goal, day: day)
+        
+        // No schedule means all 7 days are active
+        // 7 hours / 7 days = 1 hour per day = 3600 seconds
+        #expect(session.dailyTarget == 3600)
+    }
+    
+    @Test("GoalSession updateDailyTarget respects scheduled days")
+    func goalSessionUpdateDailyTargetRespectsScheduledDays() {
+        let calendar = Calendar.current
+        
+        // Create a date that is a Saturday (weekday 7)
+        var components = calendar.dateComponents([.year, .month, .day, .weekday], from: Date())
+        components.weekday = 7 // Saturday
+        let saturday = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTime)!
+        
+        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 5) // 5 hours per week
+        // Initially no schedule
+        
+        let day = Day(start: saturday, end: saturday, calendar: calendar)
+        let session = GoalSession(title: "Test Session", goal: goal, day: day)
+        
+        // Should initially divide by 7 (no schedule)
+        let initialTarget = session.dailyTarget
+        #expect(initialTarget > 0)
+        
+        // Now add a schedule that excludes Saturday (weekday 7)
+        goal.dayTimeSchedule = [
+            "2": [TimeOfDay.morning.rawValue], // Monday
+            "3": [TimeOfDay.morning.rawValue], // Tuesday
+            "4": [TimeOfDay.morning.rawValue], // Wednesday
+            "5": [TimeOfDay.morning.rawValue], // Thursday
+            "6": [TimeOfDay.morning.rawValue]  // Friday
+        ]
+        
+        // Update the session's daily target
+        session.updateDailyTarget()
+        
+        // Saturday is not in the schedule, so daily target should be 0
+        #expect(session.dailyTarget == 0)
+    }
 }

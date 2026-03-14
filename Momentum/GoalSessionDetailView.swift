@@ -47,6 +47,10 @@ struct GoalSessionDetailView: View {
     
     // Notification manager (created as needed)
     private let notificationManager = GoalNotificationManager()
+    
+    // Delete confirmation
+    @State private var showingDeleteAlert = false
+    @Environment(\.dismiss) private var dismiss
 
     var tintColor: Color {
         let theme = session.goal?.primaryTag?.theme ?? Theme.default
@@ -462,6 +466,23 @@ struct GoalSessionDetailView: View {
         return session.elapsedTime
     }
     
+    /// Calculates the total amount of overlapping time in minutes
+    private var overlappingMinutes: Int {
+        let sessions = session.historicalSessions
+        guard sessions.count > 1 else { return 0 }
+        
+        // Calculate total time without deduplication
+        let totalWithoutDedup = sessions.reduce(0.0) { $0 + $1.duration }
+        
+        // Calculate deduplicated time (using same algorithm as elapsedTime)
+        let dedupTime = session.elapsedTime
+        
+        // Difference is the overlapping time
+        let overlapSeconds = totalWithoutDedup - dedupTime
+        
+        return Int(overlapSeconds / 60)
+    }
+    
     @ViewBuilder
     private var progressSection: some View {
             // Progress Summary Card
@@ -784,8 +805,23 @@ struct GoalSessionDetailView: View {
                     }
                 }
             } footer: {
-                if session.historicalSessions.count > historicalSessionLimit {
-                    HStack { Spacer(); Button { } label: { Text("View all") }; Spacer() }
+                VStack(spacing: 8) {
+                    // Show deduplication explanation if there are overlapping sessions
+                    let overlap = overlappingMinutes
+                    if overlap > 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.merge")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                            Text("\(overlap) min of overlapping time merged to avoid double-counting")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    
+                    if session.historicalSessions.count > historicalSessionLimit {
+                        HStack { Spacer(); Button { } label: { Text("View all") }; Spacer() }
+                    }
                 }
             }
     }
@@ -924,6 +960,12 @@ struct GoalSessionDetailView: View {
                                 Text("Archive")
                             }
                         }
+                        
+                        Button(role: .destructive) {
+                            showingDeleteAlert = true
+                        } label: {
+                            Label("Delete Goal", systemImage: "trash")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill")
@@ -944,6 +986,14 @@ struct GoalSessionDetailView: View {
             ListsOverviewView(session: session, selectedListID: $selectedListID, tintColor: tintColor, timerManager: timerManager)
         }
         .navigationTransition(.zoom(sourceID: session.id, in: animation))
+        .alert("Delete Goal?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteGoal()
+            }
+        } message: {
+            Text("This will permanently delete \"\(session.goal?.title ?? "this goal")\" and all its data. This action cannot be undone.")
+        }
         .sheet(isPresented: $isShowingIntervalsEditor) {
             if let goal = session.goal {
                 let list = IntervalList(name: "", goal: goal)
@@ -1081,6 +1131,17 @@ struct GoalSessionDetailView: View {
         }
         
         try? context.save()
+    }
+    
+    private func deleteGoal() {
+        guard let goal = session.goal else { return }
+        
+        withAnimation {
+            context.delete(goal)
+        }
+        
+        try? context.save()
+        dismiss()
     }
     
     // MARK: - Notifications

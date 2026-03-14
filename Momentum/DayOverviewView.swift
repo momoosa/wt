@@ -10,46 +10,8 @@ struct DayOverviewView: View {
     let goals: [Goal]
     let animation: Namespace.ID
 
-    private var dailyProgress: Double {
-        guard totalDailyTarget > 0 else { return 0 }
-        return Double(totalDailyMinutes) / Double(totalDailyTarget)
-    }
-
-    private var totalDailyMinutes: Int {
-        Int(sessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
-    }
-
-    private var totalDailyTarget: Int {
-        var total = 0
-        for session in sessions {
-            // Skip if session or goal has been deleted
-            guard session.status != .skipped else { continue }
-
-            // Skip archived goals
-            guard session.goal?.status != .archived else { continue }
-
-            // Use cached daily target (already calculated from weekly target / 7 if needed)
-            total += Int(session.dailyTarget / 60)
-        }
-        return total
-    }
-
-    private var completedGoalsCount: Int {
-        sessions.filter { session in
-            guard session.status != .skipped else { return false }
-            // Skip archived goals
-            guard session.goal?.status != .archived else { return false }
-            return session.hasMetDailyTarget
-        }.count
-    }
-
-    private var totalActiveGoals: Int {
-        sessions.filter { session in
-            guard session.status != .skipped else { return false }
-            // Skip archived goals
-            guard session.goal?.status != .archived else { return false }
-            return true
-        }.count
+    private var progressViewModel: DailyProgressViewModel {
+        DailyProgressViewModel(sessions: sessions)
     }
 
     // Get all historical sessions from all goals, grouped by hour with time ranges
@@ -143,7 +105,8 @@ struct DayOverviewView: View {
     }
 
     private var progressSummaryCard: some View {
-        VStack(spacing: 20) {
+        let viewModel = progressViewModel
+        return VStack(spacing: 20) {
             // Large circular progress
             ZStack {
                 Circle()
@@ -151,7 +114,7 @@ struct DayOverviewView: View {
                     .frame(width: 120, height: 120)
 
                 Circle()
-                    .trim(from: 0, to: dailyProgress)
+                    .trim(from: 0, to: viewModel.dailyProgress)
                     .stroke(
                         LinearGradient(
                             colors: [.blue, .cyan],
@@ -162,10 +125,10 @@ struct DayOverviewView: View {
                     )
                     .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(-90))
-                    .animation(AnimationPresets.slowSpring, value: dailyProgress)
+                    .animation(AnimationPresets.slowSpring, value: viewModel.dailyProgress)
 
                 VStack(spacing: 4) {
-                    Text("\(Int(dailyProgress * 100))%")
+                    Text("\(Int(viewModel.dailyProgress * 100))%")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.primary)
 
@@ -178,7 +141,7 @@ struct DayOverviewView: View {
             // Stats
             HStack(spacing: 30) {
                 VStack(spacing: 4) {
-                    Text("\(totalDailyMinutes)")
+                    Text("\(viewModel.totalDailyMinutes)")
                         .font(.title2)
                         .fontWeight(.semibold)
                     Text("Minutes")
@@ -187,7 +150,7 @@ struct DayOverviewView: View {
                 }
 
                 VStack(spacing: 4) {
-                    Text("\(completedGoalsCount)")
+                    Text("\(viewModel.completedGoalsCount)")
                         .font(.title2)
                         .fontWeight(.semibold)
                     Text("Goals Done")
@@ -196,7 +159,7 @@ struct DayOverviewView: View {
                 }
 
                 VStack(spacing: 4) {
-                    Text("\(totalActiveGoals)")
+                    Text("\(viewModel.totalActiveGoals)")
                         .font(.title2)
                         .fontWeight(.semibold)
                     Text("Total Goals")

@@ -108,7 +108,7 @@ struct NowPlayingView: View {
                     
                     // Progress circle with gradient
                     Circle()
-                        .trim(from: 0, to: activeSessionDetails.progress)
+                        .trim(from: 0, to: min(activeSessionDetails.progress, 1.0))
                         .stroke(
                             AngularGradient(
                                 gradient: Gradient(colors: [

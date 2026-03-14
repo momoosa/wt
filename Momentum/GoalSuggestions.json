@@ -7,6 +7,15 @@
       "color": "red",
       "suggestions": [
         {
+          "id": "apple_exercise",
+          "title": "Apple Exercise Minutes",
+          "subtitle": "30 min daily (210 min/week)",
+          "duration": 210,
+          "theme": "Fitness",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "figure.run"
+        },
+        {
           "id": "running",
           "title": "Running",
           "subtitle": "Track your runs from other apps",

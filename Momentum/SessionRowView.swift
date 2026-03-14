@@ -87,12 +87,12 @@ struct SessionRowView: View {
                         
                         HealthKitBadge(
                             metric: session.goal?.healthKitMetric,
-                            isEnabled: session.goal?.healthKitSyncEnabled == true
+                            isEnabled: session.goal?.healthKitSyncEnabled == true,
+                            color: isRecommended ? .primary : .red
                         )
                         
                         Spacer()
                     }
-                    .opacity(0.7)
                     .foregroundStyle(textForegroundColor)
                 }
                 

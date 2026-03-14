@@ -17,6 +17,7 @@ struct GoalDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allDays: [Day]
     @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
     
     init(goal: Goal) {
         self.goal = goal
@@ -117,16 +118,47 @@ struct GoalDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingEditSheet = true
+                Menu {
+                    Button {
+                        showingEditSheet = true
+                    } label: {
+                        Label("Edit Goal", systemImage: "pencil")
+                    }
+                    
+                    Button {
+                        withAnimation {
+                            goal.status = goal.status == .archived ? .active : .archived
+                        }
+                    } label: {
+                        Label(
+                            goal.status == .archived ? "Unarchive" : "Archive",
+                            systemImage: goal.status == .archived ? "tray.and.arrow.up" : "archivebox"
+                        )
+                    }
+                    
+                    Divider()
+                    
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete Goal", systemImage: "trash")
+                    }
                 } label: {
-                    Text("Edit")
-                        .fontWeight(.semibold)
+                    Image(systemName: "ellipsis.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
                 }
             }
         }
         .sheet(isPresented: $showingEditSheet) {
             GoalEditorView(existingGoal: goal)
+        }
+        .alert("Delete Goal?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteGoal()
+            }
+        } message: {
+            Text("This will permanently delete \"\(goal.title)\" and all its data. This action cannot be undone.")
         }
     }
     
@@ -514,6 +546,17 @@ struct GoalDetailView: View {
             }
             .padding(.horizontal, 4)
         }
+    }
+    
+    // MARK: - Delete Goal
+    
+    private func deleteGoal() {
+        withAnimation {
+            modelContext.delete(goal)
+        }
+        
+        try? modelContext.save()
+        dismiss()
     }
     
     // MARK: - Notes & Link

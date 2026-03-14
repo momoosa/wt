@@ -11,7 +11,7 @@ import MomentumKit
 struct HealthKitBadge: View {
     let metric: HealthKitMetric?
     let isEnabled: Bool
-    
+    let color: Color
     var body: some View {
         if isEnabled, let metric {
             HStack(spacing: 2) {
@@ -20,11 +20,11 @@ struct HealthKitBadge: View {
                 Image(systemName: metric.symbolName)
                     .font(.caption2)
             }
-            .foregroundStyle(.red)
+            .foregroundStyle(color)
             .padding(4)
             .background(
                 Capsule()
-                    .fill(.red.opacity(0.15))
+                    .fill(color.opacity(0.3))
             )
         }
     }
@@ -32,9 +32,10 @@ struct HealthKitBadge: View {
 
 #Preview {
     VStack(spacing: 10) {
-        HealthKitBadge(metric: .appleExerciseTime, isEnabled: true)
-        HealthKitBadge(metric: .mindfulMinutes, isEnabled: true)
-        HealthKitBadge(metric: nil, isEnabled: false)
+        HealthKitBadge(metric: .appleExerciseTime, isEnabled: true, color: .red)
+        HealthKitBadge(metric: .mindfulMinutes, isEnabled: true, color: .blue)
+        HealthKitBadge(metric: nil, isEnabled: false, color: .white)
+            .background(.red)
     }
     .padding()
 }

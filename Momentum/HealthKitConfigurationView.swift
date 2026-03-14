@@ -11,7 +11,10 @@ import MomentumKit
 struct HealthKitConfigurationView: View {
     @Binding var selectedMetric: HealthKitMetric?
     @Binding var syncEnabled: Bool
+    @Binding var dailyTargetMinutes: Int?
     @State private var healthKitManager = HealthKitManager()
+    @State private var isLoadingGoals = false
+    @State private var showingGoalImportSuccess = false
     
     var body: some View {
         Section {
@@ -85,6 +88,29 @@ struct HealthKitConfigurationView: View {
                                 .foregroundStyle(.green)
                         }
                         .font(.caption)
+                        
+                        // Show import goal button for Activity Ring metrics
+                        if selectedMetric.supportsActivityGoalImport {
+                            Button(action: importActivityGoal) {
+                                HStack {
+                                    if isLoadingGoals {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "square.and.arrow.down")
+                                    }
+                                    Text("Import Daily Goal from Health")
+                                }
+                            }
+                            .disabled(isLoadingGoals)
+                            .buttonStyle(.bordered)
+                            
+                            if showingGoalImportSuccess {
+                                Label("Goal imported successfully", systemImage: "checkmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.green)
+                            }
+                        }
                     }
                 }
             }
@@ -115,6 +141,45 @@ struct HealthKitConfigurationView: View {
             }
         }
     }
+    
+    private func importActivityGoal() {
+        guard let selectedMetric else { return }
+        
+        isLoadingGoals = true
+        showingGoalImportSuccess = false
+        
+        Task {
+            let manager = HealthKitManager()
+            if let goals = await manager.fetchActivityGoals() {
+                await MainActor.run {
+                    // Map the appropriate goal to the daily target
+                    switch selectedMetric {
+                    case .appleExerciseTime:
+                        dailyTargetMinutes = goals.exerciseMinutes
+                    case .appleStandTime:
+                        dailyTargetMinutes = goals.standHours
+                    default:
+                        break
+                    }
+                    
+                    isLoadingGoals = false
+                    showingGoalImportSuccess = true
+                    
+                    // Hide success message after 3 seconds
+                    Task {
+                        try? await Task.sleep(for: .seconds(3))
+                        await MainActor.run {
+                            showingGoalImportSuccess = false
+                        }
+                    }
+                }
+            } else {
+                await MainActor.run {
+                    isLoadingGoals = false
+                }
+            }
+        }
+    }
 }
 
 #Preview {
@@ -122,7 +187,8 @@ struct HealthKitConfigurationView: View {
         Form {
             HealthKitConfigurationView(
                 selectedMetric: .constant(.appleExerciseTime),
-                syncEnabled: .constant(true)
+                syncEnabled: .constant(true),
+                dailyTargetMinutes: .constant(30)
             )
         }
     }

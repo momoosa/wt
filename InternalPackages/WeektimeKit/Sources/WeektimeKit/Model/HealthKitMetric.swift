@@ -35,6 +35,16 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         }
     }
     
+    /// Whether this metric supports importing daily goals from Activity Rings
+    public var supportsActivityGoalImport: Bool {
+        switch self {
+        case .appleExerciseTime, .appleStandTime:
+            return true // These metrics have Activity Ring goals
+        default:
+            return false
+        }
+    }
+    
     /// Display name for the metric
     public var displayName: String {
         switch self {

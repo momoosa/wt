@@ -30,6 +30,9 @@ public final class Goal {
     public var scheduleNotificationsEnabled: Bool = false // Whether to send notifications at scheduled times
     public var completionNotificationsEnabled: Bool = false // Whether to send notifications when daily target is reached
     
+    // Completion Behavior
+    private var completionBehaviorsRawValue: [String] = [] // Stores CompletionBehavior raw values
+    
     // HealthKit Integration
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
     public var healthKitSyncEnabled: Bool = false // Whether to sync time from HealthKit
@@ -39,6 +42,9 @@ public final class Goal {
     
     // Detailed day-time schedule: weekday (1-7) → times of day
     public var dayTimeSchedule: [String: [String]] = [:] // e.g., ["2": ["morning", "afternoon"], "6": ["evening"]]
+    
+    // Per-day target durations in seconds: weekday (1-7) → duration
+    public var dailyTargets: [String: TimeInterval] = [:] // e.g., ["2": 900, "6": 1800] (15 min Monday, 30 min Friday)
     
     // Notes and Resources
     public var notes: String? // User's notes about the goal
@@ -89,6 +95,40 @@ public extension Goal {
         case archived
     }
     
+    enum CompletionBehavior: String, Codable, CaseIterable, Identifiable {
+        case notify = "notify"
+        case moveToCompleted = "move_to_completed"
+        
+        public var id: String { rawValue }
+        
+        public var displayName: String {
+            switch self {
+            case .notify:
+                return "Notify me"
+            case .moveToCompleted:
+                return "Move to completed section"
+            }
+        }
+        
+        public var description: String {
+            switch self {
+            case .notify:
+                return "Send a notification when daily target is reached"
+            case .moveToCompleted:
+                return "Automatically move goal to completed section"
+            }
+        }
+        
+        public var icon: String {
+            switch self {
+            case .notify:
+                return "bell.fill"
+            case .moveToCompleted:
+                return "checkmark.circle.fill"
+            }
+        }
+    }
+    
     /// The HealthKit metric associated with this goal, if any
     var healthKitMetric: HealthKitMetric? {
         get {
@@ -97,6 +137,26 @@ public extension Goal {
         }
         set {
             healthKitMetricRawValue = newValue?.rawValue
+        }
+    }
+    
+    /// Completion behaviors for this goal
+    var completionBehaviors: Set<CompletionBehavior> {
+        get {
+            var behaviors = Set(completionBehaviorsRawValue.compactMap { CompletionBehavior(rawValue: $0) })
+            
+            // Migration: if completionNotificationsEnabled is true and no behaviors set, add notify
+            if completionNotificationsEnabled && behaviors.isEmpty {
+                behaviors.insert(.notify)
+            }
+            
+            return behaviors
+        }
+        set {
+            completionBehaviorsRawValue = newValue.map { $0.rawValue }
+            
+            // Keep completionNotificationsEnabled in sync for backward compatibility
+            completionNotificationsEnabled = newValue.contains(.notify)
         }
     }
     
@@ -171,6 +231,17 @@ public extension Goal {
         
         // Default: divide by 7
         return weeklyTarget / 7
+    }
+    
+    /// Get the daily target for a specific weekday, respecting per-day targets if set
+    func dailyTarget(for weekday: Int) -> TimeInterval {
+        // First check if there's a custom target for this specific day
+        if let customTarget = dailyTargets[String(weekday)] {
+            return customTarget
+        }
+        
+        // Fall back to the default calculation
+        return dailyTargetFromSchedule()
     }
 }
 

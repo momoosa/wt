@@ -475,6 +475,59 @@ public final class HealthKitManager {
         try await healthStore.save(workout)
         return workout.uuid.uuidString
     }
+    
+    /// Fetch the user's daily Activity Ring goals from HealthKit
+    /// Returns nil if not available or not authorized
+    public func fetchActivityGoals() async -> ActivityGoals? {
+        guard isHealthKitAvailable else { return nil }
+        
+        // Request authorization to read activity summary data
+        let activitySummaryType = HKObjectType.activitySummaryType()
+        
+        do {
+            try await healthStore.requestAuthorization(toShare: [], read: [activitySummaryType])
+        } catch {
+            AppLogger.healthKit.error("Failed to request activity summary authorization: \(error)")
+            return nil
+        }
+        
+        // Query for today's activity summary
+        let calendar = Calendar.current
+        let now = Date()
+        
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: now)
+        dateComponents.calendar = calendar
+        
+        let predicate = HKQuery.predicateForActivitySummary(with: dateComponents)
+        
+        return await withCheckedContinuation { continuation in
+            let query = HKActivitySummaryQuery(predicate: predicate) { (query, summaries, error) in
+                if let error = error {
+                    AppLogger.healthKit.error("Failed to fetch activity summary: \(error)")
+                    continuation.resume(returning: nil)
+                    return
+                }
+                
+                guard let summary = summaries?.first else {
+                    AppLogger.healthKit.info("No activity summary found for today")
+                    continuation.resume(returning: nil)
+                    return
+                }
+                
+                let goals = ActivityGoals(
+                    exerciseMinutes: Int(summary.appleExerciseTimeGoal.doubleValue(for: .minute())),
+                    standHours: Int(summary.appleStandHoursGoal.doubleValue(for: .count())),
+                    activeCalories: Int(summary.activeEnergyBurnedGoal.doubleValue(for: .kilocalorie()))
+                )
+                
+                AppLogger.healthKit.info("Fetched activity goals - Exercise: \(goals.exerciseMinutes)min, Stand: \(goals.standHours)hr, Active Cal: \(goals.activeCalories)kcal")
+                
+                continuation.resume(returning: goals)
+            }
+            
+            self.healthStore.execute(query)
+        }
+    }
 }
 
 // MARK: - Models
@@ -494,6 +547,13 @@ public struct HealthKitSample: Identifiable {
         let appNames = ["Momentum", "momentum", "Weektime", "weektime"]
         return appNames.contains { sourceName.lowercased().contains($0.lowercased()) }
     }
+}
+
+/// User's daily Activity Ring goals from Apple Watch/Health app
+public struct ActivityGoals {
+    public let exerciseMinutes: Int
+    public let standHours: Int
+    public let activeCalories: Int
 }
 
 // MARK: - Errors
