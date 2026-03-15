@@ -51,6 +51,14 @@ public class Theme: Identifiable {
             light
         }
     }
+    
+    /// Text color optimized for the theme's gradient background
+    /// Always returns white for maximum contrast on vibrant gradients
+    public func textColor(for colorScheme: ColorScheme) -> Color {
+        // For vibrant gradient backgrounds, white provides best contrast
+        // Could be customized per theme in the future if needed
+        .white
+    }
 }
 
 
@@ -72,6 +80,14 @@ public struct ThemePreset: Sendable{
             light
         }
     }
+    
+    /// Text color optimized for the theme's gradient background
+    /// Always returns white for maximum contrast on vibrant gradients
+    public func textColor(for colorScheme: ColorScheme) -> Color {
+        // For vibrant gradient backgrounds, white provides best contrast
+        .white
+    }
+    
     public func toTheme() -> Theme {
         Theme(id: id, title: title, light: light, dark: dark, neon: neon)
     }
@@ -168,14 +184,7 @@ public extension Theme {
         neon: Color.gray.opacity(0.7)
     )
     
-    /// Calculates optimal text color (black/white) based on background luminance
-    /// Uses only the gradient colors (neon and dark) for accurate contrast calculation
-    var textColor: Color {
-        let colors = [neon, dark]
-        let luminances = colors.compactMap { $0.luminance }
-        let averageLuminance = luminances.isEmpty ? 0.5 : luminances.reduce(0, +) / Double(luminances.count)
-        return averageLuminance > 0.3 ? .black : .white
-    }
+
     
     /// Creates a standard linear gradient for this theme
     var gradient: LinearGradient {
@@ -208,15 +217,6 @@ public extension Theme {
 }
 
 public extension ThemePreset {
-    /// Calculates optimal text color (black/white) based on background luminance
-    /// Uses only the gradient colors (neon and dark) for accurate contrast calculation
-    var textColor: Color {
-        let colors = [neon, dark]
-        let luminances = colors.compactMap { $0.luminance }
-        let averageLuminance = luminances.isEmpty ? 0.5 : luminances.reduce(0, +) / Double(luminances.count)
-        return averageLuminance > 0.3 ? .black : .white
-    }
-    
     /// Creates a standard linear gradient for this theme
     var gradient: LinearGradient {
         LinearGradient(

@@ -13,6 +13,7 @@ struct SessionRowView: View {
     let onSyncHealthKit: (() -> Void)?
     let isSyncingHealthKit: Bool
     var isRecommended: Bool = false
+    var useGradientAccents: Bool = false
     
     @Environment(GoalStore.self) private var goalStore
     @Environment(\.colorScheme) private var colorScheme
@@ -23,7 +24,7 @@ struct SessionRowView: View {
     
     private var textForegroundColor: Color {
         if isRecommended {
-            return session.themeTextColor
+            return session.themeTextColor(for: colorScheme)
         } else if colorScheme == .dark {
             return session.themeNeon
         } else {
@@ -56,7 +57,7 @@ struct SessionRowView: View {
                 VStack(alignment: .leading) {
                         Text(session.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(isRecommended ? session.themeTextColor : .primary)
+                            .foregroundStyle(isRecommended ? session.themeTextColor(for: colorScheme) : .primary)
                     
                     HStack {
                         if let activeSession = timerManager?.activeSession,
@@ -88,12 +89,12 @@ struct SessionRowView: View {
                         HealthKitBadge(
                             metric: session.goal?.healthKitMetric,
                             isEnabled: session.goal?.healthKitSyncEnabled == true,
-                            color: isRecommended ? .primary : .red
+                            color: isRecommended ? .white : .red
                         )
                         
                         Spacer()
                     }
-                    .foregroundStyle(textForegroundColor)
+                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                 }
                 
                 Spacer()
@@ -116,7 +117,7 @@ struct SessionRowView: View {
                                     .font(.title2)
                             }
                         }
-                        .foregroundStyle(textForegroundColor)
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                     } else {
                         // Read-only HealthKit metric: Show sync button
                         Button {
@@ -127,7 +128,7 @@ struct SessionRowView: View {
                                 .rotationEffect(.degrees(isSyncingHealthKit ? 360 : 0))
                                 .animation(isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isSyncingHealthKit)
                         }
-                        .foregroundStyle(textForegroundColor)
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                         .disabled(isSyncingHealthKit)
                     }
                 } else {
@@ -148,7 +149,7 @@ struct SessionRowView: View {
                                 .font(.title2)
                         }
                     }
-                    .foregroundStyle(textForegroundColor)
+                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                 }
             }
             .buttonStyle(.plain)
@@ -179,8 +180,8 @@ struct SessionRowView: View {
 // MARK: - Convenience Extensions
 
 private extension GoalSession {
-    var themeTextColor: Color {
-        goal?.primaryTag?.theme.textColor ?? .primary
+    func themeTextColor(for colorScheme: ColorScheme) -> Color {
+        goal?.primaryTag?.theme.textColor(for: colorScheme) ?? .primary
     }
     
     var themeNeon: Color {
@@ -193,6 +194,10 @@ private extension GoalSession {
     
     var themeLight: Color {
         goal?.primaryTag?.themePreset.light ?? .gray
+    }
+    
+    var themeGradient: LinearGradient {
+        goal?.primaryTag?.themePreset.gradient ?? themePresets[0].gradient
     }
     
     func themeColor(for colorScheme: ColorScheme) -> Color {

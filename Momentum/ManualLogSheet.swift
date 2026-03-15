@@ -40,7 +40,7 @@ struct ManualLogSheet: View {
                 } header: {
                     Text("Activity Details")
                 } footer: {
-                    Text("Log time you spent on this goal that wasn't captured by HealthKit")
+                    Text("Log time you spent on this goal that wasn't captured by Apple Health")
                 }
                 
                 Section("Notes (Optional)") {

@@ -16,6 +16,7 @@ struct SettingsView: View {
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
     @AppStorage("weekStartDay") private var weekStartDay: Int = Calendar.current.firstWeekday
+    @AppStorage("useGradientOutline") private var useGradientOutline: Bool = false
     @State private var showingRemindersImport = false
     
     var body: some View {
@@ -59,6 +60,18 @@ struct SettingsView: View {
                     Label("Calendar", systemImage: "calendar")
                 } footer: {
                     Text("This affects weekly progress tracking and charts throughout the app. The default value is based on your region settings.")
+                }
+                
+                Section {
+                    Toggle("Gradient Outline (Dark Mode)", isOn: $useGradientOutline)
+                    
+                    Text(useGradientOutline ? "Recommended sessions show gradient borders instead of filled backgrounds in dark mode." : "Recommended sessions use filled gradient backgrounds.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Label("Appearance", systemImage: "paintbrush")
+                } footer: {
+                    Text("Gradient outlines provide a cleaner look in dark mode while still highlighting recommended sessions.")
                 }
                 
                 Section {

@@ -12,120 +12,69 @@ struct HealthKitConfigurationView: View {
     @Binding var selectedMetric: HealthKitMetric?
     @Binding var syncEnabled: Bool
     @Binding var dailyTargetMinutes: Int?
+    var currentGoal: Goal? = nil
+    
     @State private var healthKitManager = HealthKitManager()
     @State private var isLoadingGoals = false
     @State private var showingGoalImportSuccess = false
     
     var body: some View {
         Section {
-            Toggle("Sync with HealthKit", isOn: $syncEnabled)
-            
-            if syncEnabled {
-                Picker("Health Metric", selection: Binding(
-                    get: { selectedMetric },
-                    set: { newMetric in
-                        handleMetricSelection(newMetric)
-                    }
-                )) {
-                    Text("None").tag(HealthKitMetric?.none)
-                    ForEach(HealthKitMetric.allCases) { metric in
+            NavigationLink {
+                HealthKitMetricsBrowserView(
+                    selectedMetric: Binding(
+                        get: { selectedMetric },
+                        set: { newMetric in
+                            handleMetricSelection(newMetric)
+                        }
+                    ),
+                    currentGoal: currentGoal
+                )
+            } label: {
+                HStack {
+                    Text("Health Metric")
+                    Spacer()
+                    if let metric = selectedMetric {
                         Label {
-                            HStack {
-                                Text(metric.displayName)
-                                Spacer()
-                                if metric.supportsWrite {
-                                    Text("Read & Write")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Text("Read")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            Text(metric.displayName)
+                                .foregroundStyle(.secondary)
                         } icon: {
                             Image(systemName: metric.symbolName)
+                                .foregroundStyle(.secondary)
                         }
-                        .tag(HealthKitMetric?.some(metric))
+                        .labelStyle(.titleAndIcon)
+                    } else {
+                        Text("None")
+                            .foregroundStyle(.secondary)
                     }
                 }
-                
-                if let selectedMetric {
+            }
+            
+            if let selectedMetric {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(selectedMetric.description)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        
-                        // Show read/write capability
-                        if selectedMetric.supportsWrite {
-                            Label {
-                                Text("Sessions will be saved to Health")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            } icon: {
-                                Image(systemName: "arrow.up.doc")
-                                    .foregroundStyle(.blue)
-                            }
-                        } else {
-                            Label {
-                                Text("Read-only metric")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            } icon: {
-                                Image(systemName: "eye")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    
-                    // Show authorization status
-                    if healthKitManager.isHealthKitAvailable && healthKitManager.isAuthorized(for: selectedMetric) {
-                        Label {
-                            Text("HealthKit Authorized")
-                                .foregroundStyle(.secondary)
-                        } icon: {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        }
-                        .font(.caption)
-                        
-                        // Show import goal button for Activity Ring metrics
-                        if selectedMetric.supportsActivityGoalImport {
-                            Button(action: importActivityGoal) {
-                                HStack {
-                                    if isLoadingGoals {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                    } else {
-                                        Image(systemName: "square.and.arrow.down")
-                                    }
-                                    Text("Import Daily Goal from Health")
-                                }
-                            }
-                            .disabled(isLoadingGoals)
-                            .buttonStyle(.bordered)
-                            
-                            if showingGoalImportSuccess {
-                                Label("Goal imported successfully", systemImage: "checkmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                    }
+                                                
+                    }                    
                 }
-            }
         } header: {
             Text("HealthKit Integration")
         } footer: {
-            if syncEnabled {
+            if selectedMetric != nil {
                 Text("Time tracked in HealthKit will be automatically added to your goal progress.")
+            } else {
+                Text("Link this goal to a HealthKit metric to automatically sync your health data.")
             }
         }
     }
     
     private func handleMetricSelection(_ newMetric: HealthKitMetric?) {
-        // Simply set the metric
+        // Set the metric
         selectedMetric = newMetric
+        
+        // Enable sync if metric is selected, disable if cleared
+        syncEnabled = newMetric != nil
         
         guard let newMetric else { return }
         

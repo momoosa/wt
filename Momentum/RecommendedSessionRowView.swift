@@ -14,9 +14,11 @@ struct RecommendedSessionRowView: View {
     let isSyncingHealthKit: Bool
     
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("useGradientOutline") private var useGradientOutline: Bool = false
     
     var body: some View {
         let themePreset = session.goal?.primaryTag?.themePreset ?? themePresets[0]
+        let useOutline = useGradientOutline && colorScheme == .dark
         
         return SessionRowView(
             session: session,
@@ -28,15 +30,32 @@ struct RecommendedSessionRowView: View {
             onSkip: onSkip,
             onSyncHealthKit: onSyncHealthKit,
             isSyncingHealthKit: isSyncingHealthKit,
-            isRecommended: true
+            isRecommended: true,
+            useGradientAccents: useOutline
         )
         .padding()
-       
-        .foregroundStyle(themePreset.textColor)
+        .foregroundStyle(useOutline ? .primary : themePreset.textColor(for: colorScheme))
         .listRowInsets(EdgeInsets())
         .listRowBackground(
-            themePreset.gradient
-                .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+            Group {
+                if useOutline {
+                    // Gradient outline style
+                    RoundedRectangle(cornerRadius: 25, style: .continuous)
+                        .stroke(
+                            themePreset.gradient,
+                            lineWidth: 5
+                        )
+                        .background(
+                            Color(.systemBackground)
+                                .opacity(0.5)
+                                .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+                        )
+                } else {
+                    // Filled gradient style
+                    themePreset.gradient
+                        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+                }
+            }
         )
     }
 }

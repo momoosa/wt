@@ -219,7 +219,7 @@ struct ContentView: View {
             sessionToLogManually: $sessionToLogManually,
             searchText: $searchText,
             onSkip: skip,
-            onSyncHealthKit: syncHealthKitData,
+            onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
             isSyncingHealthKit: isSyncingHealthKit,
             isGoalValid: isGoalValid
         )
@@ -343,7 +343,7 @@ struct ContentView: View {
                     selectedSession: $selectedSession,
                     sessionToLogManually: $sessionToLogManually,
                     onSkip: skip,
-                    onSyncHealthKit: syncHealthKitData,
+                    onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
                     isSyncingHealthKit: isSyncingHealthKit
                 )
             }
@@ -392,7 +392,7 @@ struct ContentView: View {
                         selectedSession: $selectedSession,
                         sessionToLogManually: $sessionToLogManually,
                         onSkip: skip,
-                        onSyncHealthKit: syncHealthKitData,
+                        onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
                         isSyncingHealthKit: isSyncingHealthKit
                     )
                 }
@@ -1147,7 +1147,7 @@ struct ContentView: View {
             selectedSession: $selectedSession,
             sessionToLogManually: $sessionToLogManually,
             onSkip: skip,
-            onSyncHealthKit: syncHealthKitData,
+            onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
             isSyncingHealthKit: isSyncingHealthKit
         )
     }
@@ -1244,7 +1244,7 @@ struct ContentView: View {
     
     // MARK: - HealthKit Integration
     
-    private func syncHealthKitData() {
+    private func syncHealthKitData(userInitiated: Bool = false) {
         guard healthKitManager.isHealthKitAvailable else { return }
         
         // Set syncing state
@@ -1253,7 +1253,7 @@ struct ContentView: View {
         // Get all goals with HealthKit sync enabled
         let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
         
-        AppLogger.healthKit.info("Starting HealthKit sync for \(healthKitGoals.count) goals")
+        AppLogger.healthKit.info("Starting HealthKit sync for \(healthKitGoals.count) goals (user initiated: \(userInitiated))")
         for goal in healthKitGoals {
             AppLogger.healthKit.info("  - '\(goal.title)' (metric: \(goal.healthKitMetric?.rawValue ?? "none"))")
         }
@@ -1348,25 +1348,28 @@ struct ContentView: View {
             await MainActor.run {
                 isSyncingHealthKit = false
                 
-                // Show toast with sync results
-                if !syncErrors.isEmpty {
-                    // Show error toast
-                    toastConfig = ToastConfig(
-                        message: "Sync failed for \(syncErrors.count) goal\(syncErrors.count == 1 ? "" : "s")"
-                    )
-                } else if syncedGoalsCount > 0 {
-                    // Show success toast with details
-                    let minutes = Int(totalDurationImported / 60)
-                    let goalText = syncedGoalsCount == 1 ? "goal" : "goals"
-                    let minuteText = minutes == 1 ? "minute" : "minutes"
-                    toastConfig = ToastConfig(
-                        message: "Synced \(syncedGoalsCount) \(goalText): \(minutes) \(minuteText) imported"
-                    )
-                } else {
-                    // No data synced
-                    toastConfig = ToastConfig(
-                        message: "No new data to sync"
-                    )
+                // Only show toast if user-initiated
+                if userInitiated {
+                    // Show toast with sync results
+                    if !syncErrors.isEmpty {
+                        // Show error toast
+                        toastConfig = ToastConfig(
+                            message: "Sync failed for \(syncErrors.count) goal\(syncErrors.count == 1 ? "" : "s")"
+                        )
+                    } else if syncedGoalsCount > 0 {
+                        // Show success toast with details
+                        let minutes = Int(totalDurationImported / 60)
+                        let goalText = syncedGoalsCount == 1 ? "goal" : "goals"
+                        let minuteText = minutes == 1 ? "minute" : "minutes"
+                        toastConfig = ToastConfig(
+                            message: "Synced \(syncedGoalsCount) \(goalText): \(minutes) \(minuteText) imported"
+                        )
+                    } else {
+                        // No data synced
+                        toastConfig = ToastConfig(
+                            message: "No new data to sync"
+                        )
+                    }
                 }
             }
         }

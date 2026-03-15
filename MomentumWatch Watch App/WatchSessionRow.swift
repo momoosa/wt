@@ -15,6 +15,7 @@ struct WatchSessionRow: View {
     
     @State private var showingStartAlert = false
     @StateObject private var connectivityManager = WatchConnectivityManager.shared
+    @Environment(\.colorScheme) private var colorScheme
     
     private var formattedTime: String {
         let elapsedMinutes = Int(session.elapsedTime / 60)
@@ -31,12 +32,12 @@ struct WatchSessionRow: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-                        .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor)
+                        .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor(for: colorScheme))
                     
                     HStack(spacing: 4) {
                         Text(formattedTime)
                             .font(.caption2)
-                            .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor.opacity(0.7))
+                            .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor(for: colorScheme).opacity(0.7))
                         
                         Spacer(minLength: 0)
                     }
@@ -45,7 +46,7 @@ struct WatchSessionRow: View {
                 
                 // Play button
                 Image(systemName: "play.circle.fill")
-                    .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor)
+                    .foregroundStyle((session.goal?.primaryTag?.theme ?? Theme.default).textColor(for: colorScheme))
             }
             .padding(6)
             .background(

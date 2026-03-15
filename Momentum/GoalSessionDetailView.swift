@@ -496,7 +496,10 @@ struct GoalSessionDetailView: View {
                     shimmerOffset: $shimmerOffset,
                     timerManager: timerManager,
                     onDone: markGoalAsDone,
-                    onSkip: toggleSkip
+                    onSkip: toggleSkip,
+                    onManualLog: {
+                        isCreatingNewHistoricalSession = true
+                    }
                 )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)

@@ -95,7 +95,7 @@ public extension View {
         cornerRadius: CGFloat = 20,
         shadowColor: Color = .black,
         shadowRadius: CGFloat = 20,
-        shadowOpacity: Double = 0.4
+        shadowOpacity: Double = 0.0
     ) -> some View {
         modifier(GlassCardStyle(
             cornerRadius: cornerRadius,

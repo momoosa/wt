@@ -740,6 +740,7 @@ struct GoalEditorView: View {
             .navigationTitle(currentStage == .name ? (existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
             .navigationBarTitleDisplayMode(.inline)
             .tint(activeThemeColor)
+            .interactiveDismissDisabled(currentStage != .name)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {

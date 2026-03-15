@@ -79,6 +79,7 @@ struct ProgressSummaryCardWrapper: View {
     let timerManager: SessionTimerManager
     let onDone: () -> Void
     let onSkip: () -> Void
+    let onManualLog: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     
     var isTimerActive: Bool {
@@ -103,7 +104,8 @@ struct ProgressSummaryCardWrapper: View {
             session: session,
             timerManager: timerManager,
             onDone: onDone,
-            onSkip: onSkip
+            onSkip: onSkip,
+            onManualLog: onManualLog
         )
     }
 }
@@ -124,6 +126,7 @@ struct ProgressSummaryCard: View {
     var timerManager: SessionTimerManager?
     var onDone: (() -> Void)?
     var onSkip: (() -> Void)?
+    var onManualLog: (() -> Void)?
     
     // Computed property that accesses currentTime to ensure updates when timer is active
     private var currentElapsed: TimeInterval {
@@ -139,9 +142,11 @@ struct ProgressSummaryCard: View {
         return currentElapsed / dailyTarget
     }
     
-    // Compute text color based on background luminance
+    @Environment(\.colorScheme) private var colorScheme
+    
+    // Get text color optimized for the theme gradient
     private var textColor: Color {
-        themeColors.textColor
+        themeColors.textColor(for: colorScheme)
     }
     
     var body: some View {
@@ -216,27 +221,53 @@ struct ProgressSummaryCard: View {
                         
                         HStack(spacing: 0) {
                             
-                            // Start/Stop button
-                            Button {
-                                if let day = session.day {
-                                    timerManager.toggleTimer(for: session, in: day)
+                            // Determine if goal is read-only (HealthKit goal that doesn't support writing)
+                            let isReadOnly = session.goal?.healthKitSyncEnabled == true && 
+                                           session.goal?.healthKitMetric?.supportsWrite == false
+                            
+                            // Start/Stop button (only show if NOT read-only)
+                            if !isReadOnly {
+                                Button {
+                                    if let day = session.day {
+                                        timerManager.toggleTimer(for: session, in: day)
+                                    }
+                                } label: {
+                                    let isActive = timerManager.isActive(session)
+                                    let isPaused = timerManager.activeSession?.isPaused ?? false
+                                    VStack(spacing: 4) {
+                                        Image(systemName: isPaused ? "play.circle.fill" : (isActive ? "pause.circle.fill" : "play.circle.fill"))
+                                            .font(.title2)
+                                            .symbolRenderingMode(.hierarchical)
+                                        Text(isPaused ? "Resume" : (isActive ? "Pause" : "Start"))
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .foregroundStyle(textColor)
                                 }
-                            } label: {
-                                let isActive = timerManager.isActive(session)
-                                let isPaused = timerManager.activeSession?.isPaused ?? false
-                                VStack(spacing: 4) {
-                                    Image(systemName: isPaused ? "play.circle.fill" : (isActive ? "pause.circle.fill" : "play.circle.fill"))
-                                        .font(.title2)
-                                        .symbolRenderingMode(.hierarchical)
-                                    Text(isPaused ? "Resume" : (isActive ? "Pause" : "Start"))
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .foregroundStyle(textColor)
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            
+                            // Manual Log button
+                            if let onManualLog = onManualLog {
+                                Button {
+                                    onManualLog()
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "square.and.pencil")
+                                            .font(.title2)
+                                            .symbolRenderingMode(.hierarchical)
+                                        Text("Log")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .foregroundStyle(textColor.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+                            }
                                                         
                             // Skip button
                             Button {
@@ -255,6 +286,7 @@ struct ProgressSummaryCard: View {
                                 .foregroundStyle(textColor.opacity(0.7))
                             }
                             .buttonStyle(.plain)
+                            
                             // Mark as Done button
                             Button {
                                 onDone()

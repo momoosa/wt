@@ -16,39 +16,37 @@ struct GoalHealthKitSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Sync with HealthKit", isOn: $goal.healthKitSyncEnabled)
-                
-                if goal.healthKitSyncEnabled {
-                    Picker("Health Metric", selection: Binding(
-                        get: { goal.healthKitMetric },
-                        set: { newMetric in
-                            handleMetricSelection(newMetric)
-                        }
-                    )) {
-                        Text("Select Metric").tag(HealthKitMetric?.none)
-                        ForEach(HealthKitMetric.allCases) { metric in
+                NavigationLink {
+                    HealthKitMetricsBrowserView(
+                        selectedMetric: Binding(
+                            get: { goal.healthKitMetric },
+                            set: { newMetric in
+                                handleMetricSelection(newMetric)
+                            }
+                        ),
+                        currentGoal: goal
+                    )
+                } label: {
+                    HStack {
+                        Text("Health Metric")
+                        Spacer()
+                        if let metric = goal.healthKitMetric {
                             Label {
-                                HStack {
-                                    Text(metric.displayName)
-                                    Spacer()
-                                    if metric.supportsWrite {
-                                        Text("Read & Write")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Read")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
+                                Text(metric.displayName)
+                                    .foregroundStyle(.secondary)
                             } icon: {
                                 Image(systemName: metric.symbolName)
+                                    .foregroundStyle(.secondary)
                             }
-                            .tag(HealthKitMetric?.some(metric))
+                            .labelStyle(.titleAndIcon)
+                        } else {
+                            Text("None")
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    
-                    if let metric = goal.healthKitMetric {
+                }
+                
+                if let metric = goal.healthKitMetric {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: metric.symbolName)
@@ -93,24 +91,20 @@ struct GoalHealthKitSettingsView: View {
                             .font(.caption)
                         }
                     }
-                }
             } header: {
                 Text("HealthKit Integration")
             } footer: {
-                if goal.healthKitSyncEnabled {
+                if let metric = goal.healthKitMetric {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Time tracked in HealthKit will be automatically added to this goal's daily progress.")
-                        
-                        if let metric = goal.healthKitMetric {
-                            Text("This goal will track: **\(metric.displayName)**")
-                        }
+                        Text("This goal will track: **\(metric.displayName)**")
                     }
                 } else {
-                    Text("Enable HealthKit to automatically sync health data with this goal.")
+                    Text("Link this goal to a HealthKit metric to automatically sync your health data.")
                 }
             }
             
-            if goal.healthKitSyncEnabled {
+            if goal.healthKitMetric != nil {
                 Section {
                     NavigationLink {
                         HealthKitPrivacyInfoView()
@@ -128,8 +122,11 @@ struct GoalHealthKitSettingsView: View {
     }
     
     private func handleMetricSelection(_ newMetric: HealthKitMetric?) {
-        // Simply set the metric
+        // Set the metric
         goal.healthKitMetric = newMetric
+        
+        // Enable sync if metric is selected, disable if cleared
+        goal.healthKitSyncEnabled = newMetric != nil
         
         guard let newMetric else { return }
         
