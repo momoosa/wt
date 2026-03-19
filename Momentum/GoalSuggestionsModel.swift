@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import OSLog
+import MomentumKit
 
 // MARK: - Root Model
 
@@ -25,7 +26,17 @@ struct GoalCategory: Codable, Identifiable {
     let suggestions: [GoalTemplateSuggestion]
     
     var colorValue: Color {
-        switch color.lowercased() {
+        // Look up the theme preset by matching the color name
+        // This ensures we use the same shade as the theme system
+        let normalizedColor = color.lowercased()
+        
+        if let preset = themePresets.first(where: { $0.title.lowercased() == normalizedColor }) {
+            // Use the neon color for the bright, selected state
+            return preset.neon
+        }
+        
+        // Fallback to system colors if no theme preset matches
+        switch normalizedColor {
         case "red": return .red
         case "orange": return .orange
         case "yellow": return .yellow

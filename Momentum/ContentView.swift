@@ -720,6 +720,14 @@ struct ContentView: View {
         
         ToolbarItem(placement: .bottomBar) {
             Button {
+                showDayOverview = true
+            } label: {
+                Label("Day Overview", systemImage: "calendar.badge.checkmark")
+            }
+        }
+        
+        ToolbarItem(placement: .bottomBar) {
+            Button {
                 // Cache themes before showing sheet to avoid SwiftData faults
                 planningViewModel.cachedThemes = availableGoalThemes
                 showPlannerSheet = true
@@ -982,7 +990,18 @@ struct ContentView: View {
     }
     
     private var dayOverviewSheet: some View {
-        DayOverviewView(day: day, sessions: Array(sessions), goals: goals, animation: animation)
+        DayOverviewView(
+            day: day,
+            sessions: Array(sessions),
+            goals: goals,
+            animation: animation,
+            timerManager: timerManager,
+            selectedSession: $selectedSession,
+            sessionToLogManually: $sessionToLogManually,
+            onSkip: skip,
+            onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
+            isSyncingHealthKit: isSyncingHealthKit
+        )
     }
     
     private func manualLogSheet(for session: GoalSession) -> some View {

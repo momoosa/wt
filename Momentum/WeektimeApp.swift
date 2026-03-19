@@ -195,6 +195,9 @@ struct MomentumApp: App {
     @State private var showCloudKitToast = false
     @State private var cloudKitToastStatus: CloudKitSyncToast.SyncStatus = .enabled
     
+    // Day change detection
+    @State private var dayChangeTimer: Timer?
+    
     var body: some Scene {
         WindowGroup {
             if let day {
@@ -221,6 +224,14 @@ struct MomentumApp: App {
                                 
                                 hasShownCloudKitToast = true
                             }
+                            
+                            // Start monitoring for day changes
+                            startDayChangeMonitoring()
+                        }
+                        .onDisappear {
+                            // Clean up timer when view disappears
+                            dayChangeTimer?.invalidate()
+                            dayChangeTimer = nil
                         }
                 }
                 .onOpenURL { url in
@@ -253,6 +264,9 @@ struct MomentumApp: App {
             if newPhase == .background {
                 // Schedule background refresh when app goes to background
                 appDelegate.scheduleAppRefresh()
+            } else if newPhase == .active {
+                // Check for day change when app becomes active
+                checkForDayChange()
             }
         }
     }
@@ -312,6 +326,41 @@ struct MomentumApp: App {
             return .enabled
         } catch {
             return .error("Failed to access sync storage")
+        }
+    }
+    
+    // Monitor for day changes and update the day when midnight passes
+    private func startDayChangeMonitoring() {
+        // Check every minute for day changes
+        dayChangeTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
+            checkForDayChange()
+        }
+    }
+    
+    private func checkForDayChange() {
+        guard let currentDay = day else { return }
+        
+        let currentDayID = Date.now.yearMonthDayID(with: Calendar.current)
+        
+        // If the day has changed, fetch the new day
+        if currentDayID != currentDay.id {
+            AppLogger.app.info("Day changed from \(currentDay.id) to \(currentDayID), reloading...")
+            
+            Task { @MainActor in
+                do {
+                    let weekStore = WeekStore(modelContext: sharedModelContainer.mainContext)
+                    
+                    // Clean up any duplicate days from sync conflicts
+                    try? weekStore.cleanupDuplicateDays()
+                    
+                    // Fetch the new current day
+                    self.day = try weekStore.fetchCurrentDay()
+                    
+                    AppLogger.app.info("Successfully loaded new day: \(currentDayID)")
+                } catch {
+                    AppLogger.app.error("Failed to load new day: \(error.localizedDescription)")
+                }
+            }
         }
     }
 }

@@ -20,6 +20,8 @@
 		CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */; };
 		CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */; };
 		CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */; };
+		CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0799902F65A9B9001B9C33 /* DailyProgressViewModel.swift */; };
+		CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */; };
 		CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */; };
 		CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */; };
 		CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD083F5C2F608C82002802E7 /* GoalDetailView.swift */; };
@@ -178,6 +180,8 @@
 		CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerIntegrationExamples.swift; sourceTree = "<group>"; };
 		CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartNotificationScheduler.swift; sourceTree = "<group>"; };
 		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
+		CD0799902F65A9B9001B9C33 /* DailyProgressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressViewModel.swift; sourceTree = "<group>"; };
+		CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMetricsBrowserView.swift; sourceTree = "<group>"; };
 		CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEntity.swift; sourceTree = "<group>"; };
 		CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumAppIntents.swift; sourceTree = "<group>"; };
 		CD083F5C2F608C82002802E7 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
@@ -540,6 +544,8 @@
 				CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */,
 				CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */,
 				CD083F5C2F608C82002802E7 /* GoalDetailView.swift */,
+				CD0799902F65A9B9001B9C33 /* DailyProgressViewModel.swift */,
+				CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -874,7 +880,9 @@
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
+				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
+				CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */,
 				CD2A6FBF2F576B9100F5503A /* AppLogger.swift in Sources */,
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
