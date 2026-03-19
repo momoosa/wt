@@ -637,4 +637,148 @@ public extension GoalTag {
             )
         ]
     }
+    
+    // MARK: - Context Matching
+    
+    /// Checks if the tag's weather conditions match the current weather
+    /// - Parameter currentWeather: The current weather condition
+    /// - Returns: True if there are no weather requirements OR if the current weather matches one of the required conditions
+    func matchesWeather(_ currentWeather: WeatherCondition?) -> Bool {
+        guard let requiredConditions = weatherConditionsTyped else {
+            return true // No weather requirement means it matches any weather
+        }
+        
+        guard let currentWeather = currentWeather else {
+            return false // Tag requires specific weather but current weather is unknown
+        }
+        
+        return requiredConditions.contains(currentWeather)
+    }
+    
+    /// Checks if the tag's temperature range matches the current temperature
+    /// - Parameter currentTemperature: The current temperature in Celsius
+    /// - Returns: True if there are no temperature requirements OR if the current temperature is within range
+    func matchesTemperature(_ currentTemperature: Double?) -> Bool {
+        guard let min = minTemperature, let max = maxTemperature else {
+            return true // No temperature requirement means it matches any temperature
+        }
+        
+        guard let currentTemperature = currentTemperature else {
+            return false // Tag requires specific temperature but current temp is unknown
+        }
+        
+        return currentTemperature >= min && currentTemperature <= max
+    }
+    
+    /// Checks if the tag's time of day preferences match the current time
+    /// - Parameter currentTimeOfDay: The current time of day
+    /// - Returns: True if there are no time preferences OR if the current time matches one of the preferred times
+    func matchesTimeOfDay(_ currentTimeOfDay: TimeOfDay?) -> Bool {
+        guard let requiredTimes = timeOfDayPreferencesTyped else {
+            return true // No time preference means it matches any time
+        }
+        
+        guard let currentTimeOfDay = currentTimeOfDay else {
+            return false // Tag requires specific time but current time is unknown
+        }
+        
+        return requiredTimes.contains(currentTimeOfDay)
+    }
+    
+    /// Checks if the tag's location requirements match the current location
+    /// - Parameter currentLocation: The current location type
+    /// - Returns: True if there are no location requirements OR if the current location matches one of the required locations
+    func matchesLocation(_ currentLocation: LocationType?) -> Bool {
+        guard let requiredLocations = locationTypesTyped else {
+            return true // No location requirement means it matches any location
+        }
+        
+        guard let currentLocation = currentLocation else {
+            return false // Tag requires specific location but current location is unknown
+        }
+        
+        return requiredLocations.contains(currentLocation)
+    }
+    
+    /// Comprehensive context matching that checks all trigger conditions
+    /// - Parameters:
+    ///   - weather: Current weather condition
+    ///   - temperature: Current temperature in Celsius
+    ///   - timeOfDay: Current time of day
+    ///   - location: Current location type
+    /// - Returns: True if ALL applicable trigger conditions are met
+    func matchesContext(
+        weather: WeatherCondition? = nil,
+        temperature: Double? = nil,
+        timeOfDay: TimeOfDay? = nil,
+        location: LocationType? = nil
+    ) -> Bool {
+        return matchesWeather(weather) &&
+               matchesTemperature(temperature) &&
+               matchesTimeOfDay(timeOfDay) &&
+               matchesLocation(location)
+    }
+    
+    /// Calculates a match score (0.0 to 1.0) representing how well the current context matches this tag's triggers
+    /// Higher scores indicate better matches and should result in higher recommendation priority
+    /// - Parameters:
+    ///   - weather: Current weather condition
+    ///   - temperature: Current temperature in Celsius
+    ///   - timeOfDay: Current time of day
+    ///   - location: Current location type
+    /// - Returns: A score from 0.0 (no match) to 1.0 (perfect match)
+    func contextMatchScore(
+        weather: WeatherCondition? = nil,
+        temperature: Double? = nil,
+        timeOfDay: TimeOfDay? = nil,
+        location: LocationType? = nil
+    ) -> Double {
+        // If any required condition doesn't match, score is 0
+        guard matchesContext(weather: weather, temperature: temperature, timeOfDay: timeOfDay, location: location) else {
+            return 0.0
+        }
+        
+        var totalConditions = 0
+        var matchedConditions = 0
+        
+        // Weather matching
+        if weatherConditionsTyped != nil {
+            totalConditions += 1
+            if weather != nil {
+                matchedConditions += 1
+            }
+        }
+        
+        // Temperature matching
+        if minTemperature != nil || maxTemperature != nil {
+            totalConditions += 1
+            if temperature != nil {
+                matchedConditions += 1
+            }
+        }
+        
+        // Time of day matching
+        if timeOfDayPreferencesTyped != nil {
+            totalConditions += 1
+            if timeOfDay != nil {
+                matchedConditions += 1
+            }
+        }
+        
+        // Location matching
+        if locationTypesTyped != nil {
+            totalConditions += 1
+            if location != nil {
+                matchedConditions += 1
+            }
+        }
+        
+        // If no conditions are defined, return 0.5 (neutral)
+        if totalConditions == 0 {
+            return 0.5
+        }
+        
+        // Return the proportion of matched conditions
+        return Double(matchedConditions) / Double(totalConditions)
+    }
 }
