@@ -63,6 +63,27 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    NavigationLink {
+                        CalendarSettingsView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "calendar.badge.clock")
+                                .foregroundStyle(.blue)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Schedule Flexibility")
+                                Text("Smart recommendations based on your availability")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Label("Integrations", systemImage: "link")
+                } footer: {
+                    Text("Enable calendar access to get goal suggestions when you actually have time to work on them. Weekend goals will be suggested on weekdays if your weekend is busy.")
+                }
+                
+                Section {
                     Toggle("Gradient Outline (Dark Mode)", isOn: $useGradientOutline)
                     
                     Text(useGradientOutline ? "Recommended sessions show gradient borders instead of filled backgrounds in dark mode." : "Recommended sessions use filled gradient backgrounds.")
@@ -128,6 +149,28 @@ struct SettingsView: View {
                     Text("Debug")
                 }
                 #endif
+                
+                Section {
+                    NavigationLink {
+                        ConsolidatedTodayView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "flask")
+                                .foregroundStyle(.purple)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Unified Today View")
+                                Text("Experimental combined planner + overview")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Label("Experimental", systemImage: "flask")
+                } footer: {
+                    Text("Try out a new unified view that combines day overview, quick recommendations, and AI planning in one place. Compare it with the current design and let us know what you think!")
+                }
+                
                 Section {
                     HStack {
                         Text("Version")

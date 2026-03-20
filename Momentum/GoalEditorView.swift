@@ -153,8 +153,9 @@ struct GoalEditorView: View {
             return selectedPreset.color(for: colorScheme)
         } else if let selectedTheme = selectedGoalTheme {
             return selectedTheme.themePreset.color(for: colorScheme)
-        } else if let template = selectedTemplate {
-            let matchedTheme = matchTheme(named: template.theme)
+        } else if let template = selectedTemplate,
+                  let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
+            let matchedTheme = matchTheme(named: category.color)
             return matchedTheme.color(for: colorScheme)
         }
         return .accentColor
@@ -1283,8 +1284,9 @@ struct GoalEditorView: View {
         durationInMinutes = template.duration
         
         // Distribute the template duration across active days
-        // Default to weekdays (Monday-Friday) if no active days are set
-        let targetDays = activeDays.isEmpty ? Set(2...6) : activeDays
+        // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
+        let defaultDays: Set<Int> = (template.dailyGoal == true) ? Set(1...7) : Set(2...6)
+        let targetDays = activeDays.isEmpty ? defaultDays : activeDays
         let dailyMinutes = targetDays.isEmpty ? template.duration : template.duration / targetDays.count
         
         for weekday in targetDays {
@@ -1294,11 +1296,21 @@ struct GoalEditorView: View {
         // Infer and set icon from template
         selectedIcon = inferIcon(from: template.title)
         
-        // Create GoalTheme based on template's theme
-        let matchedTheme = matchTheme(named: template.theme)
+        // Find the category for this template
+        guard let category = suggestionsData.categories.first(where: { category in
+            category.suggestions.contains(where: { $0.id == template.id })
+        }) else {
+            print("⚠️ Could not find category for template: \(template.id)")
+            return
+        }
         
-        // Check if a tag with this name already exists in the database
-        let existingTag = allTags.first(where: { $0.title == template.theme })
+        let categoryName = category.name
+        
+        // Create GoalTheme based on category's color
+        let matchedTheme = matchTheme(named: category.color)
+        
+        // Check if a tag with the category name already exists in the database
+        let existingTag = allTags.first(where: { $0.title == categoryName })
         
         let goalTheme: GoalTag
         if let existing = existingTag {
@@ -1306,9 +1318,9 @@ struct GoalEditorView: View {
             goalTheme = existing
             print("♻️ Using existing tag: \(existing.title)")
         } else {
-            // Create new tag
-            goalTheme = GoalTag(title: template.theme, color: matchedTheme)
-            print("✨ Created new tag: \(template.theme) with theme \(matchedTheme.title)")
+            // Create new tag with the category name (e.g., "Fitness") not theme color (e.g., "Green")
+            goalTheme = GoalTag(title: categoryName, color: matchedTheme)
+            print("✨ Created new tag: \(categoryName) with theme \(matchedTheme.title)")
         }
         
         selectedGoalTheme = goalTheme
@@ -1365,10 +1377,11 @@ struct GoalEditorView: View {
         if let customGoalTag = selectedGoalTheme {
             // User has selected a tag (either custom or from suggestions)
             finalGoalTag = customGoalTag
-        } else if let template = selectedTemplate {
-            // Use the template's theme to create a tag
-            let matchedTheme = matchTheme(named: template.theme)
-            finalGoalTag = GoalTag(title: matchedTheme.title, color: matchedTheme)
+        } else if let template = selectedTemplate,
+                  let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
+            // Use the category's theme to create a tag
+            let matchedTheme = matchTheme(named: category.color)
+            finalGoalTag = GoalTag(title: category.name, color: matchedTheme)
         } else if let selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
             let matchedTheme = matchTheme(named: themeNames[0])
@@ -2082,25 +2095,6 @@ struct SuggestionRow: View {
             }
             
             Spacer()
-            
-            // Duration badge
-            VStack(spacing: 2) {
-                Text("\(suggestion.duration) min")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(durationBadgeTextColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(isSelected ? .white : categoryColor)
-                    )
-                
-                Text("weekly")
-                    .font(.footnote)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(isSelected ? iconAndTextColor.opacity(0.7) : .secondary)
-            }
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)

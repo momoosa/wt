@@ -3,13 +3,15 @@
 <plist version="1.0">
 <dict>
 	<key>NSAlarmKitUsageDescription</key>
-	<string>You'll be able to keep track of active sessions outside of the app and be notified when they're finished.</string>
+	<string>You&apos;ll be able to keep track of active sessions outside of the app and be notified when they&apos;re finished.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Momentum will save your tracked sessions to the Health app so your progress is recorded across all your devices.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Momentum can import your reminders to help you quickly create time-tracked goals based on your existing to-dos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Momentum uses your location to suggest goals based on current weather conditions.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Momentum uses your calendar to suggest goals when you have available time</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

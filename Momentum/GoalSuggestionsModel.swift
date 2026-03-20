@@ -58,7 +58,8 @@ struct GoalTemplateSuggestion: Codable, Identifiable {
     let title: String
     let subtitle: String
     let duration: Int // in minutes
-    let theme: String
+    let dailyGoal: Bool? // true = distribute across all 7 days, false/nil = weekdays only (Mon-Fri)
+    let theme: String? // Deprecated: now uses category color instead
     let healthKitMetric: String? // raw value of HealthKitMetric or null
     let icon: String
 }

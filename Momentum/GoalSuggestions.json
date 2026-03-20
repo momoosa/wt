@@ -11,7 +11,7 @@
           "title": "Apple Exercise Minutes",
           "subtitle": "30 min daily (210 min/week)",
           "duration": 210,
-          "theme": "Green",
+          "dailyGoal": true,
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.run"
         },
@@ -20,7 +20,6 @@
           "title": "Running",
           "subtitle": "Track your runs from other apps",
           "duration": 30,
-          "theme": "Green",
           "healthKitMetric": "workout_time",
           "icon": "figure.run"
         },
@@ -29,7 +28,6 @@
           "title": "Yoga Practice",
           "subtitle": "Stretch and strengthen",
           "duration": 20,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.yoga"
         },
@@ -38,7 +36,6 @@
           "title": "Gym Workout",
           "subtitle": "Build strength and endurance",
           "duration": 45,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "dumbbell.fill"
         },
@@ -47,7 +44,7 @@
           "title": "Daily Walk",
           "subtitle": "Get moving outdoors",
           "duration": 30,
-          "theme": "Green",
+          "dailyGoal": true,
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.walk"
         },
@@ -56,7 +53,7 @@
           "title": "Daylight",
           "subtitle": "Spend time in natural light",
           "duration": 30,
-          "theme": "Green",
+          "dailyGoal": true,
           "healthKitMetric": "time_in_daylight",
           "icon": "sun.max.fill"
         },
@@ -65,7 +62,6 @@
           "title": "Cycling",
           "subtitle": "Cardio on two wheels",
           "duration": 30,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "bicycle"
         },
@@ -74,7 +70,6 @@
           "title": "Swimming",
           "subtitle": "Full-body workout",
           "duration": 30,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.pool.swim"
         },
@@ -83,7 +78,6 @@
           "title": "HIIT Training",
           "subtitle": "High intensity intervals",
           "duration": 20,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "flame.fill"
         },
@@ -92,7 +86,6 @@
           "title": "Weight Lifting",
           "subtitle": "",
           "duration": 20,
-          "theme": "Green",
           "healthKitMetric": "weight_lifting_time",
           "icon": "figure.strengthtraining.traditional"
         },
@@ -101,7 +94,6 @@
           "title": "Pilates",
           "subtitle": "Core strength & flexibility",
           "duration": 25,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.pilates"
         },
@@ -110,7 +102,6 @@
           "title": "Stretching",
           "subtitle": "Improve flexibility",
           "duration": 15,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.flexibility"
         },
@@ -119,7 +110,6 @@
           "title": "Elliptical",
           "subtitle": "Low-impact cardio",
           "duration": 30,
-          "theme": "Green",
           "healthKitMetric": "elliptical_time",
           "icon": "figure.elliptical"
         },
@@ -128,7 +118,6 @@
           "title": "Rowing Machine",
           "subtitle": "Full-body cardio",
           "duration": 25,
-          "theme": "Green",
           "healthKitMetric": "rowing_time",
           "icon": "figure.rower"
         },
@@ -137,7 +126,6 @@
           "title": "Dance Workout",
           "subtitle": "Fun cardio session",
           "duration": 30,
-          "theme": "Green",
           "healthKitMetric": "apple_exercise_time",
           "icon": "figure.dance"
         }
@@ -154,7 +142,7 @@
           "title": "Meditation",
           "subtitle": "Find inner peace",
           "duration": 10,
-          "theme": "Purple",
+          "dailyGoal": true,
           "healthKitMetric": "mindful_minutes",
           "icon": "sparkles"
         },
@@ -163,7 +151,6 @@
           "title": "Journaling",
           "subtitle": "Reflect on your day",
           "duration": 15,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "book.closed"
         },
@@ -172,7 +159,6 @@
           "title": "Breathing Exercises",
           "subtitle": "Calm your mind",
           "duration": 5,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "wind"
         },
@@ -181,7 +167,6 @@
           "title": "Gratitude Practice",
           "subtitle": "Count your blessings",
           "duration": 10,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "heart.fill"
         },
@@ -190,7 +175,6 @@
           "title": "Body Scan",
           "subtitle": "Progressive relaxation",
           "duration": 15,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "figure.stand"
         },
@@ -199,7 +183,6 @@
           "title": "Mindful Walking",
           "subtitle": "Present moment awareness",
           "duration": 20,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "figure.walk.circle"
         },
@@ -208,7 +191,6 @@
           "title": "Visualization",
           "subtitle": "Guided imagery practice",
           "duration": 10,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "eye"
         },
@@ -217,7 +199,6 @@
           "title": "Daily Affirmations",
           "subtitle": "Positive self-talk",
           "duration": 5,
-          "theme": "Purple",
           "healthKitMetric": "mindful_minutes",
           "icon": "quote.bubble"
         }
@@ -234,7 +215,6 @@
           "title": "Reading",
           "subtitle": "Expand your knowledge",
           "duration": 30,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "book.pages"
         },
@@ -243,7 +223,6 @@
           "title": "Language Learning",
           "subtitle": "Practice a new language",
           "duration": 20,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "globe"
         },
@@ -252,7 +231,6 @@
           "title": "Coding Practice",
           "subtitle": "Build your skills",
           "duration": 45,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "laptopcomputer"
         },
@@ -261,7 +239,6 @@
           "title": "Online Course",
           "subtitle": "Learn something new",
           "duration": 30,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "graduationcap.fill"
         },
@@ -270,7 +247,6 @@
           "title": "Watch Documentary",
           "subtitle": "Educational content",
           "duration": 45,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "tv.fill"
         },
@@ -279,7 +255,6 @@
           "title": "Educational Podcast",
           "subtitle": "Learn on the go",
           "duration": 25,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "waveform"
         },
@@ -288,7 +263,6 @@
           "title": "Study Session",
           "subtitle": "Focused learning time",
           "duration": 60,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "text.book.closed"
         },
@@ -297,7 +271,6 @@
           "title": "Research",
           "subtitle": "Deep dive into a topic",
           "duration": 30,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "magnifyingglass"
         },
@@ -306,7 +279,6 @@
           "title": "Note Taking",
           "subtitle": "Organize your learning",
           "duration": 15,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "note.text"
         },
@@ -315,7 +287,6 @@
           "title": "Flashcard Review",
           "subtitle": "Memorization practice",
           "duration": 15,
-          "theme": "Blue",
           "healthKitMetric": null,
           "icon": "rectangle.stack"
         }
@@ -332,7 +303,6 @@
           "title": "Music Practice",
           "subtitle": "Master your instrument",
           "duration": 30,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "music.note"
         },
@@ -341,7 +311,6 @@
           "title": "Drawing",
           "subtitle": "Express yourself visually",
           "duration": 25,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "pencil.tip"
         },
@@ -350,7 +319,6 @@
           "title": "Creative Writing",
           "subtitle": "Tell your stories",
           "duration": 30,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "doc.text"
         },
@@ -359,7 +327,6 @@
           "title": "Photography",
           "subtitle": "Capture moments",
           "duration": 20,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "camera.fill"
         },
@@ -368,7 +335,6 @@
           "title": "Painting",
           "subtitle": "Create art on canvas",
           "duration": 45,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "paintbrush.fill"
         },
@@ -377,7 +343,6 @@
           "title": "Digital Art",
           "subtitle": "Design on tablet",
           "duration": 30,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "ipad.and.arrow.forward"
         },
@@ -386,7 +351,6 @@
           "title": "Video Editing",
           "subtitle": "Create engaging content",
           "duration": 45,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "video.fill"
         },
@@ -395,7 +359,6 @@
           "title": "Singing Practice",
           "subtitle": "Develop your voice",
           "duration": 20,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "music.mic"
         },
@@ -404,7 +367,6 @@
           "title": "Calligraphy",
           "subtitle": "Beautiful lettering",
           "duration": 20,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "pencil.and.outline"
         },
@@ -413,7 +375,6 @@
           "title": "Pottery",
           "subtitle": "Sculpt with clay",
           "duration": 60,
-          "theme": "Orange",
           "healthKitMetric": null,
           "icon": "cylinder.fill"
         }
@@ -430,7 +391,6 @@
           "title": "House Cleaning",
           "subtitle": "Tidy up your space",
           "duration": 30,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "sparkles"
         },
@@ -439,7 +399,6 @@
           "title": "Meal Prep",
           "subtitle": "Plan healthy meals",
           "duration": 45,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "fork.knife"
         },
@@ -448,7 +407,6 @@
           "title": "Laundry",
           "subtitle": "Fresh clothes ready",
           "duration": 20,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "tshirt.fill"
         },
@@ -457,7 +415,6 @@
           "title": "Gardening",
           "subtitle": "Nurture your plants",
           "duration": 30,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "leaf.fill"
         },
@@ -466,7 +423,6 @@
           "title": "Organizing",
           "subtitle": "Declutter and sort",
           "duration": 30,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "archivebox.fill"
         },
@@ -475,7 +431,6 @@
           "title": "Washing Dishes",
           "subtitle": "Clean kitchen routine",
           "duration": 15,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "drop.fill"
         },
@@ -484,7 +439,6 @@
           "title": "Vacuuming",
           "subtitle": "Clean floors",
           "duration": 20,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "wind"
         },
@@ -493,7 +447,6 @@
           "title": "Grocery Shopping",
           "subtitle": "Stock up essentials",
           "duration": 45,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "cart.fill"
         },
@@ -502,7 +455,6 @@
           "title": "Meal Planning",
           "subtitle": "Plan the week ahead",
           "duration": 20,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "calendar"
         },
@@ -511,7 +463,6 @@
           "title": "Pet Care",
           "subtitle": "Care for your pets",
           "duration": 15,
-          "theme": "Yellow",
           "healthKitMetric": null,
           "icon": "pawprint.fill"
         }
@@ -528,7 +479,6 @@
           "title": "Bedtime Routine",
           "subtitle": "Wind down for better sleep",
           "duration": 15,
-          "theme": "Indigo",
           "healthKitMetric": null,
           "icon": "bed.double.fill"
         },
@@ -537,7 +487,6 @@
           "title": "Sleep Meditation",
           "subtitle": "Relax before bed",
           "duration": 10,
-          "theme": "Indigo",
           "healthKitMetric": "mindful_minutes",
           "icon": "moon.zzz.fill"
         },
@@ -546,7 +495,6 @@
           "title": "Screen-Free Time",
           "subtitle": "Digital detox before sleep",
           "duration": 30,
-          "theme": "Indigo",
           "healthKitMetric": null,
           "icon": "iphone.slash"
         },
@@ -555,7 +503,6 @@
           "title": "Sleep Sounds",
           "subtitle": "Relaxing audio",
           "duration": 15,
-          "theme": "Indigo",
           "healthKitMetric": null,
           "icon": "speaker.wave.2.fill"
         },
@@ -564,7 +511,6 @@
           "title": "Herbal Tea",
           "subtitle": "Calming evening ritual",
           "duration": 10,
-          "theme": "Indigo",
           "healthKitMetric": null,
           "icon": "mug.fill"
         },
@@ -573,7 +519,6 @@
           "title": "Bedtime Yoga",
           "subtitle": "Gentle stretches for sleep",
           "duration": 15,
-          "theme": "Indigo",
           "healthKitMetric": "mindful_minutes",
           "icon": "figure.yoga"
         },
@@ -582,7 +527,6 @@
           "title": "Sleep Journal",
           "subtitle": "Reflect before rest",
           "duration": 10,
-          "theme": "Indigo",
           "healthKitMetric": "mindful_minutes",
           "icon": "book.closed"
         }
@@ -599,7 +543,6 @@
           "title": "Puzzles",
           "subtitle": "Challenge your mind",
           "duration": 20,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "puzzlepiece.fill"
         },
@@ -608,7 +551,6 @@
           "title": "Board Games",
           "subtitle": "Quality time with others",
           "duration": 45,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "dice.fill"
         },
@@ -617,7 +559,6 @@
           "title": "Crafts",
           "subtitle": "Create something beautiful",
           "duration": 30,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "scissors"
         },
@@ -626,7 +567,6 @@
           "title": "Listen to Podcasts",
           "subtitle": "Learn while relaxing",
           "duration": 25,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "waveform"
         },
@@ -635,7 +575,6 @@
           "title": "Chess",
           "subtitle": "Strategic thinking",
           "duration": 30,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "crown.fill"
         },
@@ -644,7 +583,6 @@
           "title": "Model Building",
           "subtitle": "Detailed construction",
           "duration": 45,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "cube.fill"
         },
@@ -653,7 +591,6 @@
           "title": "Knitting",
           "subtitle": "Relaxing handcraft",
           "duration": 30,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "square.grid.2x2"
         },
@@ -662,7 +599,6 @@
           "title": "Gaming",
           "subtitle": "Interactive entertainment",
           "duration": 30,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "gamecontroller.fill"
         },
@@ -671,7 +607,6 @@
           "title": "Birdwatching",
           "subtitle": "Observe nature",
           "duration": 30,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "binoculars.fill"
         },
@@ -680,7 +615,6 @@
           "title": "Collecting",
           "subtitle": "Curate your collection",
           "duration": 20,
-          "theme": "Pink",
           "healthKitMetric": null,
           "icon": "tray.2.fill"
         }

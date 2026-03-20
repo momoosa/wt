@@ -24,6 +24,9 @@
 		CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */; };
 		CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */; };
 		CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */; };
+		CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */; };
+		CD07E13C2F6D571100D751D9 /* CalendarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */; };
+		CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */; };
 		CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD083F5C2F608C82002802E7 /* GoalDetailView.swift */; };
 		CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0B80982F43A590006EDA47 /* SearchSheet.swift */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
@@ -49,7 +52,6 @@
 		CD2A6FB92F576B6B00F5503A /* LayoutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FB82F576B6B00F5503A /* LayoutConstants.swift */; };
 		CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */; };
 		CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */; };
-		CD2A6FBF2F576B9100F5503A /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FBE2F576B9100F5503A /* AppLogger.swift */; };
 		CD2A6FC12F5778EB00F5503A /* ColorConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FC02F5778EB00F5503A /* ColorConstants.swift */; };
 		CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */; };
 		CD2A6FC72F57795400F5503A /* CommonModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD2A6FC62F57795400F5503A /* CommonModifiers.swift */; };
@@ -184,6 +186,9 @@
 		CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMetricsBrowserView.swift; sourceTree = "<group>"; };
 		CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEntity.swift; sourceTree = "<group>"; };
 		CD07C4D12F5C8EA9001EFE97 /* MomentumAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentumAppIntents.swift; sourceTree = "<group>"; };
+		CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAvailabilityManager.swift; sourceTree = "<group>"; };
+		CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSettingsView.swift; sourceTree = "<group>"; };
+		CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsolidatedTodayView.swift; sourceTree = "<group>"; };
 		CD083F5C2F608C82002802E7 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
 		CD0B80982F43A590006EDA47 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
@@ -209,7 +214,6 @@
 		CD2A6FB82F576B6B00F5503A /* LayoutConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConstants.swift; sourceTree = "<group>"; };
 		CD2A6FBA2F576B7800F5503A /* WeekdayConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayConstants.swift; sourceTree = "<group>"; };
 		CD2A6FBC2F576B8500F5503A /* AnimationPresets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationPresets.swift; sourceTree = "<group>"; };
-		CD2A6FBE2F576B9100F5503A /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		CD2A6FC02F5778EB00F5503A /* ColorConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorConstants.swift; sourceTree = "<group>"; };
 		CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeColorHelper.swift; sourceTree = "<group>"; };
 		CD2A6FC62F57795400F5503A /* CommonModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonModifiers.swift; sourceTree = "<group>"; };
@@ -394,7 +398,6 @@
 			isa = PBXGroup;
 			children = (
 				CD2A6FB62F576B5F00F5503A /* HapticFeedbackManager.swift */,
-				CD2A6FBE2F576B9100F5503A /* AppLogger.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -546,6 +549,9 @@
 				CD083F5C2F608C82002802E7 /* GoalDetailView.swift */,
 				CD0799902F65A9B9001B9C33 /* DailyProgressViewModel.swift */,
 				CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */,
+				CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */,
+				CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */,
+				CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -883,7 +889,6 @@
 				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
 				CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */,
-				CD2A6FBF2F576B9100F5503A /* AppLogger.swift in Sources */,
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
@@ -908,6 +913,7 @@
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
+				CD07E13C2F6D571100D751D9 /* CalendarSettingsView.swift in Sources */,
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
 				CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */,
 				CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */,
@@ -917,9 +923,11 @@
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
+				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
+				CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */,
 				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,

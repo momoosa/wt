@@ -145,6 +145,17 @@ public enum TimeOfDay: String, Codable, CaseIterable, Hashable, Comparable {
         }
         return lhsIndex < rhsIndex
     }
+    
+    /// Convert hour (0-23) to TimeOfDay
+    public static func from(hour: Int) -> TimeOfDay {
+        switch hour {
+        case 6..<10: return .morning
+        case 10..<14: return .midday
+        case 14..<17: return .afternoon
+        case 17..<21: return .evening
+        default: return .night
+        }
+    }
 }
 
 // MARK: - Weather Condition

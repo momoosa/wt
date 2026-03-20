@@ -64,11 +64,116 @@ public class GoalSessionPlanner: ObservableObject {
     private var cachedPlanTimestamp: Date?
     private let cacheValidityDuration: TimeInterval = 300 // 5 minutes
     
+    // Deterministic recommender for fast recommendations
+    private let recommender = DeterministicRecommender()
+    
+    // Calendar availability calculator (set externally if needed)
+    public var availabilityCalculator: (() async -> [Int: TimeInterval])?
+    
     public init() {}
     
     /// Prewarm the language model to reduce initial latency
     public func prewarm() async {
         try? await session.prewarm()
+    }
+    
+    /// Get fast recommendations using deterministic scoring with automatic calendar availability
+    /// Returns immediately with top 3 recommended goals based on context
+    /// - Parameters:
+    ///   - includeCalendarAvailability: If true, fetches calendar events to calculate availability
+    public func getQuickRecommendationsWithCalendar(
+        for goals: [Goal],
+        goalSessions: [GoalSession],
+        currentDate: Date = Date(),
+        weather: WeatherCondition? = nil,
+        temperature: Double? = nil,
+        includeCalendarAvailability: Bool = true
+    ) async -> (goalIDs: [String], reasons: [String]) {
+        var weekdayAvailability: [Int: TimeInterval]? = nil
+        
+        if includeCalendarAvailability, let calculator = availabilityCalculator {
+            weekdayAvailability = await calculator()
+        }
+        
+        return getQuickRecommendations(
+            for: goals,
+            goalSessions: goalSessions,
+            currentDate: currentDate,
+            weather: weather,
+            temperature: temperature,
+            weekdayAvailability: weekdayAvailability
+        )
+    }
+    
+    /// Get fast recommendations using deterministic scoring (no AI required)
+    /// Returns immediately with top 3 recommended goals based on context
+    /// - Parameters:
+    ///   - weekdayAvailability: Optional map of weekday (1-7) to available seconds
+    ///     Use this to factor in calendar conflicts and schedule flexibility
+    public func getQuickRecommendations(
+        for goals: [Goal],
+        goalSessions: [GoalSession],
+        currentDate: Date = Date(),
+        weather: WeatherCondition? = nil,
+        temperature: Double? = nil,
+        weekdayAvailability: [Int: TimeInterval]? = nil
+    ) -> (goalIDs: [String], reasons: [String]) {
+        // Determine time of day
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: currentDate)
+        let timeOfDay = TimeOfDay.from(hour: hour)
+        
+        // Create context for recommendations
+        let context = DeterministicRecommender.Context(
+            currentDate: currentDate,
+            weather: weather,
+            temperature: temperature,
+            timeOfDay: timeOfDay,
+            location: nil,
+            weekdayAvailability: weekdayAvailability
+        )
+        
+        // Get recommendations
+        let recommendations = recommender.recommend(
+            goals: goals,
+            sessions: goalSessions,
+            context: context,
+            limit: 3
+        )
+        
+        // Extract goal IDs and reasons
+        let goalIDs = recommendations.map { $0.goal.id.uuidString }
+        let reasons = recommendations.map { rec in
+            var reasonParts: [String] = []
+            if rec.reasons.contains(.weather) {
+                reasonParts.append("weather-optimal")
+            }
+            if rec.reasons.contains(.preferredTime) {
+                reasonParts.append("preferred time")
+            }
+            if rec.reasons.contains(.weeklyProgress) {
+                reasonParts.append("behind schedule")
+            }
+            if rec.reasons.contains(.constrained) {
+                // Check if this is due to schedule flexibility
+                let goal = rec.goal
+                if goal.hasSchedule {
+                    let scheduledDays = goal.scheduledWeekdays
+                    let currentWeekday = calendar.component(.weekday, from: currentDate)
+                    if !scheduledDays.contains(currentWeekday) {
+                        reasonParts.append("scheduled days are busy")
+                    } else {
+                        reasonParts.append("limited availability")
+                    }
+                } else {
+                    reasonParts.append("limited availability")
+                }
+            }
+            
+            return reasonParts.isEmpty ? "Good time to work on this" : reasonParts.joined(separator: ", ")
+        }
+        
+        return (goalIDs, reasons)
     }
     
     /// Generate a daily plan for the given goals and context
@@ -111,12 +216,35 @@ public class GoalSessionPlanner: ObservableObject {
         
         // Early bailout: If only 1-2 goals, skip AI and create simple plan
         if eligibleGoals.count <= 2 {
+            // Get calendar availability if available
+            var weekdayAvailability: [Int: TimeInterval]? = nil
+            if let calculator = availabilityCalculator {
+                weekdayAvailability = await calculator()
+            }
+            
             return createSimplePlanWithoutAI(
                 goals: eligibleGoals,
                 goalSessions: goalSessions,
-                currentDate: currentDate
+                currentDate: currentDate,
+                weekdayAvailability: weekdayAvailability
             )
         }
+        
+        // Get calendar availability if available
+        var weekdayAvailability: [Int: TimeInterval]? = nil
+        if let calculator = availabilityCalculator {
+            weekdayAvailability = await calculator()
+        }
+        
+        // Get quick deterministic recommendations (fast path)
+        let quickRecs = getQuickRecommendations(
+            for: eligibleGoals,
+            goalSessions: goalSessions,
+            currentDate: currentDate,
+            weather: userPreferences.currentWeather,
+            temperature: userPreferences.currentTemperature,
+            weekdayAvailability: weekdayAvailability
+        )
         
         let prompt = buildPrompt(
              goals: eligibleGoals,
@@ -132,7 +260,18 @@ public class GoalSessionPlanner: ObservableObject {
                 options: GenerationOptions(temperature: 0.4)
             )
             
-            let plan = response.content
+            var plan = response.content
+            
+            // Override with deterministic recommendations if FM didn't provide them
+            // or merge them intelligently
+            if plan.topThreeRecommendations == nil || plan.topThreeRecommendations?.isEmpty == true {
+                plan.topThreeRecommendations = quickRecs.goalIDs
+                plan.recommendationReasoning = "Recommended based on: " + quickRecs.reasons.enumerated().map { idx, reason in
+                    let goalTitle = eligibleGoals.first(where: { $0.id.uuidString == quickRecs.goalIDs[idx] })?.title ?? "Goal \(idx + 1)"
+                    return "\(goalTitle) (\(reason))"
+                }.joined(separator: "; ")
+            }
+            
             currentPlan = plan
             cachedPlanTimestamp = currentDate // Update cache timestamp
             return plan
@@ -262,6 +401,7 @@ public class GoalSessionPlanner: ObservableObject {
     public func scoreSession(
         for goal: Goal,
         session: GoalSession? = nil,
+        sessions: [GoalSession] = [],
         at time: Date = Date(),
         preferences: PlannerPreferences = .default
     ) -> Double {
@@ -270,7 +410,7 @@ public class GoalSessionPlanner: ObservableObject {
         // 1. Progress-based scoring (0-40 points)
         // Goals that are furthest behind get higher scores
         let dailyTarget = goal.weeklyTarget / 7
-        let weeklyProgress = calculateWeeklyProgress(for: goal, currentDate: time)
+        let weeklyProgress = calculateWeeklyProgress(for: goal, sessions: sessions, currentDate: time)
         
         // Inverse progress: the lower the progress, the higher the score
         let progressScore = max(0, 40 * (1 - weeklyProgress / 100))
@@ -347,7 +487,8 @@ public class GoalSessionPlanner: ObservableObject {
     private func createSimplePlanWithoutAI(
         goals: [Goal],
         goalSessions: [GoalSession],
-        currentDate: Date
+        currentDate: Date,
+        weekdayAvailability: [Int: TimeInterval]? = nil
     ) -> DailyPlan {
         let calendar = Calendar.current
         let currentHour = calendar.component(.hour, from: currentDate)
@@ -383,11 +524,22 @@ public class GoalSessionPlanner: ObservableObject {
             sessions.append(plannedSession)
         }
         
+        // Use deterministic recommender for ranking
+        let quickRecs = getQuickRecommendations(
+            for: goals,
+            goalSessions: goalSessions,
+            currentDate: currentDate,
+            weekdayAvailability: weekdayAvailability
+        )
+        
         let plan = DailyPlan(
             sessions: sessions,
             overallStrategy: "Simple schedule for your \(goals.count) active goal\(goals.count == 1 ? "" : "s")",
-            topThreeRecommendations: goals.prefix(3).map { $0.id.uuidString },
-            recommendationReasoning: "Start with \(goals.first?.title ?? "your goal") to make progress toward your daily target"
+            topThreeRecommendations: quickRecs.goalIDs,
+            recommendationReasoning: "Recommended: " + quickRecs.reasons.enumerated().map { idx, reason in
+                let goalTitle = goals.first(where: { $0.id.uuidString == quickRecs.goalIDs[idx] })?.title ?? "Goal \(idx + 1)"
+                return "\(goalTitle) (\(reason))"
+            }.joined(separator: "; ")
         )
         
         currentPlan = plan
@@ -561,11 +713,26 @@ public class GoalSessionPlanner: ObservableObject {
     
     // MARK: - Helper Methods
     
-    /// Calculate weekly progress for a goal (mock implementation - should query actual data)
-    private func calculateWeeklyProgress(for goal: Goal, currentDate: Date) -> Double {
-        // TODO: Implement actual weekly progress calculation
-        // This would query all sessions for the current week
-        return 0.0
+    /// Calculate weekly progress for a goal based on sessions in the current week
+    private func calculateWeeklyProgress(for goal: Goal, sessions: [GoalSession], currentDate: Date) -> Double {
+        let calendar = Calendar.current
+        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: currentDate)?.start else {
+            return 0.0
+        }
+        let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) ?? currentDate
+        
+        // Calculate actual progress from sessions in the current week
+        let actualProgress = sessions
+            .filter { session in
+                session.goalID == goal.id.uuidString &&
+                session.day?.startDate ?? .distantPast >= weekStart &&
+                session.day?.startDate ?? .distantPast < weekEnd
+            }
+            .reduce(0.0) { $0 + $1.elapsedTime }
+        
+        // Return progress as a percentage of weekly target
+        guard goal.weeklyTarget > 0 else { return 0.0 }
+        return (actualProgress / goal.weeklyTarget) * 100.0
     }
 }
 
@@ -579,6 +746,8 @@ public struct PlannerPreferences {
     public var maxSessionsPerDay: Int = 5
     public var minimumBreakMinutes: Int = 15
     public var focusMode: FocusMode = .balanced
+    public var currentWeather: WeatherCondition? = nil
+    public var currentTemperature: Double? = nil
     
     public static let `default` = PlannerPreferences()
     
@@ -588,7 +757,9 @@ public struct PlannerPreferences {
         avoidEveningSessions: Bool = false,
         maxSessionsPerDay: Int = 5,
         minimumBreakMinutes: Int = 15,
-        focusMode: FocusMode = .balanced
+        focusMode: FocusMode = .balanced,
+        currentWeather: WeatherCondition? = nil,
+        currentTemperature: Double? = nil
     ) {
         self.planningHorizon = planningHorizon
         self.preferMorningSessions = preferMorningSessions
@@ -596,6 +767,8 @@ public struct PlannerPreferences {
         self.maxSessionsPerDay = maxSessionsPerDay
         self.minimumBreakMinutes = minimumBreakMinutes
         self.focusMode = focusMode
+        self.currentWeather = currentWeather
+        self.currentTemperature = currentTemperature
     }
 }
 

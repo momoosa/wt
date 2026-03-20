@@ -7,6 +7,7 @@
 
 import SwiftUI
 import OSLog
+import MomentumKit
 
 /// Toast configuration for displaying temporary messages with optional undo action
 struct ToastConfig: Identifiable, Equatable {

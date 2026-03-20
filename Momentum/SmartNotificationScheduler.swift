@@ -10,6 +10,7 @@ import UserNotifications
 import SwiftUI
 import Combine
 import OSLog
+import MomentumKit
 /// Schedules intelligent notifications based on AI-generated plans
 @MainActor
 public class SmartNotificationScheduler: ObservableObject {
