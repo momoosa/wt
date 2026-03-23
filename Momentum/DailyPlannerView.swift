@@ -44,14 +44,39 @@ struct DailyPlannerView: View {
                 datePickerHeader
                 
                 // Plan Content
-                if planner.isGenerating {
-                    generatingView
-                } else if let errorMessage {
-                    errorStateView(message: errorMessage)
-                } else if let plan = planner.currentPlan {
-                    planContentView(plan: plan)
-                } else {
-                    emptyStateView
+                ZStack {
+                    if let errorMessage {
+                        errorStateView(message: errorMessage)
+                    } else if let plan = planner.currentPlan {
+                        planContentView(plan: plan)
+                            .opacity(planner.isGenerating ? 0.5 : 1.0)
+                    } else {
+                        emptyStateView
+                    }
+                    
+                    // Show loading overlay when generating and we have an existing plan
+                    if planner.isGenerating && planner.currentPlan != nil {
+                        Color.black.opacity(0.2)
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .tint(.white)
+                            
+                            Text("Updating plan...")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.white)
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.ultraThinMaterial)
+                        )
+                    } else if planner.isGenerating {
+                        generatingView
+                    }
                 }
             }
             .navigationTitle("Daily Planner")
@@ -70,6 +95,7 @@ struct DailyPlannerView: View {
                         } label: {
                             Label("Regenerate Plan", systemImage: "arrow.clockwise")
                         }
+                        .disabled(planner.isGenerating)
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -89,13 +115,16 @@ struct DailyPlannerView: View {
     private var datePickerHeader: some View {
         HStack {
             Button {
-                selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate) ?? selectedDate
-                Task { await generatePlan() }
+                if let newDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate) {
+                    selectedDate = newDate
+                    Task { await generatePlan() }
+                }
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title2)
                     .foregroundStyle(.primary)
             }
+            .disabled(planner.isGenerating)
             
             Spacer()
             
@@ -110,13 +139,16 @@ struct DailyPlannerView: View {
             Spacer()
             
             Button {
-                selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate) ?? selectedDate
-                Task { await generatePlan() }
+                if let newDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate) {
+                    selectedDate = newDate
+                    Task { await generatePlan() }
+                }
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.title2)
                     .foregroundStyle(.primary)
             }
+            .disabled(planner.isGenerating)
         }
         .padding()
         .background(Color(.systemBackground))

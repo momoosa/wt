@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "5310D926-8BBC-4F14-A3E4-4671F4DF2B0C",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Momentum.xcodeproj",
+      "identifier" : "CD75CC5A2E2FE5E600890F20",
+      "name" : "Momentum"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Momentum.xcodeproj",
+        "identifier" : "CD75CC6B2E2FE5E700890F20",
+        "name" : "MomentumTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Momentum.xcodeproj",
+        "identifier" : "CD75CC752E2FE5E800890F20",
+        "name" : "MomentumUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

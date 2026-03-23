@@ -189,6 +189,7 @@
 		CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAvailabilityManager.swift; sourceTree = "<group>"; };
 		CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSettingsView.swift; sourceTree = "<group>"; };
 		CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsolidatedTodayView.swift; sourceTree = "<group>"; };
+		CD07E1422F6DCA1B00D751D9 /* Momentum.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Momentum.xctestplan; sourceTree = "<group>"; };
 		CD083F5C2F608C82002802E7 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
 		CD0B80982F43A590006EDA47 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
@@ -440,6 +441,7 @@
 		CD75CC522E2FE5E600890F20 = {
 			isa = PBXGroup;
 			children = (
+				CD07E1422F6DCA1B00D751D9 /* Momentum.xctestplan */,
 				CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */,
 				CD06684D2E34B5D90063AC1F /* InternalPackages */,
 				CDEBAA342EE9FA1000C1C411 /* Momentum */,

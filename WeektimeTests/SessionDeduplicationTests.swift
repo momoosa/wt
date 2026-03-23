@@ -4,7 +4,7 @@
 //
 //  Created by Assistant on 14/03/2026.
 //
-
+import Foundation
 import Testing
 import SwiftData
 @testable import Momentum
@@ -16,7 +16,7 @@ struct SessionDeduplicationTests {
     // MARK: - Test Helpers
     
     private func createGoal(title: String) -> Goal {
-        Goal(title: title, days: [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday])
+        Goal(title: title, weeklyTarget: 3600)
     }
     
     private func createHistoricalSession(
@@ -39,8 +39,13 @@ struct SessionDeduplicationTests {
     @Test("Non-overlapping sessions sum correctly")
     func nonOverlappingSessionsSumCorrectly() throws {
         let goal = createGoal(title: "Meditation")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         // Create three 10-minute sessions with no overlap
         let baseDate = Date()
@@ -65,8 +70,13 @@ struct SessionDeduplicationTests {
     @Test("Completely overlapping sessions don't double count")
     func completelyOverlappingSessionsDontDoubleCount() throws {
         let goal = createGoal(title: "Meditation")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         let baseDate = Date()
         
@@ -94,8 +104,13 @@ struct SessionDeduplicationTests {
     @Test("Smaller session contained within larger session")
     func smallerSessionContainedWithinLarger() throws {
         let goal = createGoal(title: "Exercise")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         let baseDate = Date()
         
@@ -125,8 +140,13 @@ struct SessionDeduplicationTests {
     @Test("Partially overlapping sessions merge correctly")
     func partiallyOverlappingSessionsMerge() throws {
         let goal = createGoal(title: "Meditation")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         let baseDate = Date()
         
@@ -155,8 +175,13 @@ struct SessionDeduplicationTests {
     @Test("Multiple overlapping sessions merge into one interval")
     func multipleOverlappingSessionsMerge() throws {
         let goal = createGoal(title: "Exercise")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 60 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 60 * 60
         
         let baseDate = Date()
         
@@ -194,8 +219,13 @@ struct SessionDeduplicationTests {
     @Test("Mix of overlapping and non-overlapping sessions")
     func mixOfOverlappingAndNonOverlapping() throws {
         let goal = createGoal(title: "Focus Work")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 90 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 90 * 60
         
         let baseDate = Date()
         
@@ -232,8 +262,13 @@ struct SessionDeduplicationTests {
     @Test("Sessions with same start time but different end times")
     func sameStartDifferentEnd() throws {
         let goal = createGoal(title: "Meditation")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         let baseDate = Date()
         
@@ -259,8 +294,13 @@ struct SessionDeduplicationTests {
     @Test("Adjacent sessions touching but not overlapping")
     func adjacentSessionsTouchingButNotOverlapping() throws {
         let goal = createGoal(title: "Reading")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         let baseDate = Date()
         
@@ -287,8 +327,13 @@ struct SessionDeduplicationTests {
     @Test("Empty sessions list returns zero")
     func emptySessionsReturnsZero() throws {
         let goal = createGoal(title: "Exercise")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         day.historicalSessions = []
         session.day = day
@@ -300,8 +345,13 @@ struct SessionDeduplicationTests {
     @Test("Single session returns its duration")
     func singleSessionReturnsItsDuration() throws {
         let goal = createGoal(title: "Meditation")
-        let day = Day(date: Date())
-        let session = GoalSession(goal: goal, day: day, dailyTarget: 30 * 60)
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = 30 * 60
         
         let baseDate = Date()
         let historicalSession = createHistoricalSession(start: baseDate, duration: 15 * 60)

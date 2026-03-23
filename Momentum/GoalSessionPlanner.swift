@@ -61,7 +61,8 @@ public class GoalSessionPlanner: ObservableObject {
     private let session = LanguageModelSession()
     
     // Cache to avoid regenerating same plan repeatedly
-    private var cachedPlanTimestamp: Date?
+    private var cachedPlanDate: Date? // The date for which the plan was generated
+    private var cachedPlanTimestamp: Date? // When the plan was cached
     private let cacheValidityDuration: TimeInterval = 300 // 5 minutes
     
     // Deterministic recommender for fast recommendations
@@ -183,11 +184,13 @@ public class GoalSessionPlanner: ObservableObject {
         currentDate: Date = Date(),
         userPreferences: PlannerPreferences = .default
     ) async throws -> DailyPlan {
-        // Check cache first - avoid regenerating if plan is still fresh
+        // Check cache first - avoid regenerating if plan is still fresh and for the same date
         if let cachedTimestamp = cachedPlanTimestamp,
+           let cachedDate = cachedPlanDate,
            let currentPlan = currentPlan,
-           currentDate.timeIntervalSince(cachedTimestamp) < cacheValidityDuration {
-            print("⚡ Using cached plan (age: \(Int(currentDate.timeIntervalSince(cachedTimestamp)))s)")
+           Calendar.current.isDate(cachedDate, inSameDayAs: currentDate),
+           Date.now.timeIntervalSince(cachedTimestamp) < cacheValidityDuration {
+            print("⚡ Using cached plan (age: \(Int(Date.now.timeIntervalSince(cachedTimestamp)))s)")
             return currentPlan
         }
         
@@ -210,7 +213,8 @@ public class GoalSessionPlanner: ObservableObject {
                 recommendationReasoning: "All goals are either completed, archived, or not scheduled for the current time."
             )
             currentPlan = emptyPlan
-            cachedPlanTimestamp = currentDate
+            cachedPlanDate = currentDate
+            cachedPlanTimestamp = Date.now
             return emptyPlan
         }
         
@@ -273,7 +277,8 @@ public class GoalSessionPlanner: ObservableObject {
             }
             
             currentPlan = plan
-            cachedPlanTimestamp = currentDate // Update cache timestamp
+            cachedPlanDate = currentDate // Store the date this plan is for
+            cachedPlanTimestamp = Date.now // Update cache timestamp to actual current time
             return plan
             
         } catch {
@@ -543,7 +548,8 @@ public class GoalSessionPlanner: ObservableObject {
         )
         
         currentPlan = plan
-        cachedPlanTimestamp = currentDate
+        cachedPlanDate = currentDate
+        cachedPlanTimestamp = Date.now
         return plan
     }
     

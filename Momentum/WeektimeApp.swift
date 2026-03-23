@@ -242,17 +242,24 @@ struct MomentumApp: App {
                 Text("")
                     .task {
                         if day == nil {
-                            // TODO: Switch day
                             do {
                                 let weekStore = WeekStore(modelContext: sharedModelContainer.mainContext)
                                 
                                 // Clean up any duplicate days from sync conflicts
                                 try? weekStore.cleanupDuplicateDays()
                                 
-                                self.day = try weekStore.fetchCurrentDay()
+                                // Fetch the current day
+                                let currentDay = try weekStore.fetchCurrentDay()
                                 
+                                // Eagerly create sessions for the day to avoid blank screen
+                                try createSessionsForDay(currentDay, context: sharedModelContainer.mainContext)
+                                
+                                // Update the day (this will trigger ContentView to load)
+                                self.day = currentDay
+                                
+                                AppLogger.app.info("Initial day load complete with sessions")
                             } catch {
-                                
+                                AppLogger.app.error("Failed to load initial day: \(error.localizedDescription)")
                             }
                         }
                     }
@@ -354,13 +361,61 @@ struct MomentumApp: App {
                     try? weekStore.cleanupDuplicateDays()
                     
                     // Fetch the new current day
-                    self.day = try weekStore.fetchCurrentDay()
+                    let newDay = try weekStore.fetchCurrentDay()
                     
-                    AppLogger.app.info("Successfully loaded new day: \(currentDayID)")
+                    // Eagerly create sessions for the new day to avoid blank screen
+                    try createSessionsForDay(newDay, context: sharedModelContainer.mainContext)
+                    
+                    // Update the day (this will trigger ContentView to reload)
+                    self.day = newDay
+                    
+                    AppLogger.app.info("Successfully loaded new day: \(currentDayID) with sessions")
                 } catch {
                     AppLogger.app.error("Failed to load new day: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+    
+    /// Creates GoalSession objects for all active goals for the given day
+    private func createSessionsForDay(_ day: Day, context: ModelContext) throws {
+        // Fetch all goals and filter for active ones (status is computed property)
+        let goalDescriptor = FetchDescriptor<Goal>()
+        let allGoals = try context.fetch(goalDescriptor)
+        let activeGoals = allGoals.filter { $0.status == .active }
+        
+        // Fetch existing sessions for this day
+        let dayID = day.id
+        let sessionDescriptor = FetchDescriptor<GoalSession>(
+            predicate: #Predicate { session in
+                session.day?.id == dayID
+            }
+        )
+        let existingSessions = try context.fetch(sessionDescriptor)
+        
+        // Create sessions for goals that don't have them yet
+        for goal in activeGoals {
+            if !existingSessions.contains(where: { $0.goal?.id == goal.id }) {
+                let session = GoalSession(title: goal.title, goal: goal, day: day)
+                context.insert(session)
+                
+                // Create checklist item sessions
+                if let checklistItems = goal.checklistItems {
+                    for checklistItem in checklistItems {
+                        let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
+                        context.insert(itemSession)
+                        session.checklist?.append(itemSession)
+                    }
+                }
+                
+                AppLogger.app.debug("Created session for goal: \(goal.title)")
+            }
+        }
+        
+        // Save if we made changes
+        if context.hasChanges {
+            try context.save()
+            AppLogger.app.info("Created \(activeGoals.count - existingSessions.count) new sessions for day \(day.id)")
         }
     }
 }

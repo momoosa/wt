@@ -9,17 +9,15 @@ import Testing
 import SwiftData
 @testable import Momentum
 @testable import MomentumKit
+import Foundation
 
 @Suite("Daily Progress Calculations")
 struct DailyProgressTests {
     
     // MARK: - Test Helpers
     
-    private func createGoal(title: String, status: GoalStatus = .active) -> Goal {
-        let goal = Goal(
-            title: title,
-            days: [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
-        )
+    private func createGoal(title: String, status: Goal.Status = .active) -> Goal {
+        let goal = Goal(title: title, weeklyTarget: 3600)
         goal.status = status
         return goal
     }
@@ -28,15 +26,30 @@ struct DailyProgressTests {
         goal: Goal,
         elapsedTime: TimeInterval,
         dailyTarget: TimeInterval,
-        status: GoalSessionStatus = .active
+        status: GoalSession.Status = .active
     ) -> GoalSession {
-        let session = GoalSession(
-            goal: goal,
-            day: Day(date: Date()),
-            dailyTarget: dailyTarget
-        )
-        session.elapsedTime = elapsedTime
+        let calendar = Calendar.current
+        let date = Date()
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        let day = Day(start: start, end: end, calendar: calendar)
+        
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
+        session.dailyTarget = dailyTarget
         session.status = status
+        
+        // Create a historical session to represent the elapsed time
+        if elapsedTime > 0 {
+            let historicalSession = HistoricalSession(
+                title: goal.title,
+                start: date.addingTimeInterval(-elapsedTime),
+                end: date,
+                needsHealthKitRecord: false
+            )
+            historicalSession.goalIDs = [goal.id.uuidString]
+            day.add(historicalSession: historicalSession)
+        }
+        
         return session
     }
     
@@ -78,7 +91,7 @@ struct DailyProgressTests {
         } / 60)
         
         // Total target: 19 + 15 + 30 = 64 minutes
-        let totalTarget = sessions.reduce(0) { $0 + Int(session.dailyTarget / 60) }
+        let totalTarget = sessions.reduce(0) { $0 + Int($1.dailyTarget / 60) }
         
         #expect(cappedMinutes == 41)
         #expect(totalTarget == 64)
@@ -119,7 +132,7 @@ struct DailyProgressTests {
         let uncappedMinutes = Int(sessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
         
         // Total target: 19 + 15 = 34
-        let totalTarget = sessions.reduce(0) { $0 + Int(session.dailyTarget / 60) }
+        let totalTarget = sessions.reduce(0) { $0 + Int($1.dailyTarget / 60) }
         
         #expect(cappedMinutes == 34)
         #expect(uncappedMinutes == 66)
@@ -288,7 +301,7 @@ struct DailyProgressTests {
             return sum + cappedTime
         } / 60)
         
-        let totalTarget = sessions.reduce(0) { $0 + Int(session.dailyTarget / 60) }
+        let totalTarget = sessions.reduce(0) { $0 + Int($1.dailyTarget / 60) }
         
         #expect(cappedMinutes == 50)
         #expect(totalTarget == 50)
