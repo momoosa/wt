@@ -462,9 +462,35 @@ struct ContentView: View {
                     sessionRow(for: session)
                 }
             } header: {
-                if sessions.count > 4 {
-                    Text(section.type.title)
-                        .font(.headline)
+                // Show "Later" header if there are multiple sections to distinguish them
+                // (Don't show if "Later" is the only section)
+                Text(section.type.title)
+                    .font(.headline)
+            }
+            .listSectionSpacing(.compact)
+            
+        case .workingOffSchedule:
+            // Working off-schedule section
+            Section {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session)
+                }
+            } header: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(.purple)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                    }
+                    
+                    if let explanation = section.explanation {
+                        Text(explanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .listSectionSpacing(.compact)

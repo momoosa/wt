@@ -20,6 +20,7 @@ struct ContextualSection: Identifiable {
         case weatherWindow(time: String, condition: String, icon: String)
         case timeWindow(time: String, reason: String, icon: String)
         case energyWindow(time: String, energyLevel: String)
+        case workingOffSchedule
         case available
         case later
         
@@ -33,6 +34,8 @@ struct ContextualSection: Identifiable {
                 return "\(time) - \(reason)"
             case .energyWindow(let time, let energyLevel):
                 return "\(time) (\(energyLevel) energy)"
+            case .workingOffSchedule:
+                return "Working Off-Schedule"
             case .available:
                 return "Available Goals"
             case .later:
@@ -50,6 +53,8 @@ struct ContextualSection: Identifiable {
                 return icon
             case .energyWindow:
                 return "bolt.fill"
+            case .workingOffSchedule:
+                return "calendar.badge.clock"
             case .available:
                 return "lightbulb.fill"
             case .later:
@@ -59,7 +64,7 @@ struct ContextualSection: Identifiable {
         
         var shouldShowExplanation: Bool {
             switch self {
-            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .available:
+            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .workingOffSchedule, .available:
                 return true
             case .later:
                 return false
@@ -82,25 +87,39 @@ extension ContextualSection {
         // 1. Recommended Now section (top 3 with reasons)
         if !recommendedSessions.isEmpty {
             let topRecommended = Array(recommendedSessions.prefix(3))
-            let explanation = generateRecommendedExplanation(for: topRecommended)
             
             sections.append(ContextualSection(
                 type: .recommendedNow,
                 sessions: topRecommended,
-                explanation: explanation
+                explanation: "" // TODO: Remove?
             ))
         }
         
         // Get remaining sessions (not in recommended)
         let remainingSessions = sessions.filter { !recommendedIDs.contains($0.id) }
         
-        // 2. Group remaining sessions by timing constraints
-        let groupedByConstraints = groupByConstraints(remainingSessions, currentDate: currentDate)
+        // 2. Working Off-Schedule section (goals not scheduled today but with recent activity)
+        let offScheduleSessions = identifyOffScheduleSessions(remainingSessions, currentDate: currentDate)
+        if !offScheduleSessions.isEmpty {
+            let explanation = generateOffScheduleExplanation(for: offScheduleSessions)
+            sections.append(ContextualSection(
+                type: .workingOffSchedule,
+                sessions: offScheduleSessions,
+                explanation: explanation
+            ))
+        }
+        
+        // Filter out off-schedule sessions from remaining
+        let offScheduleIDs = Set(offScheduleSessions.map { $0.id })
+        let regularSessions = remainingSessions.filter { !offScheduleIDs.contains($0.id) }
+        
+        // 3. Group remaining sessions by timing constraints
+        let groupedByConstraints = groupByConstraints(regularSessions, currentDate: currentDate)
         sections.append(contentsOf: groupedByConstraints)
         
-        // 3. Later section (everything else)
+        // 4. Later section (everything else)
         let constraintSectionIDs = Set(groupedByConstraints.flatMap { $0.sessions.map { $0.id } })
-        let laterSessions = remainingSessions.filter { !constraintSectionIDs.contains($0.id) }
+        let laterSessions = regularSessions.filter { !constraintSectionIDs.contains($0.id) }
         
         if !laterSessions.isEmpty {
             sections.append(ContextualSection(
@@ -110,17 +129,18 @@ extension ContextualSection {
             ))
         }
         
-        // 4. Available Goals section (goals not scheduled for today but could be worked on)
+        // 5. Available Goals section (goals not scheduled for today but could be worked on)
         if let allGoals = allGoals {
             let scheduledIDs = Set(sessions.map { $0.id })
             let availableGoals = allGoals.filter { goal in
-                // Not already scheduled for today
+                // Not already scheduled for today (dailyTarget == 0 means not scheduled today)
                 !scheduledIDs.contains(goal.id) &&
+                goal.dailyTarget == 0 &&
                 // Goal is active (not skipped or archived)
                 goal.status != .skipped &&
                 goal.goal?.status != .archived &&
-                // Goal has a weekly target (is a real goal, not just a placeholder)
-                (goal.goal?.weeklyTarget ?? 0) > 0 &&
+                // Goal has a schedule and weekly target (is a real goal, not just inactive)
+                goal.isActiveGoal &&
                 // Not yet completed
                 !goal.hasMetDailyTarget
             }
@@ -146,40 +166,63 @@ extension ContextualSection {
         return sections
     }
     
-    private static func generateRecommendedExplanation(for sessions: [GoalSession]) -> String {
-        // Collect all unique recommendation reasons
-        let allReasons = Set(sessions.flatMap { $0.recommendationReasons })
+    /// Identify sessions that are "working off-schedule" - not scheduled for today but with recent activity
+    private static func identifyOffScheduleSessions(
+        _ sessions: [GoalSession],
+        currentDate: Date
+    ) -> [GoalSession] {
+        let calendar = Calendar.current
+        let oneDayAgo = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
         
-        // Prioritize reasons
-        let priorityReasons: [RecommendationReason] = [
-            .constrained, .weather, .quickFinish, .preferredTime, 
-            .energyLevel, .weeklyProgress, .usualTime
-        ]
-        
-        // Find the most important reason present
-        if let topReason = priorityReasons.first(where: { allReasons.contains($0) }) {
-            switch topReason {
-            case .constrained:
-                return "Time-sensitive tasks available only during this window"
-            case .weather:
-                return "Perfect conditions for outdoor activities"
-            case .quickFinish:
-                return "Quick wins - almost done with these"
-            case .preferredTime:
-                return "Your preferred time slots for focused work"
-            case .energyLevel:
-                return "Peak energy time for high-focus tasks"
-            case .weeklyProgress:
-                return "Catch up on weekly targets"
-            case .usualTime:
-                return "Tasks you typically do around this time"
-            default:
-                break
+        return sessions.filter { session in
+            guard let goal = session.goal else { return false }
+            
+            // Check if goal has a schedule
+            guard goal.hasSchedule else { return false }
+            
+            // Check if NOT scheduled for today using dailyTarget (most reliable indicator)
+            // dailyTarget == 0 means not scheduled for today
+            guard session.dailyTarget == 0 else { 
+                return false 
             }
+            
+            // Now check if it meets any of the "working off-schedule" criteria:
+            
+            // 1. Created within last 24 hours
+            if let createdDate = session.day?.startDate,
+               createdDate >= oneDayAgo {
+                return true
+            }
+            
+            // 2. Has logged time today (elapsedTime > 0)
+            if session.elapsedTime > 0 {
+                return true
+            }
+            
+            return false
+        }
+    }
+    
+    /// Generate explanation for off-schedule sessions
+    private static func generateOffScheduleExplanation(for sessions: [GoalSession]) -> String {
+        // Check reasons
+        let hasNewGoals = sessions.contains { session in
+            guard let createdDate = session.day?.startDate else { return false }
+            let oneDayAgo = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+            return createdDate >= oneDayAgo
         }
         
-        // Default explanation
-        return "Best tasks to tackle right now"
+        let hasActiveWork = sessions.contains { $0.elapsedTime > 0 }
+        
+        if hasNewGoals && hasActiveWork {
+            return "Recently added goals with progress today"
+        } else if hasNewGoals {
+            return "Recently added goals you can start now"
+        } else if hasActiveWork {
+            return "Goals you're working on outside their schedule"
+        }
+        
+        return "Goals with activity outside their scheduled days"
     }
     
     private static func groupByConstraints(

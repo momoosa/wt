@@ -67,6 +67,16 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
     }
 }
 
+// MARK: - Active Goal Helpers
+
+extension GoalSession {
+    /// Check if this session represents an active goal (has schedule and weekly target)
+    public var isActiveGoal: Bool {
+        guard let goal = goal else { return false }
+        return goal.hasSchedule && (goal.weeklyTarget ?? 0) > 0
+    }
+}
+
 @Model
 public final class GoalSession: SessionProgressProvider {
     public var id: UUID = UUID()
