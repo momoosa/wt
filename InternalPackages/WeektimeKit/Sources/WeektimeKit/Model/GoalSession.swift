@@ -77,6 +77,52 @@ extension GoalSession {
     }
 }
 
+// MARK: - Theme Helpers
+
+import SwiftUI
+
+extension GoalSession {
+    /// Get the goal's theme, or default theme if no theme is set
+    public var theme: Theme {
+        goal?.primaryTag?.theme ?? Theme.default
+    }
+    
+    /// Get the goal's theme preset, or default preset if no theme is set
+    public var themePreset: ThemePreset {
+        goal?.primaryTag?.themePreset ?? themePresets[0]
+    }
+    
+    /// Get the theme's dark color, or gray if no theme is set
+    public var themeDark: Color {
+        goal?.primaryTag?.themePreset.dark ?? .gray
+    }
+    
+    /// Get the theme's neon color, or gray if no theme is set
+    public var themeNeon: Color {
+        goal?.primaryTag?.themePreset.neon ?? .gray
+    }
+    
+    /// Get the theme's light color, or gray if no theme is set
+    public var themeLight: Color {
+        goal?.primaryTag?.themePreset.light ?? .gray
+    }
+    
+    /// Get the theme's gradient, or default gradient if no theme is set
+    public var themeGradient: LinearGradient {
+        goal?.primaryTag?.themePreset.gradient ?? themePresets[0].gradient
+    }
+    
+    /// Get the theme's color for the current color scheme
+    public func themeColor(for colorScheme: ColorScheme) -> Color {
+        goal?.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
+    }
+    
+    /// Get the theme's text color for the current color scheme
+    public func themeTextColor(for colorScheme: ColorScheme) -> Color {
+        goal?.primaryTag?.theme.textColor(for: colorScheme) ?? .primary
+    }
+}
+
 @Model
 public final class GoalSession: SessionProgressProvider {
     public var id: UUID = UUID()
@@ -236,7 +282,7 @@ public extension GoalSession {
     }
     
     /// Update the HealthKit time for this session
-    func updateHealthKitTime(_ time: TimeInterval) {
+    public func updateHealthKitTime(_ time: TimeInterval) {
         healthKitTime = time
     }
     

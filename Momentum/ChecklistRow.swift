@@ -12,7 +12,7 @@ struct ChecklistRow: View {
     @Environment(\.editMode) var editMode
     @Bindable var item: ChecklistItemSession
     var body: some View {
-        let color = item.session?.goal?.primaryTag?.theme.dark ?? Theme.default.dark
+        let color = item.session?.theme.dark ?? Theme.default.dark
         
         return HStack {
             Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")

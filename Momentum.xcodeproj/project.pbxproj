@@ -283,14 +283,14 @@
 			path = MomentumWidget;
 			sourceTree = "<group>";
 		};
-		CD75CC6F2E2FE5E700890F20 /* WeektimeTests */ = {
+		CD75CC6F2E2FE5E700890F20 /* MomentumTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = WeektimeTests;
+			path = MomentumTests;
 			sourceTree = "<group>";
 		};
-		CD75CC792E2FE5E800890F20 /* WeektimeUITests */ = {
+		CD75CC792E2FE5E800890F20 /* MomentumUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = WeektimeUITests;
+			path = MomentumUITests;
 			sourceTree = "<group>";
 		};
 		CD936C1C2F562A1E00D81B86 /* MomentumWatch Watch AppTests */ = {
@@ -445,8 +445,8 @@
 				CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */,
 				CD06684D2E34B5D90063AC1F /* InternalPackages */,
 				CDEBAA342EE9FA1000C1C411 /* Momentum */,
-				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
-				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
+				CD75CC6F2E2FE5E700890F20 /* MomentumTests */,
+				CD75CC792E2FE5E800890F20 /* MomentumUITests */,
 				CD39BD302F2F633800F7265A /* MomentumWidget */,
 				CD936C1C2F562A1E00D81B86 /* MomentumWatch Watch AppTests */,
 				CD936C262F562A1E00D81B86 /* MomentumWatch Watch AppUITests */,
@@ -630,7 +630,7 @@
 				CD75CC6E2E2FE5E700890F20 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				CD75CC6F2E2FE5E700890F20 /* WeektimeTests */,
+				CD75CC6F2E2FE5E700890F20 /* MomentumTests */,
 			);
 			name = MomentumTests;
 			packageProductDependencies = (
@@ -653,7 +653,7 @@
 				CD75CC782E2FE5E800890F20 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				CD75CC792E2FE5E800890F20 /* WeektimeUITests */,
+				CD75CC792E2FE5E800890F20 /* MomentumUITests */,
 			);
 			name = MomentumUITests;
 			packageProductDependencies = (

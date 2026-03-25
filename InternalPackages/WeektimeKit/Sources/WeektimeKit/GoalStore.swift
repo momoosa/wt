@@ -70,6 +70,12 @@ public final class GoalStore {
             return nil
         }
         
+        // Ensure day is in the same context as session
+        guard day.modelContext === modelContext else {
+            print("\(errorPrefix) day is not in the same model context.")
+            return nil
+        }
+        
         guard endDate.timeIntervalSince(startDate) > 0 else {
             print("Will not create historical session: duration is zero.")
             return nil

@@ -66,9 +66,13 @@ struct GoalSessionPlannerTests {
         let eveningGoal = Goal(title: "Evening Goal", weeklyTarget: 3600)
         eveningGoal.setTimes([.evening], forWeekday: currentWeekday)
         
+        let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
+        let morningSession = GoalSession(title: morningGoal.title, goal: morningGoal, day: day)
+        let eveningSession = GoalSession(title: eveningGoal.title, goal: eveningGoal, day: day)
+        
         let (goalIDs, _) = planner.getQuickRecommendations(
             for: [morningGoal, eveningGoal],
-            goalSessions: [],
+            goalSessions: [morningSession, eveningSession],
             currentDate: morningDate
         )
         
@@ -92,6 +96,10 @@ struct GoalSessionPlannerTests {
         let goal2 = Goal(title: "Scheduled Goal", weeklyTarget: 3600)
         goal2.setTimes([.morning], forWeekday: currentWeekday)
         
+        let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
+        let session1 = GoalSession(title: goal1.title, goal: goal1, day: day)
+        let session2 = GoalSession(title: goal2.title, goal: goal2, day: day)
+        
         // Simulate low availability on scheduled days
         let weekdayAvailability: [Int: TimeInterval] = [
             currentWeekday: 300 // Only 5 minutes available
@@ -99,7 +107,7 @@ struct GoalSessionPlannerTests {
         
         let (goalIDs, _) = planner.getQuickRecommendations(
             for: [goal1, goal2],
-            goalSessions: [],
+            goalSessions: [session1, session2],
             currentDate: today,
             weekdayAvailability: weekdayAvailability
         )
@@ -127,10 +135,12 @@ struct GoalSessionPlannerTests {
         let planner = GoalSessionPlanner()
         
         let goal = Goal(title: "Single Goal", weeklyTarget: 3600)
+        let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
         
         let plan = try await planner.generateDailyPlan(
             for: [goal],
-            goalSessions: []
+            goalSessions: [session]
         )
         
         #expect(plan.sessions.count > 0)
@@ -143,15 +153,17 @@ struct GoalSessionPlannerTests {
         let planner = GoalSessionPlanner()
         
         let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
+        let session = GoalSession(title: goal.title, goal: goal, day: day)
         
         let plan1 = try await planner.generateDailyPlan(
             for: [goal],
-            goalSessions: []
+            goalSessions: [session]
         )
         
         let plan2 = try await planner.generateDailyPlan(
             for: [goal],
-            goalSessions: []
+            goalSessions: [session]
         )
         
         // Should return same cached plan

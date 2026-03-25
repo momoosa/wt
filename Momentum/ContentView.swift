@@ -198,7 +198,7 @@ struct ContentView: View {
                             )
                         }
                     )
-                    .tint(session.goal?.primaryTag?.themePreset.dark ?? .blue)
+                    .tint(session.themeDark)
                     .environment(goalStore)
                 }
             }

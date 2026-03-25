@@ -53,12 +53,12 @@ struct GoalSessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var tintColor: Color {
-        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        let theme = session.theme
         return colorScheme == .dark ? theme.light : theme.dark
     }
     
     var chartGradient: LinearGradient {
-        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        let theme = session.theme
         return LinearGradient(
             colors: [theme.dark, theme.neon],
             startPoint: .topLeading,
@@ -385,7 +385,7 @@ struct GoalSessionDetailView: View {
             (5, "T"), (6, "F"), (7, "S"), (1, "S")
         ]
         let times = Array(TimeOfDay.allCases)
-        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        let theme = session.theme
         let goal = session.goal
         
         return VStack(spacing: 4) {
@@ -797,7 +797,7 @@ struct GoalSessionDetailView: View {
                         .foregroundStyle(Color(.systemBackground))
                         .padding(4)
                         .frame(minWidth: 20)
-                        .background(Capsule().fill(session.goal?.primaryTag?.theme.dark ?? Theme.default.dark))
+                        .background(Capsule().fill(session.theme.dark))
                     Spacer()
                     Button {
                         isCreatingNewHistoricalSession = true
@@ -918,7 +918,7 @@ struct GoalSessionDetailView: View {
             // listsSection // Disabled for now
         }
         
-        let backgroundColor = (session.goal?.primaryTag?.theme.dark ?? Theme.default.dark).opacity(0.1)
+        let backgroundColor = session.theme.dark.opacity(0.1)
         
         return list
         .scrollContentBackground(.hidden)

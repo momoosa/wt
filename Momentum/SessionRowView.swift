@@ -179,28 +179,4 @@ struct SessionRowView: View {
 
 // MARK: - Convenience Extensions
 
-private extension GoalSession {
-    func themeTextColor(for colorScheme: ColorScheme) -> Color {
-        goal?.primaryTag?.theme.textColor(for: colorScheme) ?? .primary
-    }
-    
-    var themeNeon: Color {
-        goal?.primaryTag?.themePreset.neon ?? .gray
-    }
-    
-    var themeDark: Color {
-        goal?.primaryTag?.themePreset.dark ?? .gray
-    }
-    
-    var themeLight: Color {
-        goal?.primaryTag?.themePreset.light ?? .gray
-    }
-    
-    var themeGradient: LinearGradient {
-        goal?.primaryTag?.themePreset.gradient ?? themePresets[0].gradient
-    }
-    
-    func themeColor(for colorScheme: ColorScheme) -> Color {
-        goal?.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
-    }
-}
+// Theme helpers now available as public extension in MomentumKit

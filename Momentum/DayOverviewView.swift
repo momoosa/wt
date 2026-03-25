@@ -519,7 +519,7 @@ private struct PlanSessionCard: View {
     @State private var showingReason = false
     
     private var themeColor: Color {
-        session.goal?.primaryTag?.themePreset.neon ?? .blue
+        session.themeNeon
     }
     
     var body: some View {

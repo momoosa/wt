@@ -17,7 +17,7 @@ struct RecommendedSessionRowView: View {
     @AppStorage("useGradientOutline") private var useGradientOutline: Bool = false
     
     var body: some View {
-        let themePreset = session.goal?.primaryTag?.themePreset ?? themePresets[0]
+        let themePreset = session.themePreset
         let useOutline = useGradientOutline && colorScheme == .dark
         
         return SessionRowView(

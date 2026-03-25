@@ -37,8 +37,8 @@ struct NowPlayingView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    session.goal?.primaryTag?.themePreset.light ?? themePresets[0].light,
-                    session.goal?.primaryTag?.themePreset.dark ?? themePresets[0].dark
+                    session.themeLight,
+                    session.themeDark
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -113,7 +113,7 @@ struct NowPlayingView: View {
                             AngularGradient(
                                 gradient: Gradient(colors: [
                                     .white,
-                                    session.goal?.primaryTag?.themePreset.neon ?? themePresets[0].neon,
+                                    session.themeNeon,
                                     .white
                                 ]),
                                 center: .center,
@@ -216,7 +216,7 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(session.goal?.primaryTag?.themePreset.dark ?? themePresets[0].dark)
+                            .foregroundStyle(session.themeDark)
                             .frame(width: LayoutConstants.ProgressCircle.standardDiameter, height: LayoutConstants.ProgressCircle.standardDiameter)
                             .background(
                                 Circle()

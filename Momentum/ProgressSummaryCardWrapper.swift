@@ -87,7 +87,7 @@ struct ProgressSummaryCardWrapper: View {
     }
     
     var tintColor: Color {
-        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        let theme = session.theme
         return colorScheme == .dark ? theme.neon : theme.dark
     }
 
@@ -95,7 +95,7 @@ struct ProgressSummaryCardWrapper: View {
         ProgressSummaryCard(
             goalTitle: session.title,
             themeName: session.goal?.primaryTag?.title ?? "Default",
-            themeColors: session.goal?.primaryTag?.theme ?? Theme.default,
+            themeColors: session.theme,
             dailyProgress: session.progress,
             dailyElapsed: session.elapsedTime,
             dailyTarget: session.dailyTarget,
