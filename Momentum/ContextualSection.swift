@@ -15,7 +15,7 @@ struct ContextualSection: Identifiable {
     let sessions: [GoalSession]
     let explanation: String?
     
-    enum SectionType: Equatable {
+    enum SectionType: Equatable, Hashable {
         case recommendedNow
         case weatherWindow(time: String, condition: String, icon: String)
         case timeWindow(time: String, reason: String, icon: String)
@@ -23,6 +23,8 @@ struct ContextualSection: Identifiable {
         case workingOffSchedule
         case available
         case later
+        case completed
+        case inactive
         
         var title: String {
             switch self {
@@ -40,6 +42,10 @@ struct ContextualSection: Identifiable {
                 return "Available Goals"
             case .later:
                 return "Later"
+            case .completed:
+                return "Completed Today"
+            case .inactive:
+                return "Inactive"
             }
         }
         
@@ -59,6 +65,10 @@ struct ContextualSection: Identifiable {
                 return "lightbulb.fill"
             case .later:
                 return nil
+            case .completed:
+                return "checkmark.circle.fill"
+            case .inactive:
+                return "circle.dotted"
             }
         }
         
@@ -66,7 +76,7 @@ struct ContextualSection: Identifiable {
             switch self {
             case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .workingOffSchedule, .available:
                 return true
-            case .later:
+            case .later, .completed, .inactive:
                 return false
             }
         }
@@ -159,6 +169,36 @@ extension ContextualSection {
                     type: .available,
                     sessions: topAvailable,
                     explanation: explanation
+                ))
+            }
+            
+            // 6. Completed Today section (goals that have met their daily target)
+            let completedGoals = allGoals.filter { goal in
+                goal.hasMetDailyTarget && goal.dailyTarget > 0
+            }
+            
+            if !completedGoals.isEmpty {
+                sections.append(ContextualSection(
+                    type: .completed,
+                    sessions: completedGoals,
+                    explanation: nil
+                ))
+            }
+            
+            // 7. Inactive section (goals with no schedule for today and not active)
+            let inactiveGoals = allGoals.filter { goal in
+                !scheduledIDs.contains(goal.id) &&
+                goal.dailyTarget == 0 &&
+                !goal.isActiveGoal &&
+                goal.status != .skipped &&
+                goal.goal?.status != .archived
+            }
+            
+            if !inactiveGoals.isEmpty {
+                sections.append(ContextualSection(
+                    type: .inactive,
+                    sessions: inactiveGoals,
+                    explanation: nil
                 ))
             }
         }

@@ -92,18 +92,14 @@ struct SessionFilterService {
             case .activeToday:
                 // Show in Today if:
                 // 1. Not archived or skipped
-                // 2. Has a daily target OR is an active goal with a schedule (may show in Available section)
-                // 3. Not completed with "move to completed" behavior
-                let shouldHideWhenComplete = session.hasMetDailyTarget && 
-                                            session.goal?.completionBehaviors.contains(.moveToCompleted) == true
-                return !isArchived && !isSkipped && !shouldHideWhenComplete && (session.dailyTarget > 0 || session.isActiveGoal)
+                // 2. Has a daily target OR is an active goal with a schedule
+                // Note: Completed goals are now shown in their own section, not hidden
+                return !isArchived && !isSkipped && (session.dailyTarget > 0 || session.isActiveGoal)
             case .skippedSessions:
                 return isSkipped
             case .theme(let goalTheme):
                 // Same logic as activeToday for theme filters
-                let shouldHideWhenComplete = session.hasMetDailyTarget && 
-                                            session.goal?.completionBehaviors.contains(.moveToCompleted) == true
-                return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && !shouldHideWhenComplete && (session.dailyTarget > 0 || session.isActiveGoal)
+                return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && (session.dailyTarget > 0 || session.isActiveGoal)
             case .completedToday:
                 return session.hasMetDailyTarget && session.dailyTarget > 0
             case .inactive:

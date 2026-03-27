@@ -94,5 +94,13 @@ extension ContentView {
         case inactive
         case theme(GoalTag)
     }
+    
+    /// Holds a filter and its associated session count
+    struct FilterCount: Identifiable {
+        let filter: Filter
+        let count: Int
+        
+        var id: String { filter.id }
+    }
 }
 

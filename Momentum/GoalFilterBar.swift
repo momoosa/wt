@@ -12,12 +12,13 @@ import MomentumKit
 struct GoalFilterBar: View {
     let filters: [ContentView.Filter]
     @Binding var activeFilter: ContentView.Filter
-    let sessionCounts: [ContentView.Filter: Int]
+    let sessionCounts: [ContentView.FilterCount]
+    var onFilterTap: ((ContentView.Filter) -> Void)? = nil
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack {
-                ForEach(filters, id: \.self) { filter in
+                ForEach(filters, id: \.id) { filter in
                     filterChip(for: filter)
                 }
             }
@@ -54,12 +55,13 @@ struct GoalFilterBar: View {
                 withAnimation {
                     activeFilter = filter
                 }
+                onFilterTap?(filter)
             }
     }
     
     @ViewBuilder
     private func filterText(for filter: ContentView.Filter) -> some View {
-        let count = sessionCounts[filter] ?? 0
+        let count = sessionCounts.first(where: { $0.filter.id == filter.id })?.count ?? 0
         HStack {
             Text(filter.text)
             Text("\(count)")

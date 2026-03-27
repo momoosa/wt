@@ -80,6 +80,7 @@
 		CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */; };
 		CDBC06882F56C95400D87642 /* MomentumWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CDBC069A2F56C98600D87642 /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CDBC06992F56C98600D87642 /* MomentumKit */; };
+		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
 		CDEBAA382EE9FA1000C1C411 /* GoalSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* GoalSessionDetailView.swift */; };
@@ -246,6 +247,8 @@
 		CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MomentumWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDBC06742F56C95400D87642 /* MomentumWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDBC067E2F56C95400D87642 /* MomentumWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
+		CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePreviewView.swift; sourceTree = "<group>"; };
 		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
 		CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CDEBAA272EE9FA1000C1C411 /* GoalSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSessionDetailView.swift; sourceTree = "<group>"; };
@@ -554,6 +557,8 @@
 				CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */,
 				CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */,
 				CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */,
+				CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */,
+				CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -930,6 +935,7 @@
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
 				CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */,
+				CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */,
 				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,

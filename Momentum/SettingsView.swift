@@ -22,6 +22,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                
                 Section {
                     Toggle("Unlimited Sessions", isOn: $unlimitedPlannedSessions)
                     

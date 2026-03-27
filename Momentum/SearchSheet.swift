@@ -37,24 +37,8 @@ struct SearchSheet: View {
                     }
                     .listRowBackground(Color.clear)
                 } else {
-                    ForEach(availableFilters, id: \.id) { filter in
-                        if let sessions = searchResults[filter], !sessions.isEmpty {
-                            Section {
-                                ForEach(sessions) { session in
-                                    sessionRow(for: session)
-                                }
-                            } header: {
-                                HStack {
-                                    Text(filter.text)
-                                        .font(.headline)
-                                        .foregroundStyle(filter.tintColor)
-                                    Spacer()
-                                    Text("\(sessions.count)")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
+                    ForEach(searchResults) { session in
+                        sessionRow(for: session)
                     }
                 }
             }
@@ -81,8 +65,8 @@ struct SearchSheet: View {
     
     // MARK: - Search Results
     
-    /// Filter sessions by search text and group by filter
-    private var searchResults: [ContentView.Filter: [GoalSession]] {
+    /// Filter sessions by search text and sort alphabetically
+    private var searchResults: [GoalSession] {
         let matchingSessions: [GoalSession]
         
         if searchText.isEmpty {
@@ -95,17 +79,12 @@ struct SearchSheet: View {
             }
         }
         
-        var grouped: [ContentView.Filter: [GoalSession]] = [:]
-        
-        // Group by each filter
-        for filter in availableFilters {
-            let filtered = SessionFilterService.filter(matchingSessions, by: filter, validationCheck: isGoalValid)
-            if !filtered.isEmpty {
-                grouped[filter] = filtered
-            }
+        // Sort alphabetically by goal title
+        return matchingSessions.sorted { s1, s2 in
+            let title1 = s1.goal?.title ?? ""
+            let title2 = s2.goal?.title ?? ""
+            return title1.localizedStandardCompare(title2) == .orderedAscending
         }
-        
-        return grouped
     }
     
     // MARK: - Session Row

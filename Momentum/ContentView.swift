@@ -22,6 +22,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var goals: [Goal]
     @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var sessions: [GoalSession]
+    @Query private var allSessions: [GoalSession]
     let day: Day
     @State private var selectedSession: GoalSession?
     @State private var sessionIDToOpen: String?
@@ -29,6 +30,8 @@ struct ContentView: View {
     @State private var showingGoalEditor = false
     @State private var activeFilter: Filter = .activeToday
     @State private var navigationPath = NavigationPath()
+    @State private var scrollProxy: ScrollViewProxy?
+    @State private var expandedSections: Set<ContextualSection.SectionType> = [.recommendedNow, .later]
     
     // Timer manager for session tracking
     @State private var timerManager: SessionTimerManager?
@@ -84,7 +87,8 @@ struct ContentView: View {
                     GoalFilterBar(
                         filters: availableFilters,
                         activeFilter: $activeFilter,
-                        sessionCounts: sessionCountsForFilters
+                        sessionCounts: sessionCountsForFilters,
+                        onFilterTap: scrollToFilterSection
                     )
                     Spacer()
                 }
@@ -251,59 +255,42 @@ struct ContentView: View {
     // MARK: - Main List View
 
     private var mainListView: some View {
-        List {
-            // Show daily progress card once user has saved at least one session
-            Section {
+        ScrollViewReader { proxy in
+            List {
+                // Show daily progress card once user has saved at least one session
+                Section {
                 
             } footer: {
                 Spacer()
                     .frame(height: LayoutConstants.Heights.smallSpacer)
             }
 
-            if activeFilter == .activeToday {
-                Section {
-                    dailyProgressCard
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listSectionSpacing(.compact)
+            Section {
+                dailyProgressCard
             }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listSectionSpacing(.compact)
 
             if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
-                // Only show contextual sections for "Today" filter
-                if activeFilter == .activeToday {
-                    let recommendedSessions = getRecommendedSessions()
-                    let allSessions = SessionFilterService.filter(
-                        focusFilteredSessions,
-                        by: activeFilter,
-                        validationCheck: isGoalValid,
-                        weatherManager: weatherManager
-                    )
-                    
-                    // Group sessions into contextual sections
-                    let contextualSections = ContextualSection.groupSessions(
-                        allSessions,
-                        recommendedSessions: recommendedSessions,
-                        allGoals: sessions
-                    )
-                    
-                    ForEach(contextualSections) { section in
-                        contextualSectionView(section: section)
-                    }
-                } else {
-                    // For other filters, show all sessions as regular rows
-                    if !focusFilteredSessions.isEmpty {
-                        let allSessions = SessionFilterService.filter(
-                            focusFilteredSessions,
-                            by: activeFilter,
-                            validationCheck: isGoalValid,
-                            weatherManager: weatherManager
-                        )
-                        
-                        if !allSessions.isEmpty {
-                            laterSection(sessions: allSessions)
-                        }
-                    }
+                // Always show all sessions in contextual sections
+                let recommendedSessions = getRecommendedSessions()
+                let allSessionsFiltered = SessionFilterService.filter(
+                    focusFilteredSessions,
+                    by: .activeToday,  // Use activeToday logic for base filtering
+                    validationCheck: isGoalValid,
+                    weatherManager: weatherManager
+                )
+                
+                // Group sessions into contextual sections - this now includes all sections
+                let contextualSections = ContextualSection.groupSessions(
+                    allSessionsFiltered,
+                    recommendedSessions: recommendedSessions,
+                    allGoals: focusFilteredSessions  // Pass all focus-filtered sessions
+                )
+                
+                ForEach(contextualSections) { section in
+                    contextualSectionView(section: section)
                 }
                 
                 // Show planning indicator after all sessions
@@ -311,49 +298,17 @@ struct ContentView: View {
                     planningIndicatorSection
                 }
             }
-        }
+            }
 #if os(macOS)
-        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
+            .onAppear {
+                scrollProxy = proxy
+            }
+        }
     }
     
 
-    @ViewBuilder
-    private func recommendedSection(sessions: [GoalSession]) -> some View {
-        // Header section
-        Section {
-        } header: {
-            HStack {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
-                Text("Recommended Now")
-                    .font(.headline)
-            }
-        }
-        .listSectionSpacing(.compact)
-        
-        // Individual card for each recommended session
-        ForEach(sessions) { session in
-            Section {
-                RecommendedSessionRowView(
-                    session: session,
-                    day: day,
-                    timerManager: timerManager,
-                    animation: animation,
-                    selectedSession: $selectedSession,
-                    sessionToLogManually: $sessionToLogManually,
-                    onSkip: skip,
-                    onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-                    isSyncingHealthKit: isSyncingHealthKit
-                )
-            }
-            .listSectionSpacing(.compact)
-            .transition(.asymmetric(
-                insertion: .scale(scale: 0.8).combined(with: .opacity),
-                removal: .opacity
-            ))
-        }
-    }
     
     @ViewBuilder
     private func contextualSectionView(section: ContextualSection) -> some View {
@@ -379,6 +334,7 @@ struct ContentView: View {
                     }
                 }
             }
+            .id(section.type)
             .listSectionSpacing(.compact)
             
             // Individual featured cards
@@ -406,93 +362,267 @@ struct ContentView: View {
         case .weatherWindow, .timeWindow, .energyWindow:
             // Contextual time-based sections
             Section {
-                ForEach(section.sessions) { session in
-                    sessionRow(for: session)
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
                 }
             } header: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(.blue)
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
                         }
-                        Text(section.type.title)
-                            .font(.headline)
                     }
-                    
-                    if let explanation = section.explanation {
-                        Text(explanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                }) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            if let icon = section.type.icon {
+                                Image(systemName: icon)
+                                    .foregroundStyle(.blue)
+                            }
+                            Text(section.type.title)
+                                .font(.headline)
+                            if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                                Text("(\(section.sessions.count))")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        if let explanation = section.explanation, expandedSections.contains(section.type) {
+                            Text(explanation)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .buttonStyle(.plain)
             }
+            .id(section.type)
             .listSectionSpacing(.compact)
             
         case .available:
             // Available goals section (backup goals not scheduled today)
             Section {
-                ForEach(section.sessions) { session in
-                    sessionRow(for: session)
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
                 }
             } header: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(.orange)
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
                         }
-                        Text(section.type.title)
-                            .font(.headline)
                     }
-                    
-                    if let explanation = section.explanation {
-                        Text(explanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                }) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            if let icon = section.type.icon {
+                                Image(systemName: icon)
+                                    .foregroundStyle(.orange)
+                            }
+                            Text(section.type.title)
+                                .font(.headline)
+                            if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                                Text("(\(section.sessions.count))")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        if let explanation = section.explanation, expandedSections.contains(section.type) {
+                            Text(explanation)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .buttonStyle(.plain)
             }
+            .id(section.type)
             .listSectionSpacing(.compact)
             
         case .later:
             // Later section (standard rows)
             Section {
-                ForEach(section.sessions) { session in
-                    sessionRow(for: session)
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
                 }
             } header: {
-                // Show "Later" header if there are multiple sections to distinguish them
-                // (Don't show if "Later" is the only section)
-                Text(section.type.title)
-                    .font(.headline)
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
+                        }
+                    }
+                }) {
+                    HStack {
+                        Text(section.type.title)
+                            .font(.headline)
+                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            Text("(\(section.sessions.count))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
+            .id(section.type)
             .listSectionSpacing(.compact)
             
         case .workingOffSchedule:
             // Working off-schedule section
             Section {
-                ForEach(section.sessions) { session in
-                    sessionRow(for: session)
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
                 }
             } header: {
-                VStack(alignment: .leading, spacing: 4) {
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
+                        }
+                    }
+                }) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            if let icon = section.type.icon {
+                                Image(systemName: icon)
+                                    .foregroundStyle(.purple)
+                            }
+                            Text(section.type.title)
+                                .font(.headline)
+                            if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                                Text("(\(section.sessions.count))")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        if let explanation = section.explanation, expandedSections.contains(section.type) {
+                            Text(explanation)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .id(section.type)
+            .listSectionSpacing(.compact)
+            
+        case .completed:
+            // Completed Today section
+            Section {
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
+                }
+            } header: {
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
+                        }
+                    }
+                }) {
                     HStack {
                         if let icon = section.type.icon {
                             Image(systemName: icon)
-                                .foregroundStyle(.purple)
+                                .foregroundStyle(.green)
                         }
                         Text(section.type.title)
                             .font(.headline)
-                    }
-                    
-                    if let explanation = section.explanation {
-                        Text(explanation)
+                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            Text("(\(section.sessions.count))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
+                .buttonStyle(.plain)
             }
+            .id(section.type)
+            .listSectionSpacing(.compact)
+            
+        case .inactive:
+            // Inactive section
+            Section {
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
+                }
+            } header: {
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
+                        }
+                    }
+                }) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(.gray)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            Text("(\(section.sessions.count))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .id(section.type)
             .listSectionSpacing(.compact)
         }
     }
@@ -718,7 +848,17 @@ struct ContentView: View {
                 } label: {
                     Image(systemName: "target")
                 }
-                EditButton()
+                
+                #if DEBUG
+                
+
+                NavigationLink {
+                    ThemePreviewView()
+                        .modelContainer(previewOnlyContainer())
+                } label: {
+                    Text("Themes")
+                }
+                #endif
             }
         }
         
@@ -1059,12 +1199,13 @@ struct ContentView: View {
         SessionFilterService.buildAvailableFilters(from: availableGoalThemes, sessions: sessions)
     }
     
-    private var sessionCountsForFilters: [Filter: Int] {
-        var counts: [Filter: Int] = [:]
-        for filter in availableFilters {
-            counts[filter] = SessionFilterService.count(focusFilteredSessions, for: filter)
+    private var sessionCountsForFilters: [FilterCount] {
+        availableFilters.map { filter in
+            FilterCount(
+                filter: filter,
+                count: SessionFilterService.count(focusFilteredSessions, for: filter)
+            )
         }
-        return counts
     }
 
     /// Sessions pre-filtered by the active Focus filter (if any).
@@ -1162,6 +1303,44 @@ struct ContentView: View {
             return true
         } catch {
             return false
+        }
+    }
+    
+    // MARK: - Scroll to Section
+    
+    /// Scrolls to the section corresponding to the selected filter
+    private func scrollToFilterSection(_ filter: Filter) {
+        guard let proxy = scrollProxy else { return }
+        
+        // Map filter to section type
+        let targetSection: ContextualSection.SectionType?
+        
+        switch filter {
+        case .activeToday:
+            // Scroll to the "Now" section (recommended)
+            targetSection = .recommendedNow
+            
+        case .completedToday:
+            targetSection = .completed
+            
+        case .inactive:
+            targetSection = .inactive
+            
+        case .theme(_):
+            // For theme filters, scroll to "Available" section where themed goals appear
+            targetSection = .available
+            
+        case .skippedSessions:
+            // Skipped sessions don't have a dedicated section in the contextual view
+            // Just scroll to top
+            targetSection = nil
+        }
+        
+        // Scroll to the target section with animation
+        if let section = targetSection {
+            withAnimation {
+                proxy.scrollTo(section, anchor: .top)
+            }
         }
     }
     
@@ -1973,6 +2152,15 @@ struct ContentView: View {
         selectedSession = session
         
     }
+}
+
+/// Creates an isolated in-memory ModelContainer for preview purposes only
+private func previewOnlyContainer() -> ModelContainer {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    return try! ModelContainer(
+        for: Day.self, Goal.self, GoalSession.self, GoalTag.self,
+        configurations: config
+    )
 }
 
 #Preview {
