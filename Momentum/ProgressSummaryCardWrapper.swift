@@ -115,7 +115,7 @@ struct ProgressSummaryCardWrapper: View {
 struct ProgressSummaryCard: View {
     let goalTitle: String
     let themeName: String
-    let themeColors: Theme
+    let themeColors: ThemePreset
     let dailyProgress: Double
     let dailyElapsed: TimeInterval
     let dailyTarget: TimeInterval

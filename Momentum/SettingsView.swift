@@ -208,7 +208,7 @@ struct SettingsView: View {
     }
     
     private func addDebugGoal(_ debugGoal: DebugGoals) {
-        let theme = GoalTag(title: debugGoal.themeTitle, color: debugGoal.theme)
+        let theme = GoalTag(title: debugGoal.themeTitle, themeID: debugGoal.theme.id)
         let goal = Goal(
             title: debugGoal.title,
             primaryTag: theme,
@@ -307,16 +307,16 @@ enum DebugGoals: String, CaseIterable, Identifiable {
         }
     }
     
-    var theme: Theme {
+    var theme: ThemePreset {
         switch self {
-        case .reading: return themePresets.first(where: { $0.id == "blue" })!.toTheme()
-        case .exercise: return themePresets.first(where: { $0.id == "red" })!.toTheme()
-        case .meditation: return themePresets.first(where: { $0.id == "purple" })!.toTheme()
-        case .coding: return themePresets.first(where: { $0.id == "green" })!.toTheme()
-        case .music: return themePresets.first(where: { $0.id == "orange" })!.toTheme()
-        case .cooking: return themePresets.first(where: { $0.id == "yellow" })!.toTheme()
-        case .learning: return themePresets.first(where: { $0.id == "purple" })!.toTheme()
-        case .writing: return themePresets.first(where: { $0.id == "teal" })!.toTheme()
+        case .reading: return themePresets.first(where: { $0.id == "blue" })!
+        case .exercise: return themePresets.first(where: { $0.id == "red" })!
+        case .meditation: return themePresets.first(where: { $0.id == "purple" })!
+        case .coding: return themePresets.first(where: { $0.id == "green" })!
+        case .music: return themePresets.first(where: { $0.id == "orange" })!
+        case .cooking: return themePresets.first(where: { $0.id == "yellow" })!
+        case .learning: return themePresets.first(where: { $0.id == "purple" })!
+        case .writing: return themePresets.first(where: { $0.id == "teal" })!
         }
     }
     

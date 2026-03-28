@@ -18,7 +18,7 @@ struct ThemeColorHelper {
     }
     
     /// Get the appropriate accent color for a theme based on current color scheme
-    func accentColor(for theme: Theme) -> Color {
+    func accentColor(for theme: ThemePreset) -> Color {
         switch colorScheme {
         case .light:
             return theme.dark
@@ -31,12 +31,12 @@ struct ThemeColorHelper {
     
     /// Get the appropriate tint color for a goal session
     func tintColor(for session: GoalSession) -> Color {
-        return accentColor(for: session.goal?.primaryTag?.theme ?? Theme.default)
+        return accentColor(for: session.goal?.primaryTag?.theme ?? themePresets[0])
     }
     
     /// Get the appropriate tint color for a goal
     func tintColor(for goal: Goal) -> Color {
-        return accentColor(for: goal.primaryTag?.theme ?? Theme.default)
+        return accentColor(for: goal.primaryTag?.theme ?? themePresets[0])
     }
     
     /// Get the appropriate tint color for a goal tag

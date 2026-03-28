@@ -14,9 +14,6 @@ struct GoalTagWeatherTriggerTests {
     
     // MARK: - Test Helpers
     
-    func createTestTheme() -> Theme {
-        Theme(id: "test", title: "Test", light: .white, dark: .black, neon: .blue)
-    }
     
     // MARK: - Weather Matching Tests
     
@@ -24,7 +21,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithSunnyWeatherMatchesClearWeather() {
         let tag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear]
         )
         
@@ -35,7 +32,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithSunnyWeatherDoesNotMatchRainyWeather() {
         let tag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy]
         )
         
@@ -46,7 +43,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithMultipleWeatherConditionsMatchesAny() {
         let tag = GoalTag(
             title: "Outdoor Activity",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy, .cloudy]
         )
         
@@ -61,7 +58,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithoutWeatherRequirementsMatchesAnyWeather() {
         let tag = GoalTag(
             title: "Indoor Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         #expect(tag.matchesWeather(.clear) == true)
@@ -74,7 +71,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithWeatherRequirementsReturnsFalseForNilWeather() {
         let tag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear]
         )
         
@@ -85,7 +82,7 @@ struct GoalTagWeatherTriggerTests {
     func goalWithRainyWeatherPreferenceHighlyRankedWhenRaining() {
         let indoorTag = GoalTag(
             title: "Indoor Reading",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy, .stormy]
         )
         
@@ -106,7 +103,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithTemperatureRangeMatchesWithinRange() {
         let tag = GoalTag(
             title: "Outdoor Cardio",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: 10...25
         )
         
@@ -119,7 +116,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithTemperatureRangeDoesNotMatchOutsideRange() {
         let tag = GoalTag(
             title: "Outdoor Cardio",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: 10...25
         )
         
@@ -132,7 +129,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithoutTemperatureRequirementsMatchesAnyTemperature() {
         let tag = GoalTag(
             title: "Indoor Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         #expect(tag.matchesTemperature(-10) == true)
@@ -144,7 +141,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithTemperatureRequirementsReturnsFalseForNilTemperature() {
         let tag = GoalTag(
             title: "Outdoor Cardio",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: 10...25
         )
         
@@ -155,7 +152,7 @@ struct GoalTagWeatherTriggerTests {
     func coldWeatherTagMatchesLowTemperatures() {
         let winterTag = GoalTag(
             title: "Winter Sports",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.snowy],
             temperatureRange: -10...5
         )
@@ -171,7 +168,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithMorningPreferenceMatchesMorningTime() {
         let tag = GoalTag(
             title: "Morning Workout",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning]
         )
         
@@ -183,7 +180,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithMultipleTimePreferencesMatchesAny() {
         let tag = GoalTag(
             title: "Flexible Activity",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning, .afternoon, .evening]
         )
         
@@ -197,7 +194,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithoutTimePreferencesMatchesAnyTime() {
         let tag = GoalTag(
             title: "Anytime Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         #expect(tag.matchesTimeOfDay(.morning) == true)
@@ -209,7 +206,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithTimePreferencesReturnsFalseForNilTime() {
         let tag = GoalTag(
             title: "Morning Workout",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning]
         )
         
@@ -222,7 +219,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithOutdoorLocationMatchesOutdoorLocation() {
         let tag = GoalTag(
             title: "Hiking",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.outdoor]
         )
         
@@ -234,7 +231,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithMultipleLocationTypesMatchesAny() {
         let tag = GoalTag(
             title: "Flexible Workout",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.home, .gym, .outdoor]
         )
         
@@ -248,7 +245,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithoutLocationRequirementsMatchesAnyLocation() {
         let tag = GoalTag(
             title: "Anywhere Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         #expect(tag.matchesLocation(.home) == true)
@@ -262,7 +259,7 @@ struct GoalTagWeatherTriggerTests {
     func tagMatchesContextWhenAllConditionsMet() {
         let tag = GoalTag(
             title: "Perfect Morning Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy],
             temperatureRange: 10...25,
             timeOfDayPreferences: [.morning],
@@ -283,7 +280,7 @@ struct GoalTagWeatherTriggerTests {
     func tagDoesNotMatchContextWhenOneConditionFails() {
         let tag = GoalTag(
             title: "Perfect Morning Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy],
             temperatureRange: 10...25,
             timeOfDayPreferences: [.morning],
@@ -331,7 +328,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithNoRequirementsMatchesAnyContext() {
         let tag = GoalTag(
             title: "Flexible Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let matches = tag.matchesContext(
@@ -350,7 +347,7 @@ struct GoalTagWeatherTriggerTests {
     func perfectContextMatchReturnsHighScore() {
         let tag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )
@@ -367,7 +364,7 @@ struct GoalTagWeatherTriggerTests {
     func noMatchReturnsZeroScore() {
         let tag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )
@@ -384,7 +381,7 @@ struct GoalTagWeatherTriggerTests {
     func partialContextInformationReturnsZeroWhenRequiredConditionsMissing() {
         let tag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )
@@ -402,7 +399,7 @@ struct GoalTagWeatherTriggerTests {
     func singleRequirementTagReturnsFullScoreWhenMet() {
         let weatherOnlyTag = GoalTag(
             title: "Weather Dependent",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear]
         )
         
@@ -412,7 +409,7 @@ struct GoalTagWeatherTriggerTests {
         
         let tempOnlyTag = GoalTag(
             title: "Temperature Dependent",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: 15...25
         )
         
@@ -425,7 +422,7 @@ struct GoalTagWeatherTriggerTests {
     func tagWithNoRequirementsReturnsNeutralScore() {
         let tag = GoalTag(
             title: "Flexible Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let score = tag.contextMatchScore(
@@ -440,13 +437,13 @@ struct GoalTagWeatherTriggerTests {
     func goalWithSunnyWeatherRankedHigherOnSunnyDay() {
         let outdoorTag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy]
         )
         
         let indoorTag = GoalTag(
             title: "Indoor Gym",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy, .snowy]
         )
         
@@ -462,13 +459,13 @@ struct GoalTagWeatherTriggerTests {
     func goalWithRainyWeatherRankedHigherOnRainyDay() {
         let outdoorTag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy]
         )
         
         let indoorTag = GoalTag(
             title: "Indoor Reading",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy, .cloudy]
         )
         
@@ -486,7 +483,7 @@ struct GoalTagWeatherTriggerTests {
     func outdoorCardioTagMatchesPerfectRunningConditions() {
         let runningTag = GoalTag(
             title: "Morning Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy],
             temperatureRange: 10...28,
             timeOfDayPreferences: [.morning, .afternoon],
@@ -516,7 +513,7 @@ struct GoalTagWeatherTriggerTests {
     func indoorYogaTagNotAffectedByWeather() {
         let yogaTag = GoalTag(
             title: "Yoga Session",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning, .evening],
             locationTypes: [.home]
         )
@@ -543,7 +540,7 @@ struct GoalTagWeatherTriggerTests {
     func winterSportsTagOnlyMatchesColdSnowyConditions() {
         let skiingTag = GoalTag(
             title: "Skiing",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.snowy],
             temperatureRange: -10...5,
             locationTypes: [.outdoor]

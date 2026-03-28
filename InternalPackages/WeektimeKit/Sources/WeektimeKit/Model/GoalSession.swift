@@ -82,14 +82,14 @@ extension GoalSession {
 import SwiftUI
 
 extension GoalSession {
-    /// Get the goal's theme, or default theme if no theme is set
-    public var theme: Theme {
-        goal?.primaryTag?.theme ?? Theme.default
+    /// Get the goal's theme preset, or default preset if no theme is set
+    public var theme: ThemePreset {
+        goal?.primaryTag?.theme ?? themePresets[0]
     }
     
-    /// Get the goal's theme preset, or default preset if no theme is set
+    /// Alias for backward compatibility
     public var themePreset: ThemePreset {
-        goal?.primaryTag?.themePreset ?? themePresets[0]
+        theme
     }
     
     /// Get the theme's dark color, or gray if no theme is set

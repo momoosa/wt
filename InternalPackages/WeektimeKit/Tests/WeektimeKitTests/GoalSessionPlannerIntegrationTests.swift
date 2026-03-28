@@ -14,9 +14,6 @@ struct GoalSessionPlannerIntegrationTests {
     
     // MARK: - Test Helpers
     
-    func createTestTheme() -> Theme {
-        Theme(id: "test", title: "Test", light: .white, dark: .black, neon: .blue)
-    }
     
     func createTestGoalSession(goalID: String, elapsedTime: TimeInterval = 0) -> GoalSession {
         let session = GoalSession(goalID: goalID, dayID: "2026-03-19")
@@ -32,14 +29,14 @@ struct GoalSessionPlannerIntegrationTests {
         
         let outdoorTag = GoalTag(
             title: "Outdoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )
         
         let indoorTag = GoalTag(
             title: "Indoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy]
         )
         
@@ -80,13 +77,13 @@ struct GoalSessionPlannerIntegrationTests {
         
         let morningTag = GoalTag(
             title: "Morning",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning]
         )
         
         let eveningTag = GoalTag(
             title: "Evening",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.evening]
         )
         
@@ -137,7 +134,7 @@ struct GoalSessionPlannerIntegrationTests {
         
         let outdoorTag = GoalTag(
             title: "Outdoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )

@@ -50,7 +50,7 @@ struct GoalHealthKitSettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: metric.symbolName)
-                                    .foregroundStyle(goal.primaryTag?.theme.dark ?? Theme.default.dark)
+                                    .foregroundStyle(goal.primaryTag?.theme.dark ?? themePresets[0].dark)
                                 Text(metric.description)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -241,7 +241,7 @@ struct HealthKitPrivacyInfoView: View {
 
 #Preview("Settings View") {
     NavigationStack {
-        let theme = GoalTag(title: "Health", color: themePresets.first!.toTheme())
+        let theme = GoalTag(title: "Health", themeID: themePresets.first!.id)
         let goal = Goal(
             title: "Exercise",
             primaryTag: theme,

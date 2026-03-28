@@ -127,8 +127,7 @@ extension GoalStore {
         }
         
         // Create new tag with a distinct theme
-        let tealPreset = themePresets.first(where: { $0.id == "teal" })!
-        let tag = GoalTag(title: "Reminders", color: tealPreset.toTheme())
+        let tag = GoalTag(title: "Reminders", themeID: "teal")
         context.insert(tag)
         return tag
     }

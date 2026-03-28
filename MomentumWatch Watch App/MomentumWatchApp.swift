@@ -79,11 +79,8 @@ struct MomentumWatch_Watch_AppApp: App {
                     let today = Day(start: startOfDay, end: endOfDay)
                     context.insert(today)
                     
-                    // Create a sample theme and tag
-                    let sampleTheme = Theme(id: "blue", title: "Blue", light: .blue, dark: .blue, neon: .cyan)
-                    context.insert(sampleTheme)
-                    
-                    let sampleTag = GoalTag(title: "Work", color: sampleTheme)
+                    // Create a sample tag
+                    let sampleTag = GoalTag(title: "Work", themeID: "blue")
                     context.insert(sampleTag)
                     
                     // Create a sample goal

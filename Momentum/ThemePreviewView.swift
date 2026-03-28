@@ -124,10 +124,10 @@ struct ThemeDetailView: View {
         }
         
         // Create a mock tag with the theme
-        let themeObj = theme.toTheme()
+        let themeObj = theme
         let tag = GoalTag(
             title: theme.title,
-            color: themeObj
+            themeID: themeObj.id
         )
         
         // Create a mock goal
@@ -155,10 +155,10 @@ struct ThemeDetailView: View {
     
     private func createTransientMockSession() -> GoalSession {
         // Fallback method that creates completely transient objects
-        let themeObj = theme.toTheme()
+        let themeObj = theme
         let tag = GoalTag(
             title: theme.title,
-            color: themeObj
+            themeID: themeObj.id
         )
         
         let goal = Goal(
@@ -610,8 +610,8 @@ struct ComponentGroupedView: View {
     }
     
     private func createMockSession(for theme: ThemePreset) -> GoalSession {
-        let themeObj = theme.toTheme()
-        let tag = GoalTag(title: theme.title, color: themeObj)
+        let themeObj = theme
+        let tag = GoalTag(title: theme.title, themeID: themeObj.id)
         let goal = Goal(title: "Sample Goal - \(theme.title)", primaryTag: tag, weeklyTarget: 2.5 * 3600)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
         session.recommendationReasons = [RecommendationReason.userPriority, RecommendationReason.weather]

@@ -1,78 +1,6 @@
 import SwiftUI
-import SwiftData
 
-@Model
-public class Theme: Identifiable {
-    public private(set) var id: String
-    public private(set) var title: String
-    public private(set) var lightColorID: String
-    public private(set) var darkColorID: String
-    public private(set) var neonColorID: String
-    public var light: Color {
-        get {
-            Color(hex: lightColorID)
-        }
-        set {
-            lightColorID = newValue.toHex() ?? lightColorID
-        }
-    }
-    public var dark: Color {
-        get {
-            Color(hex: darkColorID)
-        }
-        set {
-            darkColorID = newValue.toHex() ?? darkColorID
-        }
-    }
-    public var neon: Color {
-        get {
-            Color(hex: neonColorID)
-        }
-        set {
-            neonColorID = newValue.toHex() ?? neonColorID
-        }
-    }
-    
-    public init(id: String, title: String, light: Color, dark: Color, neon: Color) {
-        self.id = id
-        self.title = title
-        self.lightColorID = light.toHex() ?? ""
-        self.darkColorID = dark.toHex() ?? ""
-        self.neonColorID = neon.toHex() ?? ""
-    }
-    
-    public func color(for colorScheme: ColorScheme) -> Color {
-        switch colorScheme {
-        case .light:
-            dark
-        case .dark:
-            neon
-        default:
-            light
-        }
-    }
-    
-    /// Text color optimized for the theme's gradient background
-    /// Always returns white for maximum contrast on vibrant gradients
-    public func textColor(for colorScheme: ColorScheme) -> Color {
-        // For vibrant gradient backgrounds, white provides best contrast
-        // Could be customized per theme in the future if needed
-        .white
-    }
-    
-    /// Foreground color for use on non-gradient backgrounds
-    public func foregroundColor(for colorScheme: ColorScheme) -> Color {
-        // Look up the preset to get the foreground colors
-        if let preset = themePresets.first(where: { $0.id == id }) {
-            return preset.foregroundColor(for: colorScheme)
-        }
-        // Fallback to basic black/white
-        return colorScheme == .dark ? .white : .black
-    }
-}
-
-
-// Seed data structure (not persisted)
+// Theme data structure
 public struct ThemePreset: Sendable{
     public let id: String
     public let title: String
@@ -120,10 +48,6 @@ public struct ThemePreset: Sendable{
         default:
             foregroundLight
         }
-    }
-    
-    public func toTheme() -> Theme {
-        Theme(id: id, title: title, light: light, dark: dark, neon: neon)
     }
 }
 
@@ -227,20 +151,9 @@ public let themePresets: [ThemePreset] = [
     ThemePreset(id: "slate", title: "Slate", light: Color(hex: "#E5E8EA"), dark: Color(hex: "#708090"), neon: Color(hex: "#9BB0C1"))
 ]
 
-// MARK: - Theme Extensions
+// MARK: - ThemePreset Extensions
 
-public extension Theme {
-    /// Default gray theme for when no primary tag is available
-    nonisolated(unsafe) static let `default` = Theme(
-        id: "default",
-        title: "Gray",
-        light: Color.gray.opacity(0.3),
-        dark: Color.gray,
-        neon: Color.gray.opacity(0.7)
-    )
-    
-
-    
+public extension ThemePreset {
     /// Creates a standard linear gradient for this theme
     var gradient: LinearGradient {
         LinearGradient(
@@ -270,18 +183,6 @@ public extension Theme {
         )
     }
 }
-
-public extension ThemePreset {
-    /// Creates a standard linear gradient for this theme
-    var gradient: LinearGradient {
-        LinearGradient(
-            colors: [neon, dark],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-}
-
 
 // MARK: - Preview Card
 private struct ThemePreviewCard: View {

@@ -14,9 +14,6 @@ struct GoalTagRankingTests {
     
     // MARK: - Test Helpers
     
-    func createTestTheme() -> Theme {
-        Theme(id: "test", title: "Test", light: .white, dark: .black, neon: .blue)
-    }
     
     // MARK: - Goal Ranking Tests
     
@@ -25,7 +22,7 @@ struct GoalTagRankingTests {
         // Create goals with different triggers
         let outdoorRunTag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy],
             temperatureRange: 10...28,
             timeOfDayPreferences: [.morning],
@@ -34,21 +31,21 @@ struct GoalTagRankingTests {
         
         let gymWorkoutTag = GoalTag(
             title: "Gym Workout",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning, .afternoon],
             locationTypes: [.gym]
         )
         
         let eveningYogaTag = GoalTag(
             title: "Evening Yoga",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.evening],
             locationTypes: [.home]
         )
         
         let rainyDayReadingTag = GoalTag(
             title: "Reading",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy, .cloudy],
             timeOfDayPreferences: [.morning, .afternoon]
         )
@@ -105,27 +102,27 @@ struct GoalTagRankingTests {
     func goalsRankedByContextMatchOnRainyAfternoon() {
         let outdoorRunTag = GoalTag(
             title: "Outdoor Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy],
             timeOfDayPreferences: [.morning, .afternoon]
         )
         
         let indoorReadingTag = GoalTag(
             title: "Reading",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy, .cloudy],
             timeOfDayPreferences: [.afternoon, .evening]
         )
         
         let movieWatchingTag = GoalTag(
             title: "Watch Movie",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy, .stormy]
         )
         
         let noPreferenceTag = GoalTag(
             title: "Meditation",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         // Rainy afternoon context
@@ -172,7 +169,7 @@ struct GoalTagRankingTests {
         // Very specific tag - 4 conditions
         let verySpecificTag = GoalTag(
             title: "Perfect Morning Run",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25,
             timeOfDayPreferences: [.morning],
@@ -182,7 +179,7 @@ struct GoalTagRankingTests {
         // Moderately specific tag - 2 conditions
         let moderateTag = GoalTag(
             title: "Morning Exercise",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning],
             locationTypes: [.outdoor]
         )
@@ -190,7 +187,7 @@ struct GoalTagRankingTests {
         // Less specific tag - 1 condition
         let lessSpecificTag = GoalTag(
             title: "Outdoor Activity",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.outdoor]
         )
         
@@ -229,19 +226,19 @@ struct GoalTagRankingTests {
     func goalsWithOverlappingTimePreferencesCompeteCorrectly() {
         let morningOnlyTag = GoalTag(
             title: "Morning Workout",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning]
         )
         
         let morningAfternoonTag = GoalTag(
             title: "Flexible Workout",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning, .afternoon]
         )
         
         let allDayTag = GoalTag(
             title: "Anytime Workout",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning, .midday, .afternoon, .evening, .night]
         )
         
@@ -271,7 +268,7 @@ struct GoalTagRankingTests {
         let goals: [(tag: GoalTag, name: String)] = [
             (GoalTag(
                 title: "Outdoor Cardio",
-                color: createTestTheme(),
+                themeID: "test",
                 weatherConditions: [.clear, .partlyCloudy],
                 temperatureRange: 10...30,
                 timeOfDayPreferences: [.morning, .afternoon],
@@ -280,27 +277,27 @@ struct GoalTagRankingTests {
             
             (GoalTag(
                 title: "Gym Session",
-                color: createTestTheme(),
+                themeID: "test",
                 timeOfDayPreferences: [.morning, .afternoon, .evening],
                 locationTypes: [.gym]
             ), "Gym Session"),
             
             (GoalTag(
                 title: "Rainy Day Reading",
-                color: createTestTheme(),
+                themeID: "test",
                 weatherConditions: [.rainy, .cloudy, .stormy],
                 timeOfDayPreferences: [.afternoon, .evening]
             ), "Rainy Day Reading"),
             
             (GoalTag(
                 title: "Evening Meditation",
-                color: createTestTheme(),
+                themeID: "test",
                 timeOfDayPreferences: [.evening, .night]
             ), "Evening Meditation"),
             
             (GoalTag(
                 title: "Cold Weather Hike",
-                color: createTestTheme(),
+                themeID: "test",
                 weatherConditions: [.clear, .partlyCloudy, .cloudy],
                 temperatureRange: -5...15,
                 locationTypes: [.outdoor]
@@ -308,7 +305,7 @@ struct GoalTagRankingTests {
             
             (GoalTag(
                 title: "Anytime Study",
-                color: createTestTheme()
+                themeID: "test"
             ), "Anytime Study")
         ]
         
@@ -361,19 +358,19 @@ struct GoalTagRankingTests {
     func temperatureBoundariesAffectRankingCorrectly() {
         let coldWeatherTag = GoalTag(
             title: "Cold Run",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: -10...10
         )
         
         let warmWeatherTag = GoalTag(
             title: "Warm Run",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: 15...30
         )
         
         let moderateWeatherTag = GoalTag(
             title: "Moderate Run",
-            color: createTestTheme(),
+            themeID: "test",
             temperatureRange: 5...20
         )
         
@@ -400,25 +397,25 @@ struct GoalTagRankingTests {
     func locationRequirementsCreateClearRankingDistinctions() {
         let outdoorTag = GoalTag(
             title: "Outdoor Activity",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.outdoor]
         )
         
         let homeTag = GoalTag(
             title: "Home Activity",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.home]
         )
         
         let gymTag = GoalTag(
             title: "Gym Activity",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.gym]
         )
         
         let flexibleTag = GoalTag(
             title: "Flexible Activity",
-            color: createTestTheme(),
+            themeID: "test",
             locationTypes: [.home, .gym, .outdoor]
         )
         

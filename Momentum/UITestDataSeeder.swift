@@ -194,14 +194,12 @@ class UITestDataSeeder {
     }
     
     /// Seed data with goals that have tags
-    func seedGoalsWithTags(modelContext: ModelContext, themes: [Theme]) {
+    func seedGoalsWithTags(modelContext: ModelContext) {
         do {
-            guard let theme = themes.first else { return }
-            
             // Create tags
             let fitnessTag = GoalTag(
                 title: "Fitness",
-                color: theme,
+                themeID: "red",
                 weatherConditions: [.clear, .partlyCloudy],
                 temperatureRange: 10...30,
                 timeOfDayPreferences: [.morning, .afternoon]
@@ -209,7 +207,7 @@ class UITestDataSeeder {
             
             let learningTag = GoalTag(
                 title: "Learning",
-                color: theme,
+                themeID: "blue",
                 timeOfDayPreferences: [.evening, .night]
             )
             

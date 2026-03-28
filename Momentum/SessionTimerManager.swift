@@ -875,7 +875,7 @@ public final class SessionTimerManager {
         // End any existing activity
         endLiveActivity()
         
-        let theme = session.goal?.primaryTag?.theme ?? Theme.default
+        let theme = session.goal?.primaryTag?.theme ?? themePresets[0]
         let attributes = MomentumWidgetAttributes(
             sessionID: session.id.uuidString,
             dayID: session.day?.id ?? "",

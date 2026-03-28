@@ -14,12 +14,9 @@ struct DeterministicRecommenderTests {
     
     // MARK: - Test Helpers
     
-    func createTestTheme() -> Theme {
-        Theme(id: "test", title: "Test", light: .white, dark: .black, neon: .blue)
-    }
     
     func createTestTag(title: String) -> GoalTag {
-        GoalTag(title: title, color: createTestTheme())
+        GoalTag(title: title, themeID: "test")
     }
     
     func createContext(
@@ -85,14 +82,14 @@ struct DeterministicRecommenderTests {
         
         let outdoorTag = GoalTag(
             title: "Outdoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )
         
         let indoorTag = GoalTag(
             title: "Indoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy]
         )
         
@@ -127,7 +124,7 @@ struct DeterministicRecommenderTests {
         
         let neutralTag = GoalTag(
             title: "Neutral",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let neutralGoal = Goal(
@@ -154,7 +151,7 @@ struct DeterministicRecommenderTests {
         
         let outdoorTag = GoalTag(
             title: "Outdoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25
         )
@@ -185,13 +182,13 @@ struct DeterministicRecommenderTests {
 
         let morningTag = GoalTag(
             title: "Morning",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning]
         )
 
         let eveningTag = GoalTag(
             title: "Evening",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.evening]
         )
 
@@ -237,7 +234,7 @@ struct DeterministicRecommenderTests {
         // Perfect match: morning + clear weather + outdoor
         let perfectTag = GoalTag(
             title: "Perfect",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear],
             temperatureRange: 15...25,
             timeOfDayPreferences: [.morning],
@@ -247,14 +244,14 @@ struct DeterministicRecommenderTests {
         // Partial match: morning only
         let partialTag = GoalTag(
             title: "Partial",
-            color: createTestTheme(),
+            themeID: "test",
             timeOfDayPreferences: [.morning]
         )
         
         // No match: evening + rainy
         let noMatchTag = GoalTag(
             title: "NoMatch",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.rainy],
             timeOfDayPreferences: [.evening]
         )
@@ -308,13 +305,13 @@ struct DeterministicRecommenderTests {
         
         let flexibleTag = GoalTag(
             title: "Flexible",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear, .partlyCloudy, .cloudy]
         )
         
         let strictTag = GoalTag(
             title: "Strict",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear]
         )
         
@@ -361,13 +358,13 @@ struct DeterministicRecommenderTests {
         
         let outdoorTag = GoalTag(
             title: "Outdoor",
-            color: createTestTheme(),
+            themeID: "test",
             weatherConditions: [.clear]
         )
         
         let neutralTag = GoalTag(
             title: "Neutral",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let outdoorGoal = Goal(title: "Running", primaryTag: outdoorTag, weeklyTarget: 3600)
@@ -393,7 +390,7 @@ struct DeterministicRecommenderTests {
         
         let weekendTag = GoalTag(
             title: "Weekend Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let weekendGoal = Goal(
@@ -448,7 +445,7 @@ struct DeterministicRecommenderTests {
         
         let weekendTag = GoalTag(
             title: "Weekend Activity",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let weekendGoal = Goal(
@@ -503,7 +500,7 @@ struct DeterministicRecommenderTests {
         
         let morningTag = GoalTag(
             title: "Morning",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let morningGoal = Goal(
@@ -556,7 +553,7 @@ struct DeterministicRecommenderTests {
         
         let workoutTag = GoalTag(
             title: "Workout",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let workoutGoal = Goal(
@@ -610,7 +607,7 @@ struct DeterministicRecommenderTests {
         
         let flexibleTag = GoalTag(
             title: "Flexible",
-            color: createTestTheme()
+            themeID: "test"
         )
         
         let flexibleGoal = Goal(

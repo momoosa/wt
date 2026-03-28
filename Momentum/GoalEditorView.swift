@@ -79,7 +79,7 @@ struct GoalEditorView: View {
     @State private var selectedGoalTheme: GoalTag?
     @State private var showingAddThemeSheet: Bool = false
     @State private var customThemeName: String = ""
-    @State private var selectedBaseThemeForCustom: Theme? // For creating custom themes
+    @State private var selectedBaseThemeForCustom: ThemePreset? // For creating custom themes
     @State private var isEditingThemes: Bool = false // Track edit mode for theme sheet
     @State private var showingColorPicker: Bool = false
     @State private var selectedColorPreset: ThemePreset?
@@ -1320,7 +1320,7 @@ struct GoalEditorView: View {
             print("♻️ Using existing tag: \(existing.title)")
         } else {
             // Create new tag with the category name (e.g., "Fitness") not theme color (e.g., "Green")
-            goalTheme = GoalTag(title: categoryName, color: matchedTheme)
+            goalTheme = GoalTag(title: categoryName, themeID: matchedTheme.id)
             print("✨ Created new tag: \(categoryName) with theme \(matchedTheme.title)")
         }
         
@@ -1382,15 +1382,15 @@ struct GoalEditorView: View {
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             // Use the category's theme to create a tag
             let matchedTheme = matchTheme(named: category.color)
-            finalGoalTag = GoalTag(title: category.name, color: matchedTheme)
+            finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
         } else if let selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
             let matchedTheme = matchTheme(named: themeNames[0])
-            finalGoalTag = GoalTag(title: matchedTheme.title, color: matchedTheme)
+            finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
         } else {
             // Find an unused theme, or fall back to random
             let unusedTheme = findUnusedTheme()
-            finalGoalTag = GoalTag(title: unusedTheme.title, color: unusedTheme)
+            finalGoalTag = GoalTag(title: unusedTheme.title, themeID: unusedTheme.id)
         }
         
         // Debug print day-time schedule
@@ -1800,8 +1800,7 @@ struct GoalEditorView: View {
             selectedGoalTheme = selectedTags[0]
         } else {
             // No tags exist - create new tag with selected color
-            let theme = Theme(id: preset.id, title: preset.title, light: preset.light, dark: preset.dark, neon: preset.neon)
-            let newTag = GoalTag(title: preset.title, color: theme)
+            let newTag = GoalTag(title: preset.title, themeID: preset.id)
             selectedGoalTheme = newTag
             selectedTags.append(newTag)
         }
@@ -1810,7 +1809,7 @@ struct GoalEditorView: View {
     }
     
     /// Match a theme name to an actual Theme from the themes array
-    func matchTheme(named themeName: String) -> Theme {
+    func matchTheme(named themeName: String) -> ThemePreset {
         let normalizedThemeName = themeName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Direct mapping for suggestion themes to theme preset IDs
@@ -1828,23 +1827,23 @@ struct GoalEditorView: View {
         // Check if this is a known theme name
         if let presetId = themeMapping[normalizedThemeName] {
             if let match = themePresets.first(where: { $0.id == presetId }) {
-                return match.toTheme()
+                return match
             }
         }
         
         // Try exact match first
         if let exactMatch = themePresets.first(where: { $0.title.lowercased() == normalizedThemeName }) {
-            return exactMatch.toTheme()
+            return exactMatch
         }
         
         // Try partial match
         if let partialMatch = themePresets.first(where: { $0.title.lowercased().contains(normalizedThemeName) }) {
-            return partialMatch.toTheme()
+            return partialMatch
         }
         
         // Try reverse match (theme name contains the search term)
         if let reverseMatch = themePresets.first(where: { normalizedThemeName.contains($0.title.lowercased()) }) {
-            return reverseMatch.toTheme()
+            return reverseMatch
         }
         
         // Category-based matching for suggestion categories
@@ -1862,7 +1861,7 @@ struct GoalEditorView: View {
         for (category, themeId) in categoryKeywords {
             if normalizedThemeName.contains(category) {
                 if let match = themePresets.first(where: { $0.id == themeId }) {
-                    return match.toTheme()
+                    return match
                 }
             }
         }
@@ -1941,28 +1940,28 @@ struct GoalEditorView: View {
         
         for (keyword, themeId) in themeKeywords {
             if normalizedThemeName.contains(keyword) {
-                if let match = themePresets.first(where: { $0.id == themeId })?.toTheme() {
+                if let match = themePresets.first(where: { $0.id == themeId }) {
                     return match
                 }
             }
         }
         
         // Default fallback - use "general" theme
-        return themePresets.first(where: { $0.id == "general" })?.toTheme() ?? themePresets[0].toTheme()
+        return themePresets.first(where: { $0.id == "general" }) ?? themePresets[0]
     }
     
     /// Find a theme that isn't currently used by any active goal
-    func findUnusedTheme() -> Theme {
+    func findUnusedTheme() -> ThemePreset {
         // Get all theme IDs currently in use by active goals
         let usedThemeIDs = Set(allGoals.filter { $0.status == .active }.compactMap { $0.primaryTag?.themeID })
         
         // Find first unused theme
         if let unusedPreset = themePresets.first(where: { !usedThemeIDs.contains($0.id) }) {
-            return unusedPreset.toTheme()
+            return unusedPreset
         }
         
         // If all themes are used, return a random one
-        return (themePresets.randomElement() ?? themePresets[0]).toTheme()
+        return (themePresets.randomElement() ?? themePresets[0])
     }
     
     func generateChecklist(for input: String) {
@@ -2152,16 +2151,16 @@ struct CategoryTab: View {
         ]
         
         let normalizedName = category.name.lowercased()
-        var matchedTheme: Theme?
+        var matchedTheme: ThemePreset?
         
         // Try to find matching theme
         if let themeId = themeKeywords[normalizedName] {
-            matchedTheme = themePresets.first(where: { $0.id == themeId })?.toTheme()
+            matchedTheme = themePresets.first(where: { $0.id == themeId })
         }
         
         // Fallback to first theme with matching title
         if matchedTheme == nil {
-            matchedTheme = themePresets.first(where: { $0.title.lowercased() == normalizedName })?.toTheme()
+            matchedTheme = themePresets.first(where: { $0.title.lowercased() == normalizedName })
         }
         
         // Use matched theme colors or fallback to category color
@@ -2234,7 +2233,7 @@ extension Color {
 // MARK: - Theme Color Button
 
 struct ThemeColorButton: View {
-    let theme: Theme
+    let theme: ThemePreset
     let isSelected: Bool
     let action: () -> Void
     
@@ -2321,7 +2320,7 @@ struct QuickPresetButton: View {
 // MARK: - Suggested Theme Card
 
 struct SuggestedThemeCard: View {
-    let theme: Theme
+    let theme: ThemePreset
     let isSelected: Bool
     let action: () -> Void
     
@@ -2471,7 +2470,7 @@ struct TagSelectionSheet: View {
                                 .multilineTextAlignment(.center)
                             
                             Button {
-                                let predefined = GoalTag.predefinedSmartTags(themes: themePresets.map { $0.toTheme() })
+                                let predefined = GoalTag.predefinedSmartTags()
                                 for tag in predefined {
                                     if !allTags.contains(where: { $0.title == tag.title }) {
                                         modelContext.insert(tag)
@@ -2518,7 +2517,7 @@ struct TagSelectionSheet: View {
                         // Action buttons
                         VStack(spacing: 12) {
                             Button {
-                                let predefined = GoalTag.predefinedSmartTags(themes: themePresets.map { $0.toTheme() })
+                                let predefined = GoalTag.predefinedSmartTags()
                                 for tag in predefined {
                                     if !allTags.contains(where: { $0.title == tag.title }) {
                                         modelContext.insert(tag)

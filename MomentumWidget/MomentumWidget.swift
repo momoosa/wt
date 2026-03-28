@@ -210,7 +210,7 @@ struct Provider: AppIntentTimelineProvider {
                 return RecommendedSession(
                     id: session.id,
                     title: session.title,
-                    theme: session.goal?.primaryTag?.theme ?? Theme.default,
+                    theme: session.goal?.primaryTag?.theme ?? themePresets[0],
                     progress: session.progress,
                     formattedTime: session.formattedTime,
                     hasMetTarget: session.hasMetDailyTarget,
@@ -232,7 +232,7 @@ struct Provider: AppIntentTimelineProvider {
 struct RecommendedSession: Identifiable {
     let id: UUID
     let title: String
-    let theme: Theme
+    let theme: ThemePreset
     let progress: Double
     let formattedTime: String
     let hasMetTarget: Bool
@@ -610,7 +610,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themePresets.first(where: { $0.id == "blue" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "blue" })!,
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
@@ -619,14 +619,14 @@ struct MomentumWidget: Widget {
             isHealthKitSynced: false,
             supportsWrite: true,
             isPinned: false,
-            timerStartDate: nil,
+            timerStartDate: nil as Date?,
             elapsedTime: 900,
             dailyTarget: 1800
         ),
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themePresets.first(where: { $0.id == "red" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "red" })!,
             progress: 0.75,
             formattedTime: "20m / 25m",
             hasMetTarget: false,
@@ -642,7 +642,7 @@ struct MomentumWidget: Widget {
 //        RecommendedSession(
 //            id: UUID(),
 //            title: "Meditation",
-//            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
+//            theme: themePresets.first(where: { $0.id == "purple" })!,
 //            progress: 1.0,
 //            formattedTime: "10m / 10m",
 //            hasMetTarget: true,
@@ -665,7 +665,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themePresets.first(where: { $0.id == "blue" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "blue" })!,
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
@@ -681,7 +681,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themePresets.first(where: { $0.id == "red" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "red" })!,
             progress: 0.75,
             formattedTime: "20m / 25m",
             hasMetTarget: false,
@@ -697,7 +697,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Meditation",
-            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "purple" })!,
             progress: 1.0,
             formattedTime: "10m / 10m",
             hasMetTarget: true,
@@ -719,7 +719,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themePresets.first(where: { $0.id == "blue" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "blue" })!,
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
@@ -735,7 +735,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themePresets.first(where: { $0.id == "red" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "red" })!,
             progress: 0.75,
             formattedTime: "20m / 25m",
             hasMetTarget: false,
@@ -751,7 +751,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Meditation",
-            theme: themePresets.first(where: { $0.id == "purple" })!.toTheme(),
+            theme: themePresets.first(where: { $0.id == "purple" })!,
             progress: 1.0,
             formattedTime: "10m / 10m",
             hasMetTarget: true,

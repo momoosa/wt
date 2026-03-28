@@ -247,7 +247,7 @@ public extension Goal {
 
 public extension Goal {
     func tintColor(for colorScheme: ColorScheme) -> Color {
-        return primaryTag?.theme.color(for: colorScheme) ?? Theme.default.color(for: colorScheme)
+        return primaryTag?.theme.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
     }
     
     // MARK: - Weather Helpers
