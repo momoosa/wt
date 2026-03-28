@@ -50,8 +50,8 @@ struct SessionTimerManagerTests {
         GoalStore()
     }
     
-    func createTestTheme() -> Theme {
-        Theme(id: "test", title: "Test", light: .white, dark: .black, neon: .blue)
+    func createTestTheme() -> ThemePreset {
+        ThemePreset(id: "test", title: "Test", light: .white, dark: .black, neon: .blue)
     }
     
     func createTestGoal(title: String, weeklyTarget: TimeInterval = 3600, context: ModelContext) -> Goal {

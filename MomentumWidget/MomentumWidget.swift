@@ -425,7 +425,7 @@ struct MediumWidgetCell: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(session.theme.neon)
                     
                     HStack(spacing: 4) {
                         if session.isTimerActive {
@@ -439,12 +439,14 @@ struct MediumWidgetCell: View {
                             let effectiveStart = startDate.addingTimeInterval(-session.elapsedTime)
                             Text(timerInterval: effectiveStart...Date.distantFuture, countsDown: false)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         } else {
                             Text(session.formattedTime)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
                         }
                         
                         Spacer(minLength: 0)
@@ -458,30 +460,23 @@ struct MediumWidgetCell: View {
                 // Read-only HealthKit: Show pencil icon (opens app for manual entry)
                 Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
                     Image(systemName: "pencil.circle.fill")
-                        .foregroundStyle(.white)
+                        .foregroundStyle(session.theme.neon)
                 }
                 .opacity(0.6)
             } else {
                 // Regular or writable HealthKit: Show play/stop button
                 Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
                     Image(systemName: session.isTimerActive ? "stop.circle.fill" : "play.circle.fill")
-                        .foregroundStyle(.white)
+                        .foregroundStyle(session.theme.neon)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(6)
-        .background(
-            LinearGradient(
-                colors: [
-                    session.theme.neon,
-                    session.theme.dark
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(8)
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        }
 
     }
 }

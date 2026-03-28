@@ -22,7 +22,7 @@ public final class GoalTag {
     @Relationship(deleteRule: .nullify, inverse: \Goal.otherTags)
     public var goalsAsOther: [Goal]? = []
     
-    // Computed property to get the theme preset
+    // Computed property to get the theme presMet
     public var theme: ThemePreset {
         themePresets.first(where: { $0.id == themeID }) ?? themePresets[0]
     }
