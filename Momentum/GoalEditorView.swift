@@ -865,16 +865,7 @@ struct GoalEditorView: View {
         .sheet(isPresented: $showingColorPicker) {
             ColorPickerSheet(
                 selectedColorPreset: $selectedColorPreset,
-                onSelect: { preset in
-                    selectedColorPreset = preset
-                    
-                    // If there's an existing tag selected, update its color
-                    if !selectedTags.isEmpty {
-                        selectedTags[0].themeID = preset.id
-                    }
-                    
-                    showingColorPicker = false
-                }
+                onSelect: handleColorSelection
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -1200,8 +1191,18 @@ struct GoalEditorView: View {
     
     // MARK: - Active Days Management
     
-    @State private var activeDays: Set<Int> = Set(2...6) // Default: Monday-Friday
-    @State private var dailyTargets: [Int: Int] = Dictionary(uniqueKeysWithValues: (2...6).map { ($0, 10) }) // Default 10 min for weekdays
+    @State private var activeDays: Set<Int> = {
+        let today = Calendar.current.component(.weekday, from: Date())
+        var days = Set(2...6) // Monday-Friday
+        days.insert(today) // Always include today
+        return days
+    }()
+    @State private var dailyTargets: [Int: Int] = {
+        let today = Calendar.current.component(.weekday, from: Date())
+        var targets = Dictionary(uniqueKeysWithValues: (2...6).map { ($0, 10) }) // 10 min for weekdays
+        targets[today] = 10 // Ensure today is included
+        return targets
+    }()
     @State private var expandedDay: Int? = nil // Track which day row is expanded (accordion-style)
     
     private func toggleActiveDay(_ weekday: Int) {
@@ -1785,6 +1786,27 @@ struct GoalEditorView: View {
         }
         
         return nil
+    }
+    
+    /// Handle color selection from the color picker
+    private func handleColorSelection(_ preset: ThemePreset) {
+        selectedColorPreset = preset
+        
+        // Update existing tag or create new one
+        if let currentTheme = selectedGoalTheme {
+            currentTheme.themeID = preset.id
+        } else if !selectedTags.isEmpty {
+            selectedTags[0].themeID = preset.id
+            selectedGoalTheme = selectedTags[0]
+        } else {
+            // No tags exist - create new tag with selected color
+            let theme = Theme(id: preset.id, title: preset.title, light: preset.light, dark: preset.dark, neon: preset.neon)
+            let newTag = GoalTag(title: preset.title, color: theme)
+            selectedGoalTheme = newTag
+            selectedTags.append(newTag)
+        }
+        
+        showingColorPicker = false
     }
     
     /// Match a theme name to an actual Theme from the themes array

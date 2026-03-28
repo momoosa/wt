@@ -68,7 +68,7 @@ struct RecommendedSessionRowView: View {
             }
         }
         .padding()
-        .foregroundStyle(useOutline ? .primary : themePreset.textColor(for: colorScheme))
+        .foregroundStyle(useOutline ? .primary : themePreset.foregroundColor(for: colorScheme))
         .listRowInsets(EdgeInsets())
         .listRowBackground(
             Group {

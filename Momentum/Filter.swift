@@ -88,6 +88,22 @@ extension ContentView {
                 return tag.theme.dark
             }
         }
+        
+        func foregroundColor(for colorScheme: ColorScheme) -> Color {
+            switch self {
+            case .activeToday:
+                return colorScheme == .dark ? .white : .black
+            case .completedToday:
+                return colorScheme == .dark ? .white : .black
+            case .skippedSessions:
+                return colorScheme == .dark ? .white : .black
+            case .inactive:
+                return colorScheme == .dark ? .white : .black
+            case .theme(let tag):
+                return tag.theme.foregroundColor(for: colorScheme)
+            }
+        }
+        
         case activeToday
         case completedToday
         case skippedSessions

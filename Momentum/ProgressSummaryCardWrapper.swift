@@ -146,7 +146,7 @@ struct ProgressSummaryCard: View {
     
     // Get text color optimized for the theme gradient
     private var textColor: Color {
-        themeColors.textColor(for: colorScheme)
+        themeColors.foregroundColor(for: colorScheme)
     }
     
     var body: some View {
