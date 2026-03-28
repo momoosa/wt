@@ -199,12 +199,14 @@ struct SettingsView: View {
     }
     
     private func addDebugGoals() {
+        #if DEBUG
         for debugGoal in DebugGoals.allCases {
             addDebugGoal(debugGoal)
         }
         
         // Add historical sessions for the previous week to test weekly progress chart
         addDebugHistoricalSessions()
+        #endif
     }
     
     private func addDebugGoal(_ debugGoal: DebugGoals) {

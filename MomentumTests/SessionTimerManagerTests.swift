@@ -370,7 +370,7 @@ struct SessionTimerManagerTests {
     // MARK: - External Changes Tests
     
     @Test("External change callback is called when detected")
-    func externalChangeCallbackIsCalled() {
+    func externalChangeCallbackIsCalled() async {
         cleanupUserDefaults()
         let context = createTestContext()
         let goalStore = createTestGoalStore(context: context)
@@ -405,8 +405,10 @@ struct SessionTimerManagerTests {
             object: nil
         )
         
-        // Give notification time to process
-        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        // Wait for async Task to complete - the callback is called in Task { @MainActor in }
+        // We need to yield to the main actor to allow the task to run
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         
         #expect(callbackCalled == true)
         

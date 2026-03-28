@@ -63,6 +63,8 @@
 		CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD4B2F2F66EF00F7265A /* MomentumKit */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
 		CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */; };
+		CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */; };
+		CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -225,6 +227,8 @@
 		CD39BD4D2F2F677200F7265A /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
 		CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverviewView.swift; sourceTree = "<group>"; };
+		CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorViewModel.swift; sourceTree = "<group>"; };
+		CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorHelpers.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -421,6 +425,7 @@
 			isa = PBXGroup;
 			children = (
 				CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */,
+				CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -559,6 +564,7 @@
 				CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */,
 				CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */,
 				CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */,
+				CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -876,6 +882,7 @@
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
 				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
+				CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */,
@@ -892,6 +899,7 @@
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
+				CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
