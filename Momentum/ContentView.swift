@@ -314,29 +314,7 @@ struct ContentView: View {
     private func contextualSectionView(section: ContextualSection) -> some View {
         switch section.type {
         case .recommendedNow:
-            // Recommended Now section with featured card style
-            Section {
-            } header: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(.yellow)
-                        }
-                        Text(section.type.title)
-                            .font(.headline)
-                    }
-                    
-                    if let explanation = section.explanation {
-                        Text(explanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
+  
             // Individual featured cards
             ForEach(section.sessions) { session in
                 Section {
@@ -351,6 +329,19 @@ struct ContentView: View {
                         onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
                         isSyncingHealthKit: isSyncingHealthKit
                     )
+                } header: {
+                    if session == section.sessions.first {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+        //                        if let icon = section.type.icon { // TODO:
+        //                            Image(systemName: icon)
+        //                                .foregroundStyle(.yellow)
+        //                        }
+                                Text(section.type.title)
+                                    .font(.headline)
+                            }
+                        }
+                    }
                 }
                 .listSectionSpacing(.compact)
                 .transition(.asymmetric(
@@ -457,43 +448,6 @@ struct ContentView: View {
             .id(section.type)
             .listSectionSpacing(.compact)
             
-        case .later:
-            // Later section (standard rows)
-            Section {
-                if expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
-                        } else {
-                            expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    HStack {
-                        Text(section.type.title)
-                            .font(.headline)
-                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                            Text("(\(section.sessions.count))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
         case .workingOffSchedule:
             // Working off-schedule section
             Section {
@@ -536,6 +490,43 @@ struct ContentView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .id(section.type)
+            .listSectionSpacing(.compact)
+            
+        case .later:
+            // Later section (standard rows)
+            Section {
+                if expandedSections.contains(section.type) {
+                    ForEach(section.sessions) { session in
+                        sessionRow(for: session)
+                    }
+                }
+            } header: {
+                Button(action: {
+                    withAnimation {
+                        if expandedSections.contains(section.type) {
+                            expandedSections.remove(section.type)
+                        } else {
+                            expandedSections.insert(section.type)
+                        }
+                    }
+                }) {
+                    HStack {
+                        Text(section.type.title)
+                            .font(.headline)
+                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            Text("(\(section.sessions.count))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .buttonStyle(.plain)

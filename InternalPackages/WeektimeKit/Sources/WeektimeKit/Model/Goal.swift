@@ -36,6 +36,8 @@ public final class Goal {
     // HealthKit Integration
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
     public var healthKitSyncEnabled: Bool = false // Whether to sync time from HealthKit
+    public var secondaryMetricsRawValues: [String] = [] // Stores secondary HealthKitMetric raw values (e.g., steps for walking goals)
+    public var secondaryMetricTargets: [String: Double] = [:] // Daily targets for secondary metrics (e.g., ["step_count": 10000])
     
     // Time of Day Preferences (for AI planner)
     public var preferredTimesOfDay: [String] = [] // e.g., ["morning", "afternoon", "evening", "night"]
@@ -157,6 +159,30 @@ public extension Goal {
             
             // Keep completionNotificationsEnabled in sync for backward compatibility
             completionNotificationsEnabled = newValue.contains(.notify)
+        }
+    }
+    
+    /// Secondary metrics for this goal (e.g., steps for walking)
+    var secondaryMetrics: [HealthKitMetric] {
+        get {
+            secondaryMetricsRawValues.compactMap { HealthKitMetric(rawValue: $0) }
+        }
+        set {
+            secondaryMetricsRawValues = newValue.map { $0.rawValue }
+        }
+    }
+    
+    /// Get the daily target for a secondary metric
+    func secondaryMetricTarget(for metric: HealthKitMetric) -> Double? {
+        secondaryMetricTargets[metric.rawValue]
+    }
+    
+    /// Set the daily target for a secondary metric
+    func setSecondaryMetricTarget(_ target: Double?, for metric: HealthKitMetric) {
+        if let target = target {
+            secondaryMetricTargets[metric.rawValue] = target
+        } else {
+            secondaryMetricTargets.removeValue(forKey: metric.rawValue)
         }
     }
     

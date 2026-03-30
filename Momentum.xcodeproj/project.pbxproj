@@ -63,6 +63,10 @@
 		CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD4B2F2F66EF00F7265A /* MomentumKit */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
 		CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */; };
+		CD61DDDD2F7A6A1800701779 /* TimeTrackingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD61DDDC2F7A6A1800701779 /* TimeTrackingService.swift */; };
+		CD61DDDF2F7A6A1800701779 /* TogglService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD61DDDE2F7A6A1800701779 /* TogglService.swift */; };
+		CD61DDE12F7A6A1900701779 /* TimeTrackingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD61DDE02F7A6A1900701779 /* TimeTrackingSettingsView.swift */; };
+		CD61DDE32F7A730100701779 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD61DDE22F7A730100701779 /* KeychainHelper.swift */; };
 		CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */; };
 		CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
@@ -227,6 +231,10 @@
 		CD39BD4D2F2F677200F7265A /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
 		CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverviewView.swift; sourceTree = "<group>"; };
+		CD61DDDC2F7A6A1800701779 /* TimeTrackingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTrackingService.swift; sourceTree = "<group>"; };
+		CD61DDDE2F7A6A1800701779 /* TogglService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TogglService.swift; sourceTree = "<group>"; };
+		CD61DDE02F7A6A1900701779 /* TimeTrackingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTrackingSettingsView.swift; sourceTree = "<group>"; };
+		CD61DDE22F7A730100701779 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorViewModel.swift; sourceTree = "<group>"; };
 		CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorHelpers.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -565,6 +573,10 @@
 				CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */,
 				CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */,
 				CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */,
+				CD61DDDC2F7A6A1800701779 /* TimeTrackingService.swift */,
+				CD61DDDE2F7A6A1800701779 /* TogglService.swift */,
+				CD61DDE02F7A6A1900701779 /* TimeTrackingSettingsView.swift */,
+				CD61DDE22F7A730100701779 /* KeychainHelper.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -900,6 +912,7 @@
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */,
+				CD61DDDD2F7A6A1800701779 /* TimeTrackingService.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
@@ -912,12 +925,15 @@
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
+				CD61DDDF2F7A6A1800701779 /* TogglService.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
 				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
 				CD2A6FC12F5778EB00F5503A /* ColorConstants.swift in Sources */,
 				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
+				CD61DDE32F7A730100701779 /* KeychainHelper.swift in Sources */,
 				CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */,
+				CD61DDE12F7A6A1900701779 /* TimeTrackingSettingsView.swift in Sources */,
 				CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */,
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
 				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,

@@ -7,18 +7,23 @@
 
 import SwiftUI
 import MomentumKit
+import HealthKit
 
 struct HealthKitConfigurationView: View {
     @Binding var selectedMetric: HealthKitMetric?
     @Binding var syncEnabled: Bool
     @Binding var dailyTargetMinutes: Int?
+    @Binding var secondaryMetrics: [HealthKitMetric]
+    @Binding var secondaryMetricTargets: [String: Double]
     var currentGoal: Goal? = nil
     
     @State private var healthKitManager = HealthKitManager()
     @State private var isLoadingGoals = false
     @State private var showingGoalImportSuccess = false
+    @State private var showingSecondaryMetricPicker = false
     
     var body: some View {
+        Group {
         Section {
             NavigationLink {
                 HealthKitMetricsBrowserView(
@@ -65,6 +70,139 @@ struct HealthKitConfigurationView: View {
                 Text("Time tracked in HealthKit will be automatically added to your goal progress.")
             } else {
                 Text("Link this goal to a HealthKit metric to automatically sync your health data.")
+            }
+        }
+        
+        // Secondary Metrics Section
+        if selectedMetric != nil {
+            Section {
+                ForEach(secondaryMetrics, id: \.rawValue) { metric in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Label {
+                                Text(metric.displayName)
+                            } icon: {
+                                Image(systemName: metric.symbolName)
+                            }
+                            
+                            Spacer()
+                            
+                            Button {
+                                removeSecondaryMetric(metric)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                        HStack {
+                            Text("Daily Target:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            
+                            TextField("Target", value: Binding(
+                                get: { secondaryMetricTargets[metric.rawValue] ?? 10000 },
+                                set: { secondaryMetricTargets[metric.rawValue] = $0 }
+                            ), format: .number)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 100)
+                            
+                            Text(metric.unit == .count() ? "count" : "min")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                
+                Button {
+                    showingSecondaryMetricPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add Secondary Metric")
+                    }
+                }
+            } header: {
+                Text("Secondary Metrics")
+            } footer: {
+                Text("Track additional metrics alongside your primary time-based goal (e.g., steps during a walk).")
+            }
+        }
+        }
+        .sheet(isPresented: $showingSecondaryMetricPicker) {
+            secondaryMetricPickerSheet
+        }
+    }
+    
+    private func removeSecondaryMetric(_ metric: HealthKitMetric) {
+        secondaryMetrics.removeAll { $0 == metric }
+        secondaryMetricTargets.removeValue(forKey: metric.rawValue)
+    }
+    
+    private var secondaryMetricPickerSheet: some View {
+        NavigationStack {
+            List {
+                // Only show count-based metrics for secondary tracking
+                let countMetrics: [HealthKitMetric] = [.stepCount]
+                
+                ForEach(countMetrics, id: \.rawValue) { metric in
+                    HStack {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(metric.displayName)
+                                Text(metric.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: metric.symbolName)
+                        }
+                        
+                        Spacer()
+                        
+                        if secondaryMetrics.contains(metric) {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if !secondaryMetrics.contains(metric) {
+                            secondaryMetrics.append(metric)
+                            // Set default target based on metric
+                            switch metric {
+                            case .stepCount:
+                                secondaryMetricTargets[metric.rawValue] = 10000
+                            default:
+                                secondaryMetricTargets[metric.rawValue] = 100
+                            }
+                            
+                            // Request authorization
+                            Task {
+                                try? await healthKitManager.requestAuthorization(for: [metric])
+                            }
+                            
+                            // Don't dismiss - allow adding multiple metrics
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Add Secondary Metric")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingSecondaryMetricPicker = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showingSecondaryMetricPicker = false
+                    }
+                    .fontWeight(.semibold)
+                }
             }
         }
     }
@@ -137,7 +275,9 @@ struct HealthKitConfigurationView: View {
             HealthKitConfigurationView(
                 selectedMetric: .constant(.appleExerciseTime),
                 syncEnabled: .constant(true),
-                dailyTargetMinutes: .constant(30)
+                dailyTargetMinutes: .constant(30),
+                secondaryMetrics: .constant([]),
+                secondaryMetricTargets: .constant([:])
             )
         }
     }

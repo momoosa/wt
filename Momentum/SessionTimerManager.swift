@@ -658,6 +658,33 @@ public final class SessionTimerManager {
             endDate: endDate
         )
         
+        // Fetch secondary metrics if configured
+        if let goal = session.goal,
+           goal.healthKitSyncEnabled == true,
+           !goal.secondaryMetrics.isEmpty {
+            Task { @MainActor in
+                for metric in goal.secondaryMetrics {
+                    do {
+                        let value = try await healthKitManager.fetchCount(
+                            for: metric,
+                            from: startDate,
+                            to: endDate
+                        )
+                        
+                        // Store the value in the session
+                        session.setSecondaryMetricValue(value, for: metric)
+                        
+                        AppLogger.healthKit.info("Fetched \(metric.displayName): \(value)")
+                    } catch {
+                        AppLogger.healthKit.error("Failed to fetch \(metric.displayName): \(error)")
+                    }
+                }
+                
+                // Save context after updating secondary metrics
+                try? modelContext.save()
+            }
+        }
+        
         // Write to HealthKit if the goal has a writable metric
         if let goal = session.goal,
            let metric = goal.healthKitMetric,
@@ -680,6 +707,19 @@ public final class SessionTimerManager {
                 } catch {
                     AppLogger.healthKit.error("Failed to write session to HealthKit: \(error)")
                 }
+            }
+        }
+        
+        // Report to time tracking service if enabled
+        if let goal = session.goal, let historicalSession = historicalSession {
+            Task { @MainActor in
+                let serviceManager = TimeTrackingServiceManager()
+                try? await serviceManager.reportSession(
+                    goal: goal,
+                    duration: historicalSession.duration,
+                    startDate: startDate,
+                    notes: nil
+                )
             }
         }
         

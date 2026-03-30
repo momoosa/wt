@@ -89,7 +89,7 @@ struct ConsolidatedTodayView: View {
     // MARK: - Today View (Combined)
     
     private var todayView: some View {
-        VStack(spacing: 16) {
+        VStack {
             // Context Cards
             contextCardsSection
             

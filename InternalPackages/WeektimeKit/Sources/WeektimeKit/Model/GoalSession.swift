@@ -156,6 +156,9 @@ public final class GoalSession: SessionProgressProvider {
     /// Time tracked from HealthKit for this session (if enabled)
     public private(set) var healthKitTime: TimeInterval = 0
     
+    /// Secondary metrics tracked for this session (e.g., steps for walking)
+    public var secondaryMetricValues: [String: Double] = [:] // metricRawValue -> value
+    
     // MARK: - AI Planning Properties
     
     /// Recommended start time from AI planner
@@ -334,6 +337,20 @@ public extension GoalSession {
         } else {
             // No schedule means all days are active
             self.dailyTarget = goal.dailyTarget(for: weekday)
+        }
+    }
+    
+    /// Get the value for a secondary metric
+    public func secondaryMetricValue(for metric: HealthKitMetric) -> Double? {
+        secondaryMetricValues[metric.rawValue]
+    }
+    
+    /// Set the value for a secondary metric
+    public func setSecondaryMetricValue(_ value: Double?, for metric: HealthKitMetric) {
+        if let value = value {
+            secondaryMetricValues[metric.rawValue] = value
+        } else {
+            secondaryMetricValues.removeValue(forKey: metric.rawValue)
         }
     }
 }
