@@ -95,6 +95,25 @@ struct SessionRowView: View {
                         Spacer()
                     }
                     .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
+                    
+                    // Show secondary metrics if available
+                    if let goal = session.goal, !goal.secondaryMetrics.isEmpty {
+                        HStack(spacing: 8) {
+                            ForEach(goal.secondaryMetrics, id: \.rawValue) { metric in
+                                if let value = session.secondaryMetricValue(for: metric),
+                                   let target = goal.secondaryMetricTarget(for: metric) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: metric.symbolName)
+                                            .font(.caption2)
+                                        Text("\(Int(value))/\(Int(target))")
+                                            .font(.caption2)
+                                            .fontWeight(.medium)
+                                    }
+                                    .foregroundStyle(value >= target ? .green : .secondary)
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 Spacer()

@@ -78,10 +78,25 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    
+                    NavigationLink {
+                        TimeTrackingSettingsView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Time Tracking")
+                                Text("Sync to Toggl Track")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                 } header: {
                     Label("Integrations", systemImage: "link")
                 } footer: {
-                    Text("Enable calendar access to get goal suggestions when you actually have time to work on them. Weekend goals will be suggested on weekdays if your weekend is busy.")
+                    Text("Enable calendar access to get goal suggestions when you actually have time to work on them. Sync completed sessions to Toggl Track.")
                 }
                 
                 Section {

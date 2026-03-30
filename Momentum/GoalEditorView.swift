@@ -24,6 +24,12 @@ struct GoalEditorView: View {
     // Optional existing goal for editing
     var existingGoal: Goal?
     
+    // Helper classes for business logic
+    private let themeHelper = GoalEditorThemeHelper()
+    private let iconHelper = GoalEditorIconHelper()
+    private let validator = GoalEditorValidator()
+    private let calculator = GoalEditorCalculator()
+    
     @State private var userInput: String = ""
     @FocusState private var focusedField: Field?
     @Namespace private var buttonNamespace
@@ -47,6 +53,8 @@ struct GoalEditorView: View {
     @State private var selectedCompletionBehaviors: Set<Goal.CompletionBehavior> = []
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
+    @State private var selectedSecondaryMetrics: [HealthKitMetric] = []
+    @State private var secondaryMetricTargets: [String: Double] = [:]
     @State private var goalNotes: String = ""
     @State private var goalLink: String = ""
     @State private var checklistItems: [String] = []
@@ -496,7 +504,9 @@ struct GoalEditorView: View {
                                             }
                                         }
                                     }
-                                )
+                                ),
+                                secondaryMetrics: $selectedSecondaryMetrics,
+                                secondaryMetricTargets: $secondaryMetricTargets
                             )
                             
                             Section(header: Text("Notes & Resources")) {
@@ -1075,6 +1085,8 @@ struct GoalEditorView: View {
         selectedCompletionBehaviors = goal.completionBehaviors
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
+        selectedSecondaryMetrics = goal.secondaryMetrics
+        secondaryMetricTargets = goal.secondaryMetricTargets
         goalNotes = goal.notes ?? ""
         goalLink = goal.link ?? ""
         
@@ -1419,6 +1431,8 @@ struct GoalEditorView: View {
             goal.completionBehaviors = selectedCompletionBehaviors
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
+            goal.secondaryMetrics = selectedSecondaryMetrics
+            goal.secondaryMetricTargets = secondaryMetricTargets
             goal.notes = goalNotes.isEmpty ? nil : goalNotes
             goal.link = goalLink.isEmpty ? nil : goalLink
             
@@ -1441,6 +1455,8 @@ struct GoalEditorView: View {
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.completionBehaviors = selectedCompletionBehaviors
+                goal.secondaryMetrics = selectedSecondaryMetrics
+                goal.secondaryMetricTargets = secondaryMetricTargets
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             } else {
@@ -1459,6 +1475,8 @@ struct GoalEditorView: View {
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
                 goal.completionBehaviors = selectedCompletionBehaviors
+                goal.secondaryMetrics = selectedSecondaryMetrics
+                goal.secondaryMetricTargets = secondaryMetricTargets
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             }
@@ -1653,8 +1671,7 @@ struct GoalEditorView: View {
     
     /// Infer an appropriate icon from a goal title
     func inferIcon(from title: String) -> String? {
-        let helper = GoalEditorIconHelper()
-        return helper.inferIcon(from: title)
+        return iconHelper.inferIcon(from: title)
     }
     
     /// Handle color selection from the color picker
@@ -1679,14 +1696,12 @@ struct GoalEditorView: View {
     
     /// Match a theme name to an actual Theme from the themes array
     func matchTheme(named themeName: String) -> ThemePreset {
-        let helper = GoalEditorThemeHelper()
-        return helper.matchTheme(named: themeName)
+        return themeHelper.matchTheme(named: themeName)
     }
     
     /// Find a theme that isn't currently used by any active goal
     func findUnusedTheme() -> ThemePreset {
-        let helper = GoalEditorThemeHelper()
-        return helper.findUnusedTheme(excluding: allGoals)
+        return themeHelper.findUnusedTheme(excluding: allGoals)
     }
     
     func generateChecklist(for input: String) {
