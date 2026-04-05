@@ -12,6 +12,8 @@
 	<string>Momentum uses your location to suggest goals based on current weather conditions.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Momentum uses your calendar to suggest goals when you have available time</string>
+	<key>NSFamilyControlsUsageDescription</key>
+	<string>Momentum uses Screen Time to help you track app usage and enforce app limits when working toward your goals.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

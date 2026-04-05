@@ -40,13 +40,26 @@
           "icon": "dumbbell.fill"
         },
         {
-          "id": "daily_walk",
-          "title": "Daily Walk",
-          "subtitle": "Get moving outdoors",
-          "duration": 30,
+          "id": "daily_steps",
+          "title": "Daily Steps",
+          "subtitle": "10,000 steps per day",
+          "duration": 0,
           "dailyGoal": true,
-          "healthKitMetric": "apple_exercise_time",
+          "healthKitMetric": "step_count",
+          "goalType": "count",
+          "primaryMetricTarget": 10000,
           "icon": "figure.walk"
+        },
+        {
+          "id": "move_goal",
+          "title": "Move Goal",
+          "subtitle": "500 active calories daily",
+          "duration": 0,
+          "dailyGoal": true,
+          "healthKitMetric": "active_energy_burned",
+          "goalType": "calories",
+          "primaryMetricTarget": 500,
+          "icon": "flame.fill"
         },
         {
           "id": "daylight",

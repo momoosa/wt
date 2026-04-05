@@ -62,6 +62,8 @@ struct GoalTemplateSuggestion: Codable, Identifiable {
     let theme: String? // Deprecated: now uses category color instead
     let healthKitMetric: String? // raw value of HealthKitMetric or null
     let icon: String
+    let goalType: String? // "time", "count", or "calories" - optional for backward compatibility
+    let primaryMetricTarget: Double? // daily target for count/calorie goals
 }
 
 // MARK: - Loader

@@ -15,6 +15,19 @@ struct GoalThemeSuggestionsResponse: Codable {
     var reasoning: String? // optional explanation
 }
 
+// MARK: - Checklist Item Data
+struct ChecklistItemData: Identifiable, Equatable {
+    let id: UUID
+    var title: String
+    var notes: String
+
+    init(id: UUID = UUID(), title: String = "", notes: String = "") {
+        self.id = id
+        self.title = title
+        self.notes = notes
+    }
+}
+
 struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -45,12 +58,17 @@ struct GoalEditorView: View {
     @State private var scheduleNotificationsEnabled: Bool = false
     @State private var completionNotificationsEnabled: Bool = false
     @State private var selectedCompletionBehaviors: Set<Goal.CompletionBehavior> = []
+    @State private var selectedGoalType: Goal.GoalType = .time
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
+    @State private var primaryMetricTarget: Double = 10000 // Default target for count/calorie goals
+    @State private var showingValidationAlert: Bool = false
+    @State private var validationMessage: String = ""
     @State private var goalNotes: String = ""
     @State private var goalLink: String = ""
-    @State private var checklistItems: [String] = []
-    @State private var newChecklistItem: String = ""
+    @State private var checklistItems: [ChecklistItemData] = []
+    @State private var newChecklistItemTitle: String = ""
+    @State private var newChecklistItemNotes: String = ""
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
@@ -166,7 +184,170 @@ struct GoalEditorView: View {
         let luminance = activeThemeColor.luminance ?? 0.5
         return luminance > 0.5 ? .black : .white
     }
+
+    /// Unit label for the current goal type
+    private var goalTypeUnit: String {
+        selectedGoalType.unitLabel
+    }
     
+    /// Suggested target values based on goal type
+    private var targetSuggestions: [Int] {
+        switch selectedGoalType {
+        case .time:
+            return []
+        case .count:
+            return [5000, 7500, 10000, 12500]
+        case .calories:
+            return [200, 300, 500, 750]
+        }
+    }
+
+    /// Schedule section with goal type picker
+    @ViewBuilder
+    private var scheduleSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 16) {
+                // Goal type picker at the top
+                VStack(alignment: .leading, spacing: 12) {
+                    Picker("Goal Type", selection: $selectedGoalType) {
+                        ForEach(Goal.GoalType.allCases, id: \.self) { type in
+                            Text(type.displayName).tag(type)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: selectedGoalType) { _, newType in
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            handleGoalTypeChange(newType)
+                        }
+                    }
+
+                    // Animated target field that morphs between weekly and daily
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(selectedGoalType == .time ? "Weekly Target" : "Daily Target")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .animation(.none, value: selectedGoalType)
+                            Spacer()
+                            
+                            HStack(spacing: 4) {
+                                if selectedGoalType == .time {
+                                    Text("\(calculatedWeeklyTarget)")
+                                        .foregroundStyle(activeThemeColor)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .frame(width: 100, alignment: .trailing)
+                                        .id("weekly-value")
+                                } else {
+                                    TextField("Target", value: $primaryMetricTarget, format: .number)
+                                        .keyboardType(.numberPad)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 100)
+                                        .multilineTextAlignment(.trailing)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .id("daily-value-\(selectedGoalType.rawValue)")
+                                }
+                                
+                                Text(selectedGoalType == .time ? "min" : goalTypeUnit)
+                                    .foregroundStyle(activeThemeColor)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .id("unit-\(selectedGoalType.rawValue)")
+                            }
+                        }
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectedGoalType)
+                        
+                        // Quick suggestion buttons (only for count/calorie)
+                        if selectedGoalType != .time {
+                            HStack(spacing: 8) {
+                                Text("Common:")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                
+                                ForEach(targetSuggestions, id: \.self) { suggestion in
+                                    Button {
+                                        primaryMetricTarget = Double(suggestion)
+                                    } label: {
+                                        Text("\(suggestion)")
+                                            .font(.caption)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(Int(primaryMetricTarget) == suggestion ? activeThemeColor.opacity(0.2) : Color(.systemGray6))
+                                            )
+                                            .foregroundStyle(Int(primaryMetricTarget) == suggestion ? activeThemeColor : .secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectedGoalType)
+                }
+
+                Divider()
+
+                // Schedule configuration
+                daysList
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text(selectedGoalType == .time ? "Weekly Goal" : "Goal & Schedule")
+        } footer: {
+            if selectedGoalType != .time {
+                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(primaryMetricTarget)) \(goalTypeUnit) applies to all selected days.")
+            }
+        }
+    }
+
+    private var weeklyTargetHeader: some View {
+        Group {
+            HStack {
+                Text("Weekly Target")
+                Spacer()
+                Text("\(calculatedWeeklyTarget) min")
+                    .foregroundStyle(activeThemeColor)
+            }
+            .font(.subheadline)
+            .fontWeight(.semibold)
+
+            Divider()
+        }
+    }
+
+    private var daysList: some View {
+        VStack(spacing: 8) {
+            ForEach(weekdays, id: \.0) { weekday, name in
+                ExpandableDayRow(
+                    weekday: weekday,
+                    name: name,
+                    isActive: isDayActive(weekday),
+                    minutes: dailyTargets[weekday] ?? 30,
+                    selectedTimes: dayTimePreferences[weekday] ?? [],
+                    themeColor: activeThemeColor,
+                    isExpanded: expandedDay == weekday,
+                    showMinutes: selectedGoalType == .time,
+                    focusedField: $focusedField,
+                    onToggleDay: { toggleActiveDay(weekday) },
+                    onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
+                    onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
+                    onToggleExpand: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            expandedDay = (expandedDay == weekday) ? nil : weekday
+                        }
+                    }
+                )
+
+                if weekday != weekdays.last?.0 {
+                    Divider()
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
                     
@@ -401,53 +582,11 @@ struct GoalEditorView: View {
                                     }
                                 }
                             }
-                            Section(header: Text("Weekly Goal")) {
-                                VStack(alignment: .leading, spacing: 16) {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        HStack {
-                                            Text("Weekly Target")
-                                            Spacer()
-                                            Text("\(calculatedWeeklyTarget) min")
-                                                .foregroundStyle(activeThemeColor)
-                                        }
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
 
-                                        Divider()
-                                        
-                                        VStack(spacing: 8) {
-                                            ForEach(weekdays, id: \.0) { weekday, name in
-                                                ExpandableDayRow(
-                                                    weekday: weekday,
-                                                    name: name,
-                                                    isActive: isDayActive(weekday),
-                                                    minutes: dailyTargets[weekday] ?? 30,
-                                                    selectedTimes: dayTimePreferences[weekday] ?? [],
-                                                    themeColor: activeThemeColor,
-                                                    isExpanded: expandedDay == weekday,
-                                                    focusedField: $focusedField,
-                                                    onToggleDay: { toggleActiveDay(weekday) },
-                                                    onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
-                                                    onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
-                                                    onToggleExpand: {
-                                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                                            expandedDay = (expandedDay == weekday) ? nil : weekday
-                                                        }
-                                                    }
-                                                )
-                                                
-                                                if weekday != weekdays.last?.0 {
-                                                    Divider()
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                            
-                   
-                            
+                            scheduleSection
+
+
+
                             Section(header: Text("When Daily Goal Completes")) {
                                 ForEach(Goal.CompletionBehavior.allCases) { behavior in
                                     Toggle(isOn: Binding(
@@ -499,6 +638,11 @@ struct GoalEditorView: View {
                                 )
                             )
                             
+                            // Screen Time Configuration (only shown when editing an existing goal)
+                            if let existingGoal = existingGoal {
+                                ScreenTimeGoalConfigurationView(goal: existingGoal)
+                            }
+                            
                             Section(header: Text("Notes & Resources")) {
                                     // Notes field
                                     VStack(alignment: .leading, spacing: 4) {
@@ -536,44 +680,70 @@ struct GoalEditorView: View {
                             
                             // Checklist Section
                             Section(header: Text("Checklist")) {
-                                ForEach(Array(checklistItems.enumerated()), id: \.offset) { index, item in
+                                ForEach($checklistItems) { $item in
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Image(systemName: "circle")
+                                                .foregroundStyle(.secondary)
+                                            TextField("Title", text: $item.title)
+                                            Spacer()
+                                            Button {
+                                                if let index = checklistItems.firstIndex(where: { $0.id == item.id }) {
+                                                    checklistItems.remove(at: index)
+                                                }
+                                            } label: {
+                                                Image(systemName: "minus.circle.fill")
+                                                    .foregroundStyle(.red)
+                                            }
+                                        }
+
+                                        TextField("Notes (optional)", text: $item.notes, axis: .vertical)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2...4)
+                                            .padding(.leading, 28)
+                                    }
+                                }
+
+                                // Add new item
+                                VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Image(systemName: "circle")
                                             .foregroundStyle(.secondary)
-                                        Text(item)
-                                        Spacer()
-                                        Button {
-                                            checklistItems.remove(at: index)
-                                        } label: {
-                                            Image(systemName: "minus.circle.fill")
-                                                .foregroundStyle(.red)
-                                        }
-                                    }
-                                }
-                                
-                                // Add new item
-                                HStack {
-                                    Image(systemName: "circle")
-                                        .foregroundStyle(.secondary)
-                                    TextField("Add checklist item...", text: $newChecklistItem)
-                                        .onSubmit {
-                                            if !newChecklistItem.trimmingCharacters(in: .whitespaces).isEmpty {
-                                                checklistItems.append(newChecklistItem)
-                                                newChecklistItem = ""
+                                        TextField("Add checklist item...", text: $newChecklistItemTitle)
+                                            .onSubmit {
+                                                if !newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                    checklistItems.append(ChecklistItemData(
+                                                        title: newChecklistItemTitle,
+                                                        notes: newChecklistItemNotes
+                                                    ))
+                                                    newChecklistItemTitle = ""
+                                                    newChecklistItemNotes = ""
+                                                }
                                             }
-                                        }
-                                    
-                                    if !newChecklistItem.isEmpty {
-                                        Button {
-                                            if !newChecklistItem.trimmingCharacters(in: .whitespaces).isEmpty {
-                                                checklistItems.append(newChecklistItem)
-                                                newChecklistItem = ""
+
+                                        if !newChecklistItemTitle.isEmpty {
+                                            Button {
+                                                if !newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                    checklistItems.append(ChecklistItemData(
+                                                        title: newChecklistItemTitle,
+                                                        notes: newChecklistItemNotes
+                                                    ))
+                                                    newChecklistItemTitle = ""
+                                                    newChecklistItemNotes = ""
                                             }
                                         } label: {
                                             Image(systemName: "plus.circle.fill")
                                                 .foregroundStyle(activeThemeColor)
                                         }
                                     }
+                                }
+
+                                    TextField("Notes for new item (optional)", text: $newChecklistItemNotes, axis: .vertical)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2...4)
+                                        .padding(.leading, 28)
                                 }
                             }
                             
@@ -882,6 +1052,11 @@ struct GoalEditorView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .alert("Target Adjusted", isPresented: $showingValidationAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(validationMessage)
+        }
 
         .task {
             // Load existing goal data if editing
@@ -1029,7 +1204,70 @@ struct GoalEditorView: View {
     }
     
     // MARK: - Helper Functions
-    
+
+    /// Handle goal type changes
+    private func handleGoalTypeChange(_ newType: Goal.GoalType) {
+        switch newType {
+        case .time:
+            selectedHealthKitMetric = nil
+            healthKitSyncEnabled = false
+        case .count:
+            selectedHealthKitMetric = .stepCount
+            healthKitSyncEnabled = true
+            primaryMetricTarget = 10000
+        case .calories:
+            selectedHealthKitMetric = .activeEnergyBurned
+            healthKitSyncEnabled = true
+            primaryMetricTarget = 500
+        }
+    }
+
+    /// Validate and clamp primary metric target to reasonable ranges
+    private func validatePrimaryMetricTarget() {
+        guard primaryMetricTarget > 0 else {
+            // Set to default if zero or negative
+            switch selectedGoalType {
+            case .time:
+                primaryMetricTarget = 0
+            case .count:
+                primaryMetricTarget = 100 // Minimum 100 steps
+                validationMessage = "Target set to minimum: 100 steps"
+                showingValidationAlert = true
+            case .calories:
+                primaryMetricTarget = 50 // Minimum 50 calories
+                validationMessage = "Target set to minimum: 50 calories"
+                showingValidationAlert = true
+            }
+            return
+        }
+
+        // Clamp to reasonable maximums
+        switch selectedGoalType {
+        case .time:
+            break // No validation needed
+        case .count:
+            if primaryMetricTarget > 100000 {
+                primaryMetricTarget = 100000 // Max 100k steps
+                validationMessage = "Target adjusted to maximum: 100,000 steps"
+                showingValidationAlert = true
+            } else if primaryMetricTarget < 100 {
+                primaryMetricTarget = 100 // Min 100 steps
+                validationMessage = "Target adjusted to minimum: 100 steps"
+                showingValidationAlert = true
+            }
+        case .calories:
+            if primaryMetricTarget > 10000 {
+                primaryMetricTarget = 10000 // Max 10k calories
+                validationMessage = "Target adjusted to maximum: 10,000 calories"
+                showingValidationAlert = true
+            } else if primaryMetricTarget < 50 {
+                primaryMetricTarget = 50 // Min 50 calories
+                validationMessage = "Target adjusted to minimum: 50 calories"
+                showingValidationAlert = true
+            }
+        }
+    }
+
     /// Load existing goal data for editing
     private func loadGoalData(from goal: Goal) {
         userInput = goal.title
@@ -1073,13 +1311,30 @@ struct GoalEditorView: View {
         scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
         completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedCompletionBehaviors = goal.completionBehaviors
+        selectedGoalType = goal.goalType
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
+
+        // Load or set default primary metric target
+        if goal.primaryMetricDailyTarget > 0 {
+            primaryMetricTarget = goal.primaryMetricDailyTarget
+        } else {
+            // Set defaults based on goal type for migrated goals
+            switch goal.goalType {
+            case .time:
+                primaryMetricTarget = 0
+            case .count:
+                primaryMetricTarget = 10000 // Default: 10,000 steps
+            case .calories:
+                primaryMetricTarget = 500 // Default: 500 calories
+            }
+        }
+
         goalNotes = goal.notes ?? ""
         goalLink = goal.link ?? ""
         
         // Load checklist items
-        checklistItems = goal.checklistItems?.map { $0.title } ?? []
+        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
         
         // Load tag/theme
         selectedGoalTheme = goal.primaryTag
@@ -1353,11 +1608,26 @@ struct GoalEditorView: View {
             healthKitSyncEnabled = false
         }
         
+
+        // Set goal type if specified in template
+        if let goalTypeString = template.goalType,
+           let goalType = Goal.GoalType(rawValue: goalTypeString) {
+            selectedGoalType = goalType
+        } else {
+            selectedGoalType = .time
+        }
+
+        // Set primary metric target if specified
+        if let target = template.primaryMetricTarget {
+            primaryMetricTarget = target
+        }
+
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
         print("   Duration: \(template.duration) min")
         print("   Daily Minutes: \(dailyMinutes) min per day")
-        print("   Active Days: \(targetDays.count)")
+        print("   Goal Type: \(selectedGoalType.rawValue)")
+        print("   Primary Target: \(primaryMetricTarget)")
         print("   Theme: \(template.theme)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
@@ -1365,6 +1635,9 @@ struct GoalEditorView: View {
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
     
     func saveGoal() {
+        // Validate primary metric target before saving
+        validatePrimaryMetricTarget()
+        
         let goal: Goal
         let isEditing = existingGoal != nil
         
@@ -1417,8 +1690,10 @@ struct GoalEditorView: View {
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = completionNotificationsEnabled
             goal.completionBehaviors = selectedCompletionBehaviors
+            goal.goalType = selectedGoalType
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
+            goal.primaryMetricDailyTarget = primaryMetricTarget
             goal.notes = goalNotes.isEmpty ? nil : goalNotes
             goal.link = goalLink.isEmpty ? nil : goalLink
             
@@ -1441,6 +1716,8 @@ struct GoalEditorView: View {
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.completionBehaviors = selectedCompletionBehaviors
+                goal.goalType = selectedGoalType
+                goal.primaryMetricDailyTarget = primaryMetricTarget
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             } else {
@@ -1459,6 +1736,8 @@ struct GoalEditorView: View {
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
                 goal.completionBehaviors = selectedCompletionBehaviors
+                goal.goalType = selectedGoalType
+                goal.primaryMetricDailyTarget = primaryMetricTarget
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             }
@@ -1505,8 +1784,8 @@ struct GoalEditorView: View {
         goal.checklistItems = []
         
         // Add new checklist items
-        for itemTitle in checklistItems where !itemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-            let checklistItem = ChecklistItem(title: itemTitle, goal: goal)
+        for item in checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
+            let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
             modelContext.insert(checklistItem)
             goal.checklistItems?.append(checklistItem)
         }
@@ -1634,12 +1913,18 @@ struct GoalEditorView: View {
             )
         }
         
+        // Sync checklist changes to existing sessions
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SyncChecklistToSessions"),
+            object: goal
+        )
+
         // Reload widgets to show the new goal
         #if os(iOS)
         WidgetKit.WidgetCenter.shared.reloadAllTimelines()
         print("🔄 Reloaded all widget timelines")
         #endif
-        
+
         dismiss()
     }
     

@@ -20,6 +20,8 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
     case ellipticalTime = "elliptical_time"
     case rowingTime = "rowing_time"
     case timeInDaylight = "time_in_daylight"
+    case stepCount = "step_count"
+    case activeEnergyBurned = "active_energy_burned"
     
     public var id: String { rawValue }
     
@@ -32,6 +34,10 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
             return true // Can log meditation sessions
         case .workoutTime, .weightLiftingTime, .ellipticalTime, .rowingTime:
             return false // Read-only workout data from other apps
+        case .stepCount:
+            return false // Read-only, tracked by device
+        case .activeEnergyBurned:
+            return false // Read-only, calculated by device
         }
     }
     
@@ -57,6 +63,8 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .ellipticalTime: return "Elliptical Duration"
         case .rowingTime: return "Rowing Duration"
         case .timeInDaylight: return "Time in Daylight"
+        case .stepCount: return "Step Count"
+        case .activeEnergyBurned: return "Active Calories"
         }
     }
     
@@ -72,6 +80,8 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .ellipticalTime: return "figure.elliptical"
         case .rowingTime: return "figure.rower"
         case .timeInDaylight: return "sun.max.fill"
+        case .stepCount: return "figure.walk"
+        case .activeEnergyBurned: return "flame.fill"
         }
     }
     
@@ -87,6 +97,8 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         case .weightLiftingTime: return nil // Uses workout type instead
         case .ellipticalTime: return nil // Uses workout type instead
         case .rowingTime: return nil // Uses workout type instead
+        case .stepCount: return .stepCount
+        case .activeEnergyBurned: return .activeEnergyBurned
         }
     }
     
@@ -120,6 +132,10 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .appleExerciseTime, .appleStandTime, .appleMoveTime, .mindfulMinutes, .workoutTime, .weightLiftingTime, .ellipticalTime, .rowingTime, .timeInDaylight:
             return .minute()
+        case .stepCount:
+            return .count()
+        case .activeEnergyBurned:
+            return .kilocalorie()
         }
     }
     
@@ -144,6 +160,10 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
             return "Track rowing machine workouts"
         case .timeInDaylight:
             return "Track time spent in natural daylight from your Apple Watch"
+        case .stepCount:
+            return "Track daily step count from your iPhone or Apple Watch"
+        case .activeEnergyBurned:
+            return "Track active calories burned from your activities"
         }
     }
 }

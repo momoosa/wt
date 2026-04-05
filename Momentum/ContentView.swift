@@ -185,6 +185,11 @@ struct ContentView: View {
                     )
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SyncChecklistToSessions"))) { notification in
+                if let goal = notification.object as? Goal {
+                    syncChecklistToSessions(for: goal)
+                }
+            }
             .navigationDestination(item: $selectedSession) { session in
                 if let timerManager = timerManager {
                     GoalSessionDetailView(
@@ -1258,14 +1263,76 @@ struct ContentView: View {
         // Save changes if there were any insertions or deletions
         if modelContext.hasChanges {
             try? modelContext.save()
-            
+
             // Reload widgets when sessions are created or deleted
             #if canImport(WidgetKit)
             WidgetCenter.shared.reloadAllTimelines()
             #endif
         }
     }
-    
+
+    /// Sync checklist changes from a goal to its existing sessions
+    func syncChecklistToSessions(for goal: Goal) {
+        // Get all sessions for this goal
+        let goalSessions = sessions.filter { $0.goal == goal }
+
+        guard let goalChecklistItems = goal.checklistItems else {
+            // Goal has no checklist items - remove all checklist sessions
+            for session in goalSessions {
+                if let checklistSessions = session.checklist {
+                    for checklistSession in checklistSessions {
+                        modelContext.delete(checklistSession)
+                    }
+                    session.checklist?.removeAll()
+                }
+            }
+            return
+        }
+
+        // Sync checklist to each session
+        for session in goalSessions {
+            var sessionChecklist = session.checklist ?? []
+
+            // Get existing checklist item IDs in the session
+            let existingItemIDs = Set(sessionChecklist.compactMap { $0.checklistItem?.id })
+            let goalItemIDs = Set(goalChecklistItems.map { $0.id })
+
+            // Remove checklist sessions for items that no longer exist in goal
+            let itemsToRemove = sessionChecklist.filter { checklistSession in
+                guard let item = checklistSession.checklistItem else { return true }
+                return !goalItemIDs.contains(item.id)
+            }
+
+            for checklistSession in itemsToRemove {
+                modelContext.delete(checklistSession)
+                if let index = sessionChecklist.firstIndex(where: { $0.id == checklistSession.id }) {
+                    sessionChecklist.remove(at: index)
+                }
+            }
+
+            // Add new checklist sessions for items that don't exist in session yet
+            for checklistItem in goalChecklistItems {
+                if !existingItemIDs.contains(checklistItem.id) {
+                    let newChecklistSession = ChecklistItemSession(
+                        checklistItem: checklistItem,
+                        isCompleted: false,
+                        session: session
+                    )
+                    modelContext.insert(newChecklistSession)
+                    sessionChecklist.append(newChecklistSession)
+                }
+            }
+
+            // Update the session's checklist
+            session.checklist = sessionChecklist
+        }
+
+        // Save changes
+        if modelContext.hasChanges {
+            try? modelContext.save()
+        }
+    }
+
     func skip(session: GoalSession) {
         let previousStatus = session.status
         
@@ -1543,18 +1610,38 @@ struct ContentView: View {
                         if let session = sessions.first(where: { $0.goal?.id == goal.id }) {
                             AppLogger.healthKit.info("  - Found matching session for goal '\(goal.title)'")
                             session.updateHealthKitTime(duration)
-                            
+
+                            // Sync primary metric value for count/calorie goals
+                            if goal.goalType == .count || goal.goalType == .calories {
+                                Task {
+                                    do {
+                                        let value: Double
+                                        if metric.unit == .count() {
+                                            value = try await healthKitManager.fetchTodayCount(for: metric)
+                                        } else {
+                                            value = try await healthKitManager.fetchTodayCount(for: metric)
+                                        }
+                                        await MainActor.run {
+                                            session.updatePrimaryMetricValue(value)
+                                            AppLogger.healthKit.info("  - Synced primary metric value: \(value)")
+                                        }
+                                    } catch {
+                                        AppLogger.healthKit.error("  - Failed to sync primary metric: \(error)")
+                                    }
+                                }
+                            }
+
                             // Mark these samples as allocated
                             for sample in mergedSamples {
                                 allocatedSampleIDs.insert(sample.id)
                             }
-                            
+
                             // Track sync results
                             if duration > 0 {
                                 syncedGoalsCount += 1
                                 totalDurationImported += duration
                             }
-                            
+
                             // Create or update historical sessions from HealthKit samples
                             syncHistoricalSessions(from: mergedSamples, for: goal, in: session)
                         } else {

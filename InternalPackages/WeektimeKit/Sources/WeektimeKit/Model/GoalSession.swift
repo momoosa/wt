@@ -156,6 +156,12 @@ public final class GoalSession: SessionProgressProvider {
     /// Time tracked from HealthKit for this session (if enabled)
     public private(set) var healthKitTime: TimeInterval = 0
     
+    /// Primary metric value for count/calorie-based goals (e.g., steps, calories)
+    public var primaryMetricValue: Double = 0
+    
+    /// Target value for the primary metric (cached from goal at creation time)
+    public var primaryMetricTarget: Double = 0
+    
     // MARK: - AI Planning Properties
     
     /// Recommended start time from AI planner
@@ -221,15 +227,67 @@ public final class GoalSession: SessionProgressProvider {
         return totalTime
     }
     
+    /// Progress as a value from 0.0 onwards (can exceed 1.0 when over target)
+    /// Overrides the default SessionProgressProvider implementation to handle count/calorie goals
+    public var progress: Double {
+        guard let goal = goal else {
+            // Fallback to time-based progress if goal is nil
+            guard dailyTarget > 0 else { return 0 }
+            return elapsedTime / dailyTarget
+        }
+        
+        switch goal.goalType {
+        case .time:
+            guard dailyTarget > 0 else { return 0 }
+            return elapsedTime / dailyTarget
+        case .count, .calories:
+            guard primaryMetricTarget > 0 else { return 0 }
+            return primaryMetricValue / primaryMetricTarget
+        }
+    }
+    
     /// Whether the daily target has been met (either by time or manual completion)
     public var hasMetDailyTarget: Bool {
-        markedComplete || elapsedTime >= dailyTarget
+        // If manually marked complete, always return true
+        if markedComplete {
+            return true
+        }
+        
+        // Check based on goal type
+        guard let goal = goal else {
+            // Fallback to time-based check if goal is nil
+            return elapsedTime >= dailyTarget
+        }
+        
+        switch goal.goalType {
+        case .time:
+            return elapsedTime >= dailyTarget
+        case .count, .calories:
+            return primaryMetricValue >= primaryMetricTarget
+        }
     }
     
     public var formattedTime: String {
-        let elapsedFormatted = elapsedTime.formatted(style: .components)
-        let targetFormatted = dailyTarget.formatted(style: .components)
-        return "\(elapsedFormatted)/\(targetFormatted)"
+        guard let goal = goal else {
+            let elapsedFormatted = elapsedTime.formatted(style: .components)
+            let targetFormatted = dailyTarget.formatted(style: .components)
+            return "\(elapsedFormatted)/\(targetFormatted)"
+        }
+        
+        switch goal.goalType {
+        case .time:
+            let elapsedFormatted = elapsedTime.formatted(style: .components)
+            let targetFormatted = dailyTarget.formatted(style: .components)
+            return "\(elapsedFormatted)/\(targetFormatted)"
+        case .count:
+            let currentValue = Int(primaryMetricValue)
+            let targetValue = Int(primaryMetricTarget)
+            return "\(currentValue.formatted())/\(targetValue.formatted())"
+        case .calories:
+            let currentValue = Int(primaryMetricValue)
+            let targetValue = Int(primaryMetricTarget)
+            return "\(currentValue) cal/\(targetValue) cal"
+        }
     }
     
     /// Formatted planned start time (e.g., "9:30 AM")
@@ -249,6 +307,9 @@ public final class GoalSession: SessionProgressProvider {
         self.status = .active
         // Cache goal properties at creation time to avoid accessing goal after deletion
         self.goalID = goal.id.uuidString
+        
+        // Cache primary metric target for count/calorie goals
+        self.primaryMetricTarget = goal.primaryMetricDailyTarget
         
         // Calculate daily target only if today is a scheduled day
         let calendar = Calendar.current
@@ -284,6 +345,11 @@ public extension GoalSession {
     /// Update the HealthKit time for this session
     public func updateHealthKitTime(_ time: TimeInterval) {
         healthKitTime = time
+    }
+    
+    /// Update the primary metric value (for count/calorie-based goals)
+    public func updatePrimaryMetricValue(_ value: Double) {
+        primaryMetricValue = value
     }
     
     /// Update planning details from AI planner
@@ -337,3 +403,5 @@ public extension GoalSession {
         }
     }
 }
+
+

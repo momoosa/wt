@@ -16,6 +16,7 @@ struct ExpandableDayRow: View {
     let selectedTimes: Set<TimeOfDay>
     let themeColor: Color
     let isExpanded: Bool
+    let showMinutes: Bool // Whether to show the minutes input field
     @FocusState.Binding var focusedField: GoalEditorView.Field?
     let onToggleDay: () -> Void
     let onUpdateMinutes: (Int) -> Void
@@ -51,26 +52,28 @@ struct ExpandableDayRow: View {
                 .buttonStyle(.plain)
                 
                 if isActive {
-                    // Minutes input
-                    HStack(spacing: 4) {
-                        TextField("10", value: Binding(
-                            get: { minutes },
-                            set: onUpdateMinutes
-                        ), format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 50)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color(.systemGray6))
-                            )
-                            .focused($focusedField, equals: .scheduleDay(weekday))
-                        
-                        Text("min")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    // Minutes input (only for time-based goals)
+                    if showMinutes {
+                        HStack(spacing: 4) {
+                            TextField("10", value: Binding(
+                                get: { minutes },
+                                set: onUpdateMinutes
+                            ), format: .number)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 50)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color(.systemGray6))
+                                )
+                                .focused($focusedField, equals: .scheduleDay(weekday))
+
+                            Text("min")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     
                     // Tappable area to expand

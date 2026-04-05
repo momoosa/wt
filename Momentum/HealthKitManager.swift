@@ -230,6 +230,48 @@ public final class HealthKitManager {
         return try await fetchDuration(for: metric, from: startOfDay, to: now)
     }
     
+    /// Fetch the total count for a count-based metric (e.g., steps) within a date range
+    public func fetchCount(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> Double {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        guard let quantityType = metric.quantityType else {
+            throw HealthKitError.invalidMetric
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: quantityType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                let sum = statistics?.sumQuantity()?.doubleValue(for: metric.unit) ?? 0
+                continuation.resume(returning: sum)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    /// Fetch count for a metric for today
+    public func fetchTodayCount(for metric: HealthKitMetric) async throws -> Double {
+        let calendar = Calendar.current
+        let now = Date()
+        guard let startOfDay = calendar.startOfDay(for: now) as Date? else {
+            throw HealthKitError.invalidDateRange
+        }
+        
+        return try await fetchCount(for: metric, from: startOfDay, to: now)
+    }
+    
     /// Start observing changes to a metric (useful for live updates)
     public func observeMetric(_ metric: HealthKitMetric, onChange: @escaping (TimeInterval) -> Void) throws -> HKObserverQuery {
         guard isHealthKitAvailable else {

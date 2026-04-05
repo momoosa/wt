@@ -62,6 +62,9 @@
 		CD39BD4A2F2F66E600F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD492F2F66E600F7265A /* MomentumKit */; };
 		CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD4B2F2F66EF00F7265A /* MomentumKit */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
+		CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5ADA492F7BA33D000C0FD8 /* ScreenTimeManager.swift */; };
+		CD5ADA4C2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5ADA4B2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift */; };
+		CD5ADA4E2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5ADA4D2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift */; };
 		CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */; };
 		CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */; };
 		CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */; };
@@ -226,6 +229,9 @@
 		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		CD39BD4D2F2F677200F7265A /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
+		CD5ADA492F7BA33D000C0FD8 /* ScreenTimeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeManager.swift; sourceTree = "<group>"; };
+		CD5ADA4B2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeGoalConfigurationView.swift; sourceTree = "<group>"; };
+		CD5ADA4D2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryMetricPickerSheet.swift; sourceTree = "<group>"; };
 		CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverviewView.swift; sourceTree = "<group>"; };
 		CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorViewModel.swift; sourceTree = "<group>"; };
 		CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorHelpers.swift; sourceTree = "<group>"; };
@@ -565,6 +571,9 @@
 				CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */,
 				CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */,
 				CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */,
+				CD5ADA492F7BA33D000C0FD8 /* ScreenTimeManager.swift */,
+				CD5ADA4B2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift */,
+				CD5ADA4D2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -899,6 +908,7 @@
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
+				CD5ADA4C2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift in Sources */,
 				CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
@@ -909,6 +919,7 @@
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
+				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
@@ -924,6 +935,7 @@
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
 				CD2A6FC72F57795400F5503A /* CommonModifiers.swift in Sources */,
 				CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */,
+				CD5ADA4E2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift in Sources */,
 				CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */,
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,

@@ -15,6 +15,7 @@ public final class Goal {
     public var title: String = ""
     public var iconName: String? // SF Symbol name for the goal icon
     private var statusRawValue: String = "active"
+    private var goalTypeRawValue: String = "time" // "time", "count", or "calories"
     
     @Relationship(deleteRule: .nullify)
     public var primaryTag: GoalTag? // Optional tag that provides both theme and smart triggers
@@ -36,6 +37,19 @@ public final class Goal {
     // HealthKit Integration
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
     public var healthKitSyncEnabled: Bool = false // Whether to sync time from HealthKit
+    public var primaryMetricDailyTarget: Double = 0 // Daily target for count/calorie goals (e.g., 10000 steps, 500 cal)
+    public var lastHealthKitSyncDate: Date? // Last time HealthKit data was synced
+    
+    // Screen Time Integration
+    public var screenTimeEnabled: Bool = false // Whether this goal tracks screen time
+    public var screenTimeApplicationTokensData: Data? // Serialized Set<ApplicationToken>
+    public var screenTimeCategoryTokensData: Data? // Serialized Set<ActivityCategoryToken>
+    public var screenTimeWebDomainTokensData: Data? // Serialized Set<WebDomainToken>
+    public var screenTimeIsInverseGoal: Bool = false // true = limit usage, false = encourage usage
+    public var screenTimeBlockingEnabled: Bool = false // Whether to block apps until goal is complete
+    public var screenTimeBlockingStartHour: Int? // Hour when blocking starts (0-23)
+    public var screenTimeBlockingEndHour: Int? // Hour when blocking ends (0-23)
+    public var screenTimeBlockingWeekdays: [Int] = [] // Days when blocking applies (1=Sun, 2=Mon, etc.)
     
     // Time of Day Preferences (for AI planner)
     public var preferredTimesOfDay: [String] = [] // e.g., ["morning", "afternoon", "evening", "night"]
@@ -70,6 +84,31 @@ public final class Goal {
         get { Status(rawValue: statusRawValue) ?? .active }
         set { statusRawValue = newValue.rawValue }
     }
+    
+    // Computed property for goal type with smart migration
+    public var goalType: GoalType {
+        get { 
+            // If goal type is explicitly set, use it
+            if let explicitType = GoalType(rawValue: goalTypeRawValue), goalTypeRawValue != "time" {
+                return explicitType
+            }
+            
+            // Migration: Infer goal type from HealthKit metric for existing goals
+            if let metric = healthKitMetric {
+                switch metric {
+                case .stepCount:
+                    return .count
+                case .activeEnergyBurned:
+                    return .calories
+                default:
+                    return .time
+                }
+            }
+            
+            return .time
+        }
+        set { goalTypeRawValue = newValue.rawValue }
+    }
 
     public init(title: String, primaryTag: GoalTag? = nil, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
@@ -89,6 +128,28 @@ public final class Goal {
 }
 
 public extension Goal {
+    enum GoalType: String, Codable, CaseIterable {
+        case time = "time"
+        case count = "count"
+        case calories = "calories"
+        
+        public var displayName: String {
+            switch self {
+            case .time: return "Time"
+            case .count: return "Count"
+            case .calories: return "Calories"
+            }
+        }
+        
+        public var unitLabel: String {
+            switch self {
+            case .time: return "min"
+            case .count: return "steps"
+            case .calories: return "cal"
+            }
+        }
+    }
+    
     enum Status: String, Codable {
         case suggestion
         case active
@@ -140,6 +201,7 @@ public extension Goal {
         }
     }
     
+
     /// Completion behaviors for this goal
     var completionBehaviors: Set<CompletionBehavior> {
         get {

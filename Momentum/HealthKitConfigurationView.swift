@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MomentumKit
+import HealthKit
 
 struct HealthKitConfigurationView: View {
     @Binding var selectedMetric: HealthKitMetric?
@@ -17,8 +18,11 @@ struct HealthKitConfigurationView: View {
     @State private var healthKitManager = HealthKitManager()
     @State private var isLoadingGoals = false
     @State private var showingGoalImportSuccess = false
+    @State private var lastSyncDate: Date?
+    @State private var isSyncing = false
     
     var body: some View {
+        Group {
         Section {
             NavigationLink {
                 HealthKitMetricsBrowserView(
@@ -55,7 +59,33 @@ struct HealthKitConfigurationView: View {
                         Text(selectedMetric.description)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                                                
+                        
+                        if syncEnabled {
+                            HStack {
+                                if isSyncing {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                    Text("Syncing...")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else if let lastSync = lastSyncDate {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                        .font(.caption)
+                                    Text("Last synced: \(lastSync, style: .relative)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Image(systemName: "clock.fill")
+                                        .foregroundStyle(.orange)
+                                        .font(.caption)
+                                    Text("Waiting for first sync")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
                     }                    
                 }
         } header: {
@@ -67,8 +97,15 @@ struct HealthKitConfigurationView: View {
                 Text("Link this goal to a HealthKit metric to automatically sync your health data.")
             }
         }
+        }
+        .task(id: currentGoal?.id) {
+            // Check last sync date for the current goal
+            if let goal = currentGoal, goal.healthKitSyncEnabled {
+                lastSyncDate = goal.lastHealthKitSyncDate
+            }
+        }
     }
-    
+
     private func handleMetricSelection(_ newMetric: HealthKitMetric?) {
         // Set the metric
         selectedMetric = newMetric
