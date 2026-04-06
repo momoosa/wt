@@ -29,12 +29,19 @@ struct ChecklistItemData: Identifiable, Equatable {
 }
 
 struct GoalEditorView: View {
+    enum Field: Hashable {
+        case goalName
+        case duration
+        case dailyMinimum
+        case scheduleDay(Int) // weekday 1-7
+    }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Namespace private var buttonNamespace
     @Query private var allGoals: [Goal]
-        
-    // View Model - coexists with @State properties during migration
+    @Query private var allTags: [GoalTag]
+    @FocusState private var focusedField: Field?
     @Bindable private var viewModel: GoalEditorViewModel
     
     // Initializer to properly initialize ViewModel
@@ -42,15 +49,7 @@ struct GoalEditorView: View {
         self.viewModel = viewModel
     }
     
-    @FocusState private var focusedField: Field?
-    @Namespace private var buttonNamespace
     
-    enum Field: Hashable {
-        case goalName
-        case duration
-        case dailyMinimum
-        case scheduleDay(Int) // weekday 1-7
-    }
     @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     @State private var errorMessage: String?
     @State var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
@@ -76,6 +75,14 @@ struct GoalEditorView: View {
         return preferences
     }()
     
+    
+    // Weather-based triggers
+    @State private var weatherEnabled: Bool = false
+    @State private var selectedWeatherConditions: Set<WeatherCondition> = []
+    @State private var hasMinTemperature: Bool = false
+    @State private var minTemperature: Double = 10
+    @State private var hasMaxTemperature: Bool = false
+    @State private var maxTemperature: Double = 25
     // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
     private let weekdays = WeekdayConstants.weekdays
     
@@ -86,16 +93,7 @@ struct GoalEditorView: View {
   
     // Simple multi-select time of day
     enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
-    
-    @Query private var allTags: [GoalTag]
-    
-    // Weather-based triggers
-    @State private var weatherEnabled: Bool = false
-    @State private var selectedWeatherConditions: Set<WeatherCondition> = []
-    @State private var hasMinTemperature: Bool = false
-    @State private var minTemperature: Double = 10
-    @State private var hasMaxTemperature: Bool = false
-    @State private var maxTemperature: Double = 25
+
     
     // Track if user has made any changes
     private var hasUnsavedChanges: Bool {
@@ -1572,7 +1570,7 @@ struct GoalEditorView: View {
             finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
         } else {
             // Find an unused theme, or fall back to random
-            let unusedTheme = findUnusedTheme()
+            let unusedTheme = viewModel.findUnusedTheme(excluding: allGoals)
             finalGoalTag = GoalTag(title: unusedTheme.title, themeID: unusedTheme.id)
         }
         
@@ -1878,15 +1876,8 @@ struct GoalEditorView: View {
         return helper.matchTheme(named: themeName)
     }
     
-    /// Find a theme that isn't currently used by any active goal
-    func findUnusedTheme() -> ThemePreset {
-        let helper = GoalEditorThemeHelper()
-        return helper.findUnusedTheme(excluding: allGoals)
-    }
-    
     func generateChecklist(for input: String) {
         errorMessage = nil
-//        result = []
 
         Task {
             do {
