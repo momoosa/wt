@@ -150,7 +150,7 @@ struct GoalDetailView: View {
             }
         }
         .sheet(isPresented: $showingEditSheet) {
-            GoalEditorView(existingGoal: goal)
+            GoalEditorView(viewModel: GoalEditorViewModel(existingGoal: goal))
         }
         .alert("Delete Goal?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }

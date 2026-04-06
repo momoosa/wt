@@ -1005,7 +1005,7 @@ struct GoalSessionDetailView: View {
         }
         .sheet(isPresented: $isShowingEditScreen) {
             if let goal = session.goal {
-                GoalEditorView(existingGoal: goal)
+                GoalEditorView(viewModel: GoalEditorViewModel(existingGoal: goal))
             }
         }
         .sheet(item: $editingHistoricalSession, content: { session in

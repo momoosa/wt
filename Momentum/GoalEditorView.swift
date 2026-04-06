@@ -33,17 +33,13 @@ struct GoalEditorView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @Query private var allGoals: [Goal]
-    
-    // Optional existing goal for editing
-    var existingGoal: Goal?
-    
+        
     // View Model - coexists with @State properties during migration
     @Bindable private var viewModel: GoalEditorViewModel
     
     // Initializer to properly initialize ViewModel
-    init(existingGoal: Goal? = nil) {
-        self.existingGoal = existingGoal
-        self.viewModel = GoalEditorViewModel(existingGoal: existingGoal)
+    init(viewModel: GoalEditorViewModel) {
+        self.viewModel = viewModel
     }
     
     @FocusState private var focusedField: Field?
@@ -553,7 +549,7 @@ struct GoalEditorView: View {
                             )
                             
                             // Screen Time Configuration (only shown when editing an existing goal)
-                            if let existingGoal = existingGoal {
+                            if let existingGoal = viewModel.existingGoal {
                                 ScreenTimeGoalConfigurationView(goal: existingGoal)
                             }
                             
@@ -781,7 +777,7 @@ struct GoalEditorView: View {
                     
             .overlay(alignment: .bottom) {
                 // Bottom button (hide when keyboard is active or when editing existing goal on duration stage)
-                if focusedField == nil && !(existingGoal != nil && currentStage == .duration) {
+                if focusedField == nil && !(viewModel.existingGoal != nil && currentStage == .duration) {
                     VStack(spacing: 0) {
                         Divider()
                         if currentStage == .name {
@@ -822,14 +818,14 @@ struct GoalEditorView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .navigationTitle(currentStage == .name ? (existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
+            .navigationTitle(currentStage == .name ? (viewModel.existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
             .navigationBarTitleDisplayMode(.inline)
             .tint(activeThemeColor)
             .interactiveDismissDisabled(currentStage != .name)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        if currentStage == .duration && existingGoal == nil {
+                        if currentStage == .duration && viewModel.existingGoal == nil {
                             // Only allow going back to name stage if creating new goal
                             withAnimation {
                                 currentStage = .name
@@ -845,7 +841,7 @@ struct GoalEditorView: View {
                         // Show X when editing, or when on name stage
                         // Show back arrow only when on duration stage of new goal
                         
-                        Image(systemName: (currentStage == .name || existingGoal != nil) ? "xmark" : "chevron.left")
+                        Image(systemName: (currentStage == .name || viewModel.existingGoal != nil) ? "xmark" : "chevron.left")
                     }
 
                 }
@@ -854,7 +850,7 @@ struct GoalEditorView: View {
                 if currentStage == .duration {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            if existingGoal != nil {
+                            if viewModel.existingGoal != nil {
                                 // Save when editing
                                 handleButtonTap()
                             } else {
@@ -862,10 +858,10 @@ struct GoalEditorView: View {
                                 dismiss()
                             }
                         } label: {
-                            Text(existingGoal != nil ? "Save" : "Close")
+                            Text(viewModel.existingGoal != nil ? "Save" : "Close")
                                 .fontWeight(.semibold)
                         }
-                        .disabled(existingGoal != nil && !buttonEnabled)
+                        .disabled(viewModel.existingGoal != nil && !buttonEnabled)
                     }
                 }
                 
@@ -974,7 +970,7 @@ struct GoalEditorView: View {
 
         .task {
             // Load existing goal data if editing
-            if let existingGoal {
+            if let existingGoal = viewModel.existingGoal {
                 loadGoalData(from: existingGoal)
             } else if viewModel.userInput.isEmpty {
                 generateChecklist(for: "")
@@ -1553,12 +1549,12 @@ struct GoalEditorView: View {
         validatePrimaryMetricTarget()
         
         let goal: Goal
-        let isEditing = existingGoal != nil
+        let isEditing = viewModel.existingGoal != nil // TODO: hide existing goal
         
         // Track if goal was scheduled for today before editing (for toast notification)
         let calendar = Calendar.current
         let todayWeekday = calendar.component(.weekday, from: Date())
-        let hadAnyScheduleForToday = existingGoal?.timesForWeekday(todayWeekday).isEmpty == false
+        let hadAnyScheduleForToday = viewModel.existingGoal?.timesForWeekday(todayWeekday).isEmpty == false
         
         // Determine theme based on user selection or suggestion
         let finalGoalTag: GoalTag
@@ -1590,7 +1586,7 @@ struct GoalEditorView: View {
             }
         }
       
-        if let existingGoal {
+        if let existingGoal = viewModel.existingGoal {
             // Update existing goal
             goal = existingGoal
             goal.title = viewModel.userInput

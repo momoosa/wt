@@ -20,7 +20,7 @@ class GoalEditorViewModel {
     private let calculator = GoalEditorCalculator()
     
     // MARK: - Core State
-    
+    var existingGoal: Goal?
     var userInput: String = ""
     var durationInMinutes: Int = 30
     var dailyMinimumMinutes: Int?
@@ -128,6 +128,7 @@ class GoalEditorViewModel {
         self.suggestionsData = suggestionsData
         
         if let goal = existingGoal {
+            self.existingGoal = goal
             loadFromExistingGoal(goal)
         }
     }
