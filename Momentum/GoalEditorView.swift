@@ -63,15 +63,10 @@ struct GoalEditorView: View {
     @State private var dailyMinimumMinutes: Int? = nil
     @State private var hasDailyMinimum: Bool = false
     @State private var notificationsEnabled: Bool = false // Legacy, kept for backward compatibility
-    @State private var scheduleNotificationsEnabled: Bool = false
-    @State private var completionNotificationsEnabled: Bool = false
-    @State private var selectedCompletionBehaviors: Set<Goal.CompletionBehavior> = []
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
     @State private var showingValidationAlert: Bool = false
     @State private var validationMessage: String = ""
-    @State private var goalNotes: String = ""
-    @State private var goalLink: String = ""
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
@@ -96,21 +91,7 @@ struct GoalEditorView: View {
     // Simple multi-select time of day
     enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
     
-    // Custom theme selection
-    @State private var selectedGoalTheme: GoalTag?
-    @State private var showingAddThemeSheet: Bool = false
-    @State private var customThemeName: String = ""
-    @State private var selectedBaseThemeForCustom: ThemePreset? // For creating custom themes
-    @State private var isEditingThemes: Bool = false // Track edit mode for theme sheet
-    @State private var showingColorPicker: Bool = false
-    @State private var selectedColorPreset: ThemePreset?
-    @State private var showingIconPicker: Bool = false
-    @State private var selectedIcon: String?
-
     @Query private var allTags: [GoalTag]
-    @State private var selectedTags: [GoalTag] = []
-    @State private var showingTagPicker: Bool = false
-    @State private var editingTag: GoalTag?
     
     // Weather-based triggers
     @State private var weatherEnabled: Bool = false
@@ -170,9 +151,9 @@ struct GoalEditorView: View {
     
     // Computed property for the active theme color
     private var activeThemeColor: Color {
-        if let selectedPreset = selectedColorPreset {
+        if let selectedPreset = viewModel.selectedColorPreset {
             return selectedPreset.color(for: colorScheme)
-        } else if let selectedTheme = selectedGoalTheme {
+        } else if let selectedTheme = viewModel.selectedGoalTheme {
             return selectedTheme.themePreset.color(for: colorScheme)
         } else if let template = selectedTemplate,
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
@@ -318,10 +299,10 @@ struct GoalEditorView: View {
                                         }
                                         
                                         // Infer icon from user input if no icon is selected yet
-                                        if selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
+                                        if viewModel.selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
                                             Task { @MainActor in
-                                                if selectedIcon == nil {
-                                                    selectedIcon = inferIcon(from: trimmed)
+                                                if viewModel.selectedIcon == nil {
+                                                    viewModel.selectedIcon = inferIcon(from: trimmed)
                                                 }
                                             }
                                         }
@@ -421,7 +402,7 @@ struct GoalEditorView: View {
                                     HStack {
                                         // Color picker button
                                         Button(action: {
-                                            showingColorPicker = true
+                                            viewModel.showingColorPicker = true
                                         }) {
                                             HStack(spacing: 8) {
                                                 // Color preview circle
@@ -429,8 +410,8 @@ struct GoalEditorView: View {
                                                     .fill(
                                                         LinearGradient(
                                                             colors: [
-                                                                selectedColorPreset?.neon ?? activeThemeColor,
-                                                                selectedColorPreset?.dark ?? activeThemeColor
+                                                                viewModel.selectedColorPreset?.neon ?? activeThemeColor,
+                                                                viewModel.selectedColorPreset?.dark ?? activeThemeColor
                                                             ],
                                                             startPoint: .topLeading,
                                                             endPoint: .bottomTrailing
@@ -438,7 +419,7 @@ struct GoalEditorView: View {
                                                     )
                                                     .frame(width: 24, height: 24)
                                                 
-                                                Text(selectedColorPreset?.title ?? "Color")
+                                                Text(viewModel.selectedColorPreset?.title ?? "Color")
                                                     .foregroundStyle(.primary)
                                             }
                                             .frame(maxWidth: .infinity)
@@ -450,11 +431,11 @@ struct GoalEditorView: View {
                                         
                                         // Icon picker button
                                         Button(action: {
-                                            showingIconPicker = true
+                                            viewModel.showingIconPicker = true
                                         }) {
                                             HStack(spacing: 8) {
                                                 // Icon preview
-                                                Image(systemName: selectedIcon ?? "star.fill")
+                                                Image(systemName: viewModel.selectedIcon ?? "star.fill")
                                                     .font(.system(size: 20))
                                                     .foregroundStyle(activeThemeColor)
                                                     .frame(width: 24, height: 24)
@@ -471,7 +452,7 @@ struct GoalEditorView: View {
                                     }
                                     // Tag cloud with flow layout - show only selected themes
                                     TagFlowLayout(spacing: 8) {
-                                        ForEach(selectedTags, id: \.title) { goalTheme in
+                                        ForEach(viewModel.selectedTags, id: \.title) { goalTheme in
                                             ThemeTagButton(
                                                 goalTheme: goalTheme,
                                                 isSelected: true,
@@ -486,7 +467,7 @@ struct GoalEditorView: View {
                                         
                                         // Add theme button
                                         Button(action: {
-                                            showingAddThemeSheet = true
+                                            viewModel.showingAddThemeSheet = true
                                         }) {
                                             HStack(spacing: 6) {
                                                 Image(systemName: "plus.circle.fill")
@@ -507,7 +488,7 @@ struct GoalEditorView: View {
                                     }
                                     .padding(.vertical, 8)
                                     
-                                    if selectedTags.isEmpty {
+                                    if viewModel.selectedTags.isEmpty {
                                         Text("Tap 'Add Theme' to choose a color theme for your goal")
                                             .font(.footnote)
                                             .foregroundStyle(.secondary)
@@ -523,12 +504,12 @@ struct GoalEditorView: View {
                             Section(header: Text("When Daily Goal Completes")) {
                                 ForEach(Goal.CompletionBehavior.allCases) { behavior in
                                     Toggle(isOn: Binding(
-                                        get: { selectedCompletionBehaviors.contains(behavior) },
+                                        get: { viewModel.selectedCompletionBehaviors.contains(behavior) },
                                         set: { isOn in
                                             if isOn {
-                                                selectedCompletionBehaviors.insert(behavior)
+                                                viewModel.selectedCompletionBehaviors.insert(behavior)
                                             } else {
-                                                selectedCompletionBehaviors.remove(behavior)
+                                                viewModel.selectedCompletionBehaviors.remove(behavior)
                                             }
                                             HapticFeedbackManager.trigger(.light)
                                         }
@@ -536,7 +517,7 @@ struct GoalEditorView: View {
                                         HStack(spacing: 12) {
                                             Image(systemName: behavior.icon)
                                                 .font(.body)
-                                                .foregroundStyle(selectedCompletionBehaviors.contains(behavior) ? activeThemeColor : .secondary)
+                                                .foregroundStyle(viewModel.selectedCompletionBehaviors.contains(behavior) ? activeThemeColor : .secondary)
                                                 .frame(width: 24)
                                             
                                             VStack(alignment: .leading, spacing: 2) {
@@ -579,7 +560,7 @@ struct GoalEditorView: View {
                             Section(header: Text("Notes & Resources")) {
                                     // Notes field
                                     VStack(alignment: .leading, spacing: 4) {
-                                        TextField("Add any notes about this goal...", text: $goalNotes, axis: .vertical)
+                                        TextField("Add any notes about this goal...", text: $viewModel.goalNotes, axis: .vertical)
                                             .lineLimit(3...6)
                                             
                                     
@@ -589,12 +570,12 @@ struct GoalEditorView: View {
                                                 .foregroundStyle(.secondary)
                                                 .font(.subheadline)
                                             
-                                            TextField("Add a link here...", text: $goalLink)
+                                            TextField("Add a link here...", text: $viewModel.goalLink)
                                                 .keyboardType(.URL)
                                                 .autocapitalization(.none)
                                         
                                         
-                                        if !goalLink.isEmpty, let url = URL(string: goalLink), UIApplication.shared.canOpenURL(url) {
+                                        if !viewModel.goalLink.isEmpty, let url = URL(string: viewModel.goalLink), UIApplication.shared.canOpenURL(url) {
                                             Button(action: {
                                                 UIApplication.shared.open(url)
                                             }) {
@@ -853,8 +834,8 @@ struct GoalEditorView: View {
                             withAnimation {
                                 currentStage = .name
                                 // Reset theme selections when going back
-                                selectedTags.removeAll()
-                                selectedGoalTheme = nil
+                                viewModel.selectedTags.removeAll()
+                                viewModel.selectedGoalTheme = nil
                                 selectedTemplate = nil
                             }
                         } else {
@@ -949,37 +930,37 @@ struct GoalEditorView: View {
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: focusedField)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: dailyTargets)
         }
-        .sheet(isPresented: $showingAddThemeSheet) {
+        .sheet(isPresented: $viewModel.showingAddThemeSheet) {
             TagSelectionSheet(
                 allTags: allTags,
-                selectedTags: $selectedTags,
-                selectedGoalTheme: $selectedGoalTheme,
+                selectedTags: $viewModel.selectedTags,
+                selectedGoalTheme: $viewModel.selectedGoalTheme,
                 modelContext: modelContext,
-                editingTag: $editingTag
+                editingTag: $viewModel.editingTag
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(item: $editingTag) { tag in
+        .sheet(item: $viewModel.editingTag) { tag in
             NavigationStack {
                 GoalTagTriggersEditor(goalTag: tag)
             }
         }
-        .sheet(isPresented: $showingColorPicker) {
+        .sheet(isPresented: $viewModel.showingColorPicker) {
             ColorPickerSheet(
-                selectedColorPreset: $selectedColorPreset,
+                selectedColorPreset: $viewModel.selectedColorPreset,
                 onSelect: handleColorSelection
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showingIconPicker) {
+        .sheet(isPresented: $viewModel.showingIconPicker) {
             IconPickerSheet(
-                selectedIcon: $selectedIcon,
+                selectedIcon: $viewModel.selectedIcon,
                 themeColor: activeThemeColor,
                 onSelect: { icon in
-                    selectedIcon = icon
-                    showingIconPicker = false
+                    viewModel.selectedIcon = icon
+                    viewModel.showingIconPicker = false
                 }
             )
             .presentationDetents([.large])
@@ -1241,9 +1222,9 @@ struct GoalEditorView: View {
         }
         
         notificationsEnabled = goal.notificationsEnabled
-        scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
-        completionNotificationsEnabled = goal.completionNotificationsEnabled
-        selectedCompletionBehaviors = goal.completionBehaviors
+        viewModel.scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
+        viewModel.completionNotificationsEnabled = goal.completionNotificationsEnabled
+        viewModel.selectedCompletionBehaviors = goal.completionBehaviors
         viewModel.selectedGoalType = goal.goalType
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
@@ -1263,18 +1244,18 @@ struct GoalEditorView: View {
             }
         }
 
-        goalNotes = goal.notes ?? ""
-        goalLink = goal.link ?? ""
+        viewModel.goalNotes = goal.notes ?? ""
+        viewModel.goalLink = goal.link ?? ""
         
         // Load checklist items
         viewModel.checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
         
         // Load tag/theme
-        selectedGoalTheme = goal.primaryTag
+        viewModel.selectedGoalTheme = goal.primaryTag
         
         // Add to selected themes
-        if let primaryTag = goal.primaryTag, !selectedTags.contains(where: { $0.id == primaryTag.id }) {
-            selectedTags.append(primaryTag)
+        if let primaryTag = goal.primaryTag, !viewModel.selectedTags.contains(where: { $0.id == primaryTag.id }) {
+            viewModel.selectedTags.append(primaryTag)
         }
         
         // Load schedule
@@ -1306,11 +1287,11 @@ struct GoalEditorView: View {
     /// Remove a theme from the selected themes list
     private func removeGoalTheme(_ goalTheme: GoalTag) {
         withAnimation(AnimationPresets.quickSpring) {
-            selectedTags.removeAll(where: { $0.title == goalTheme.title })
+            viewModel.selectedTags.removeAll(where: { $0.title == goalTheme.title })
             
             // If we removed the currently selected theme, select the first available
-            if selectedGoalTheme?.title == goalTheme.title {
-                selectedGoalTheme = selectedTags.first
+            if viewModel.selectedGoalTheme?.title == goalTheme.title {
+                viewModel.selectedGoalTheme = viewModel.selectedTags.first
             }
         }
         
@@ -1483,7 +1464,7 @@ struct GoalEditorView: View {
         }
         
         // Infer and set icon from template
-        selectedIcon = inferIcon(from: template.title)
+        viewModel.selectedIcon = inferIcon(from: template.title)
         
         // Find the category for this template
         guard let category = suggestionsData.categories.first(where: { category in
@@ -1512,11 +1493,11 @@ struct GoalEditorView: View {
             print("✨ Created new tag: \(categoryName) with theme \(matchedTheme.title)")
         }
         
-        selectedGoalTheme = goalTheme
+        viewModel.selectedGoalTheme = goalTheme
         
         // Add to selected themes if not already there
-        if !selectedTags.contains(where: { $0.title == goalTheme.title }) {
-            selectedTags.append(goalTheme)
+        if !viewModel.selectedTags.contains(where: { $0.title == goalTheme.title }) {
+            viewModel.selectedTags.append(goalTheme)
         }
         
         // Set HealthKit metric if available
@@ -1581,7 +1562,7 @@ struct GoalEditorView: View {
         
         // Determine theme based on user selection or suggestion
         let finalGoalTag: GoalTag
-        if let customGoalTag = selectedGoalTheme {
+        if let customGoalTag = viewModel.selectedGoalTheme {
             // User has selected a tag (either custom or from suggestions)
             finalGoalTag = customGoalTag
         } else if let template = selectedTemplate,
@@ -1618,17 +1599,17 @@ struct GoalEditorView: View {
             // Calculate average daily target from per-day targets
             let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
             goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
-            goal.iconName = selectedIcon
+            goal.iconName = viewModel.selectedIcon
             goal.notificationsEnabled = notificationsEnabled
-            goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
-            goal.completionNotificationsEnabled = completionNotificationsEnabled
-            goal.completionBehaviors = selectedCompletionBehaviors
+            goal.scheduleNotificationsEnabled = viewModel.scheduleNotificationsEnabled
+            goal.completionNotificationsEnabled = viewModel.completionNotificationsEnabled
+            goal.completionBehaviors = viewModel.selectedCompletionBehaviors
             goal.goalType = viewModel.selectedGoalType
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
             goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
-            goal.notes = goalNotes.isEmpty ? nil : goalNotes
-            goal.link = goalLink.isEmpty ? nil : goalLink
+            goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
+            goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
             
             // Clear existing schedule and set new one
             goal.dayTimeSchedule.removeAll()
@@ -1640,39 +1621,39 @@ struct GoalEditorView: View {
                     primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
-                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
-                    completionNotificationsEnabled: completionNotificationsEnabled,
+                    scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
+                    completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
-                goal.iconName = selectedIcon
+                goal.iconName = viewModel.selectedIcon
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
-                goal.completionBehaviors = selectedCompletionBehaviors
+                goal.completionBehaviors = viewModel.selectedCompletionBehaviors
                 goal.goalType = viewModel.selectedGoalType
                 goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
-                goal.notes = goalNotes.isEmpty ? nil : goalNotes
-                goal.link = goalLink.isEmpty ? nil : goalLink
+                goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
+                goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
             } else {
                 goal = Goal(
                     title: viewModel.userInput,
                     primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
-                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
-                    completionNotificationsEnabled: completionNotificationsEnabled,
+                    scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
+                    completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
                     healthKitSyncEnabled: healthKitSyncEnabled
                 )
-                goal.iconName = selectedIcon
+                goal.iconName = viewModel.selectedIcon
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
-                goal.completionBehaviors = selectedCompletionBehaviors
+                goal.completionBehaviors = viewModel.selectedCompletionBehaviors
                 goal.goalType = viewModel.selectedGoalType
                 goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
-                goal.notes = goalNotes.isEmpty ? nil : goalNotes
-                goal.link = goalLink.isEmpty ? nil : goalLink
+                goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
+                goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
             }
         }
         
@@ -1732,7 +1713,7 @@ struct GoalEditorView: View {
         }
         
         // Request notification permissions if enabled
-        if selectedCompletionBehaviors.contains(.notify) {
+        if viewModel.selectedCompletionBehaviors.contains(.notify) {
             requestNotificationPermissions()
         }
         
@@ -1746,7 +1727,7 @@ struct GoalEditorView: View {
             let notificationManager = GoalNotificationManager()
             
             // Schedule notifications if enabled and there's a schedule
-            if scheduleNotificationsEnabled && goal.hasSchedule {
+            if viewModel.scheduleNotificationsEnabled && goal.hasSchedule {
                 do {
                     try await notificationManager.scheduleNotifications(for: goal)
                 } catch {
@@ -1877,22 +1858,22 @@ struct GoalEditorView: View {
     
     /// Handle color selection from the color picker
     private func handleColorSelection(_ preset: ThemePreset) {
-        selectedColorPreset = preset
+        viewModel.selectedColorPreset = preset
         
         // Update existing tag or create new one
-        if let currentTheme = selectedGoalTheme {
+        if let currentTheme = viewModel.selectedGoalTheme {
             currentTheme.themeID = preset.id
-        } else if !selectedTags.isEmpty {
-            selectedTags[0].themeID = preset.id
-            selectedGoalTheme = selectedTags[0]
+        } else if !viewModel.selectedTags.isEmpty {
+            viewModel.selectedTags[0].themeID = preset.id
+            viewModel.selectedGoalTheme = viewModel.selectedTags[0]
         } else {
             // No tags exist - create new tag with selected color
             let newTag = GoalTag(title: preset.title, themeID: preset.id)
-            selectedGoalTheme = newTag
-            selectedTags.append(newTag)
+            viewModel.selectedGoalTheme = newTag
+            viewModel.selectedTags.append(newTag)
         }
         
-        showingColorPicker = false
+        viewModel.showingColorPicker = false
     }
     
     /// Match a theme name to an actual Theme from the themes array
