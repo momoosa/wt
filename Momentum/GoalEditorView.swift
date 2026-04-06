@@ -50,9 +50,6 @@ struct GoalEditorView: View {
     }
     
     
-    @State private var result: GoalEditorSuggestionsResult.PartiallyGenerated?
-    @State private var errorMessage: String?
-    @State var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
     @State private var currentStage: EditorStage = .name
     @State private var durationInMinutes: Int = 30
     @State private var dailyMinimumMinutes: Int? = nil
@@ -770,7 +767,7 @@ struct GoalEditorView: View {
                         Spacer()
                             .frame(height: LayoutConstants.Heights.filterBar)
                     }
-                    .animation(.spring(), value: result)
+                    .animation(.spring(), value: viewModel.result)
                     .animation(AnimationPresets.smoothSpring, value: currentStage)
                     
             .overlay(alignment: .bottom) {
@@ -1564,7 +1561,7 @@ struct GoalEditorView: View {
             // Use the category's theme to create a tag
             let matchedTheme = matchTheme(named: category.color)
             finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
-        } else if let selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
+        } else if let selectedSuggestion = viewModel.selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
             let matchedTheme = matchTheme(named: themeNames[0])
             finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
@@ -1609,7 +1606,7 @@ struct GoalEditorView: View {
             goal.dayTimeSchedule.removeAll()
         } else {
             // Create new goal
-            if let selectedSuggestion, let title = selectedSuggestion.title {
+            if let selectedSuggestion = viewModel.selectedSuggestion, let title = selectedSuggestion.title {
                 goal = Goal(
                     title: title,
                     primaryTag: finalGoalTag,
@@ -1877,7 +1874,7 @@ struct GoalEditorView: View {
     }
     
     func generateChecklist(for input: String) {
-        errorMessage = nil
+        viewModel.errorMessage = nil
 
         Task {
             do {
@@ -1888,11 +1885,11 @@ struct GoalEditorView: View {
                 try await generateStreamedSuggestions()
                 await MainActor.run {
                     let wrapped = GoalEditorSuggestionsResult(suggestions: response)
-                    self.result = wrapped.asPartiallyGenerated()
+                    self.viewModel.result = wrapped.asPartiallyGenerated()
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = error.localizedDescription
+                    self.viewModel.errorMessage = error.localizedDescription
                 }
             }
         }
@@ -1922,7 +1919,7 @@ struct GoalEditorView: View {
         for try await partialResponse in stream {
             // Handle each partial response here
             await MainActor.run {
-                self.result = partialResponse.content
+                self.viewModel.result = partialResponse.content
             }
         }
     }

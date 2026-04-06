@@ -26,7 +26,10 @@ class GoalEditorViewModel {
     var dailyMinimumMinutes: Int?
     var hasDailyMinimum: Bool = false
     var currentStage: EditorStage = .name
-    
+    var result: GoalEditorSuggestionsResult.PartiallyGenerated? // TODO: PRivate
+    var errorMessage: String? // TODO: Private
+    var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
+
     // MARK: - Template & Suggestions
     
     var selectedTemplate: GoalTemplateSuggestion?
