@@ -215,7 +215,6 @@ struct SettingsView: View {
             title: debugGoal.title,
             primaryTag: theme,
             weeklyTarget: TimeInterval(debugGoal.weeklyTargetMinutes * 60),
-            notificationsEnabled: debugGoal.notificationsEnabled,
             healthKitMetric: debugGoal.healthKitMetric,
             healthKitSyncEnabled: debugGoal.healthKitSyncEnabled
         )

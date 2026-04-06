@@ -50,11 +50,6 @@ struct GoalEditorView: View {
     }
     
     
-    @State private var currentStage: EditorStage = .name
-    @State private var durationInMinutes: Int = 30
-    @State private var dailyMinimumMinutes: Int? = nil
-    @State private var hasDailyMinimum: Bool = false
-    @State private var notificationsEnabled: Bool = false // Legacy, kept for backward compatibility
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
     @State private var showingValidationAlert: Bool = false
@@ -83,15 +78,6 @@ struct GoalEditorView: View {
     // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
     private let weekdays = WeekdayConstants.weekdays
     
-    // Scheduling state
-    enum TimeRelation: String, CaseIterable, Identifiable { case before, after; var id: String { rawValue } }
-    struct DaySchedule: Identifiable { let id = UUID(); var enabled: Bool; var relation: TimeRelation; var time: Date }
-    
-  
-    // Simple multi-select time of day
-    enum SimpleTimeOfDay: String, CaseIterable, Identifiable { case anytime = "Anytime", morning = "Morning", afternoon = "Afternoon", evening = "Evening"; var id: String { rawValue } }
-
-    
     // Track if user has made any changes
     private var hasUnsavedChanges: Bool {
         // Check if user has entered text
@@ -105,7 +91,7 @@ struct GoalEditorView: View {
         }
         
         // Check if in duration stage (means they pressed Next)
-        if currentStage == .duration {
+        if viewModel.currentStage == .duration {
             return true
         }
         
@@ -134,11 +120,7 @@ struct GoalEditorView: View {
         }
         return false
     }
-    
-    enum EditorStage {
-        case name
-        case duration
-    }
+
     
     // Computed property for the active theme color
     private var activeThemeColor: Color {
@@ -300,7 +282,7 @@ struct GoalEditorView: View {
                                     }
                                 
                             }
-                        if currentStage == .name {
+                        if viewModel.currentStage == .name {
 
                             // Scrollable Category Tabs
                             Section {
@@ -386,7 +368,7 @@ struct GoalEditorView: View {
                             .listRowBackground(Color.clear)
                         }
                         
-                        if currentStage == .duration {
+                        if viewModel.currentStage == .duration {
                                          
                             Section(header: Text("Theme")) {
                                 VStack(alignment: .leading, spacing: 12) {
@@ -768,14 +750,14 @@ struct GoalEditorView: View {
                             .frame(height: LayoutConstants.Heights.filterBar)
                     }
                     .animation(.spring(), value: viewModel.result)
-                    .animation(AnimationPresets.smoothSpring, value: currentStage)
+                    .animation(AnimationPresets.smoothSpring, value: viewModel.currentStage)
                     
             .overlay(alignment: .bottom) {
                 // Bottom button (hide when keyboard is active or when editing existing goal on duration stage)
-                if focusedField == nil && !(viewModel.existingGoal != nil && currentStage == .duration) {
+                if focusedField == nil && !(viewModel.existingGoal != nil && viewModel.currentStage == .duration) {
                     VStack(spacing: 0) {
                         Divider()
-                        if currentStage == .name {
+                        if viewModel.currentStage == .name {
                             Button(action: {
                                 handleButtonTap()
                             }) {
@@ -813,17 +795,17 @@ struct GoalEditorView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .navigationTitle(currentStage == .name ? (viewModel.existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
+            .navigationTitle(viewModel.currentStage == .name ? (viewModel.existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
             .navigationBarTitleDisplayMode(.inline)
             .tint(activeThemeColor)
-            .interactiveDismissDisabled(currentStage != .name)
+            .interactiveDismissDisabled(viewModel.currentStage != .name)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        if currentStage == .duration && viewModel.existingGoal == nil {
+                        if viewModel.currentStage == .duration && viewModel.existingGoal == nil {
                             // Only allow going back to name stage if creating new goal
                             withAnimation {
-                                currentStage = .name
+                                viewModel.currentStage = .name
                                 // Reset theme selections when going back
                                 viewModel.selectedTags.removeAll()
                                 viewModel.selectedGoalTheme = nil
@@ -836,13 +818,13 @@ struct GoalEditorView: View {
                         // Show X when editing, or when on name stage
                         // Show back arrow only when on duration stage of new goal
                         
-                        Image(systemName: (currentStage == .name || viewModel.existingGoal != nil) ? "xmark" : "chevron.left")
+                        Image(systemName: (viewModel.currentStage == .name || viewModel.existingGoal != nil) ? "xmark" : "chevron.left")
                     }
 
                 }
                 
                 // Save/Close button on duration stage
-                if currentStage == .duration {
+                if viewModel.currentStage == .duration {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             if viewModel.existingGoal != nil {
@@ -888,7 +870,7 @@ struct GoalEditorView: View {
                     Spacer()
                     
                     // Next button (only on name stage with goalName field focused)
-                    if currentStage == .name && focusedField == .goalName {
+                    if viewModel.currentStage == .name && focusedField == .goalName {
                         Button {
                             handleButtonTap()
                         } label: {
@@ -974,7 +956,7 @@ struct GoalEditorView: View {
     }
     
     var buttonEnabled: Bool {
-        switch currentStage {
+        switch viewModel.currentStage {
         case .name:
             return selectedTemplate != nil || !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .duration:
@@ -987,11 +969,11 @@ struct GoalEditorView: View {
     private func focusNextField() {
         switch focusedField {
         case .goalName:
-            if currentStage == .duration {
+            if viewModel.currentStage == .duration {
                 focusedField = .duration
             }
         case .duration:
-            if hasDailyMinimum {
+            if viewModel.hasDailyMinimum {
                 focusedField = .dailyMinimum
             } else if let firstActiveDay = getNextActiveScheduleDay(after: nil) {
                 focusedField = .scheduleDay(firstActiveDay)
@@ -1026,16 +1008,16 @@ struct GoalEditorView: View {
         case .scheduleDay(let weekday):
             if let previousDay = getPreviousActiveScheduleDay(before: weekday) {
                 focusedField = .scheduleDay(previousDay)
-            } else if hasDailyMinimum {
+            } else if viewModel.hasDailyMinimum {
                 focusedField = .dailyMinimum
             } else {
                 focusedField = .duration
             }
         case .none:
-            if currentStage == .duration {
+            if viewModel.currentStage == .duration {
                 if let lastActiveDay = getPreviousActiveScheduleDay(before: nil) {
                     focusedField = .scheduleDay(lastActiveDay)
-                } else if hasDailyMinimum {
+                } else if viewModel.hasDailyMinimum {
                     focusedField = .dailyMinimum
                 } else {
                     focusedField = .duration
@@ -1049,9 +1031,9 @@ struct GoalEditorView: View {
     private func canFocusNext() -> Bool {
         switch focusedField {
         case .goalName:
-            return currentStage == .duration
+            return viewModel.currentStage == .duration
         case .duration:
-            return hasDailyMinimum || !activeDays.isEmpty
+            return viewModel.hasDailyMinimum || !activeDays.isEmpty
         case .dailyMinimum:
             return !activeDays.isEmpty
         case .scheduleDay(let weekday):
@@ -1072,7 +1054,7 @@ struct GoalEditorView: View {
         case .scheduleDay:
             return true
         case .none:
-            return currentStage == .duration
+            return viewModel.currentStage == .duration
         }
     }
     
@@ -1176,14 +1158,14 @@ struct GoalEditorView: View {
     /// Load existing goal data for editing
     private func loadGoalData(from goal: Goal) {
         viewModel.userInput = goal.title
-        durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
+        viewModel.durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
         
         // Load daily minimum (this is now the primary daily target)
         if let dailyMin = goal.dailyMinimum {
-            dailyMinimumMinutes = Int(dailyMin / 60)
+            viewModel.dailyMinimumMinutes = Int(dailyMin / 60)
         } else {
             // Default to 10 minutes if not set
-            dailyMinimumMinutes = 10
+            viewModel.dailyMinimumMinutes = 10
         }
         
         // Infer active days from schedule - days with any time preferences are "active"
@@ -1199,7 +1181,7 @@ struct GoalEditorView: View {
                     dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
                 } else {
                     // Fall back to dailyMinimum or default
-                    dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+                    dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
                 }
             }
         }
@@ -1208,11 +1190,10 @@ struct GoalEditorView: View {
         if activeDays.isEmpty {
             activeDays = Set(2...6) // Monday-Friday
             for weekday in 2...6 {
-                dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+                dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
             }
         }
         
-        notificationsEnabled = goal.notificationsEnabled
         viewModel.scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
         viewModel.completionNotificationsEnabled = goal.completionNotificationsEnabled
         viewModel.selectedCompletionBehaviors = goal.completionBehaviors
@@ -1272,7 +1253,7 @@ struct GoalEditorView: View {
         }
         
         // Go straight to duration stage when editing
-        currentStage = .duration
+        viewModel.currentStage = .duration
     }
      
     /// Remove a theme from the selected themes list
@@ -1372,7 +1353,7 @@ struct GoalEditorView: View {
         } else {
             activeDays.insert(weekday)
             // Set default target when activating a day
-            dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+            dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
         }
         
         HapticFeedbackManager.trigger(.light)
@@ -1417,18 +1398,18 @@ struct GoalEditorView: View {
     }
     
     func handleButtonTap() {
-        switch currentStage {
+        switch viewModel.currentStage {
         case .name:
             if let template = selectedTemplate {
                 // Prefill from template and go to duration without AI
                 applyTemplate(template)
                 withAnimation {
-                    currentStage = .duration
+                    viewModel.currentStage = .duration
                 }
             } else {
                 // New goal: go to duration immediately, then start generating suggestions in background
                 withAnimation {
-                    currentStage = .duration
+                    viewModel.currentStage = .duration
                 }
             }
         case .duration:
@@ -1442,7 +1423,7 @@ struct GoalEditorView: View {
         viewModel.userInput = template.title
         
         // Set duration
-        durationInMinutes = template.duration
+        viewModel.durationInMinutes = template.duration
         
         // Distribute the template duration across active days
         // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
@@ -1591,7 +1572,6 @@ struct GoalEditorView: View {
             let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
             goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
             goal.iconName = viewModel.selectedIcon
-            goal.notificationsEnabled = notificationsEnabled
             goal.scheduleNotificationsEnabled = viewModel.scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = viewModel.completionNotificationsEnabled
             goal.completionBehaviors = viewModel.selectedCompletionBehaviors
@@ -1611,7 +1591,6 @@ struct GoalEditorView: View {
                     title: title,
                     primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
-                    notificationsEnabled: notificationsEnabled,
                     scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
                     completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
@@ -1630,7 +1609,6 @@ struct GoalEditorView: View {
                     title: viewModel.userInput,
                     primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
-                    notificationsEnabled: notificationsEnabled,
                     scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
                     completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
                     healthKitMetric: selectedHealthKitMetric,
@@ -1639,7 +1617,7 @@ struct GoalEditorView: View {
                 goal.iconName = viewModel.selectedIcon
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
-                goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+                goal.dailyMinimum = viewModel.hasDailyMinimum ? TimeInterval((viewModel.dailyMinimumMinutes ?? 10) * 60) : nil
                 goal.completionBehaviors = viewModel.selectedCompletionBehaviors
                 goal.goalType = viewModel.selectedGoalType
                 goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget

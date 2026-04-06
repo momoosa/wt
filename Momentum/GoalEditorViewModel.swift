@@ -29,7 +29,6 @@ class GoalEditorViewModel {
     var result: GoalEditorSuggestionsResult.PartiallyGenerated? // TODO: PRivate
     var errorMessage: String? // TODO: Private
     var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
-
     // MARK: - Template & Suggestions
     
     var selectedTemplate: GoalTemplateSuggestion?
