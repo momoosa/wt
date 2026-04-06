@@ -38,7 +38,13 @@ struct GoalEditorView: View {
     var existingGoal: Goal?
     
     // View Model - coexists with @State properties during migration
-    // @Bindable private var viewModel = GoalEditorViewModel()
+    @Bindable private var viewModel: GoalEditorViewModel
+    
+    // Initializer to properly initialize ViewModel
+    init(existingGoal: Goal? = nil) {
+        self.existingGoal = existingGoal
+        self.viewModel = GoalEditorViewModel(existingGoal: existingGoal)
+    }
     
     @State private var userInput: String = ""
     @FocusState private var focusedField: Field?

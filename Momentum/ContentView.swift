@@ -1124,7 +1124,7 @@ struct ContentView: View {
     }
     
     private var goalEditorSheet: some View {
-        GoalEditorView()
+        GoalEditorView(existingGoal: nil)
             .navigationTransition(
                 .zoom(sourceID: "info", in: animation)
             )
