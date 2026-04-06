@@ -37,6 +37,9 @@ struct GoalEditorView: View {
     // Optional existing goal for editing
     var existingGoal: Goal?
     
+    // View Model - coexists with @State properties during migration
+    // @Bindable private var viewModel = GoalEditorViewModel()
+    
     @State private var userInput: String = ""
     @FocusState private var focusedField: Field?
     @Namespace private var buttonNamespace
@@ -207,86 +210,16 @@ struct GoalEditorView: View {
     private var scheduleSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 16) {
-                // Goal type picker at the top
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("Goal Type", selection: $selectedGoalType) {
-                        ForEach(Goal.GoalType.allCases, id: \.self) { type in
-                            Text(type.displayName).tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: selectedGoalType) { _, newType in
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                            handleGoalTypeChange(newType)
-                        }
-                    }
-
-                    // Animated target field that morphs between weekly and daily
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(selectedGoalType == .time ? "Weekly Target" : "Daily Target")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .animation(.none, value: selectedGoalType)
-                            Spacer()
-                            
-                            HStack(spacing: 4) {
-                                if selectedGoalType == .time {
-                                    Text("\(calculatedWeeklyTarget)")
-                                        .foregroundStyle(activeThemeColor)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .frame(width: 100, alignment: .trailing)
-                                        .id("weekly-value")
-                                } else {
-                                    TextField("Target", value: $primaryMetricTarget, format: .number)
-                                        .keyboardType(.numberPad)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: 100)
-                                        .multilineTextAlignment(.trailing)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .id("daily-value-\(selectedGoalType.rawValue)")
-                                }
-                                
-                                Text(selectedGoalType == .time ? "min" : goalTypeUnit)
-                                    .foregroundStyle(activeThemeColor)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .id("unit-\(selectedGoalType.rawValue)")
-                            }
-                        }
-                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectedGoalType)
-                        
-                        // Quick suggestion buttons (only for count/calorie)
-                        if selectedGoalType != .time {
-                            HStack(spacing: 8) {
-                                Text("Common:")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                
-                                ForEach(targetSuggestions, id: \.self) { suggestion in
-                                    Button {
-                                        primaryMetricTarget = Double(suggestion)
-                                    } label: {
-                                        Text("\(suggestion)")
-                                            .font(.caption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Int(primaryMetricTarget) == suggestion ? activeThemeColor.opacity(0.2) : Color(.systemGray6))
-                                            )
-                                            .foregroundStyle(Int(primaryMetricTarget) == suggestion ? activeThemeColor : .secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                    }
-                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectedGoalType)
-                }
+                // Goal type picker section (extracted component)
+                GoalTypeSection(
+                    selectedType: $selectedGoalType,
+                    primaryMetricTarget: $primaryMetricTarget,
+                    calculatedWeeklyTarget: calculatedWeeklyTarget,
+                    activeThemeColor: activeThemeColor,
+                    goalTypeUnit: goalTypeUnit,
+                    targetSuggestions: targetSuggestions,
+                    onTypeChange: handleGoalTypeChange
+                )
 
                 Divider()
 

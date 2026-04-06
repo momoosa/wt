@@ -65,6 +65,22 @@ class GoalEditorViewModel {
     var selectedHealthKitMetric: HealthKitMetric?
     var healthKitSyncEnabled: Bool = false
     
+    // MARK: - Goal Types & Metrics
+    
+    var selectedGoalType: Goal.GoalType = .time
+    var primaryMetricTarget: Double = 0
+    var dailyTargets: [Int: Int] = [:]
+    
+    // MARK: - Validation
+    
+    var validationMessage: String = ""
+    var showingValidationAlert: Bool = false
+    
+    // MARK: - Screen Time
+    
+    var screenTimeEnabled: Bool = false
+    var selectedScreenTimeCategories: Set<String> = []
+    
     // MARK: - Additional Fields
     
     var goalNotes: String = ""
@@ -72,7 +88,7 @@ class GoalEditorViewModel {
     
     // MARK: - Checklist
     
-    var checklistItems: [String] = []
+    var checklistItems: [ChecklistItemData] = []
     var newChecklistItem: String = ""
     
     // MARK: - Weather Triggers
@@ -256,12 +272,24 @@ class GoalEditorViewModel {
         completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedCompletionBehaviors = goal.completionBehaviors
         
+        // Load goal type and metrics
+        selectedGoalType = goal.goalType
+        primaryMetricTarget = goal.primaryMetricDailyTarget
+        
+        // Load daily targets
+        dailyTargets.removeAll()
+        for (weekdayStr, interval) in goal.dailyTargets {
+            if let weekday = Int(weekdayStr) {
+                dailyTargets[weekday] = Int(interval / 60)
+            }
+        }
+        
         if let metric = goal.healthKitMetric {
             selectedHealthKitMetric = metric
             healthKitSyncEnabled = goal.healthKitSyncEnabled
         }
         
-        checklistItems = goal.checklistItems?.map { $0.title } ?? []
+        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
         
         weatherEnabled = goal.weatherEnabled
         if let conditions = goal.weatherConditions {
@@ -273,6 +301,7 @@ class GoalEditorViewModel {
         maxTemperature = goal.maxTemperature ?? 25
         
         // Load day-time schedule and convert to our format
+        activeDays.removeAll()
         for (weekdayStr, times) in goal.dayTimeSchedule {
             if let weekday = Int(weekdayStr) {
                 activeDays.insert(weekday)
@@ -281,5 +310,87 @@ class GoalEditorViewModel {
         }
         
         currentStage = .duration
+    }
+    
+    // MARK: - Goal Type Helpers
+    
+    var goalTypeUnit: String {
+        switch selectedGoalType {
+        case .time: return "min"
+        case .count: return "steps"
+        case .calories: return "cal"
+        }
+    }
+    
+    var calculatedWeeklyTarget: Int {
+        switch selectedGoalType {
+        case .time:
+            return durationInMinutes * activeDays.count
+        case .count, .calories:
+            return Int(primaryMetricTarget * Double(activeDays.count))
+        }
+    }
+    
+    func validatePrimaryMetricTarget() {
+        guard primaryMetricTarget > 0 else {
+            switch selectedGoalType {
+            case .time: primaryMetricTarget = 0
+            case .count:
+                primaryMetricTarget = 100
+                validationMessage = "Target set to minimum: 100 steps"
+                showingValidationAlert = true
+            case .calories:
+                primaryMetricTarget = 50
+                validationMessage = "Target set to minimum: 50 calories"
+                showingValidationAlert = true
+            }
+            return
+        }
+
+        switch selectedGoalType {
+        case .time: break
+        case .count:
+            if primaryMetricTarget > 100000 {
+                primaryMetricTarget = 100000
+                validationMessage = "Target adjusted to maximum: 100,000 steps"
+                showingValidationAlert = true
+            } else if primaryMetricTarget < 100 {
+                primaryMetricTarget = 100
+                validationMessage = "Target adjusted to minimum: 100 steps"
+                showingValidationAlert = true
+            }
+        case .calories:
+            if primaryMetricTarget > 10000 {
+                primaryMetricTarget = 10000
+                validationMessage = "Target adjusted to maximum: 10,000 calories"
+                showingValidationAlert = true
+            } else if primaryMetricTarget < 50 {
+                primaryMetricTarget = 50
+                validationMessage = "Target adjusted to minimum: 50 calories"
+                showingValidationAlert = true
+            }
+        }
+    }
+    
+    func applyTemplate(_ template: GoalTemplateSuggestion) {
+        userInput = template.title
+        durationInMinutes = template.duration
+        selectedTemplate = template
+        
+        if let goalTypeStr = template.goalType, let goalType = Goal.GoalType(rawValue: goalTypeStr) {
+            selectedGoalType = goalType
+        }
+        
+        if let target = template.primaryMetricTarget {
+            primaryMetricTarget = target
+        }
+        
+        if let healthKitMetricStr = template.healthKitMetric,
+           let metric = HealthKitMetric(rawValue: healthKitMetricStr) {
+            selectedHealthKitMetric = metric
+            healthKitSyncEnabled = true
+        }
+        
+        selectedIcon = template.icon
     }
 }
