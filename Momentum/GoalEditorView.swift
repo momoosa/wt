@@ -67,10 +67,8 @@ struct GoalEditorView: View {
     @State private var scheduleNotificationsEnabled: Bool = false
     @State private var completionNotificationsEnabled: Bool = false
     @State private var selectedCompletionBehaviors: Set<Goal.CompletionBehavior> = []
-    @State private var selectedGoalType: Goal.GoalType = .time
     @State private var selectedHealthKitMetric: HealthKitMetric?
     @State private var healthKitSyncEnabled: Bool = false
-    @State private var primaryMetricTarget: Double = 10000 // Default target for count/calorie goals
     @State private var showingValidationAlert: Bool = false
     @State private var validationMessage: String = ""
     @State private var goalNotes: String = ""
@@ -196,12 +194,12 @@ struct GoalEditorView: View {
 
     /// Unit label for the current goal type
     private var goalTypeUnit: String {
-        selectedGoalType.unitLabel
+        viewModel.selectedGoalType.unitLabel
     }
     
     /// Suggested target values based on goal type
     private var targetSuggestions: [Int] {
-        switch selectedGoalType {
+        switch viewModel.selectedGoalType {
         case .time:
             return []
         case .count:
@@ -218,8 +216,8 @@ struct GoalEditorView: View {
             VStack(alignment: .leading, spacing: 16) {
                 // Goal type picker section (extracted component)
                 GoalTypeSection(
-                    selectedType: $selectedGoalType,
-                    primaryMetricTarget: $primaryMetricTarget,
+                    selectedType: $viewModel.selectedGoalType,
+                    primaryMetricTarget: $viewModel.primaryMetricTarget,
                     calculatedWeeklyTarget: calculatedWeeklyTarget,
                     activeThemeColor: activeThemeColor,
                     goalTypeUnit: goalTypeUnit,
@@ -234,10 +232,10 @@ struct GoalEditorView: View {
             }
             .padding(.vertical, 4)
         } header: {
-            Text(selectedGoalType == .time ? "Weekly Goal" : "Goal & Schedule")
+            Text(viewModel.selectedGoalType == .time ? "Weekly Goal" : "Goal & Schedule")
         } footer: {
-            if selectedGoalType != .time {
-                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(primaryMetricTarget)) \(goalTypeUnit) applies to all selected days.")
+            if viewModel.selectedGoalType != .time {
+                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(viewModel.primaryMetricTarget)) \(goalTypeUnit) applies to all selected days.")
             }
         }
     }
@@ -268,7 +266,7 @@ struct GoalEditorView: View {
                     selectedTimes: dayTimePreferences[weekday] ?? [],
                     themeColor: activeThemeColor,
                     isExpanded: expandedDay == weekday,
-                    showMinutes: selectedGoalType == .time,
+                    showMinutes: viewModel.selectedGoalType == .time,
                     focusedField: $focusedField,
                     onToggleDay: { toggleActiveDay(weekday) },
                     onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
@@ -1153,27 +1151,27 @@ struct GoalEditorView: View {
         case .count:
             selectedHealthKitMetric = .stepCount
             healthKitSyncEnabled = true
-            primaryMetricTarget = 10000
+            viewModel.primaryMetricTarget = 10000
         case .calories:
             selectedHealthKitMetric = .activeEnergyBurned
             healthKitSyncEnabled = true
-            primaryMetricTarget = 500
+            viewModel.primaryMetricTarget = 500
         }
     }
 
     /// Validate and clamp primary metric target to reasonable ranges
     private func validatePrimaryMetricTarget() {
-        guard primaryMetricTarget > 0 else {
+        guard viewModel.primaryMetricTarget > 0 else {
             // Set to default if zero or negative
-            switch selectedGoalType {
+            switch viewModel.selectedGoalType {
             case .time:
-                primaryMetricTarget = 0
+                viewModel.primaryMetricTarget = 0
             case .count:
-                primaryMetricTarget = 100 // Minimum 100 steps
+                viewModel.primaryMetricTarget = 100 // Minimum 100 steps
                 validationMessage = "Target set to minimum: 100 steps"
                 showingValidationAlert = true
             case .calories:
-                primaryMetricTarget = 50 // Minimum 50 calories
+                viewModel.primaryMetricTarget = 50 // Minimum 50 calories
                 validationMessage = "Target set to minimum: 50 calories"
                 showingValidationAlert = true
             }
@@ -1181,26 +1179,26 @@ struct GoalEditorView: View {
         }
 
         // Clamp to reasonable maximums
-        switch selectedGoalType {
+        switch viewModel.selectedGoalType {
         case .time:
             break // No validation needed
         case .count:
-            if primaryMetricTarget > 100000 {
-                primaryMetricTarget = 100000 // Max 100k steps
+            if viewModel.primaryMetricTarget > 100000 {
+                viewModel.primaryMetricTarget = 100000 // Max 100k steps
                 validationMessage = "Target adjusted to maximum: 100,000 steps"
                 showingValidationAlert = true
-            } else if primaryMetricTarget < 100 {
-                primaryMetricTarget = 100 // Min 100 steps
+            } else if viewModel.primaryMetricTarget < 100 {
+                viewModel.primaryMetricTarget = 100 // Min 100 steps
                 validationMessage = "Target adjusted to minimum: 100 steps"
                 showingValidationAlert = true
             }
         case .calories:
-            if primaryMetricTarget > 10000 {
-                primaryMetricTarget = 10000 // Max 10k calories
+            if viewModel.primaryMetricTarget > 10000 {
+                viewModel.primaryMetricTarget = 10000 // Max 10k calories
                 validationMessage = "Target adjusted to maximum: 10,000 calories"
                 showingValidationAlert = true
-            } else if primaryMetricTarget < 50 {
-                primaryMetricTarget = 50 // Min 50 calories
+            } else if viewModel.primaryMetricTarget < 50 {
+                viewModel.primaryMetricTarget = 50 // Min 50 calories
                 validationMessage = "Target adjusted to minimum: 50 calories"
                 showingValidationAlert = true
             }
@@ -1250,22 +1248,22 @@ struct GoalEditorView: View {
         scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
         completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedCompletionBehaviors = goal.completionBehaviors
-        selectedGoalType = goal.goalType
+        viewModel.selectedGoalType = goal.goalType
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
 
         // Load or set default primary metric target
         if goal.primaryMetricDailyTarget > 0 {
-            primaryMetricTarget = goal.primaryMetricDailyTarget
+            viewModel.primaryMetricTarget = goal.primaryMetricDailyTarget
         } else {
             // Set defaults based on goal type for migrated goals
             switch goal.goalType {
             case .time:
-                primaryMetricTarget = 0
+                viewModel.primaryMetricTarget = 0
             case .count:
-                primaryMetricTarget = 10000 // Default: 10,000 steps
+                viewModel.primaryMetricTarget = 10000 // Default: 10,000 steps
             case .calories:
-                primaryMetricTarget = 500 // Default: 500 calories
+                viewModel.primaryMetricTarget = 500 // Default: 500 calories
             }
         }
 
@@ -1551,22 +1549,22 @@ struct GoalEditorView: View {
         // Set goal type if specified in template
         if let goalTypeString = template.goalType,
            let goalType = Goal.GoalType(rawValue: goalTypeString) {
-            selectedGoalType = goalType
+            viewModel.selectedGoalType = goalType
         } else {
-            selectedGoalType = .time
+            viewModel.selectedGoalType = .time
         }
 
         // Set primary metric target if specified
         if let target = template.primaryMetricTarget {
-            primaryMetricTarget = target
+            viewModel.primaryMetricTarget = target
         }
 
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
         print("   Duration: \(template.duration) min")
         print("   Daily Minutes: \(dailyMinutes) min per day")
-        print("   Goal Type: \(selectedGoalType.rawValue)")
-        print("   Primary Target: \(primaryMetricTarget)")
+        print("   Goal Type: \(viewModel.selectedGoalType.rawValue)")
+        print("   Primary Target: \(viewModel.primaryMetricTarget)")
         print("   Theme: \(template.theme)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
@@ -1629,10 +1627,10 @@ struct GoalEditorView: View {
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = completionNotificationsEnabled
             goal.completionBehaviors = selectedCompletionBehaviors
-            goal.goalType = selectedGoalType
+            goal.goalType = viewModel.selectedGoalType
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
-            goal.primaryMetricDailyTarget = primaryMetricTarget
+            goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
             goal.notes = goalNotes.isEmpty ? nil : goalNotes
             goal.link = goalLink.isEmpty ? nil : goalLink
             
@@ -1655,8 +1653,8 @@ struct GoalEditorView: View {
                 let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.completionBehaviors = selectedCompletionBehaviors
-                goal.goalType = selectedGoalType
-                goal.primaryMetricDailyTarget = primaryMetricTarget
+                goal.goalType = viewModel.selectedGoalType
+                goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             } else {
@@ -1675,8 +1673,8 @@ struct GoalEditorView: View {
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
                 goal.completionBehaviors = selectedCompletionBehaviors
-                goal.goalType = selectedGoalType
-                goal.primaryMetricDailyTarget = primaryMetricTarget
+                goal.goalType = viewModel.selectedGoalType
+                goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
                 goal.notes = goalNotes.isEmpty ? nil : goalNotes
                 goal.link = goalLink.isEmpty ? nil : goalLink
             }

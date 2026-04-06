@@ -91,19 +91,51 @@ The `GoalEditorViewModel` already includes:
 
 ## Recommendation
 
+**IMPORTANT**: Automated refactoring was attempted and reverted due to complexity.
+
 This refactoring should be done:
-1. **In a separate branch** to allow thorough testing
-2. **Incrementally** - migrate one section at a time
-3. **With comprehensive testing** after each migration step
-4. **During a low-priority period** when breaking changes can be tolerated
+1. **Manually** - The file is too complex for safe automated refactoring
+2. **In a separate branch** to allow thorough testing
+3. **Incrementally** - migrate one section at a time (e.g., start with just goal type properties)
+4. **With comprehensive testing** after each migration step
+5. **During a low-priority period** when breaking changes can be tolerated
+
+## Why Manual Refactoring is Needed
+
+- 3,276 lines with complex nested SwiftUI views
+- 50+ @State properties with hundreds of references
+- Complex bindings ($property syntax) throughout
+- Computed properties and functions that reference state
+- Risk of breaking UI bindings if not done carefully
+
+## Alternative Approach: Hybrid Model
+
+Since full migration is too risky, consider this pragmatic approach:
+
+### Option 1: Keep Both (Recommended for Safety)
+- Keep existing @State properties in GoalEditorView (working code)
+- Use ViewModel only for NEW features going forward
+- Gradually migrate sections when touching that code anyway
+- No risk of breaking existing functionality
+
+### Option 2: Extract Sections Into Separate Views
+Instead of migrating the monolithic view, break it into smaller views:
+- `GoalTypeSection` - uses its own ViewModel
+- `ChecklistSection` - uses its own ViewModel  
+- `ScheduleSection` - uses its own ViewModel
+- Each section is independently testable
+- Much safer than all-at-once migration
+
+### Option 3: Delete the ViewModel
+If it's not going to be used, remove it to reduce maintenance burden.
 
 ## Current Workaround
 
 The ViewModel is ready and waiting. For now:
 - GoalEditorView continues to work with direct @State
 - Helper classes (GoalEditorHelpers.swift) are available
-- Future features should prefer adding to ViewModel
-- When time allows, complete the migration
+- ViewModel can be used for new features
+- When time allows, complete the migration (or use hybrid approach)
 
 ## Benefits of Completing Migration
 
