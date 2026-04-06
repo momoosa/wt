@@ -46,7 +46,6 @@ struct GoalEditorView: View {
         self.viewModel = GoalEditorViewModel(existingGoal: existingGoal)
     }
     
-    @State private var userInput: String = ""
     @FocusState private var focusedField: Field?
     @Namespace private var buttonNamespace
     
@@ -73,9 +72,6 @@ struct GoalEditorView: View {
     @State private var validationMessage: String = ""
     @State private var goalNotes: String = ""
     @State private var goalLink: String = ""
-    @State private var checklistItems: [ChecklistItemData] = []
-    @State private var newChecklistItemTitle: String = ""
-    @State private var newChecklistItemNotes: String = ""
     @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
     @State private var selectedTemplate: GoalTemplateSuggestion?
     @State private var selectedCategoryIndex: Int = 0
@@ -127,7 +123,7 @@ struct GoalEditorView: View {
     // Track if user has made any changes
     private var hasUnsavedChanges: Bool {
         // Check if user has entered text
-        if !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
         }
         
@@ -291,9 +287,9 @@ struct GoalEditorView: View {
                     List {
                             // Custom input section
                             Section {
-                                TextField("What do you want to do?", text: $userInput)
+                                TextField("What do you want to do?", text: $viewModel.userInput)
                                     .focused($focusedField, equals: .goalName)
-                                    .onChange(of: userInput) { _, newValue in
+                                    .onChange(of: viewModel.userInput) { _, newValue in
                                         // Clear selection if user is typing freeform
                                         if !newValue.isEmpty {
                                             selectedTemplate = nil
@@ -389,10 +385,10 @@ struct GoalEditorView: View {
                                     TabView(selection: $selectedCategoryIndex) {
                                         // Reminders tab content
                                         RemindersTabView(
-                                            userInput: $userInput,
+                                            userInput: $viewModel.userInput,
                                             onReminderSelected: { reminder in
                                                 // Fill in the goal name from reminder
-                                                userInput = reminder.title ?? ""
+                                                viewModel.userInput = reminder.title ?? ""
                                                 selectedTemplate = nil
                                             }
                                         )
@@ -402,7 +398,7 @@ struct GoalEditorView: View {
                                             CategorySuggestionsView(
                                                 category: category,
                                                 selectedTemplate: $selectedTemplate,
-                                                userInput: $userInput
+                                                userInput: $viewModel.userInput
                                             )
                                             .tag(index)
                                         }
@@ -617,7 +613,7 @@ struct GoalEditorView: View {
                             
                             // Checklist Section
                             Section(header: Text("Checklist")) {
-                                ForEach($checklistItems) { $item in
+                                ForEach($viewModel.checklistItems) { $item in
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack {
                                             Image(systemName: "circle")
@@ -625,8 +621,8 @@ struct GoalEditorView: View {
                                             TextField("Title", text: $item.title)
                                             Spacer()
                                             Button {
-                                                if let index = checklistItems.firstIndex(where: { $0.id == item.id }) {
-                                                    checklistItems.remove(at: index)
+                                                if let index = viewModel.checklistItems.firstIndex(where: { $0.id == item.id }) {
+                                                    viewModel.checklistItems.remove(at: index)
                                                 }
                                             } label: {
                                                 Image(systemName: "minus.circle.fill")
@@ -647,27 +643,27 @@ struct GoalEditorView: View {
                                     HStack {
                                         Image(systemName: "circle")
                                             .foregroundStyle(.secondary)
-                                        TextField("Add checklist item...", text: $newChecklistItemTitle)
+                                        TextField("Add checklist item...", text: $viewModel.newChecklistItemTitle)
                                             .onSubmit {
-                                                if !newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                                                    checklistItems.append(ChecklistItemData(
-                                                        title: newChecklistItemTitle,
-                                                        notes: newChecklistItemNotes
+                                                if !viewModel.newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                    viewModel.checklistItems.append(ChecklistItemData(
+                                                        title: viewModel.newChecklistItemTitle,
+                                                        notes: viewModel.newChecklistItemNotes
                                                     ))
-                                                    newChecklistItemTitle = ""
-                                                    newChecklistItemNotes = ""
+                                                    viewModel.newChecklistItemTitle = ""
+                                                    viewModel.newChecklistItemNotes = ""
                                                 }
                                             }
 
-                                        if !newChecklistItemTitle.isEmpty {
+                                        if !viewModel.newChecklistItemTitle.isEmpty {
                                             Button {
-                                                if !newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                                                    checklistItems.append(ChecklistItemData(
-                                                        title: newChecklistItemTitle,
-                                                        notes: newChecklistItemNotes
+                                                if !viewModel.newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                    viewModel.checklistItems.append(ChecklistItemData(
+                                                        title: viewModel.newChecklistItemTitle,
+                                                        notes: viewModel.newChecklistItemNotes
                                                     ))
-                                                    newChecklistItemTitle = ""
-                                                    newChecklistItemNotes = ""
+                                                    viewModel.newChecklistItemTitle = ""
+                                                    viewModel.newChecklistItemNotes = ""
                                             }
                                         } label: {
                                             Image(systemName: "plus.circle.fill")
@@ -676,7 +672,7 @@ struct GoalEditorView: View {
                                     }
                                 }
 
-                                    TextField("Notes for new item (optional)", text: $newChecklistItemNotes, axis: .vertical)
+                                    TextField("Notes for new item (optional)", text: $viewModel.newChecklistItemNotes, axis: .vertical)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(2...4)
@@ -999,7 +995,7 @@ struct GoalEditorView: View {
             // Load existing goal data if editing
             if let existingGoal {
                 loadGoalData(from: existingGoal)
-            } else if userInput.isEmpty {
+            } else if viewModel.userInput.isEmpty {
                 generateChecklist(for: "")
             }
         }
@@ -1008,7 +1004,7 @@ struct GoalEditorView: View {
     var buttonEnabled: Bool {
         switch currentStage {
         case .name:
-            return selectedTemplate != nil || !userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return selectedTemplate != nil || !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .duration:
             return true
         }
@@ -1207,7 +1203,7 @@ struct GoalEditorView: View {
 
     /// Load existing goal data for editing
     private func loadGoalData(from goal: Goal) {
-        userInput = goal.title
+        viewModel.userInput = goal.title
         durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
         
         // Load daily minimum (this is now the primary daily target)
@@ -1271,7 +1267,7 @@ struct GoalEditorView: View {
         goalLink = goal.link ?? ""
         
         // Load checklist items
-        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
+        viewModel.checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
         
         // Load tag/theme
         selectedGoalTheme = goal.primaryTag
@@ -1471,7 +1467,7 @@ struct GoalEditorView: View {
     /// Apply a template's predefined values
     func applyTemplate(_ template: GoalTemplateSuggestion) {
         // Set the title
-        userInput = template.title
+        viewModel.userInput = template.title
         
         // Set duration
         durationInMinutes = template.duration
@@ -1616,7 +1612,7 @@ struct GoalEditorView: View {
         if let existingGoal {
             // Update existing goal
             goal = existingGoal
-            goal.title = userInput
+            goal.title = viewModel.userInput
             goal.primaryTag = finalGoalTag
             goal.weeklyTarget = TimeInterval(calculatedWeeklyTarget * 60) // Weekly minutes to seconds
             // Calculate average daily target from per-day targets
@@ -1659,7 +1655,7 @@ struct GoalEditorView: View {
                 goal.link = goalLink.isEmpty ? nil : goalLink
             } else {
                 goal = Goal(
-                    title: userInput,
+                    title: viewModel.userInput,
                     primaryTag: finalGoalTag,
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     notificationsEnabled: notificationsEnabled,
@@ -1721,7 +1717,7 @@ struct GoalEditorView: View {
         goal.checklistItems = []
         
         // Add new checklist items
-        for item in checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
+        for item in viewModel.checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
             let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
             modelContext.insert(checklistItem)
             goal.checklistItems?.append(checklistItem)
@@ -1952,7 +1948,7 @@ struct GoalEditorView: View {
         let stream = session.streamResponse(generating: GoalEditorSuggestionsResult.self) {
             
 
-            "Come up with up to 10 separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title, subtitle, description and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instead of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument. Make it 100% relevant to: \(userInput)"
+            "Come up with up to 10 separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title, subtitle, description and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instead of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument. Make it 100% relevant to: \(viewModel.userInput)"
         }
         
         for try await partialResponse in stream {

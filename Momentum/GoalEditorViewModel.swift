@@ -89,7 +89,8 @@ class GoalEditorViewModel {
     // MARK: - Checklist
     
     var checklistItems: [ChecklistItemData] = []
-    var newChecklistItem: String = ""
+    var newChecklistItemTitle: String = ""
+    var newChecklistItemNotes: String = ""
     
     // MARK: - Weather Triggers
     
