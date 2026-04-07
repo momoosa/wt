@@ -50,31 +50,7 @@ struct GoalEditorView: View {
     }
     
     
-    @State private var selectedHealthKitMetric: HealthKitMetric?
-    @State private var healthKitSyncEnabled: Bool = false
-    @State private var showingValidationAlert: Bool = false
-    @State private var validationMessage: String = ""
-    @State private var suggestionsData: GoalSuggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
-    @State private var selectedTemplate: GoalTemplateSuggestion?
-    @State private var selectedCategoryIndex: Int = 0
     @State private var scrollProxy: ScrollViewProxy?
-    @State private var dayTimePreferences: [Int: Set<TimeOfDay>] = {
-        // Initialize with all time slots enabled by default
-        var preferences: [Int: Set<TimeOfDay>] = [:]
-        for weekday in 1...7 {
-            preferences[weekday] = Set(TimeOfDay.allCases)
-        }
-        return preferences
-    }()
-    
-    
-    // Weather-based triggers
-    @State private var weatherEnabled: Bool = false
-    @State private var selectedWeatherConditions: Set<WeatherCondition> = []
-    @State private var hasMinTemperature: Bool = false
-    @State private var minTemperature: Double = 10
-    @State private var hasMaxTemperature: Bool = false
-    @State private var maxTemperature: Double = 25
     // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
     private let weekdays = WeekdayConstants.weekdays
     
@@ -86,7 +62,7 @@ struct GoalEditorView: View {
         }
         
         // Check if user selected a template
-        if selectedTemplate != nil {
+        if viewModel.selectedTemplate != nil {
             return true
         }
         
@@ -128,8 +104,8 @@ struct GoalEditorView: View {
             return selectedPreset.color(for: colorScheme)
         } else if let selectedTheme = viewModel.selectedGoalTheme {
             return selectedTheme.themePreset.color(for: colorScheme)
-        } else if let template = selectedTemplate,
-                  let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
+        } else if let template = viewModel.selectedTemplate,
+                  let category = viewModel.suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             let matchedTheme = matchTheme(named: category.color)
             return matchedTheme.color(for: colorScheme)
         }
@@ -212,8 +188,8 @@ struct GoalEditorView: View {
                     weekday: weekday,
                     name: name,
                     isActive: isDayActive(weekday),
-                    minutes: dailyTargets[weekday] ?? 30,
-                    selectedTimes: dayTimePreferences[weekday] ?? [],
+                    minutes: viewModel.dailyTargets[weekday] ?? 30,
+                    selectedTimes: viewModel.dayTimePreferences[weekday] ?? [],
                     themeColor: activeThemeColor,
                     isExpanded: expandedDay == weekday,
                     showMinutes: viewModel.selectedGoalType == .time,
@@ -246,22 +222,22 @@ struct GoalEditorView: View {
                                     .onChange(of: viewModel.userInput) { _, newValue in
                                         // Clear selection if user is typing freeform
                                         if !newValue.isEmpty {
-                                            selectedTemplate = nil
+                                            viewModel.selectedTemplate = nil
                                         }
 
                                         // Try to find a match among suggestions by title or aliases and select it
                                         let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
                                         guard !trimmed.isEmpty else { return }
 
-                                        if let (categoryIndex, matchedSuggestion) = suggestionsData.categories.enumerated().compactMap({ (idx, category) -> (Int, GoalTemplateSuggestion)? in
+                                        if let (categoryIndex, matchedSuggestion) = viewModel.suggestionsData.categories.enumerated().compactMap({ (idx, category) -> (Int, GoalTemplateSuggestion)? in
                                             if let suggestion = category.suggestions.first(where: { matchesSuggestion($0, with: trimmed) }) {
                                                 return (idx, suggestion)
                                             }
                                             return nil
                                         }).first {
                                             // Select the template and category
-                                            selectedTemplate = matchedSuggestion
-                                            selectedCategoryIndex = categoryIndex
+                                            viewModel.selectedTemplate = matchedSuggestion
+                                            viewModel.selectedCategoryIndex = categoryIndex
 
                                             // Scroll category tabs to selected category if available
                                             if let proxy = scrollProxy {
@@ -294,26 +270,26 @@ struct GoalEditorView: View {
                                             HStack {
                                                 HStack(spacing: 12) {
                                                     // Reminders tab
-                                                    RemindersTab(isSelected: selectedCategoryIndex == -1)
+                                                    RemindersTab(isSelected: viewModel.selectedCategoryIndex == -1)
                                                         .id(-1)
                                                         .onTapGesture {
                                                             withAnimation(AnimationPresets.quickSpring) {
-                                                                selectedCategoryIndex = -1
+                                                                viewModel.selectedCategoryIndex = -1
                                                             }
                                                             
                                                             // Haptic feedback
                                                             HapticFeedbackManager.trigger(.light)
                                                         }
                                                     
-                                                    ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                                                    ForEach(Array(viewModel.suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
                                                         CategoryTab(
                                                             category: category,
-                                                            isSelected: selectedCategoryIndex == index
+                                                            isSelected: viewModel.selectedCategoryIndex == index
                                                         )
                                                         .id(index) // Add ID for scrolling
                                                         .onTapGesture {
                                                             withAnimation(AnimationPresets.quickSpring) {
-                                                                selectedCategoryIndex = index
+                                                                viewModel.selectedCategoryIndex = index
                                                             }
                                                             
                                                             // Haptic feedback
@@ -328,7 +304,7 @@ struct GoalEditorView: View {
                                         .onAppear {
                                             scrollProxy = proxy
                                         }
-                                        .onChange(of: selectedCategoryIndex) { _, newIndex in
+                                        .onChange(of: viewModel.selectedCategoryIndex) { _, newIndex in
                                             // Auto-scroll to selected tab
                                             withAnimation(.easeInOut(duration: 0.3)) {
                                                 proxy.scrollTo(newIndex, anchor: .center)
@@ -336,22 +312,22 @@ struct GoalEditorView: View {
                                         }
                                     }
                                     // Category Tabs
-                                    TabView(selection: $selectedCategoryIndex) {
+                                    TabView(selection: $viewModel.selectedCategoryIndex) {
                                         // Reminders tab content
                                         RemindersTabView(
                                             userInput: $viewModel.userInput,
                                             onReminderSelected: { reminder in
                                                 // Fill in the goal name from reminder
                                                 viewModel.userInput = reminder.title ?? ""
-                                                selectedTemplate = nil
+                                                viewModel.selectedTemplate = nil
                                             }
                                         )
                                         .tag(-1)
                                         
-                                        ForEach(Array(suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                                        ForEach(Array(viewModel.suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
                                             CategorySuggestionsView(
                                                 category: category,
-                                                selectedTemplate: $selectedTemplate,
+                                                selectedTemplate: $viewModel.selectedTemplate,
                                                 userInput: $viewModel.userInput
                                             )
                                             .tag(index)
@@ -507,18 +483,18 @@ struct GoalEditorView: View {
                             }
                             
                             HealthKitConfigurationView(
-                                selectedMetric: $selectedHealthKitMetric,
-                                syncEnabled: $healthKitSyncEnabled,
+                                selectedMetric: $viewModel.selectedHealthKitMetric,
+                                syncEnabled: $viewModel.healthKitSyncEnabled,
                                 dailyTargetMinutes: Binding(
                                     get: {
                                         // Return the first active day's target as representative
-                                        return activeDays.sorted().first.flatMap { dailyTargets[$0] }
+                                        return viewModel.activeDays.sorted().first.flatMap { viewModel.dailyTargets[$0] }
                                     },
                                     set: { newValue in
                                         // Apply to all active days
                                         if let minutes = newValue {
-                                            for weekday in activeDays {
-                                                dailyTargets[weekday] = minutes
+                                            for weekday in viewModel.activeDays {
+                                                viewModel.dailyTargets[weekday] = minutes
                                             }
                                         }
                                     }
@@ -566,184 +542,10 @@ struct GoalEditorView: View {
                             }
                             
                             // Checklist Section
-                            Section(header: Text("Checklist")) {
-                                ForEach($viewModel.checklistItems) { $item in
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
-                                            Image(systemName: "circle")
-                                                .foregroundStyle(.secondary)
-                                            TextField("Title", text: $item.title)
-                                            Spacer()
-                                            Button {
-                                                if let index = viewModel.checklistItems.firstIndex(where: { $0.id == item.id }) {
-                                                    viewModel.checklistItems.remove(at: index)
-                                                }
-                                            } label: {
-                                                Image(systemName: "minus.circle.fill")
-                                                    .foregroundStyle(.red)
-                                            }
-                                        }
-
-                                        TextField("Notes (optional)", text: $item.notes, axis: .vertical)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(2...4)
-                                            .padding(.leading, 28)
-                                    }
-                                }
-
-                                // Add new item
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Image(systemName: "circle")
-                                            .foregroundStyle(.secondary)
-                                        TextField("Add checklist item...", text: $viewModel.newChecklistItemTitle)
-                                            .onSubmit {
-                                                if !viewModel.newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                                                    viewModel.checklistItems.append(ChecklistItemData(
-                                                        title: viewModel.newChecklistItemTitle,
-                                                        notes: viewModel.newChecklistItemNotes
-                                                    ))
-                                                    viewModel.newChecklistItemTitle = ""
-                                                    viewModel.newChecklistItemNotes = ""
-                                                }
-                                            }
-
-                                        if !viewModel.newChecklistItemTitle.isEmpty {
-                                            Button {
-                                                if !viewModel.newChecklistItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                                                    viewModel.checklistItems.append(ChecklistItemData(
-                                                        title: viewModel.newChecklistItemTitle,
-                                                        notes: viewModel.newChecklistItemNotes
-                                                    ))
-                                                    viewModel.newChecklistItemTitle = ""
-                                                    viewModel.newChecklistItemNotes = ""
-                                            }
-                                        } label: {
-                                            Image(systemName: "plus.circle.fill")
-                                                .foregroundStyle(activeThemeColor)
-                                        }
-                                    }
-                                }
-
-                                    TextField("Notes for new item (optional)", text: $viewModel.newChecklistItemNotes, axis: .vertical)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2...4)
-                                        .padding(.leading, 28)
-                                }
-                            }
+                            ChecklistSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
                             
                             // Weather-based visibility
-                            Section {
-                                Toggle(isOn: $weatherEnabled) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "cloud.sun.fill")
-                                                .foregroundStyle(activeThemeColor)
-                                            Text("Weather-Based Visibility")
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                        }
-                                        Text("Show this goal only when weather conditions match")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                                
-                                if weatherEnabled {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        // Weather conditions
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            Text("Weather Conditions")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                            
-                                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
-                                                ForEach(WeatherCondition.allCases, id: \.self) { condition in
-                                                    Button(action: {
-                                                        if selectedWeatherConditions.contains(condition) {
-                                                            selectedWeatherConditions.remove(condition)
-                                                        } else {
-                                                            selectedWeatherConditions.insert(condition)
-                                                        }
-                                                    }) {
-                                                        VStack(spacing: 4) {
-                                                            Image(systemName: condition.icon)
-                                                                .font(.title3)
-                                                            Text(condition.displayName)
-                                                                .font(.caption2)
-                                                        }
-                                                        .frame(maxWidth: .infinity)
-                                                        .padding(.vertical, 8)
-                                                        .background(
-                                                            RoundedRectangle(cornerRadius: 8)
-                                                                .fill(selectedWeatherConditions.contains(condition) ? activeThemeColor.opacity(0.2) : Color(.systemGray6))
-                                                        )
-                                                        .overlay(
-                                                            RoundedRectangle(cornerRadius: 8)
-                                                                .strokeBorder(selectedWeatherConditions.contains(condition) ? activeThemeColor : Color.clear, lineWidth: 2)
-                                                        )
-                                                    }
-                                                    .buttonStyle(.plain)
-                                                }
-                                            }
-                                        }
-                                        
-                                        Divider()
-                                        
-                                        // Temperature range
-                                        VStack(alignment: .leading, spacing: 12) {
-                                            Text("Temperature Range (°C)")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                            
-                                            Toggle(isOn: $hasMinTemperature) {
-                                                Text("Minimum Temperature")
-                                                    .font(.subheadline)
-                                            }
-                                            
-                                            if hasMinTemperature {
-                                                HStack {
-                                                    Text("\(Int(minTemperature))°C")
-                                                        .font(.subheadline)
-                                                        .foregroundStyle(.secondary)
-                                                        .frame(width: 50)
-                                                    Slider(value: $minTemperature, in: -10...40, step: 1)
-                                                }
-                                            }
-                                            
-                                            Toggle(isOn: $hasMaxTemperature) {
-                                                Text("Maximum Temperature")
-                                                    .font(.subheadline)
-                                            }
-                                            
-                                            if hasMaxTemperature {
-                                                HStack {
-                                                    Text("\(Int(maxTemperature))°C")
-                                                        .font(.subheadline)
-                                                        .foregroundStyle(.secondary)
-                                                        .frame(width: 50)
-                                                    Slider(value: $maxTemperature, in: -10...40, step: 1)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            } header: {
-                                if weatherEnabled {
-                                    HStack {
-                                        Text("Weather Triggers")
-                                        Spacer()
-                                        if selectedWeatherConditions.isEmpty && !hasMinTemperature && !hasMaxTemperature {
-                                            Text("Select at least one condition")
-                                                .font(.caption2)
-                                                .foregroundStyle(.orange)
-                                        }
-                                    }
-                                }
-                            }
+                            WeatherConfigSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
                         }
                         
                         Spacer()
@@ -809,7 +611,7 @@ struct GoalEditorView: View {
                                 // Reset theme selections when going back
                                 viewModel.selectedTags.removeAll()
                                 viewModel.selectedGoalTheme = nil
-                                selectedTemplate = nil
+                                viewModel.selectedTemplate = nil
                             }
                         } else {
                             dismiss()
@@ -901,7 +703,7 @@ struct GoalEditorView: View {
                 }
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: focusedField)
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: dailyTargets)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.dailyTargets)
         }
         .sheet(isPresented: $viewModel.showingAddThemeSheet) {
             TagSelectionSheet(
@@ -939,10 +741,10 @@ struct GoalEditorView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .alert("Target Adjusted", isPresented: $showingValidationAlert) {
+        .alert("Target Adjusted", isPresented: $viewModel.showingValidationAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text(validationMessage)
+            Text(viewModel.validationMessage)
         }
 
         .task {
@@ -958,7 +760,7 @@ struct GoalEditorView: View {
     var buttonEnabled: Bool {
         switch viewModel.currentStage {
         case .name:
-            return selectedTemplate != nil || !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return viewModel.selectedTemplate != nil || !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .duration:
             return true
         }
@@ -1033,9 +835,9 @@ struct GoalEditorView: View {
         case .goalName:
             return viewModel.currentStage == .duration
         case .duration:
-            return viewModel.hasDailyMinimum || !activeDays.isEmpty
+            return viewModel.hasDailyMinimum || !viewModel.activeDays.isEmpty
         case .dailyMinimum:
-            return !activeDays.isEmpty
+            return !viewModel.activeDays.isEmpty
         case .scheduleDay(let weekday):
             return getNextActiveScheduleDay(after: weekday) != nil
         case .none:
@@ -1068,10 +870,10 @@ struct GoalEditorView: View {
             // Find next active day after current
             guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
             let remainingDays = orderedWeekdays[(currentIndex + 1)...]
-            return remainingDays.first(where: { activeDays.contains($0) })
+            return remainingDays.first(where: { viewModel.activeDays.contains($0) })
         } else {
             // Return first active day
-            return orderedWeekdays.first(where: { activeDays.contains($0) })
+            return orderedWeekdays.first(where: { viewModel.activeDays.contains($0) })
         }
     }
     
@@ -1083,10 +885,10 @@ struct GoalEditorView: View {
             // Find previous active day before current
             guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
             let previousDays = orderedWeekdays[..<currentIndex]
-            return previousDays.reversed().first(where: { activeDays.contains($0) })
+            return previousDays.reversed().first(where: { viewModel.activeDays.contains($0) })
         } else {
             // Return last active day
-            return orderedWeekdays.reversed().first(where: { activeDays.contains($0) })
+            return orderedWeekdays.reversed().first(where: { viewModel.activeDays.contains($0) })
         }
     }
     
@@ -1096,15 +898,15 @@ struct GoalEditorView: View {
     private func handleGoalTypeChange(_ newType: Goal.GoalType) {
         switch newType {
         case .time:
-            selectedHealthKitMetric = nil
-            healthKitSyncEnabled = false
+            viewModel.selectedHealthKitMetric = nil
+            viewModel.healthKitSyncEnabled = false
         case .count:
-            selectedHealthKitMetric = .stepCount
-            healthKitSyncEnabled = true
+            viewModel.selectedHealthKitMetric = .stepCount
+            viewModel.healthKitSyncEnabled = true
             viewModel.primaryMetricTarget = 10000
         case .calories:
-            selectedHealthKitMetric = .activeEnergyBurned
-            healthKitSyncEnabled = true
+            viewModel.selectedHealthKitMetric = .activeEnergyBurned
+            viewModel.healthKitSyncEnabled = true
             viewModel.primaryMetricTarget = 500
         }
     }
@@ -1118,12 +920,12 @@ struct GoalEditorView: View {
                 viewModel.primaryMetricTarget = 0
             case .count:
                 viewModel.primaryMetricTarget = 100 // Minimum 100 steps
-                validationMessage = "Target set to minimum: 100 steps"
-                showingValidationAlert = true
+                viewModel.validationMessage = "Target set to minimum: 100 steps"
+                viewModel.showingValidationAlert = true
             case .calories:
                 viewModel.primaryMetricTarget = 50 // Minimum 50 calories
-                validationMessage = "Target set to minimum: 50 calories"
-                showingValidationAlert = true
+                viewModel.validationMessage = "Target set to minimum: 50 calories"
+                viewModel.showingValidationAlert = true
             }
             return
         }
@@ -1135,22 +937,22 @@ struct GoalEditorView: View {
         case .count:
             if viewModel.primaryMetricTarget > 100000 {
                 viewModel.primaryMetricTarget = 100000 // Max 100k steps
-                validationMessage = "Target adjusted to maximum: 100,000 steps"
-                showingValidationAlert = true
+                viewModel.validationMessage = "Target adjusted to maximum: 100,000 steps"
+                viewModel.showingValidationAlert = true
             } else if viewModel.primaryMetricTarget < 100 {
                 viewModel.primaryMetricTarget = 100 // Min 100 steps
-                validationMessage = "Target adjusted to minimum: 100 steps"
-                showingValidationAlert = true
+                viewModel.validationMessage = "Target adjusted to minimum: 100 steps"
+                viewModel.showingValidationAlert = true
             }
         case .calories:
             if viewModel.primaryMetricTarget > 10000 {
                 viewModel.primaryMetricTarget = 10000 // Max 10k calories
-                validationMessage = "Target adjusted to maximum: 10,000 calories"
-                showingValidationAlert = true
+                viewModel.validationMessage = "Target adjusted to maximum: 10,000 calories"
+                viewModel.showingValidationAlert = true
             } else if viewModel.primaryMetricTarget < 50 {
                 viewModel.primaryMetricTarget = 50 // Min 50 calories
-                validationMessage = "Target adjusted to minimum: 50 calories"
-                showingValidationAlert = true
+                viewModel.validationMessage = "Target adjusted to minimum: 50 calories"
+                viewModel.showingValidationAlert = true
             }
         }
     }
@@ -1169,28 +971,28 @@ struct GoalEditorView: View {
         }
         
         // Infer active days from schedule - days with any time preferences are "active"
-        activeDays.removeAll()
-        dailyTargets.removeAll()
+        viewModel.activeDays.removeAll()
+        viewModel.dailyTargets.removeAll()
         
         for weekday in 1...7 {
             let times = goal.timesForWeekday(weekday)
             if !times.isEmpty {
-                activeDays.insert(weekday)
+                viewModel.activeDays.insert(weekday)
                 // Check if there's a custom daily target for this day
                 if let customTarget = goal.dailyTargets[String(weekday)] {
-                    dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
+                    viewModel.dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
                 } else {
                     // Fall back to dailyMinimum or default
-                    dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
+                    viewModel.dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
                 }
             }
         }
         
         // If no active days found, default to weekdays with default targets
-        if activeDays.isEmpty {
-            activeDays = Set(2...6) // Monday-Friday
+        if viewModel.activeDays.isEmpty {
+            viewModel.activeDays = Set(2...6) // Monday-Friday
             for weekday in 2...6 {
-                dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
+                viewModel.dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
             }
         }
         
@@ -1198,8 +1000,8 @@ struct GoalEditorView: View {
         viewModel.completionNotificationsEnabled = goal.completionNotificationsEnabled
         viewModel.selectedCompletionBehaviors = goal.completionBehaviors
         viewModel.selectedGoalType = goal.goalType
-        selectedHealthKitMetric = goal.healthKitMetric
-        healthKitSyncEnabled = goal.healthKitSyncEnabled
+        viewModel.selectedHealthKitMetric = goal.healthKitMetric
+        viewModel.healthKitSyncEnabled = goal.healthKitSyncEnabled
 
         // Load or set default primary metric target
         if goal.primaryMetricDailyTarget > 0 {
@@ -1234,22 +1036,22 @@ struct GoalEditorView: View {
         for weekday in 1...7 {
             let times = goal.timesForWeekday(weekday)
             if !times.isEmpty {
-                dayTimePreferences[weekday] = times
+                viewModel.dayTimePreferences[weekday] = times
             }
         }
         
         // Load weather settings
-        weatherEnabled = goal.weatherEnabled
+        viewModel.weatherEnabled = goal.weatherEnabled
         if let conditions = goal.weatherConditionsTyped {
-            selectedWeatherConditions = Set(conditions)
+            viewModel.selectedWeatherConditions = Set(conditions)
         }
         if let minTemp = goal.minTemperature {
-            hasMinTemperature = true
-            minTemperature = minTemp
+            viewModel.hasMinTemperature = true
+            viewModel.minTemperature = minTemp
         }
         if let maxTemp = goal.maxTemperature {
-            hasMaxTemperature = true
-            maxTemperature = maxTemp
+            viewModel.hasMaxTemperature = true
+            viewModel.maxTemperature = maxTemp
         }
         
         // Go straight to duration stage when editing
@@ -1281,27 +1083,27 @@ struct GoalEditorView: View {
     }
     
     private func applyPreset(_ preset: SchedulePreset) {
-        dayTimePreferences.removeAll()
+        viewModel.dayTimePreferences.removeAll()
         
         switch preset {
         case .weekdayMornings:
             // Monday-Friday mornings
             for weekday in 2...6 {
-                dayTimePreferences[weekday] = [.morning]
+                viewModel.dayTimePreferences[weekday] = [.morning]
             }
         case .everyEvening:
             // All days, evenings
             for weekday in 1...7 {
-                dayTimePreferences[weekday] = [.evening]
+                viewModel.dayTimePreferences[weekday] = [.evening]
             }
         case .weekends:
             // Saturday and Sunday, all times
-            dayTimePreferences[7] = Set(TimeOfDay.allCases)
-            dayTimePreferences[1] = Set(TimeOfDay.allCases)
+            viewModel.dayTimePreferences[7] = Set(TimeOfDay.allCases)
+            viewModel.dayTimePreferences[1] = Set(TimeOfDay.allCases)
         case .everyDay:
             // All days, all times
             for weekday in 1...7 {
-                dayTimePreferences[weekday] = Set(TimeOfDay.allCases)
+                viewModel.dayTimePreferences[weekday] = Set(TimeOfDay.allCases)
             }
         }
         
@@ -1312,19 +1114,19 @@ struct GoalEditorView: View {
     }
     
     private func toggleTimeSlot(weekday: Int, timeOfDay: TimeOfDay) {
-        if dayTimePreferences[weekday]?.contains(timeOfDay) ?? false {
-            dayTimePreferences[weekday]?.remove(timeOfDay)
+        if viewModel.dayTimePreferences[weekday]?.contains(timeOfDay) ?? false {
+            viewModel.dayTimePreferences[weekday]?.remove(timeOfDay)
             
             // If all time slots are now unchecked, deactivate the day
-            if dayTimePreferences[weekday]?.isEmpty ?? true {
-                activeDays.remove(weekday)
-                dailyTargets.removeValue(forKey: weekday)
+            if viewModel.dayTimePreferences[weekday]?.isEmpty ?? true {
+                viewModel.activeDays.remove(weekday)
+                viewModel.dailyTargets.removeValue(forKey: weekday)
                 withAnimation {
                     expandedDay = nil // Close the row when deactivating
                 }
             }
         } else {
-            dayTimePreferences[weekday, default: []].insert(timeOfDay)
+            viewModel.dayTimePreferences[weekday, default: []].insert(timeOfDay)
         }
         
         HapticFeedbackManager.trigger(.light)
@@ -1332,51 +1134,39 @@ struct GoalEditorView: View {
     
     // MARK: - Active Days Management
     
-    @State private var activeDays: Set<Int> = {
-        let today = Calendar.current.component(.weekday, from: Date())
-        var days = Set(2...6) // Monday-Friday
-        days.insert(today) // Always include today
-        return days
-    }()
-    @State private var dailyTargets: [Int: Int] = {
-        let today = Calendar.current.component(.weekday, from: Date())
-        var targets = Dictionary(uniqueKeysWithValues: (2...6).map { ($0, 10) }) // 10 min for weekdays
-        targets[today] = 10 // Ensure today is included
-        return targets
-    }()
     @State private var expandedDay: Int? = nil // Track which day row is expanded (accordion-style)
     
     private func toggleActiveDay(_ weekday: Int) {
-        if activeDays.contains(weekday) {
-            activeDays.remove(weekday)
-            dailyTargets.removeValue(forKey: weekday)
+        if viewModel.activeDays.contains(weekday) {
+            viewModel.activeDays.remove(weekday)
+            viewModel.dailyTargets.removeValue(forKey: weekday)
         } else {
-            activeDays.insert(weekday)
+            viewModel.activeDays.insert(weekday)
             // Set default target when activating a day
-            dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
+            viewModel.dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
         }
         
         HapticFeedbackManager.trigger(.light)
     }
     
     private func isDayActive(_ weekday: Int) -> Bool {
-        activeDays.contains(weekday)
+        viewModel.activeDays.contains(weekday)
     }
     
     private var calculatedWeeklyTarget: Int {
-        return dailyTargets.values.reduce(0, +)
+        return viewModel.dailyTargets.values.reduce(0, +)
     }
     
     private func updateDailyTarget(for weekday: Int, minutes: Int) {
-        dailyTargets[weekday] = minutes
+        viewModel.dailyTargets[weekday] = minutes
     }
     
     private func shouldShowApplyToAll(for weekday: Int) -> Bool {
-        guard let currentDuration = dailyTargets[weekday] else { return false }
+        guard let currentDuration = viewModel.dailyTargets[weekday] else { return false }
         
         // Check if any other active day has a different duration
-        for otherWeekday in activeDays where otherWeekday != weekday {
-            if dailyTargets[otherWeekday] != currentDuration {
+        for otherWeekday in viewModel.activeDays where otherWeekday != weekday {
+            if viewModel.dailyTargets[otherWeekday] != currentDuration {
                 return true
             }
         }
@@ -1385,11 +1175,11 @@ struct GoalEditorView: View {
     }
     
     private func applyDurationToAllDays(from sourceWeekday: Int) {
-        guard let sourceDuration = dailyTargets[sourceWeekday] else { return }
+        guard let sourceDuration = viewModel.dailyTargets[sourceWeekday] else { return }
         
         // Apply the duration to all active days
-        for weekday in activeDays {
-            dailyTargets[weekday] = sourceDuration
+        for weekday in viewModel.activeDays {
+            viewModel.dailyTargets[weekday] = sourceDuration
         }
         
         // Dismiss keyboard and provide haptic feedback
@@ -1400,7 +1190,7 @@ struct GoalEditorView: View {
     func handleButtonTap() {
         switch viewModel.currentStage {
         case .name:
-            if let template = selectedTemplate {
+            if let template = viewModel.selectedTemplate {
                 // Prefill from template and go to duration without AI
                 applyTemplate(template)
                 withAnimation {
@@ -1428,18 +1218,18 @@ struct GoalEditorView: View {
         // Distribute the template duration across active days
         // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
         let defaultDays: Set<Int> = (template.dailyGoal == true) ? Set(1...7) : Set(2...6)
-        let targetDays = activeDays.isEmpty ? defaultDays : activeDays
+        let targetDays = viewModel.activeDays.isEmpty ? defaultDays : viewModel.activeDays
         let dailyMinutes = targetDays.isEmpty ? template.duration : template.duration / targetDays.count
         
         for weekday in targetDays {
-            dailyTargets[weekday] = dailyMinutes
+            viewModel.dailyTargets[weekday] = dailyMinutes
         }
         
         // Infer and set icon from template
         viewModel.selectedIcon = inferIcon(from: template.title)
         
         // Find the category for this template
-        guard let category = suggestionsData.categories.first(where: { category in
+        guard let category = viewModel.suggestionsData.categories.first(where: { category in
             category.suggestions.contains(where: { $0.id == template.id })
         }) else {
             print("⚠️ Could not find category for template: \(template.id)")
@@ -1475,8 +1265,8 @@ struct GoalEditorView: View {
         // Set HealthKit metric if available
         if let metricRawValue = template.healthKitMetric,
            let metric = HealthKitMetric(rawValue: metricRawValue) {
-            selectedHealthKitMetric = metric
-            healthKitSyncEnabled = true
+            viewModel.selectedHealthKitMetric = metric
+            viewModel.healthKitSyncEnabled = true
             
             // Request HealthKit authorization immediately
             Task {
@@ -1490,8 +1280,8 @@ struct GoalEditorView: View {
                 }
             }
         } else {
-            selectedHealthKitMetric = nil
-            healthKitSyncEnabled = false
+            viewModel.selectedHealthKitMetric = nil
+            viewModel.healthKitSyncEnabled = false
         }
         
 
@@ -1537,8 +1327,8 @@ struct GoalEditorView: View {
         if let customGoalTag = viewModel.selectedGoalTheme {
             // User has selected a tag (either custom or from suggestions)
             finalGoalTag = customGoalTag
-        } else if let template = selectedTemplate,
-                  let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
+        } else if let template = viewModel.selectedTemplate,
+                  let category = viewModel.suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             // Use the category's theme to create a tag
             let matchedTheme = matchTheme(named: category.color)
             finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
@@ -1553,10 +1343,10 @@ struct GoalEditorView: View {
         }
         
         // Debug print day-time schedule
-        if !dayTimePreferences.isEmpty {
+        if !viewModel.dayTimePreferences.isEmpty {
             print("\n📅 Day-Time Schedule:")
             let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-            for (weekday, times) in dayTimePreferences.sorted(by: { $0.key < $1.key }) where !times.isEmpty {
+            for (weekday, times) in viewModel.dayTimePreferences.sorted(by: { $0.key < $1.key }) where !times.isEmpty {
                 let timeStrings = times.sorted(by: { $0.rawValue < $1.rawValue }).map { $0.displayName }
                 print("   \(weekdayNames[weekday]): \(timeStrings.joined(separator: ", "))")
             }
@@ -1569,15 +1359,15 @@ struct GoalEditorView: View {
             goal.primaryTag = finalGoalTag
             goal.weeklyTarget = TimeInterval(calculatedWeeklyTarget * 60) // Weekly minutes to seconds
             // Calculate average daily target from per-day targets
-            let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+            let avgDailyTarget = viewModel.activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / viewModel.activeDays.count)
             goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
             goal.iconName = viewModel.selectedIcon
             goal.scheduleNotificationsEnabled = viewModel.scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = viewModel.completionNotificationsEnabled
             goal.completionBehaviors = viewModel.selectedCompletionBehaviors
             goal.goalType = viewModel.selectedGoalType
-            goal.healthKitMetric = selectedHealthKitMetric
-            goal.healthKitSyncEnabled = healthKitSyncEnabled
+            goal.healthKitMetric = viewModel.selectedHealthKitMetric
+            goal.healthKitSyncEnabled = viewModel.healthKitSyncEnabled
             goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
             goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
             goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
@@ -1593,11 +1383,11 @@ struct GoalEditorView: View {
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
                     completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
-                    healthKitMetric: selectedHealthKitMetric,
-                    healthKitSyncEnabled: healthKitSyncEnabled
+                    healthKitMetric: viewModel.selectedHealthKitMetric,
+                    healthKitSyncEnabled: viewModel.healthKitSyncEnabled
                 )
                 goal.iconName = viewModel.selectedIcon
-                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+                let avgDailyTarget = viewModel.activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / viewModel.activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.completionBehaviors = viewModel.selectedCompletionBehaviors
                 goal.goalType = viewModel.selectedGoalType
@@ -1611,11 +1401,11 @@ struct GoalEditorView: View {
                     weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
                     scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
                     completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
-                    healthKitMetric: selectedHealthKitMetric,
-                    healthKitSyncEnabled: healthKitSyncEnabled
+                    healthKitMetric: viewModel.selectedHealthKitMetric,
+                    healthKitSyncEnabled: viewModel.healthKitSyncEnabled
                 )
                 goal.iconName = viewModel.selectedIcon
-                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+                let avgDailyTarget = viewModel.activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / viewModel.activeDays.count)
                 goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
                 goal.dailyMinimum = viewModel.hasDailyMinimum ? TimeInterval((viewModel.dailyMinimumMinutes ?? 10) * 60) : nil
                 goal.completionBehaviors = viewModel.selectedCompletionBehaviors
@@ -1629,9 +1419,9 @@ struct GoalEditorView: View {
         // ✅ Save the day-time schedule using the convenience method
         // For active days, use their time preferences, or default to all times if not set
         for weekday in 1...7 {
-            if activeDays.contains(weekday) {
+            if viewModel.activeDays.contains(weekday) {
                 // Day is active - use specified times or default to all times
-                let times = dayTimePreferences[weekday] ?? Set(TimeOfDay.allCases)
+                let times = viewModel.dayTimePreferences[weekday] ?? Set(TimeOfDay.allCases)
                 goal.setTimes(times, forWeekday: weekday)
             } else {
                 // Day is not active - clear any time preferences
@@ -1641,16 +1431,16 @@ struct GoalEditorView: View {
         
         // ✅ Save per-day targets
         goal.dailyTargets.removeAll()
-        for (weekday, minutes) in dailyTargets {
+        for (weekday, minutes) in viewModel.dailyTargets {
             goal.dailyTargets[String(weekday)] = TimeInterval(minutes * 60)
         }
         
         // ✅ Save weather settings
-        goal.weatherEnabled = weatherEnabled
-        if weatherEnabled {
-            goal.weatherConditionsTyped = selectedWeatherConditions.isEmpty ? nil : Array(selectedWeatherConditions)
-            goal.minTemperature = hasMinTemperature ? minTemperature : nil
-            goal.maxTemperature = hasMaxTemperature ? maxTemperature : nil
+        goal.weatherEnabled = viewModel.weatherEnabled
+        if viewModel.weatherEnabled {
+            goal.weatherConditionsTyped = viewModel.selectedWeatherConditions.isEmpty ? nil : Array(viewModel.selectedWeatherConditions)
+            goal.minTemperature = viewModel.hasMinTemperature ? viewModel.minTemperature : nil
+            goal.maxTemperature = viewModel.hasMaxTemperature ? viewModel.maxTemperature : nil
         } else {
             goal.weatherConditionsTyped = nil
             goal.minTemperature = nil
@@ -1675,10 +1465,10 @@ struct GoalEditorView: View {
         
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
         print(goal.scheduleSummary)
-        if weatherEnabled {
-            print("🌤️ Weather triggers: \(selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))")
-            if hasMinTemperature { print("   Min temp: \(Int(minTemperature))°C") }
-            if hasMaxTemperature { print("   Max temp: \(Int(maxTemperature))°C") }
+        if viewModel.weatherEnabled {
+            print("🌤️ Weather triggers: \(viewModel.selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))")
+            if viewModel.hasMinTemperature { print("   Min temp: \(Int(viewModel.minTemperature))°C") }
+            if viewModel.hasMaxTemperature { print("   Max temp: \(Int(viewModel.maxTemperature))°C") }
         }
         
         // Request notification permissions if enabled
@@ -1911,47 +1701,6 @@ struct GoalEditorView: View {
         return "tag.fill"
     }
 }
-// MARK: - Category Suggestions View
-
-struct CategorySuggestionsView: View {
-    let category: GoalCategory
-    @Binding var selectedTemplate: GoalTemplateSuggestion?
-    @Binding var userInput: String
-    
-    // Helper to get category theme colors
-    // Use the category's defined color to ensure consistency across all suggestions
-    private var categoryThemeColor: Color {
-        return category.colorValue
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Suggestions List
-            List {
-                ForEach(category.suggestions) { suggestion in
-                    SuggestionRow(
-                        suggestion: suggestion,
-                        isSelected: selectedTemplate?.id == suggestion.id,
-                        categoryColor: categoryThemeColor
-                    )
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .onTapGesture {
-                        withAnimation(AnimationPresets.quickSpring) {
-                            selectedTemplate = suggestion
-                            userInput = suggestion.title // Prefill textfield
-                        }
-                        
-                        // Haptic feedback
-                        HapticFeedbackManager.trigger(.light)
-                    }
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-        }
-    }
-}
 
 
 // MARK: - Color Extension for Contrast
@@ -1987,370 +1736,7 @@ extension Color {
         return luminance > 0.6 ? .black : .white
     }
 }
-// MARK: - Theme Tag Button
-struct ThemeTagButton: View {
-    @Environment(\.colorScheme) var colorScheme
-    let goalTheme: GoalTag
-    let isSelected: Bool
-    let action: () -> Void
-    var onRemove: (() -> Void)? = nil
-    
-    var body: some View {
-        let themeColor = goalTheme.themePreset.color(for: colorScheme)
-        let backgroundColor = colorScheme == .dark ? goalTheme.themePreset.dark : goalTheme.themePreset.light
-        Button(action: action) {
-            HStack(spacing: 8) {
-                // Color indicator
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [goalTheme.themePreset.light, goalTheme.themePreset.dark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 20, height: 20)
-                    .overlay(
-                        Circle()
-                            .strokeBorder(isSelected ? themeColor : Color.clear, lineWidth: 2)
-                    )
-                
-                Text(goalTheme.title)
-                    .font(.subheadline)
-                    .fontWeight(isSelected ? .semibold : .regular)
-                
-                // Remove button
-                if let onRemove = onRemove {
-                    Button(action: {
-                        onRemove()
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                Capsule()
-                    .fill(isSelected ? backgroundColor.opacity(0.3) : Color(.systemGray6))
-            )
-            .overlay(
-                Capsule()
-                    .strokeBorder(isSelected ? themeColor : Color.clear, lineWidth: 2)
-            )
-            .foregroundStyle(isSelected ? themeColor : .primary)
-        }
-        .buttonStyle(.plain)
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(AnimationPresets.quickSpring, value: isSelected)
-    }
-}
 
-// MARK: - Tag Selection Sheet
-
-struct TagSelectionSheet: View {
-    let allTags: [GoalTag]
-    @Binding var selectedTags: [GoalTag]
-    @Binding var selectedGoalTheme: GoalTag?
-    let modelContext: ModelContext
-    @Binding var editingTag: GoalTag?
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if allTags.isEmpty {
-                        // Empty state
-                        VStack(spacing: 16) {
-                            Image(systemName: "tag.slash")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.secondary)
-                            
-                            Text("No Tags Available")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            
-                            Text("Load predefined tags or create your own")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                            
-                            Button {
-                                let predefined = GoalTag.predefinedSmartTags()
-                                for tag in predefined {
-                                    if !allTags.contains(where: { $0.title == tag.title }) {
-                                        modelContext.insert(tag)
-                                    }
-                                }
-                            } label: {
-                                Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 12)
-                                    .background(Color.accentColor)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(10)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
-                    } else {
-                        // Tags grid
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Select Tags")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            TagFlowLayout(spacing: 8) {
-                                ForEach(allTags, id: \.id) { tag in
-                                    TagButton(
-                                        tag: tag,
-                                        isSelected: selectedTags.contains(where: { $0.id == tag.id }),
-                                        onSelect: {
-                                            toggleTagSelection(tag)
-                                        },
-                                        onEdit: {
-                                            editingTag = tag
-                                        }
-                                    )
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                        .padding(.top)
-                        
-                        // Action buttons
-                        VStack(spacing: 12) {
-                            Button {
-                                let predefined = GoalTag.predefinedSmartTags()
-                                for tag in predefined {
-                                    if !allTags.contains(where: { $0.title == tag.title }) {
-                                        modelContext.insert(tag)
-                                    }
-                                }
-                            } label: {
-                                Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            // Future: Add custom tag creation button
-                        }
-                        .padding()
-                    }
-                }
-            }
-            .navigationTitle("Add Theme")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func toggleTagSelection(_ tag: GoalTag) {
-        if let index = selectedTags.firstIndex(where: { $0.id == tag.id }) {
-            // Deselect
-            withAnimation(AnimationPresets.quickSpring) {
-                selectedTags.remove(at: index)
-                
-                // If this was the selected theme, update it
-                if selectedGoalTheme?.id == tag.id {
-                    selectedGoalTheme = selectedTags.first
-                }
-            }
-        } else {
-            // Select
-            withAnimation(AnimationPresets.quickSpring) {
-                selectedTags.append(tag)
-                
-                // If no theme is selected, make this the selected theme
-                if selectedGoalTheme == nil {
-                    selectedGoalTheme = tag
-                }
-            }
-        }
-        
-        HapticFeedbackManager.trigger(.light)
-    }
-}
-
-// MARK: - Tag Button
-
-struct TagButton: View { // TODO: Combine with theme
-    let tag: GoalTag
-    let isSelected: Bool
-    let onSelect: () -> Void
-    let onEdit: () -> Void
-    
-    var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: 8) {
-                // Color indicator
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [tag.themePreset.light, tag.themePreset.dark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 20, height: 20)
-                    .overlay(
-                        Circle()
-                            .strokeBorder(isSelected ? tag.themePreset.dark : Color.clear, lineWidth: 2)
-                    )
-                
-                Text(tag.title)
-                    .font(.footnote)
-                    .fontWeight(.semibold)
-                    .fontWeight(isSelected ? .semibold : .regular)
-             
-                // Edit button
-                Button(action: onEdit) {
-                    Image(systemName: "info.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                Capsule()
-                    .fill(isSelected ? tag.themePreset.light.opacity(0.3) : Color(.systemGray6))
-            )
-            .overlay(
-                Capsule()
-                    .strokeBorder(isSelected ? tag.themePreset.dark : Color.clear, lineWidth: 2)
-            )
-            .foregroundStyle(isSelected ? tag.themePreset.dark : .primary)
-        }
-        .buttonStyle(.plain)
-        .scaleEffect(isSelected ? 1.05 : 1.0)
-        .animation(AnimationPresets.quickSpring, value: isSelected)
-    }
-}
-
-// MARK: - Flow Layout
-
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-    
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = FlowResult(
-            in: proposal.replacingUnspecifiedDimensions().width,
-            subviews: subviews,
-            spacing: spacing
-        )
-        return result.size
-    }
-    
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = FlowResult(
-            in: bounds.width,
-            subviews: subviews,
-            spacing: spacing
-        )
-        for (index, subview) in subviews.enumerated() {
-            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x, y: bounds.minY + result.positions[index].y), proposal: .unspecified)
-        }
-    }
-    
-    struct FlowResult {
-        var size: CGSize = .zero
-        var positions: [CGPoint] = []
-        
-        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
-            var x: CGFloat = 0
-            var y: CGFloat = 0
-            var lineHeight: CGFloat = 0
-            
-            for subview in subviews {
-                let size = subview.sizeThatFits(.unspecified)
-                
-                if x + size.width > maxWidth && x > 0 {
-                    // Move to next line
-                    x = 0
-                    y += lineHeight + spacing
-                    lineHeight = 0
-                }
-                
-                positions.append(CGPoint(x: x, y: y))
-                lineHeight = max(lineHeight, size.height)
-                x += size.width + spacing
-            }
-            
-            self.size = CGSize(width: maxWidth, height: y + lineHeight)
-        }
-    }
-}
-
-struct CategoryButton: View {
-    let category: IconCategory
-    let isSelected: Bool
-    let themeColor: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: category.icon)
-                    .font(.system(size: 16))
-                Text(category.name)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(isSelected ? themeColor : Color(.systemGray6))
-            .foregroundStyle(isSelected ? .white : .primary)
-            .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-struct IconButton: View {
-    let icon: String
-    let isSelected: Bool
-    let themeColor: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundStyle(isSelected ? themeColor : .primary)
-                    .frame(width: 50, height: 50)
-                    .background(
-                        Circle()
-                            .fill(isSelected ? themeColor.opacity(0.15) : Color(.systemGray6))
-                    )
-                    .overlay(
-                        Circle()
-                            .strokeBorder(isSelected ? themeColor : Color.clear, lineWidth: 2)
-                    )
-            }
-        }
-        .buttonStyle(.plain)
-        .scaleEffect(isSelected ? 1.1 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
-    }
-}
 
 
 
