@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import FoundationModels
+import UserNotifications
+#if os(iOS)
+import WidgetKit
+#endif
 
 @Observable
 class GoalEditorViewModel {
@@ -35,6 +39,17 @@ class GoalEditorViewModel {
     var selectedTemplate: GoalTemplateSuggestion?
     var selectedCategoryIndex: Int = 0
     var suggestionsData: GoalSuggestionsData
+    
+    // Alias map for suggestion autocomplete
+    let suggestionAliases: [String: [String]] = [
+        // Keyed by canonical suggestion title (case-insensitive matching will be used)
+        "Meditation": ["meditate", "rest", "mindfulness", "breathing"],
+        "Run": ["running", "jog", "jogging", "cardio"],
+        "Reading": ["read", "book", "books"],
+        "Journal": ["journaling", "write journal", "diary"],
+        "Yoga": ["stretching", "stretch", "asanas"],
+        "Walk": ["walking", "steps"],
+    ]
     
     // MARK: - Theme & Appearance
     
@@ -380,10 +395,23 @@ class GoalEditorViewModel {
         }
     }
     
+    /// Suggested target values based on goal type
+    var targetSuggestions: [Int] {
+        switch selectedGoalType {
+        case .time:
+            return []
+        case .count:
+            return [5000, 7500, 10000, 12500]
+        case .calories:
+            return [200, 300, 500, 750]
+        }
+    }
+    
     var calculatedWeeklyTarget: Int {
         switch selectedGoalType {
         case .time:
-            return durationInMinutes * activeDays.count
+            // Sum the actual daily targets for time-based goals
+            return dailyTargets.values.reduce(0, +)
         case .count, .calories:
             return Int(primaryMetricTarget * Double(activeDays.count))
         }
@@ -620,6 +648,53 @@ class GoalEditorViewModel {
         }
     }
     
+    // MARK: - Schedule Navigation Helpers
+    
+    /// Get the next active schedule day after the given weekday (or first if nil)
+    func getNextActiveScheduleDay(after weekday: Int?) -> Int? {
+        let orderedWeekdays = [2, 3, 4, 5, 6, 7, 1] // Mon-Sun
+        
+        if let currentDay = weekday {
+            // Find next active day after current
+            guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
+            let remainingDays = orderedWeekdays[(currentIndex + 1)...]
+            return remainingDays.first(where: { activeDays.contains($0) })
+        } else {
+            // Return first active day
+            return orderedWeekdays.first(where: { activeDays.contains($0) })
+        }
+    }
+    
+    /// Get the previous active schedule day before the given weekday (or last if nil)
+    func getPreviousActiveScheduleDay(before weekday: Int?) -> Int? {
+        let orderedWeekdays = [2, 3, 4, 5, 6, 7, 1] // Mon-Sun
+        
+        if let currentDay = weekday {
+            // Find previous active day before current
+            guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
+            let previousDays = orderedWeekdays[..<currentIndex]
+            return previousDays.reversed().first(where: { activeDays.contains($0) })
+        } else {
+            // Return last active day
+            return orderedWeekdays.reversed().first(where: { activeDays.contains($0) })
+        }
+    }
+    
+    /// Toggle a time slot for a specific weekday
+    func toggleTimeSlot(weekday: Int, timeOfDay: TimeOfDay) {
+        if dayTimePreferences[weekday]?.contains(timeOfDay) ?? false {
+            dayTimePreferences[weekday]?.remove(timeOfDay)
+            
+            // If all time slots are now unchecked, deactivate the day
+            if dayTimePreferences[weekday]?.isEmpty ?? true {
+                activeDays.remove(weekday)
+                dailyTargets.removeValue(forKey: weekday)
+            }
+        } else {
+            dayTimePreferences[weekday, default: []].insert(timeOfDay)
+        }
+    }
+    
     // MARK: - Button Actions
     
     func handleButtonTap(allTags: [GoalTag]) {
@@ -688,5 +763,305 @@ class GoalEditorViewModel {
                 self.result = partialResponse.content
             }
         }
+    }
+    
+    // MARK: - Save Goal
+    
+    func saveGoal(
+        modelContext: ModelContext,
+        allGoals: [Goal],
+        calculatedWeeklyTarget: Int,
+        currentPlanTimestamp: Double,
+        onRequestNotificationPermissions: @escaping () -> Void,
+        onDismiss: @escaping () -> Void
+    ) async throws -> Double {
+        // Validate primary metric target before saving
+        validatePrimaryMetricTarget()
+        
+        let goal: Goal
+        let isEditing = existingGoal != nil
+        
+        // Track if goal was scheduled for today before editing (for toast notification)
+        let calendar = Calendar.current
+        let todayWeekday = calendar.component(.weekday, from: Date())
+        let hadAnyScheduleForToday = existingGoal?.timesForWeekday(todayWeekday).isEmpty == false
+        
+        // Determine theme based on user selection or suggestion
+        let finalGoalTag: GoalTag
+        if let customGoalTag = selectedGoalTheme {
+            // User has selected a tag (either custom or from suggestions)
+            finalGoalTag = customGoalTag
+        } else if let template = selectedTemplate,
+                  let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
+            // Use the category's theme to create a tag
+            let matchedTheme = matchTheme(named: category.color)
+            finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
+        } else if let selectedSuggestion = selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
+            // Use the first theme from generated suggestions
+            let matchedTheme = matchTheme(named: themeNames[0])
+            finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
+        } else {
+            // Find an unused theme, or fall back to random
+            let unusedTheme = findUnusedTheme(excluding: allGoals)
+            finalGoalTag = GoalTag(title: unusedTheme.title, themeID: unusedTheme.id)
+        }
+        
+        // Debug print day-time schedule
+        if !dayTimePreferences.isEmpty {
+            print("\n📅 Day-Time Schedule:")
+            let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            for (weekday, times) in dayTimePreferences.sorted(by: { $0.key < $1.key }) where !times.isEmpty {
+                let timeStrings = times.sorted(by: { $0.rawValue < $1.rawValue }).map { $0.displayName }
+                print("   \(weekdayNames[weekday]): \(timeStrings.joined(separator: ", "))")
+            }
+        }
+      
+        if let existingGoal = existingGoal {
+            // Update existing goal
+            goal = existingGoal
+            goal.title = userInput
+            goal.primaryTag = finalGoalTag
+            goal.weeklyTarget = TimeInterval(calculatedWeeklyTarget * 60) // Weekly minutes to seconds
+            // Calculate average daily target from per-day targets
+            let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+            goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
+            goal.iconName = selectedIcon
+            goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
+            goal.completionNotificationsEnabled = completionNotificationsEnabled
+            goal.completionBehaviors = selectedCompletionBehaviors
+            goal.goalType = selectedGoalType
+            goal.healthKitMetric = selectedHealthKitMetric
+            goal.healthKitSyncEnabled = healthKitSyncEnabled
+            goal.primaryMetricDailyTarget = primaryMetricTarget
+            goal.notes = goalNotes.isEmpty ? nil : goalNotes
+            goal.link = goalLink.isEmpty ? nil : goalLink
+            
+            // Clear existing schedule and set new one
+            goal.dayTimeSchedule.removeAll()
+        } else {
+            // Create new goal
+            if let selectedSuggestion = selectedSuggestion, let title = selectedSuggestion.title {
+                goal = Goal(
+                    title: title,
+                    primaryTag: finalGoalTag,
+                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
+                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
+                    completionNotificationsEnabled: completionNotificationsEnabled,
+                    healthKitMetric: selectedHealthKitMetric,
+                    healthKitSyncEnabled: healthKitSyncEnabled
+                )
+                goal.iconName = selectedIcon
+                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
+                goal.completionBehaviors = selectedCompletionBehaviors
+                goal.goalType = selectedGoalType
+                goal.primaryMetricDailyTarget = primaryMetricTarget
+                goal.notes = goalNotes.isEmpty ? nil : goalNotes
+                goal.link = goalLink.isEmpty ? nil : goalLink
+            } else {
+                goal = Goal(
+                    title: userInput,
+                    primaryTag: finalGoalTag,
+                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
+                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
+                    completionNotificationsEnabled: completionNotificationsEnabled,
+                    healthKitMetric: selectedHealthKitMetric,
+                    healthKitSyncEnabled: healthKitSyncEnabled
+                )
+                goal.iconName = selectedIcon
+                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
+                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
+                goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+                goal.completionBehaviors = selectedCompletionBehaviors
+                goal.goalType = selectedGoalType
+                goal.primaryMetricDailyTarget = primaryMetricTarget
+                goal.notes = goalNotes.isEmpty ? nil : goalNotes
+                goal.link = goalLink.isEmpty ? nil : goalLink
+            }
+        }
+        
+        // ✅ Save the day-time schedule using the convenience method
+        // For active days, use their time preferences, or default to all times if not set
+        for weekday in 1...7 {
+            if activeDays.contains(weekday) {
+                // Day is active - use specified times or default to all times
+                let times = dayTimePreferences[weekday] ?? Set(TimeOfDay.allCases)
+                goal.setTimes(times, forWeekday: weekday)
+            } else {
+                // Day is not active - clear any time preferences
+                goal.setTimes([], forWeekday: weekday)
+            }
+        }
+        
+        // ✅ Save per-day targets
+        goal.dailyTargets.removeAll()
+        for (weekday, minutes) in dailyTargets {
+            goal.dailyTargets[String(weekday)] = TimeInterval(minutes * 60)
+        }
+        
+        // ✅ Save weather settings
+        goal.weatherEnabled = weatherEnabled
+        if weatherEnabled {
+            goal.weatherConditionsTyped = selectedWeatherConditions.isEmpty ? nil : Array(selectedWeatherConditions)
+            goal.minTemperature = hasMinTemperature ? minTemperature : nil
+            goal.maxTemperature = hasMaxTemperature ? maxTemperature : nil
+        } else {
+            goal.weatherConditionsTyped = nil
+            goal.minTemperature = nil
+            goal.maxTemperature = nil
+        }
+        
+        // ✅ Save checklist items
+        // Remove old checklist items
+        if let existingItems = goal.checklistItems {
+            for item in existingItems {
+                modelContext.delete(item)
+            }
+        }
+        goal.checklistItems = []
+        
+        // Add new checklist items
+        for item in checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
+            let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
+            modelContext.insert(checklistItem)
+            goal.checklistItems?.append(checklistItem)
+        }
+        
+        print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
+        print(goal.scheduleSummary)
+        if weatherEnabled {
+            print("🌤️ Weather triggers: \(selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))")
+            if hasMinTemperature { print("   Min temp: \(Int(minTemperature))°C") }
+            if hasMaxTemperature { print("   Max temp: \(Int(maxTemperature))°C") }
+        }
+        
+        // Request notification permissions if enabled
+        if selectedCompletionBehaviors.contains(.notify) {
+            onRequestNotificationPermissions()
+        }
+        
+        // Only insert if creating new goal
+        if !isEditing {
+            modelContext.insert(goal)
+        }
+        
+        // Handle notification scheduling
+        let notificationManager = GoalNotificationManager()
+        
+        // Schedule notifications if enabled and there's a schedule
+        if scheduleNotificationsEnabled && goal.hasSchedule {
+            do {
+                try await notificationManager.scheduleNotifications(for: goal)
+            } catch {
+                print("❌ Failed to schedule notifications: \(error)")
+            }
+        } else {
+            // Cancel schedule notifications if disabled
+            await notificationManager.cancelScheduleNotifications(for: goal)
+        }
+        
+        // Request HealthKit permissions immediately if this goal has HealthKit sync enabled
+        if goal.healthKitSyncEnabled, let metric = goal.healthKitMetric {
+            let healthKitManager = HealthKitManager()
+            do {
+                try await healthKitManager.requestAuthorization(for: [metric])
+                print("✅ HealthKit authorization requested for \(metric.displayName)")
+            } catch {
+                print("❌ Failed to request HealthKit authorization: \(error)")
+            }
+        }
+        
+        // Reset the plan generation timestamp to trigger a new plan
+        print("🔄 Reset plan generation timestamp - new plan will be generated")
+        
+        // Update all existing sessions for this goal to reflect new dailyTarget
+        if isEditing {
+            let calendar = Calendar.current
+            let todayWeekday = calendar.component(.weekday, from: Date())
+            let isNowScheduledForToday = !goal.timesForWeekday(todayWeekday).isEmpty
+            
+            // Fetch all sessions for this goal
+            let goalID = goal.id.uuidString
+            let fetchRequest = FetchDescriptor<GoalSession>(
+                predicate: #Predicate<GoalSession> { session in
+                    session.goalID == goalID
+                }
+            )
+            
+            if let sessions = try? modelContext.fetch(fetchRequest) {
+                for session in sessions {
+                    session.updateDailyTarget()
+                }
+                
+                // Show toast if goal moved in/out of today's schedule
+                if hadAnyScheduleForToday != isNowScheduledForToday {
+                    let message: String
+                    if isNowScheduledForToday {
+                        message = "'\(goal.title)' is now available today"
+                    } else {
+                        message = "'\(goal.title)' is no longer scheduled for today"
+                    }
+                    
+                    // Post notification to show toast in ContentView
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ShowToast"),
+                        object: message
+                    )
+                }
+            }
+        } else {
+            // Show toast for new goal creation
+            let calendar = Calendar.current
+            let todayWeekday = calendar.component(.weekday, from: Date())
+            let isScheduledForToday = !goal.timesForWeekday(todayWeekday).isEmpty
+            
+            let message: String
+            if isScheduledForToday {
+                message = "'\(goal.title)' created and available in Today"
+            } else {
+                // Get the next scheduled day
+                let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+                var nextScheduledDay: String?
+                
+                // Check days starting from tomorrow
+                for offset in 1...7 {
+                    let futureDate = calendar.date(byAdding: .day, value: offset, to: Date())!
+                    let futureWeekday = calendar.component(.weekday, from: futureDate)
+                    if !goal.timesForWeekday(futureWeekday).isEmpty {
+                        nextScheduledDay = weekdayNames[futureWeekday]
+                        break
+                    }
+                }
+                
+                if let nextDay = nextScheduledDay {
+                    message = "'\(goal.title)' created. Next scheduled: \(nextDay)"
+                } else {
+                    message = "'\(goal.title)' created with no schedule set"
+                }
+            }
+            
+            // Post notification to show toast in ContentView
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ShowToast"),
+                object: message
+            )
+        }
+        
+        // Sync checklist changes to existing sessions
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SyncChecklistToSessions"),
+            object: goal
+        )
+
+        // Reload widgets to show the new goal
+        #if os(iOS)
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+        print("🔄 Reloaded all widget timelines")
+        #endif
+
+        onDismiss()
+        
+        // Return reset timestamp
+        return 0
     }
 }

@@ -53,37 +53,6 @@ struct GoalEditorView: View {
     @State private var scrollProxy: ScrollViewProxy?
     // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
     private let weekdays = WeekdayConstants.weekdays
-    
-    // Track if user has made any changes
-    private var hasUnsavedChanges: Bool {
-        // Check if user has entered text
-        if !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return true
-        }
-        
-        // Check if user selected a template
-        if viewModel.selectedTemplate != nil {
-            return true
-        }
-        
-        // Check if in duration stage (means they pressed Next)
-        if viewModel.currentStage == .duration {
-            return true
-        }
-        
-        return false
-    }
-    
-    // Local alias map for suggestion autocomplete
-    private let suggestionAliases: [String: [String]] = [
-        // Keyed by canonical suggestion title (case-insensitive matching will be used)
-        "Meditation": ["meditate", "rest", "mindfulness", "breathing"],
-        "Run": ["running", "jog", "jogging", "cardio"],
-        "Reading": ["read", "book", "books"],
-        "Journal": ["journaling", "write journal", "diary"],
-        "Yoga": ["stretching", "stretch", "asanas"],
-        "Walk": ["walking", "steps"],
-    ]
 
 
 
@@ -108,23 +77,6 @@ struct GoalEditorView: View {
         return luminance > 0.5 ? .black : .white
     }
 
-    /// Unit label for the current goal type
-    private var goalTypeUnit: String {
-        viewModel.selectedGoalType.unitLabel
-    }
-    
-    /// Suggested target values based on goal type
-    private var targetSuggestions: [Int] {
-        switch viewModel.selectedGoalType {
-        case .time:
-            return []
-        case .count:
-            return [5000, 7500, 10000, 12500]
-        case .calories:
-            return [200, 300, 500, 750]
-        }
-    }
-
     /// Schedule section with goal type picker
     @ViewBuilder
     private var scheduleSection: some View {
@@ -134,10 +86,10 @@ struct GoalEditorView: View {
                 GoalTypeSection(
                     selectedType: $viewModel.selectedGoalType,
                     primaryMetricTarget: $viewModel.primaryMetricTarget,
-                    calculatedWeeklyTarget: calculatedWeeklyTarget,
+                    calculatedWeeklyTarget: viewModel.calculatedWeeklyTarget,
                     activeThemeColor: activeThemeColor,
-                    goalTypeUnit: goalTypeUnit,
-                    targetSuggestions: targetSuggestions,
+                    goalTypeUnit: viewModel.goalTypeUnit,
+                    targetSuggestions: viewModel.targetSuggestions,
                     onTypeChange: viewModel.handleGoalTypeChange
                 )
 
@@ -151,7 +103,7 @@ struct GoalEditorView: View {
             Text(viewModel.selectedGoalType == .time ? "Weekly Goal" : "Goal & Schedule")
         } footer: {
             if viewModel.selectedGoalType != .time {
-                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(viewModel.primaryMetricTarget)) \(goalTypeUnit) applies to all selected days.")
+                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(viewModel.primaryMetricTarget)) \(viewModel.goalTypeUnit) applies to all selected days.")
             }
         }
     }
@@ -161,7 +113,7 @@ struct GoalEditorView: View {
             HStack {
                 Text("Weekly Target")
                 Spacer()
-                Text("\(calculatedWeeklyTarget) min")
+                Text("\(viewModel.calculatedWeeklyTarget) min")
                     .foregroundStyle(activeThemeColor)
             }
             .font(.subheadline)
@@ -220,7 +172,7 @@ struct GoalEditorView: View {
                                         guard !trimmed.isEmpty else { return }
 
                                         if let (categoryIndex, matchedSuggestion) = viewModel.suggestionsData.categories.enumerated().compactMap({ (idx, category) -> (Int, GoalTemplateSuggestion)? in
-                                            if let suggestion = category.suggestions.first(where: { viewModel.matchesSuggestion($0, with: trimmed, aliases: suggestionAliases) }) {
+                                            if let suggestion = category.suggestions.first(where: { viewModel.matchesSuggestion($0, with: trimmed, aliases: viewModel.suggestionAliases) }) {
                                                 return (idx, suggestion)
                                             }
                                             return nil
@@ -865,32 +817,12 @@ struct GoalEditorView: View {
     
     /// Get the next active schedule day after the given weekday (or first if nil)
     private func getNextActiveScheduleDay(after weekday: Int?) -> Int? {
-        let orderedWeekdays = [2, 3, 4, 5, 6, 7, 1] // Mon-Sun
-        
-        if let currentDay = weekday {
-            // Find next active day after current
-            guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
-            let remainingDays = orderedWeekdays[(currentIndex + 1)...]
-            return remainingDays.first(where: { viewModel.activeDays.contains($0) })
-        } else {
-            // Return first active day
-            return orderedWeekdays.first(where: { viewModel.activeDays.contains($0) })
-        }
+        viewModel.getNextActiveScheduleDay(after: weekday)
     }
     
     /// Get the previous active schedule day before the given weekday (or last if nil)
     private func getPreviousActiveScheduleDay(before weekday: Int?) -> Int? {
-        let orderedWeekdays = [2, 3, 4, 5, 6, 7, 1] // Mon-Sun
-        
-        if let currentDay = weekday {
-            // Find previous active day before current
-            guard let currentIndex = orderedWeekdays.firstIndex(of: currentDay) else { return nil }
-            let previousDays = orderedWeekdays[..<currentIndex]
-            return previousDays.reversed().first(where: { viewModel.activeDays.contains($0) })
-        } else {
-            // Return last active day
-            return orderedWeekdays.reversed().first(where: { viewModel.activeDays.contains($0) })
-        }
+        viewModel.getPreviousActiveScheduleDay(before: weekday)
     }
     
     // MARK: - Helper Functions
@@ -898,19 +830,18 @@ struct GoalEditorView: View {
 
     
     private func toggleTimeSlot(weekday: Int, timeOfDay: TimeOfDay) {
-        if viewModel.dayTimePreferences[weekday]?.contains(timeOfDay) ?? false {
-            viewModel.dayTimePreferences[weekday]?.remove(timeOfDay)
-            
-            // If all time slots are now unchecked, deactivate the day
-            if viewModel.dayTimePreferences[weekday]?.isEmpty ?? true {
-                viewModel.activeDays.remove(weekday)
-                viewModel.dailyTargets.removeValue(forKey: weekday)
-                withAnimation {
-                    expandedDay = nil // Close the row when deactivating
-                }
+        // Check if we're deactivating the last time slot (for animation)
+        let willDeactivateDay = (viewModel.dayTimePreferences[weekday]?.count == 1 && 
+                                 viewModel.dayTimePreferences[weekday]?.contains(timeOfDay) == true)
+        
+        // Call ViewModel for business logic
+        viewModel.toggleTimeSlot(weekday: weekday, timeOfDay: timeOfDay)
+        
+        // Handle UI concerns
+        if willDeactivateDay {
+            withAnimation {
+                expandedDay = nil // Close the row when deactivating
             }
-        } else {
-            viewModel.dayTimePreferences[weekday, default: []].insert(timeOfDay)
         }
         
         HapticFeedbackManager.trigger(.light)
@@ -920,24 +851,16 @@ struct GoalEditorView: View {
     
     @State private var expandedDay: Int? = nil // Track which day row is expanded (accordion-style)
     
-    private var calculatedWeeklyTarget: Int {
-        return viewModel.dailyTargets.values.reduce(0, +)
-    }
-    
     func handleButtonTap() {
         switch viewModel.currentStage {
         case .name:
             if let template = viewModel.selectedTemplate {
                 // Prefill from template and go to duration without AI
                 applyTemplate(template)
-                withAnimation {
-                    viewModel.currentStage = .duration
-                }
-            } else {
-                // New goal: go to duration immediately, then start generating suggestions in background
-                withAnimation {
-                    viewModel.currentStage = .duration
-                }
+            }
+            // Call ViewModel for stage progression logic
+            withAnimation {
+                viewModel.handleButtonTap(allTags: allTags)
             }
         case .duration:
             saveGoal()
@@ -966,294 +889,25 @@ struct GoalEditorView: View {
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
     
     func saveGoal() {
-        // Validate primary metric target before saving
-        viewModel.validatePrimaryMetricTarget()
-        
-        let goal: Goal
-        let isEditing = viewModel.existingGoal != nil // TODO: hide existing goal
-        
-        // Track if goal was scheduled for today before editing (for toast notification)
-        let calendar = Calendar.current
-        let todayWeekday = calendar.component(.weekday, from: Date())
-        let hadAnyScheduleForToday = viewModel.existingGoal?.timesForWeekday(todayWeekday).isEmpty == false
-        
-        // Determine theme based on user selection or suggestion
-        let finalGoalTag: GoalTag
-        if let customGoalTag = viewModel.selectedGoalTheme {
-            // User has selected a tag (either custom or from suggestions)
-            finalGoalTag = customGoalTag
-        } else if let template = viewModel.selectedTemplate,
-                  let category = viewModel.suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
-            // Use the category's theme to create a tag
-            let matchedTheme = viewModel.matchTheme(named: category.color)
-            finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
-        } else if let selectedSuggestion = viewModel.selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
-            // Use the first theme from generated suggestions
-            let matchedTheme = viewModel.matchTheme(named: themeNames[0])
-            finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
-        } else {
-            // Find an unused theme, or fall back to random
-            let unusedTheme = viewModel.findUnusedTheme(excluding: allGoals)
-            finalGoalTag = GoalTag(title: unusedTheme.title, themeID: unusedTheme.id)
-        }
-        
-        // Debug print day-time schedule
-        if !viewModel.dayTimePreferences.isEmpty {
-            print("\n📅 Day-Time Schedule:")
-            let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-            for (weekday, times) in viewModel.dayTimePreferences.sorted(by: { $0.key < $1.key }) where !times.isEmpty {
-                let timeStrings = times.sorted(by: { $0.rawValue < $1.rawValue }).map { $0.displayName }
-                print("   \(weekdayNames[weekday]): \(timeStrings.joined(separator: ", "))")
-            }
-        }
-      
-        if let existingGoal = viewModel.existingGoal {
-            // Update existing goal
-            goal = existingGoal
-            goal.title = viewModel.userInput
-            goal.primaryTag = finalGoalTag
-            goal.weeklyTarget = TimeInterval(calculatedWeeklyTarget * 60) // Weekly minutes to seconds
-            // Calculate average daily target from per-day targets
-            let avgDailyTarget = viewModel.activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / viewModel.activeDays.count)
-            goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
-            goal.iconName = viewModel.selectedIcon
-            goal.scheduleNotificationsEnabled = viewModel.scheduleNotificationsEnabled
-            goal.completionNotificationsEnabled = viewModel.completionNotificationsEnabled
-            goal.completionBehaviors = viewModel.selectedCompletionBehaviors
-            goal.goalType = viewModel.selectedGoalType
-            goal.healthKitMetric = viewModel.selectedHealthKitMetric
-            goal.healthKitSyncEnabled = viewModel.healthKitSyncEnabled
-            goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
-            goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
-            goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
-            
-            // Clear existing schedule and set new one
-            goal.dayTimeSchedule.removeAll()
-        } else {
-            // Create new goal
-            if let selectedSuggestion = viewModel.selectedSuggestion, let title = selectedSuggestion.title {
-                goal = Goal(
-                    title: title,
-                    primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
-                    scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
-                    completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
-                    healthKitMetric: viewModel.selectedHealthKitMetric,
-                    healthKitSyncEnabled: viewModel.healthKitSyncEnabled
-                )
-                goal.iconName = viewModel.selectedIcon
-                let avgDailyTarget = viewModel.activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / viewModel.activeDays.count)
-                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
-                goal.completionBehaviors = viewModel.selectedCompletionBehaviors
-                goal.goalType = viewModel.selectedGoalType
-                goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
-                goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
-                goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
-            } else {
-                goal = Goal(
-                    title: viewModel.userInput,
-                    primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
-                    scheduleNotificationsEnabled: viewModel.scheduleNotificationsEnabled,
-                    completionNotificationsEnabled: viewModel.completionNotificationsEnabled,
-                    healthKitMetric: viewModel.selectedHealthKitMetric,
-                    healthKitSyncEnabled: viewModel.healthKitSyncEnabled
-                )
-                goal.iconName = viewModel.selectedIcon
-                let avgDailyTarget = viewModel.activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / viewModel.activeDays.count)
-                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
-                goal.dailyMinimum = viewModel.hasDailyMinimum ? TimeInterval((viewModel.dailyMinimumMinutes ?? 10) * 60) : nil
-                goal.completionBehaviors = viewModel.selectedCompletionBehaviors
-                goal.goalType = viewModel.selectedGoalType
-                goal.primaryMetricDailyTarget = viewModel.primaryMetricTarget
-                goal.notes = viewModel.goalNotes.isEmpty ? nil : viewModel.goalNotes
-                goal.link = viewModel.goalLink.isEmpty ? nil : viewModel.goalLink
-            }
-        }
-        
-        // ✅ Save the day-time schedule using the convenience method
-        // For active days, use their time preferences, or default to all times if not set
-        for weekday in 1...7 {
-            if viewModel.activeDays.contains(weekday) {
-                // Day is active - use specified times or default to all times
-                let times = viewModel.dayTimePreferences[weekday] ?? Set(TimeOfDay.allCases)
-                goal.setTimes(times, forWeekday: weekday)
-            } else {
-                // Day is not active - clear any time preferences
-                goal.setTimes([], forWeekday: weekday)
-            }
-        }
-        
-        // ✅ Save per-day targets
-        goal.dailyTargets.removeAll()
-        for (weekday, minutes) in viewModel.dailyTargets {
-            goal.dailyTargets[String(weekday)] = TimeInterval(minutes * 60)
-        }
-        
-        // ✅ Save weather settings
-        goal.weatherEnabled = viewModel.weatherEnabled
-        if viewModel.weatherEnabled {
-            goal.weatherConditionsTyped = viewModel.selectedWeatherConditions.isEmpty ? nil : Array(viewModel.selectedWeatherConditions)
-            goal.minTemperature = viewModel.hasMinTemperature ? viewModel.minTemperature : nil
-            goal.maxTemperature = viewModel.hasMaxTemperature ? viewModel.maxTemperature : nil
-        } else {
-            goal.weatherConditionsTyped = nil
-            goal.minTemperature = nil
-            goal.maxTemperature = nil
-        }
-        
-        // ✅ Save checklist items
-        // Remove old checklist items
-        if let existingItems = goal.checklistItems {
-            for item in existingItems {
-                modelContext.delete(item)
-            }
-        }
-        goal.checklistItems = []
-        
-        // Add new checklist items
-        for item in viewModel.checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
-            let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
-            modelContext.insert(checklistItem)
-            goal.checklistItems?.append(checklistItem)
-        }
-        
-        print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
-        print(goal.scheduleSummary)
-        if viewModel.weatherEnabled {
-            print("🌤️ Weather triggers: \(viewModel.selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))")
-            if viewModel.hasMinTemperature { print("   Min temp: \(Int(viewModel.minTemperature))°C") }
-            if viewModel.hasMaxTemperature { print("   Max temp: \(Int(viewModel.maxTemperature))°C") }
-        }
-        
-        // Request notification permissions if enabled
-        if viewModel.selectedCompletionBehaviors.contains(.notify) {
-            requestNotificationPermissions()
-        }
-        
-        // Only insert if creating new goal
-        if !isEditing {
-            modelContext.insert(goal)
-        }
-        
-        // Handle notification scheduling
         Task {
-            let notificationManager = GoalNotificationManager()
-            
-            // Schedule notifications if enabled and there's a schedule
-            if viewModel.scheduleNotificationsEnabled && goal.hasSchedule {
-                do {
-                    try await notificationManager.scheduleNotifications(for: goal)
-                } catch {
-                    print("❌ Failed to schedule notifications: \(error)")
-                }
-            } else {
-                // Cancel schedule notifications if disabled
-                await notificationManager.cancelScheduleNotifications(for: goal)
-            }
-            
-            // Request HealthKit permissions immediately if this goal has HealthKit sync enabled
-            if goal.healthKitSyncEnabled, let metric = goal.healthKitMetric {
-                let healthKitManager = HealthKitManager()
-                do {
-                    try await healthKitManager.requestAuthorization(for: [metric])
-                    print("✅ HealthKit authorization requested for \(metric.displayName)")
-                } catch {
-                    print("❌ Failed to request HealthKit authorization: \(error)")
-                }
+            do {
+                let newTimestamp = try await viewModel.saveGoal(
+                    modelContext: modelContext,
+                    allGoals: allGoals,
+                    calculatedWeeklyTarget: viewModel.calculatedWeeklyTarget,
+                    currentPlanTimestamp: lastPlanGeneratedTimestamp,
+                    onRequestNotificationPermissions: {
+                        requestNotificationPermissions()
+                    },
+                    onDismiss: {
+                        dismiss()
+                    }
+                )
+                lastPlanGeneratedTimestamp = newTimestamp
+            } catch {
+                print("❌ Failed to save goal: \(error)")
             }
         }
-        
-        // Reset the plan generation timestamp to trigger a new plan
-        lastPlanGeneratedTimestamp = 0
-        print("🔄 Reset plan generation timestamp - new plan will be generated")
-        
-        // Update all existing sessions for this goal to reflect new dailyTarget
-        if isEditing {
-            let calendar = Calendar.current
-            let todayWeekday = calendar.component(.weekday, from: Date())
-            let isNowScheduledForToday = !goal.timesForWeekday(todayWeekday).isEmpty
-            
-            // Fetch all sessions for this goal
-            let goalID = goal.id.uuidString
-            let fetchRequest = FetchDescriptor<GoalSession>(
-                predicate: #Predicate<GoalSession> { session in
-                    session.goalID == goalID
-                }
-            )
-            
-            if let sessions = try? modelContext.fetch(fetchRequest) {
-                for session in sessions {
-                    session.updateDailyTarget()
-                }
-                
-                // Show toast if goal moved in/out of today's schedule
-                if hadAnyScheduleForToday != isNowScheduledForToday {
-                    let message: String
-                    if isNowScheduledForToday {
-                        message = "'\(goal.title)' is now available today"
-                    } else {
-                        message = "'\(goal.title)' is no longer scheduled for today"
-                    }
-                    
-                    // Post notification to show toast in ContentView
-                    NotificationCenter.default.post(
-                        name: NSNotification.Name("ShowToast"),
-                        object: message
-                    )
-                }
-            }
-        } else {
-            // Show toast for new goal creation
-            let calendar = Calendar.current
-            let todayWeekday = calendar.component(.weekday, from: Date())
-            let isScheduledForToday = !goal.timesForWeekday(todayWeekday).isEmpty
-            
-            let message: String
-            if isScheduledForToday {
-                message = "'\(goal.title)' created and available in Today"
-            } else {
-                // Get the next scheduled day
-                let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                var nextScheduledDay: String?
-                
-                // Check days starting from tomorrow
-                for offset in 1...7 {
-                    let futureDate = calendar.date(byAdding: .day, value: offset, to: Date())!
-                    let futureWeekday = calendar.component(.weekday, from: futureDate)
-                    if !goal.timesForWeekday(futureWeekday).isEmpty {
-                        nextScheduledDay = weekdayNames[futureWeekday]
-                        break
-                    }
-                }
-                
-                if let nextDay = nextScheduledDay {
-                    message = "'\(goal.title)' created. Next scheduled: \(nextDay)"
-                } else {
-                    message = "'\(goal.title)' created with no schedule set"
-                }
-            }
-            
-            // Post notification to show toast in ContentView
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ShowToast"),
-                object: message
-            )
-        }
-        
-        // Sync checklist changes to existing sessions
-        NotificationCenter.default.post(
-            name: NSNotification.Name("SyncChecklistToSessions"),
-            object: goal
-        )
-
-        // Reload widgets to show the new goal
-        #if os(iOS)
-        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
-        print("🔄 Reloaded all widget timelines")
-        #endif
-
-        dismiss()
     }
     
     func requestNotificationPermissions() {
