@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import MomentumKit
+import FoundationModels
 
 @Observable
 class GoalEditorViewModel {
@@ -142,6 +143,10 @@ class GoalEditorViewModel {
         selectedIcon = iconHelper.inferIcon(from: userInput)
     }
     
+    func inferIcon(from title: String) -> String? {
+        return iconHelper.inferIcon(from: title)
+    }
+    
     func matchTheme(named themeName: String) -> ThemePreset {
         themeHelper.matchTheme(named: themeName)
     }
@@ -204,7 +209,7 @@ class GoalEditorViewModel {
         return nil
     }
     
-    private func matchesSuggestion(_ suggestion: GoalTemplateSuggestion, with input: String, aliases: [String: [String]]) -> Bool {
+    func matchesSuggestion(_ suggestion: GoalTemplateSuggestion, with input: String, aliases: [String: [String]]) -> Bool {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
         
@@ -260,59 +265,108 @@ class GoalEditorViewModel {
     // MARK: - Load from Existing Goal
     
     private func loadFromExistingGoal(_ goal: Goal) {
+        loadGoalData(from: goal)
+    }
+    
+    func loadGoalData(from goal: Goal) {
         userInput = goal.title
-        durationInMinutes = Int(goal.weeklyTarget / 60)
+        durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
         
-        if let tag = goal.primaryTag {
-            selectedGoalTheme = tag
-            selectedTags = [tag]
+        // Load daily minimum (this is now the primary daily target)
+        if let dailyMin = goal.dailyMinimum {
+            dailyMinimumMinutes = Int(dailyMin / 60)
+        } else {
+            // Default to 10 minutes if not set
+            dailyMinimumMinutes = 10
         }
         
-        selectedIcon = goal.iconName
-        goalNotes = goal.notes ?? ""
-        goalLink = goal.link ?? ""
+        // Infer active days from schedule - days with any time preferences are "active"
+        activeDays.removeAll()
+        dailyTargets.removeAll()
+        
+        for weekday in 1...7 {
+            let times = goal.timesForWeekday(weekday)
+            if !times.isEmpty {
+                activeDays.insert(weekday)
+                // Check if there's a custom daily target for this day
+                if let customTarget = goal.dailyTargets[String(weekday)] {
+                    dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
+                } else {
+                    // Fall back to dailyMinimum or default
+                    dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+                }
+            }
+        }
+        
+        // If no active days found, default to weekdays with default targets
+        if activeDays.isEmpty {
+            activeDays = Set(2...6) // Monday-Friday
+            for weekday in 2...6 {
+                dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+            }
+        }
         
         scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
         completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedCompletionBehaviors = goal.completionBehaviors
-        
-        // Load goal type and metrics
         selectedGoalType = goal.goalType
-        primaryMetricTarget = goal.primaryMetricDailyTarget
-        
-        // Load daily targets
-        dailyTargets.removeAll()
-        for (weekdayStr, interval) in goal.dailyTargets {
-            if let weekday = Int(weekdayStr) {
-                dailyTargets[weekday] = Int(interval / 60)
+        selectedHealthKitMetric = goal.healthKitMetric
+        healthKitSyncEnabled = goal.healthKitSyncEnabled
+
+        // Load or set default primary metric target
+        if goal.primaryMetricDailyTarget > 0 {
+            primaryMetricTarget = goal.primaryMetricDailyTarget
+        } else {
+            // Set defaults based on goal type for migrated goals
+            switch goal.goalType {
+            case .time:
+                primaryMetricTarget = 0
+            case .count:
+                primaryMetricTarget = 10000 // Default: 10,000 steps
+            case .calories:
+                primaryMetricTarget = 500 // Default: 500 calories
             }
         }
+
+        goalNotes = goal.notes ?? ""
+        goalLink = goal.link ?? ""
         
-        if let metric = goal.healthKitMetric {
-            selectedHealthKitMetric = metric
-            healthKitSyncEnabled = goal.healthKitSyncEnabled
-        }
-        
+        // Load checklist items
         checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
         
-        weatherEnabled = goal.weatherEnabled
-        if let conditions = goal.weatherConditions {
-            selectedWeatherConditions = Set(conditions.compactMap { WeatherCondition(rawValue: $0) })
-        }
-        hasMinTemperature = goal.minTemperature != nil
-        minTemperature = goal.minTemperature ?? 10
-        hasMaxTemperature = goal.maxTemperature != nil
-        maxTemperature = goal.maxTemperature ?? 25
+        // Load tag/theme
+        selectedGoalTheme = goal.primaryTag
         
-        // Load day-time schedule and convert to our format
-        activeDays.removeAll()
-        for (weekdayStr, times) in goal.dayTimeSchedule {
-            if let weekday = Int(weekdayStr) {
-                activeDays.insert(weekday)
-                dayTimePreferences[weekday] = Set(times.compactMap { TimeOfDay(rawValue: $0) })
+        // Add to selected themes
+        if let primaryTag = goal.primaryTag, !selectedTags.contains(where: { $0.id == primaryTag.id }) {
+            selectedTags.append(primaryTag)
+        }
+        
+        selectedIcon = goal.iconName
+        
+        // Load schedule
+        for weekday in 1...7 {
+            let times = goal.timesForWeekday(weekday)
+            if !times.isEmpty {
+                dayTimePreferences[weekday] = times
             }
         }
         
+        // Load weather settings
+        weatherEnabled = goal.weatherEnabled
+        if let conditions = goal.weatherConditionsTyped {
+            selectedWeatherConditions = Set(conditions)
+        }
+        if let minTemp = goal.minTemperature {
+            hasMinTemperature = true
+            minTemperature = minTemp
+        }
+        if let maxTemp = goal.maxTemperature {
+            hasMaxTemperature = true
+            maxTemperature = maxTemp
+        }
+        
+        // Go straight to duration stage when editing
         currentStage = .duration
     }
     
@@ -376,25 +430,263 @@ class GoalEditorViewModel {
         }
     }
     
-    func applyTemplate(_ template: GoalTemplateSuggestion) {
+    func handleGoalTypeChange(_ newType: Goal.GoalType) {
+        switch newType {
+        case .time:
+            selectedHealthKitMetric = nil
+            healthKitSyncEnabled = false
+        case .count:
+            selectedHealthKitMetric = .stepCount
+            healthKitSyncEnabled = true
+            primaryMetricTarget = 10000
+        case .calories:
+            selectedHealthKitMetric = .activeEnergyBurned
+            healthKitSyncEnabled = true
+            primaryMetricTarget = 500
+        }
+    }
+    
+    func applyTemplate(_ template: GoalTemplateSuggestion, allTags: [GoalTag]) {
+        // Set the title
         userInput = template.title
-        durationInMinutes = template.duration
-        selectedTemplate = template
         
-        if let goalTypeStr = template.goalType, let goalType = Goal.GoalType(rawValue: goalTypeStr) {
-            selectedGoalType = goalType
+        // Set duration
+        durationInMinutes = template.duration
+        
+        // Distribute the template duration across active days
+        // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
+        let defaultDays: Set<Int> = (template.dailyGoal == true) ? Set(1...7) : Set(2...6)
+        let targetDays = activeDays.isEmpty ? defaultDays : activeDays
+        let dailyMinutes = targetDays.isEmpty ? template.duration : template.duration / targetDays.count
+        
+        for weekday in targetDays {
+            dailyTargets[weekday] = dailyMinutes
         }
         
+        // Infer and set icon from template
+        selectedIcon = inferIcon(from: template.title)
+        
+        // Find the category for this template
+        guard let category = suggestionsData.categories.first(where: { category in
+            category.suggestions.contains(where: { $0.id == template.id })
+        }) else {
+            print("⚠️ Could not find category for template: \(template.id)")
+            return
+        }
+        
+        let categoryName = category.name
+        
+        // Create GoalTheme based on category's color
+        let matchedTheme = matchTheme(named: category.color)
+        
+        // Check if a tag with the category name already exists in the database
+        let existingTag = allTags.first(where: { $0.title == categoryName })
+        
+        let goalTheme: GoalTag
+        if let existing = existingTag {
+            // Use the existing tag
+            goalTheme = existing
+            print("♻️ Using existing tag: \(existing.title)")
+        } else {
+            // Create new tag with the category name (e.g., "Fitness") not theme color (e.g., "Green")
+            goalTheme = GoalTag(title: categoryName, themeID: matchedTheme.id)
+            print("✨ Created new tag: \(categoryName) with theme \(matchedTheme.title)")
+        }
+        
+        selectedGoalTheme = goalTheme
+        
+        // Add to selected themes if not already there
+        if !selectedTags.contains(where: { $0.title == goalTheme.title }) {
+            selectedTags.append(goalTheme)
+        }
+        
+        // Set HealthKit metric if available
+        if let metricRawValue = template.healthKitMetric,
+           let metric = HealthKitMetric(rawValue: metricRawValue) {
+            selectedHealthKitMetric = metric
+            healthKitSyncEnabled = true
+        } else {
+            selectedHealthKitMetric = nil
+            healthKitSyncEnabled = false
+        }
+
+        // Set goal type if specified in template
+        if let goalTypeString = template.goalType,
+           let goalType = Goal.GoalType(rawValue: goalTypeString) {
+            selectedGoalType = goalType
+        } else {
+            selectedGoalType = .time
+        }
+
+        // Set primary metric target if specified
         if let target = template.primaryMetricTarget {
             primaryMetricTarget = target
         }
+
+        print("✨ Template Applied:")
+        print("   Title: \(template.title)")
+        print("   Duration: \(template.duration) min")
+        print("   Daily Minutes: \(dailyMinutes) min per day")
+        print("   Goal Type: \(selectedGoalType.rawValue)")
+        print("   Primary Target: \(primaryMetricTarget)")
+        print("   Theme: \(template.theme)")
+        print("   HealthKit: \(template.healthKitMetric ?? "none")")
+    }
+    
+    // MARK: - Schedule & Day Management
+    
+    func toggleActiveDay(_ weekday: Int) {
+        if activeDays.contains(weekday) {
+            activeDays.remove(weekday)
+            dailyTargets.removeValue(forKey: weekday)
+        } else {
+            activeDays.insert(weekday)
+            // Set default target when activating a day
+            dailyTargets[weekday] = dailyMinimumMinutes ?? 10
+        }
+    }
+    
+    func isDayActive(_ weekday: Int) -> Bool {
+        activeDays.contains(weekday)
+    }
+    
+    func updateDailyTarget(for weekday: Int, minutes: Int) {
+        dailyTargets[weekday] = minutes
+    }
+    
+    func shouldShowApplyToAll(for weekday: Int) -> Bool {
+        guard let currentDuration = dailyTargets[weekday] else { return false }
         
-        if let healthKitMetricStr = template.healthKitMetric,
-           let metric = HealthKitMetric(rawValue: healthKitMetricStr) {
-            selectedHealthKitMetric = metric
-            healthKitSyncEnabled = true
+        // Check if any other active day has a different duration
+        for otherWeekday in activeDays where otherWeekday != weekday {
+            if dailyTargets[otherWeekday] != currentDuration {
+                return true
+            }
         }
         
-        selectedIcon = template.icon
+        return false
+    }
+    
+    func applyDurationToAllDays(from sourceWeekday: Int) {
+        guard let sourceDuration = dailyTargets[sourceWeekday] else { return }
+        
+        // Apply the duration to all active days
+        for weekday in activeDays {
+            dailyTargets[weekday] = sourceDuration
+        }
+    }
+    
+    enum SchedulePreset {
+        case weekdayMornings
+        case everyEvening
+        case weekends
+        case everyDay
+    }
+    
+    func applyPreset(_ preset: SchedulePreset) {
+        dayTimePreferences.removeAll()
+        
+        switch preset {
+        case .weekdayMornings:
+            // Monday-Friday mornings
+            for weekday in 2...6 {
+                dayTimePreferences[weekday] = [.morning]
+            }
+        case .everyEvening:
+            // All days, evenings
+            for weekday in 1...7 {
+                dayTimePreferences[weekday] = [.evening]
+            }
+        case .weekends:
+            // Saturday and Sunday, all times
+            dayTimePreferences[7] = Set(TimeOfDay.allCases)
+            dayTimePreferences[1] = Set(TimeOfDay.allCases)
+        case .everyDay:
+            // All days, all times
+            for weekday in 1...7 {
+                dayTimePreferences[weekday] = Set(TimeOfDay.allCases)
+            }
+        }
+    }
+    
+    // MARK: - Theme Management
+    
+    func removeGoalTheme(_ goalTheme: GoalTag) {
+        selectedTags.removeAll(where: { $0.title == goalTheme.title })
+        
+        // If we removed the currently selected theme, select the first available
+        if selectedGoalTheme?.title == goalTheme.title {
+            selectedGoalTheme = selectedTags.first
+        }
+    }
+    
+    // MARK: - Button Actions
+    
+    func handleButtonTap(allTags: [GoalTag]) {
+        switch currentStage {
+        case .name:
+            if let template = selectedTemplate {
+                // Prefill from template and go to duration without AI
+                applyTemplate(template, allTags: allTags)
+                currentStage = .duration
+            } else {
+                // New goal: go to duration immediately, then start generating suggestions in background
+                currentStage = .duration
+            }
+        case .duration:
+            // This will be handled by the View's saveGoal function
+            break
+        }
+    }
+    
+    // MARK: - Checklist Generation
+    
+    func generateChecklist(for input: String) {
+        errorMessage = nil
+
+        Task {
+            do {
+                let response = try await generateTasksWithLLM(prompt: input)
+                
+                try await generateStreamedSuggestions()
+                await MainActor.run {
+                    let wrapped = GoalEditorSuggestionsResult(suggestions: response)
+                    self.result = wrapped.asPartiallyGenerated()
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    func generateTasksWithLLM(prompt: String) async throws -> [GoalSuggestion] {
+        let session = LanguageModelSession()
+        let goalsResult = try await session.respond(
+            to: Prompt("Come up with up to three separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instea of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument."),
+            generating: [GoalSuggestion].self,
+            includeSchemaInPrompt: false,
+            options: GenerationOptions(temperature: 0.5)
+        )
+        return goalsResult.content
+    }
+    
+    func generateStreamedSuggestions() async throws {
+        
+        let session = LanguageModelSession()
+
+        let stream = session.streamResponse(generating: GoalEditorSuggestionsResult.self) {
+            
+
+            "Come up with up to 10 separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title, subtitle, description and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instead of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument. Make it 100% relevant to: \(userInput)"
+        }
+        
+        for try await partialResponse in stream {
+            // Handle each partial response here
+            await MainActor.run {
+                self.result = partialResponse.content
+            }
+        }
     }
 }

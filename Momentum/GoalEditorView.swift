@@ -85,17 +85,7 @@ struct GoalEditorView: View {
         "Walk": ["walking", "steps"],
     ]
 
-    private func matchesSuggestion(_ suggestion: GoalTemplateSuggestion, with input: String) -> Bool {
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
-        // Title match
-        if suggestion.title.caseInsensitiveCompare(trimmed) == .orderedSame { return true }
-        // Alias match
-        if let aliases = suggestionAliases[suggestion.title] {
-            return aliases.contains { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
-        }
-        return false
-    }
+
 
     
     // Computed property for the active theme color
@@ -106,7 +96,7 @@ struct GoalEditorView: View {
             return selectedTheme.themePreset.color(for: colorScheme)
         } else if let template = viewModel.selectedTemplate,
                   let category = viewModel.suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
-            let matchedTheme = matchTheme(named: category.color)
+            let matchedTheme = viewModel.matchTheme(named: category.color)
             return matchedTheme.color(for: colorScheme)
         }
         return .accentColor
@@ -148,7 +138,7 @@ struct GoalEditorView: View {
                     activeThemeColor: activeThemeColor,
                     goalTypeUnit: goalTypeUnit,
                     targetSuggestions: targetSuggestions,
-                    onTypeChange: handleGoalTypeChange
+                    onTypeChange: viewModel.handleGoalTypeChange
                 )
 
                 Divider()
@@ -187,15 +177,15 @@ struct GoalEditorView: View {
                 ExpandableDayRow(
                     weekday: weekday,
                     name: name,
-                    isActive: isDayActive(weekday),
+                    isActive: viewModel.isDayActive(weekday),
                     minutes: viewModel.dailyTargets[weekday] ?? 30,
                     selectedTimes: viewModel.dayTimePreferences[weekday] ?? [],
                     themeColor: activeThemeColor,
                     isExpanded: expandedDay == weekday,
                     showMinutes: viewModel.selectedGoalType == .time,
                     focusedField: $focusedField,
-                    onToggleDay: { toggleActiveDay(weekday) },
-                    onUpdateMinutes: { updateDailyTarget(for: weekday, minutes: $0) },
+                    onToggleDay: { viewModel.toggleActiveDay(weekday) },
+                    onUpdateMinutes: { viewModel.updateDailyTarget(for: weekday, minutes: $0) },
                     onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
                     onToggleExpand: {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -230,7 +220,7 @@ struct GoalEditorView: View {
                                         guard !trimmed.isEmpty else { return }
 
                                         if let (categoryIndex, matchedSuggestion) = viewModel.suggestionsData.categories.enumerated().compactMap({ (idx, category) -> (Int, GoalTemplateSuggestion)? in
-                                            if let suggestion = category.suggestions.first(where: { matchesSuggestion($0, with: trimmed) }) {
+                                            if let suggestion = category.suggestions.first(where: { viewModel.matchesSuggestion($0, with: trimmed, aliases: suggestionAliases) }) {
                                                 return (idx, suggestion)
                                             }
                                             return nil
@@ -251,7 +241,7 @@ struct GoalEditorView: View {
                                         if viewModel.selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
                                             Task { @MainActor in
                                                 if viewModel.selectedIcon == nil {
-                                                    viewModel.selectedIcon = inferIcon(from: trimmed)
+                                                    viewModel.selectedIcon = viewModel.inferIcon(from: trimmed)
                                                 }
                                             }
                                         }
@@ -409,7 +399,13 @@ struct GoalEditorView: View {
                                                     HapticFeedbackManager.trigger(.light)
                                                 },
                                                 onRemove: {
-                                                    removeGoalTheme(goalTheme)
+                                                    withAnimation(AnimationPresets.quickSpring) {
+                                                        viewModel.removeGoalTheme(goalTheme)
+                                                    }
+                                                    #if os(iOS)
+                                                    let generator = UINotificationFeedbackGenerator()
+                                                    generator.notificationOccurred(.warning)
+                                                    #endif
                                                 }
                                             )
                                         }
@@ -685,9 +681,12 @@ struct GoalEditorView: View {
                     }
                     
                     // Apply to All Days button (when editing a specific day's duration and it differs from others)
-                    if case .scheduleDay(let weekday) = focusedField, shouldShowApplyToAll(for: weekday) {
+                    if case .scheduleDay(let weekday) = focusedField, viewModel.shouldShowApplyToAll(for: weekday) {
                         Button {
-                            applyDurationToAllDays(from: weekday)
+                            viewModel.applyDurationToAllDays(from: weekday)
+                            // Dismiss keyboard and provide haptic feedback
+                            focusedField = nil
+                            HapticFeedbackManager.trigger(.success)
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "calendar.badge.checkmark")
@@ -724,7 +723,9 @@ struct GoalEditorView: View {
         .sheet(isPresented: $viewModel.showingColorPicker) {
             ColorPickerSheet(
                 selectedColorPreset: $viewModel.selectedColorPreset,
-                onSelect: handleColorSelection
+                onSelect: { preset in
+                    viewModel.handleColorSelection(preset)
+                }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -750,9 +751,9 @@ struct GoalEditorView: View {
         .task {
             // Load existing goal data if editing
             if let existingGoal = viewModel.existingGoal {
-                loadGoalData(from: existingGoal)
+                viewModel.loadGoalData(from: existingGoal)
             } else if viewModel.userInput.isEmpty {
-                generateChecklist(for: "")
+                viewModel.generateChecklist(for: "")
             }
         }
     }
@@ -894,224 +895,7 @@ struct GoalEditorView: View {
     
     // MARK: - Helper Functions
 
-    /// Handle goal type changes
-    private func handleGoalTypeChange(_ newType: Goal.GoalType) {
-        switch newType {
-        case .time:
-            viewModel.selectedHealthKitMetric = nil
-            viewModel.healthKitSyncEnabled = false
-        case .count:
-            viewModel.selectedHealthKitMetric = .stepCount
-            viewModel.healthKitSyncEnabled = true
-            viewModel.primaryMetricTarget = 10000
-        case .calories:
-            viewModel.selectedHealthKitMetric = .activeEnergyBurned
-            viewModel.healthKitSyncEnabled = true
-            viewModel.primaryMetricTarget = 500
-        }
-    }
 
-    /// Validate and clamp primary metric target to reasonable ranges
-    private func validatePrimaryMetricTarget() {
-        guard viewModel.primaryMetricTarget > 0 else {
-            // Set to default if zero or negative
-            switch viewModel.selectedGoalType {
-            case .time:
-                viewModel.primaryMetricTarget = 0
-            case .count:
-                viewModel.primaryMetricTarget = 100 // Minimum 100 steps
-                viewModel.validationMessage = "Target set to minimum: 100 steps"
-                viewModel.showingValidationAlert = true
-            case .calories:
-                viewModel.primaryMetricTarget = 50 // Minimum 50 calories
-                viewModel.validationMessage = "Target set to minimum: 50 calories"
-                viewModel.showingValidationAlert = true
-            }
-            return
-        }
-
-        // Clamp to reasonable maximums
-        switch viewModel.selectedGoalType {
-        case .time:
-            break // No validation needed
-        case .count:
-            if viewModel.primaryMetricTarget > 100000 {
-                viewModel.primaryMetricTarget = 100000 // Max 100k steps
-                viewModel.validationMessage = "Target adjusted to maximum: 100,000 steps"
-                viewModel.showingValidationAlert = true
-            } else if viewModel.primaryMetricTarget < 100 {
-                viewModel.primaryMetricTarget = 100 // Min 100 steps
-                viewModel.validationMessage = "Target adjusted to minimum: 100 steps"
-                viewModel.showingValidationAlert = true
-            }
-        case .calories:
-            if viewModel.primaryMetricTarget > 10000 {
-                viewModel.primaryMetricTarget = 10000 // Max 10k calories
-                viewModel.validationMessage = "Target adjusted to maximum: 10,000 calories"
-                viewModel.showingValidationAlert = true
-            } else if viewModel.primaryMetricTarget < 50 {
-                viewModel.primaryMetricTarget = 50 // Min 50 calories
-                viewModel.validationMessage = "Target adjusted to minimum: 50 calories"
-                viewModel.showingValidationAlert = true
-            }
-        }
-    }
-
-    /// Load existing goal data for editing
-    private func loadGoalData(from goal: Goal) {
-        viewModel.userInput = goal.title
-        viewModel.durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
-        
-        // Load daily minimum (this is now the primary daily target)
-        if let dailyMin = goal.dailyMinimum {
-            viewModel.dailyMinimumMinutes = Int(dailyMin / 60)
-        } else {
-            // Default to 10 minutes if not set
-            viewModel.dailyMinimumMinutes = 10
-        }
-        
-        // Infer active days from schedule - days with any time preferences are "active"
-        viewModel.activeDays.removeAll()
-        viewModel.dailyTargets.removeAll()
-        
-        for weekday in 1...7 {
-            let times = goal.timesForWeekday(weekday)
-            if !times.isEmpty {
-                viewModel.activeDays.insert(weekday)
-                // Check if there's a custom daily target for this day
-                if let customTarget = goal.dailyTargets[String(weekday)] {
-                    viewModel.dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
-                } else {
-                    // Fall back to dailyMinimum or default
-                    viewModel.dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
-                }
-            }
-        }
-        
-        // If no active days found, default to weekdays with default targets
-        if viewModel.activeDays.isEmpty {
-            viewModel.activeDays = Set(2...6) // Monday-Friday
-            for weekday in 2...6 {
-                viewModel.dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
-            }
-        }
-        
-        viewModel.scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
-        viewModel.completionNotificationsEnabled = goal.completionNotificationsEnabled
-        viewModel.selectedCompletionBehaviors = goal.completionBehaviors
-        viewModel.selectedGoalType = goal.goalType
-        viewModel.selectedHealthKitMetric = goal.healthKitMetric
-        viewModel.healthKitSyncEnabled = goal.healthKitSyncEnabled
-
-        // Load or set default primary metric target
-        if goal.primaryMetricDailyTarget > 0 {
-            viewModel.primaryMetricTarget = goal.primaryMetricDailyTarget
-        } else {
-            // Set defaults based on goal type for migrated goals
-            switch goal.goalType {
-            case .time:
-                viewModel.primaryMetricTarget = 0
-            case .count:
-                viewModel.primaryMetricTarget = 10000 // Default: 10,000 steps
-            case .calories:
-                viewModel.primaryMetricTarget = 500 // Default: 500 calories
-            }
-        }
-
-        viewModel.goalNotes = goal.notes ?? ""
-        viewModel.goalLink = goal.link ?? ""
-        
-        // Load checklist items
-        viewModel.checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
-        
-        // Load tag/theme
-        viewModel.selectedGoalTheme = goal.primaryTag
-        
-        // Add to selected themes
-        if let primaryTag = goal.primaryTag, !viewModel.selectedTags.contains(where: { $0.id == primaryTag.id }) {
-            viewModel.selectedTags.append(primaryTag)
-        }
-        
-        // Load schedule
-        for weekday in 1...7 {
-            let times = goal.timesForWeekday(weekday)
-            if !times.isEmpty {
-                viewModel.dayTimePreferences[weekday] = times
-            }
-        }
-        
-        // Load weather settings
-        viewModel.weatherEnabled = goal.weatherEnabled
-        if let conditions = goal.weatherConditionsTyped {
-            viewModel.selectedWeatherConditions = Set(conditions)
-        }
-        if let minTemp = goal.minTemperature {
-            viewModel.hasMinTemperature = true
-            viewModel.minTemperature = minTemp
-        }
-        if let maxTemp = goal.maxTemperature {
-            viewModel.hasMaxTemperature = true
-            viewModel.maxTemperature = maxTemp
-        }
-        
-        // Go straight to duration stage when editing
-        viewModel.currentStage = .duration
-    }
-     
-    /// Remove a theme from the selected themes list
-    private func removeGoalTheme(_ goalTheme: GoalTag) {
-        withAnimation(AnimationPresets.quickSpring) {
-            viewModel.selectedTags.removeAll(where: { $0.title == goalTheme.title })
-            
-            // If we removed the currently selected theme, select the first available
-            if viewModel.selectedGoalTheme?.title == goalTheme.title {
-                viewModel.selectedGoalTheme = viewModel.selectedTags.first
-            }
-        }
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.warning)
-        #endif
-    }
-    
-    enum SchedulePreset {
-        case weekdayMornings
-        case everyEvening
-        case weekends
-        case everyDay
-    }
-    
-    private func applyPreset(_ preset: SchedulePreset) {
-        viewModel.dayTimePreferences.removeAll()
-        
-        switch preset {
-        case .weekdayMornings:
-            // Monday-Friday mornings
-            for weekday in 2...6 {
-                viewModel.dayTimePreferences[weekday] = [.morning]
-            }
-        case .everyEvening:
-            // All days, evenings
-            for weekday in 1...7 {
-                viewModel.dayTimePreferences[weekday] = [.evening]
-            }
-        case .weekends:
-            // Saturday and Sunday, all times
-            viewModel.dayTimePreferences[7] = Set(TimeOfDay.allCases)
-            viewModel.dayTimePreferences[1] = Set(TimeOfDay.allCases)
-        case .everyDay:
-            // All days, all times
-            for weekday in 1...7 {
-                viewModel.dayTimePreferences[weekday] = Set(TimeOfDay.allCases)
-            }
-        }
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
-    }
     
     private func toggleTimeSlot(weekday: Int, timeOfDay: TimeOfDay) {
         if viewModel.dayTimePreferences[weekday]?.contains(timeOfDay) ?? false {
@@ -1136,55 +920,8 @@ struct GoalEditorView: View {
     
     @State private var expandedDay: Int? = nil // Track which day row is expanded (accordion-style)
     
-    private func toggleActiveDay(_ weekday: Int) {
-        if viewModel.activeDays.contains(weekday) {
-            viewModel.activeDays.remove(weekday)
-            viewModel.dailyTargets.removeValue(forKey: weekday)
-        } else {
-            viewModel.activeDays.insert(weekday)
-            // Set default target when activating a day
-            viewModel.dailyTargets[weekday] = viewModel.dailyMinimumMinutes ?? 10
-        }
-        
-        HapticFeedbackManager.trigger(.light)
-    }
-    
-    private func isDayActive(_ weekday: Int) -> Bool {
-        viewModel.activeDays.contains(weekday)
-    }
-    
     private var calculatedWeeklyTarget: Int {
         return viewModel.dailyTargets.values.reduce(0, +)
-    }
-    
-    private func updateDailyTarget(for weekday: Int, minutes: Int) {
-        viewModel.dailyTargets[weekday] = minutes
-    }
-    
-    private func shouldShowApplyToAll(for weekday: Int) -> Bool {
-        guard let currentDuration = viewModel.dailyTargets[weekday] else { return false }
-        
-        // Check if any other active day has a different duration
-        for otherWeekday in viewModel.activeDays where otherWeekday != weekday {
-            if viewModel.dailyTargets[otherWeekday] != currentDuration {
-                return true
-            }
-        }
-        
-        return false
-    }
-    
-    private func applyDurationToAllDays(from sourceWeekday: Int) {
-        guard let sourceDuration = viewModel.dailyTargets[sourceWeekday] else { return }
-        
-        // Apply the duration to all active days
-        for weekday in viewModel.activeDays {
-            viewModel.dailyTargets[weekday] = sourceDuration
-        }
-        
-        // Dismiss keyboard and provide haptic feedback
-        focusedField = nil
-        HapticFeedbackManager.trigger(.success)
     }
     
     func handleButtonTap() {
@@ -1209,66 +946,10 @@ struct GoalEditorView: View {
     
     /// Apply a template's predefined values
     func applyTemplate(_ template: GoalTemplateSuggestion) {
-        // Set the title
-        viewModel.userInput = template.title
+        viewModel.applyTemplate(template, allTags: allTags)
         
-        // Set duration
-        viewModel.durationInMinutes = template.duration
-        
-        // Distribute the template duration across active days
-        // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
-        let defaultDays: Set<Int> = (template.dailyGoal == true) ? Set(1...7) : Set(2...6)
-        let targetDays = viewModel.activeDays.isEmpty ? defaultDays : viewModel.activeDays
-        let dailyMinutes = targetDays.isEmpty ? template.duration : template.duration / targetDays.count
-        
-        for weekday in targetDays {
-            viewModel.dailyTargets[weekday] = dailyMinutes
-        }
-        
-        // Infer and set icon from template
-        viewModel.selectedIcon = inferIcon(from: template.title)
-        
-        // Find the category for this template
-        guard let category = viewModel.suggestionsData.categories.first(where: { category in
-            category.suggestions.contains(where: { $0.id == template.id })
-        }) else {
-            print("⚠️ Could not find category for template: \(template.id)")
-            return
-        }
-        
-        let categoryName = category.name
-        
-        // Create GoalTheme based on category's color
-        let matchedTheme = matchTheme(named: category.color)
-        
-        // Check if a tag with the category name already exists in the database
-        let existingTag = allTags.first(where: { $0.title == categoryName })
-        
-        let goalTheme: GoalTag
-        if let existing = existingTag {
-            // Use the existing tag
-            goalTheme = existing
-            print("♻️ Using existing tag: \(existing.title)")
-        } else {
-            // Create new tag with the category name (e.g., "Fitness") not theme color (e.g., "Green")
-            goalTheme = GoalTag(title: categoryName, themeID: matchedTheme.id)
-            print("✨ Created new tag: \(categoryName) with theme \(matchedTheme.title)")
-        }
-        
-        viewModel.selectedGoalTheme = goalTheme
-        
-        // Add to selected themes if not already there
-        if !viewModel.selectedTags.contains(where: { $0.title == goalTheme.title }) {
-            viewModel.selectedTags.append(goalTheme)
-        }
-        
-        // Set HealthKit metric if available
-        if let metricRawValue = template.healthKitMetric,
-           let metric = HealthKitMetric(rawValue: metricRawValue) {
-            viewModel.selectedHealthKitMetric = metric
-            viewModel.healthKitSyncEnabled = true
-            
-            // Request HealthKit authorization immediately
+        // Request HealthKit authorization immediately if needed
+        if let metric = viewModel.selectedHealthKitMetric, viewModel.healthKitSyncEnabled {
             Task {
                 let healthKitManager = HealthKitManager()
                 do {
@@ -1279,40 +960,14 @@ struct GoalEditorView: View {
                     // Don't disable sync - user might grant permission later
                 }
             }
-        } else {
-            viewModel.selectedHealthKitMetric = nil
-            viewModel.healthKitSyncEnabled = false
         }
-        
-
-        // Set goal type if specified in template
-        if let goalTypeString = template.goalType,
-           let goalType = Goal.GoalType(rawValue: goalTypeString) {
-            viewModel.selectedGoalType = goalType
-        } else {
-            viewModel.selectedGoalType = .time
-        }
-
-        // Set primary metric target if specified
-        if let target = template.primaryMetricTarget {
-            viewModel.primaryMetricTarget = target
-        }
-
-        print("✨ Template Applied:")
-        print("   Title: \(template.title)")
-        print("   Duration: \(template.duration) min")
-        print("   Daily Minutes: \(dailyMinutes) min per day")
-        print("   Goal Type: \(viewModel.selectedGoalType.rawValue)")
-        print("   Primary Target: \(viewModel.primaryMetricTarget)")
-        print("   Theme: \(template.theme)")
-        print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
     
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
     
     func saveGoal() {
         // Validate primary metric target before saving
-        validatePrimaryMetricTarget()
+        viewModel.validatePrimaryMetricTarget()
         
         let goal: Goal
         let isEditing = viewModel.existingGoal != nil // TODO: hide existing goal
@@ -1330,11 +985,11 @@ struct GoalEditorView: View {
         } else if let template = viewModel.selectedTemplate,
                   let category = viewModel.suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             // Use the category's theme to create a tag
-            let matchedTheme = matchTheme(named: category.color)
+            let matchedTheme = viewModel.matchTheme(named: category.color)
             finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
         } else if let selectedSuggestion = viewModel.selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
-            let matchedTheme = matchTheme(named: themeNames[0])
+            let matchedTheme = viewModel.matchTheme(named: themeNames[0])
             finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
         } else {
             // Find an unused theme, or fall back to random
@@ -1608,98 +1263,6 @@ struct GoalEditorView: View {
             }
         }
     }
-    
-    /// Infer an appropriate icon from a goal title
-    func inferIcon(from title: String) -> String? {
-        let helper = GoalEditorIconHelper()
-        return helper.inferIcon(from: title)
-    }
-    
-    /// Handle color selection from the color picker
-    private func handleColorSelection(_ preset: ThemePreset) {
-        viewModel.selectedColorPreset = preset
-        
-        // Update existing tag or create new one
-        if let currentTheme = viewModel.selectedGoalTheme {
-            currentTheme.themeID = preset.id
-        } else if !viewModel.selectedTags.isEmpty {
-            viewModel.selectedTags[0].themeID = preset.id
-            viewModel.selectedGoalTheme = viewModel.selectedTags[0]
-        } else {
-            // No tags exist - create new tag with selected color
-            let newTag = GoalTag(title: preset.title, themeID: preset.id)
-            viewModel.selectedGoalTheme = newTag
-            viewModel.selectedTags.append(newTag)
-        }
-        
-        viewModel.showingColorPicker = false
-    }
-    
-    /// Match a theme name to an actual Theme from the themes array
-    func matchTheme(named themeName: String) -> ThemePreset {
-        let helper = GoalEditorThemeHelper()
-        return helper.matchTheme(named: themeName)
-    }
-    
-    func generateChecklist(for input: String) {
-        viewModel.errorMessage = nil
-
-        Task {
-            do {
-                // Replace this part with proper FoundationModels API usage as needed
-                // This is a placeholder showing where you would use your LLM
-                let response = try await generateTasksWithLLM(prompt: input)
-                
-                try await generateStreamedSuggestions()
-                await MainActor.run {
-                    let wrapped = GoalEditorSuggestionsResult(suggestions: response)
-                    self.viewModel.result = wrapped.asPartiallyGenerated()
-                }
-            } catch {
-                await MainActor.run {
-                    self.viewModel.errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-    
-    func generateTasksWithLLM(prompt: String) async throws -> [GoalSuggestion] {
-        let session = LanguageModelSession()
-        let goalsResult = try await session.respond(
-            to: Prompt("Come up with up to three separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instea of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument."),
-            generating: [GoalSuggestion].self,
-            includeSchemaInPrompt: false,
-            options: GenerationOptions(temperature: 0.5)
-        )
-        return goalsResult.content
-    }
-    
-    func generateStreamedSuggestions() async throws {
-        
-        let session = LanguageModelSession()
-
-        let stream = session.streamResponse(generating: GoalEditorSuggestionsResult.self) {
-            
-
-            "Come up with up to 10 separate goals for the user to add based on their input, including how long to spend on each goal. Return the goals as a list of dictionaries with the short title, subtitle, description and duration (no more than 30 minutes) in the separate property, not the title. Be specific, e.g. 'Cardio' instead of 'Exercise routine'. Include things like gardening, reading a book, or learning a new skill, playing a musical instrument. Make it 100% relevant to: \(viewModel.userInput)"
-        }
-        
-        for try await partialResponse in stream {
-            // Handle each partial response here
-            await MainActor.run {
-                self.viewModel.result = partialResponse.content
-            }
-        }
-    }
-    
-    private func tagIcon(for tag: GoalTag) -> String {
-        if let loc = tag.locationTypesTyped, loc.contains(.gym) { return "dumbbell.fill" }
-        if let loc = tag.locationTypesTyped, loc.contains(.outdoor) { return "tree.fill" }
-        if let times = tag.timeOfDayPreferencesTyped, times.contains(.morning) { return "sunrise.fill" }
-        if tag.requiresDaylight { return "sun.max.fill" }
-        if let weather = tag.weatherConditionsTyped, weather.contains(.rainy) { return "cloud.rain.fill" }
-        return "tag.fill"
-    }
 }
 
 
@@ -1736,7 +1299,3 @@ extension Color {
         return luminance > 0.6 ? .black : .white
     }
 }
-
-
-
-
