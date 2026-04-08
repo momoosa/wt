@@ -159,7 +159,7 @@ struct NowPlayingView: View {
                             .foregroundStyle(.white)
                         
                         // Interval time remaining
-                        Text(Duration.seconds(intervalTimeRemaining).formatted(.time(pattern: .minuteSecond)))
+                        Text(intervalTimeRemaining.formatted(style: .components))
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundStyle(.white.opacity(0.9))
                             .contentTransition(.numericText())

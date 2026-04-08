@@ -1530,7 +1530,7 @@ struct ContentView: View {
     }
     
     func timerText(for session: GoalSession) -> String {
-        return timerManager?.timerText(for: session) ?? "TODO..."
+        return timerManager?.timerText(for: session) ?? "00:00"
     }
     
     // MARK: - HealthKit Integration

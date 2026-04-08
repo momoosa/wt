@@ -42,7 +42,7 @@ struct HealthKitInfoRow: View {
                         Text("HealthKit Time")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text(Duration.seconds(session.healthKitTime).formatted(.time(pattern: .hourMinute)))
+                        Text(session.healthKitTime.formatted(style: .components))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                     }
@@ -59,7 +59,7 @@ struct HealthKitInfoRow: View {
                         Text("Manual Tracking")
                         Spacer()
                         let manualTime = session.historicalSessions.reduce(0) { $0 + $1.duration }
-                        Text(Duration.seconds(manualTime).formatted(.time(pattern: .hourMinute)))
+                        Text(manualTime.formatted(style: .components))
                             .fontWeight(.medium)
                     }
                     .font(.caption)
@@ -67,7 +67,7 @@ struct HealthKitInfoRow: View {
                     HStack {
                         Text("HealthKit Data")
                         Spacer()
-                        Text(Duration.seconds(session.healthKitTime).formatted(.time(pattern: .hourMinute)))
+                        Text(session.healthKitTime.formatted(style: .components))
                             .fontWeight(.medium)
                     }
                     .font(.caption)
@@ -78,7 +78,7 @@ struct HealthKitInfoRow: View {
                         Text("Total Time")
                             .fontWeight(.semibold)
                         Spacer()
-                        Text(Duration.seconds(session.elapsedTime).formatted(.time(pattern: .hourMinute)))
+                        Text(session.elapsedTime.formatted(style: .components))
                             .fontWeight(.semibold)
                     }
                     .font(.callout)

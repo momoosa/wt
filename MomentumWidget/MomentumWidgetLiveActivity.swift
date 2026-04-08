@@ -129,13 +129,13 @@ struct MomentumWidgetLiveActivity: Widget {
                                 .multilineTextAlignment(.trailing)
                                 .contentTransition(.numericText())
                         } else {
-                            Text(context.state.elapsedTime.formatted(style: .hmmss))
+                            Text(context.state.elapsedTime.formatted(style: .components))
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .contentTransition(.numericText())
                         }
                         
-                        Text("/ \(context.attributes.dailyTarget.formatted(style: .hmmss))")
+                        Text("/ \(context.attributes.dailyTarget.formatted(style: .components))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -242,12 +242,12 @@ struct LiveActivityLockScreenView: View {
                                 .monospacedDigit()
                                 .contentTransition(.numericText())
                         } else {
-                            Text(context.state.elapsedTime.formatted(style: .hmmss))
+                            Text(context.state.elapsedTime.formatted(style: .components))
                                 .font(.subheadline)
                                 .contentTransition(.numericText())
                         }
                         
-                        Text("/ \(context.attributes.dailyTarget.formatted(style: .hmmss))")
+                        Text("/ \(context.attributes.dailyTarget.formatted(style: .components))")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

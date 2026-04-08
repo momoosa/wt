@@ -59,7 +59,7 @@ struct HistoricalSessionEditorView: View {
                         Text("Duration")
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text(Duration.seconds(duration).formatted())
+                        Text(duration.formatted(style: .components))
                             .fontWeight(.medium)
                     }
                 }

@@ -524,7 +524,7 @@ public class GoalSessionPlanner: ObservableObject {
                 recommendedStartTime: formattedTime,
                 suggestedDuration: max(suggestedMinutes, 5),
                 priority: 1,
-                reasoning: remainingTime > 0 ? "Complete remaining \(Duration.seconds(remainingTime).formatted(.time(pattern: .minuteSecond))) to reach daily target" : "Maintain momentum with this goal"
+                reasoning: remainingTime > 0 ? "Complete remaining \(remainingTime.formatted(style: .components)) to reach daily target" : "Maintain momentum with this goal"
             )
             sessions.append(plannedSession)
         }

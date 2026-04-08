@@ -101,7 +101,7 @@ extension ContextualSection {
             sections.append(ContextualSection(
                 type: .recommendedNow,
                 sessions: topRecommended,
-                explanation: "" // TODO: Remove?
+                explanation: nil
             ))
         }
         

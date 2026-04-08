@@ -40,12 +40,12 @@ private struct IntervalRow: View {
                         .opacity(isCompleted ? 0.6 : 1)
                     
                     if isCompleted {
-                        Text("\(Duration.seconds(displayElapsed).formatted(.time(pattern: .minuteSecond)))/\(Duration.seconds(duration).formatted(.time(pattern: .minuteSecond)))")
+                        Text("\(displayElapsed.formatted(style: .components))/\(duration.formatted(style: .components))")
                             .font(.caption)
                             .opacity(0.7)
                     } else {
                         let remaining = max(duration - displayElapsed, 0)
-                        Text("\(Duration.seconds(remaining).formatted(.time(pattern: .minuteSecond))) remaining")
+                        Text("\(remaining.formatted(style: .components)) remaining")
                             .font(.caption)
                             .opacity(0.7)
                     }

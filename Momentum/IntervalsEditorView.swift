@@ -131,7 +131,7 @@ public struct IntervalsEditorView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        generateIntervalsAndSessions() // TODO:
+                        generateIntervalsAndSessions()
                         dismiss()
                     }
                     .buttonStyle(.borderedProminent)

@@ -27,7 +27,7 @@ public struct HistoricalSessionRow: View {
             VStack(alignment: .leading) {
                 HStack {
                     if showsTimeSummaryInsteadOfTitle {
-                        Text("\(Duration.seconds(session.endDate.timeIntervalSince(session.startDate)).formatted())")
+                        Text("\(session.endDate.timeIntervalSince(session.startDate).formatted(style: .components))")
                     } else {
                         // Show goal title if available
                         if let goalTitle = goalTitle {
@@ -57,7 +57,7 @@ public struct HistoricalSessionRow: View {
                 
                 HStack(spacing: 8) {
                     // Show duration
-                    Text(Duration.seconds(session.endDate.timeIntervalSince(session.startDate)).formatted())
+                    Text(session.endDate.timeIntervalSince(session.startDate).formatted(style: .components))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     
