@@ -11,7 +11,7 @@ import MomentumKit
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
-// TODO: Static...
+
 /// Manages goal CRUD operations with proper cleanup and ordering
 @MainActor
 class GoalManager {
