@@ -102,6 +102,9 @@
 		CDBE14FE2F86444B00B7FCD6 /* NotesAndResourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14FD2F86444B00B7FCD6 /* NotesAndResourcesSection.swift */; };
 		CDBE15002F86446E00B7FCD6 /* ThemeSelectionSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14FF2F86446E00B7FCD6 /* ThemeSelectionSection.swift */; };
 		CDBE15022F86449400B7FCD6 /* SuggestionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15012F86449400B7FCD6 /* SuggestionsSection.swift */; };
+		CDBE15062F864D7200B7FCD6 /* ScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15052F864D7200B7FCD6 /* ScheduleSection.swift */; };
+		CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15072F864D8300B7FCD6 /* ScheduleDaysListSection.swift */; };
+		CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */; };
 		CDCE06A22F84420900034FD3 /* GoalTypeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */; };
 		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
@@ -296,6 +299,11 @@
 		CDBE14FD2F86444B00B7FCD6 /* NotesAndResourcesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesAndResourcesSection.swift; sourceTree = "<group>"; };
 		CDBE14FF2F86446E00B7FCD6 /* ThemeSelectionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeSelectionSection.swift; sourceTree = "<group>"; };
 		CDBE15012F86449400B7FCD6 /* SuggestionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsSection.swift; sourceTree = "<group>"; };
+		CDBE15032F864AC800B7FCD6 /* ScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSection.swift; sourceTree = "<group>"; };
+		CDBE15042F864AC900B7FCD6 /* ScheduleDaysListSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDaysListSection.swift; sourceTree = "<group>"; };
+		CDBE15052F864D7200B7FCD6 /* ScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSection.swift; sourceTree = "<group>"; };
+		CDBE15072F864D8300B7FCD6 /* ScheduleDaysListSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDaysListSection.swift; sourceTree = "<group>"; };
+		CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorModels.swift; sourceTree = "<group>"; };
 		CDCE069E2F82826700034FD3 /* VIEWMODEL_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = VIEWMODEL_REFACTORING.md; sourceTree = "<group>"; };
 		CDCE069F2F84416200034FD3 /* COMPOSITION_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMPOSITION_REFACTORING.md; sourceTree = "<group>"; };
 		CDCE06A02F8441A300034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
@@ -552,6 +560,8 @@
 				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
 				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
 				CDBE14FB2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift */,
+				CDBE15072F864D8300B7FCD6 /* ScheduleDaysListSection.swift */,
+				CDBE15052F864D7200B7FCD6 /* ScheduleSection.swift */,
 				CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */,
 				CDBE14FD2F86444B00B7FCD6 /* NotesAndResourcesSection.swift */,
 				CDBE15012F86449400B7FCD6 /* SuggestionsSection.swift */,
@@ -642,6 +652,9 @@
 				CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */,
 				CDBE14482F85126B00B7FCD6 /* WeatherConfigSection.swift */,
 				CDBE144A2F85126C00B7FCD6 /* ChecklistSection.swift */,
+				CDBE15032F864AC800B7FCD6 /* ScheduleSection.swift */,
+				CDBE15042F864AC900B7FCD6 /* ScheduleDaysListSection.swift */,
+				CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1000,6 +1013,7 @@
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */,
+				CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
 				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
@@ -1036,6 +1050,7 @@
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
+				CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
 				CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */,
 				CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */,
@@ -1043,6 +1058,7 @@
 				CDBE15022F86449400B7FCD6 /* SuggestionsSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,
+				CDBE15062F864D7200B7FCD6 /* ScheduleSection.swift in Sources */,
 				CD1D0F692F84603400A36562 /* IconCategory.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,

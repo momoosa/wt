@@ -1,5 +1,4 @@
 import SwiftUI
-import FoundationModels
 import MomentumKit
 import SwiftData
 import UserNotifications
@@ -7,26 +6,6 @@ import EventKit
 #if os(iOS)
 import WidgetKit
 #endif
-
-// MARK: - AI Suggestion Model
-@Generable
-struct GoalThemeSuggestionsResponse: Codable {
-    var suggestedThemes: [String] // Array of theme names (e.g., ["Wellness", "Fitness", "Productivity"])
-    var reasoning: String? // optional explanation
-}
-
-// MARK: - Checklist Item Data
-struct ChecklistItemData: Identifiable, Equatable {
-    let id: UUID
-    var title: String
-    var notes: String
-
-    init(id: UUID = UUID(), title: String = "", notes: String = "") {
-        self.id = id
-        self.title = title
-        self.notes = notes
-    }
-}
 
 struct GoalEditorView: View {
     enum Field: Hashable {
@@ -51,24 +30,13 @@ struct GoalEditorView: View {
     
     
     @State private var scrollProxy: ScrollViewProxy?
-    // Weekday helper (1 = Sunday, 2 = Monday ... 7 = Saturday)
-    private let weekdays = WeekdayConstants.weekdays
-
-
-
+    @State private var expandedDay: Int? = nil
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     // Computed property for the active theme color
     private var activeThemeColor: Color {
-        if let selectedPreset = viewModel.selectedColorPreset {
-            return selectedPreset.color(for: colorScheme)
-        } else if let selectedTheme = viewModel.selectedGoalTheme {
-            return selectedTheme.themePreset.color(for: colorScheme)
-        } else if let template = viewModel.selectedTemplate,
-                  let category = viewModel.suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
-            let matchedTheme = viewModel.matchTheme(named: category.color)
-            return matchedTheme.color(for: colorScheme)
-        }
-        return .accentColor
+        viewModel.getActiveThemeColor(colorScheme: colorScheme)
     }
     
     /// Calculate appropriate text color for buttons based on background luminance
@@ -77,81 +45,7 @@ struct GoalEditorView: View {
         return luminance > 0.5 ? .black : .white
     }
 
-    /// Schedule section with goal type picker
-    @ViewBuilder
-    private var scheduleSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 16) {
-                // Goal type picker section (extracted component)
-                GoalTypeSection(
-                    selectedType: $viewModel.selectedGoalType,
-                    primaryMetricTarget: $viewModel.primaryMetricTarget,
-                    calculatedWeeklyTarget: viewModel.calculatedWeeklyTarget,
-                    activeThemeColor: activeThemeColor,
-                    goalTypeUnit: viewModel.goalTypeUnit,
-                    targetSuggestions: viewModel.targetSuggestions,
-                    onTypeChange: viewModel.handleGoalTypeChange
-                )
 
-                Divider()
-
-                // Schedule configuration
-                daysList
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Text(viewModel.selectedGoalType == .time ? "Weekly Goal" : "Goal & Schedule")
-        } footer: {
-            if viewModel.selectedGoalType != .time {
-                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(viewModel.primaryMetricTarget)) \(viewModel.goalTypeUnit) applies to all selected days.")
-            }
-        }
-    }
-
-    private var weeklyTargetHeader: some View {
-        Group {
-            HStack {
-                Text("Weekly Target")
-                Spacer()
-                Text("\(viewModel.calculatedWeeklyTarget) min")
-                    .foregroundStyle(activeThemeColor)
-            }
-            .font(.subheadline)
-            .fontWeight(.semibold)
-
-            Divider()
-        }
-    }
-
-    private var daysList: some View {
-        VStack(spacing: 8) {
-            ForEach(weekdays, id: \.0) { weekday, name in
-                ExpandableDayRow(
-                    weekday: weekday,
-                    name: name,
-                    isActive: viewModel.isDayActive(weekday),
-                    minutes: viewModel.dailyTargets[weekday] ?? 30,
-                    selectedTimes: viewModel.dayTimePreferences[weekday] ?? [],
-                    themeColor: activeThemeColor,
-                    isExpanded: expandedDay == weekday,
-                    showMinutes: viewModel.selectedGoalType == .time,
-                    focusedField: $focusedField,
-                    onToggleDay: { viewModel.toggleActiveDay(weekday) },
-                    onUpdateMinutes: { viewModel.updateDailyTarget(for: weekday, minutes: $0) },
-                    onToggleTime: { toggleTimeSlot(weekday: weekday, timeOfDay: $0) },
-                    onToggleExpand: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            expandedDay = (expandedDay == weekday) ? nil : weekday
-                        }
-                    }
-                )
-
-                if weekday != weekdays.last?.0 {
-                    Divider()
-                }
-            }
-        }
-    }
 
     // Helper to find matching suggestion and category
     private func findMatchingSuggestion(for input: String) -> (categoryIndex: Int, suggestion: GoalTemplateSuggestion)? {
@@ -239,7 +133,13 @@ struct GoalEditorView: View {
                 activeThemeColor: activeThemeColor
             )
 
-            scheduleSection
+            ScheduleSection(
+                viewModel: viewModel,
+                focusedField: $focusedField,
+                expandedDay: $expandedDay,
+                activeThemeColor: activeThemeColor,
+                onToggleTime: toggleTimeSlot
+            )
 
             CompletionBehaviorsSection(
                 viewModel: viewModel,
@@ -379,14 +279,14 @@ struct GoalEditorView: View {
                         } label: {
                             Image(systemName: "chevron.up")
                         }
-                        .disabled(!canFocusPrevious())
+                        .disabled(!canFocusPrevious)
                         
                         Button {
                             focusNextField()
                         } label: {
                             Image(systemName: "chevron.down")
                         }
-                        .disabled(!canFocusNext())
+                        .disabled(!canFocusNext)
                         
                         Button {
                             focusedField = nil
@@ -478,7 +378,11 @@ struct GoalEditorView: View {
         } message: {
             Text(viewModel.validationMessage)
         }
-
+        .alert("Error", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
         .task {
             // Load existing goal data if editing
             if let existingGoal = viewModel.existingGoal {
@@ -562,14 +466,14 @@ struct GoalEditorView: View {
         }
     }
     
-    private func canFocusNext() -> Bool {
+    private var canFocusNext: Bool {
         switch focusedField {
         case .goalName:
             return viewModel.currentStage == .duration
         case .duration:
-            return viewModel.hasDailyMinimum || !viewModel.activeDays.isEmpty
+            return viewModel.hasDailyMinimum || getNextActiveScheduleDay(after: nil) != nil
         case .dailyMinimum:
-            return !viewModel.activeDays.isEmpty
+            return getNextActiveScheduleDay(after: nil) != nil
         case .scheduleDay(let weekday):
             return getNextActiveScheduleDay(after: weekday) != nil
         case .none:
@@ -577,7 +481,7 @@ struct GoalEditorView: View {
         }
     }
     
-    private func canFocusPrevious() -> Bool {
+    private var canFocusPrevious: Bool {
         switch focusedField {
         case .goalName:
             return false
@@ -626,9 +530,7 @@ struct GoalEditorView: View {
         HapticFeedbackManager.trigger(.light)
     }
     
-    // MARK: - Active Days Management
-    
-    @State private var expandedDay: Int? = nil // Track which day row is expanded (accordion-style)
+    // MARK: - Button Actions
     
     func handleButtonTap() {
         switch viewModel.currentStage {
@@ -639,7 +541,7 @@ struct GoalEditorView: View {
             }
             
             // Request HealthKit authorization if template applied and needed
-            if let template = viewModel.selectedTemplate,
+            if viewModel.selectedTemplate != nil,
                let metric = viewModel.selectedHealthKitMetric,
                viewModel.healthKitSyncEnabled {
                 Task {
@@ -677,6 +579,8 @@ struct GoalEditorView: View {
                 lastPlanGeneratedTimestamp = newTimestamp
             } catch {
                 print("❌ Failed to save goal: \(error)")
+                errorMessage = "Failed to save goal: \(error.localizedDescription)"
+                showErrorAlert = true
             }
         }
     }

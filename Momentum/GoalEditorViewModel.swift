@@ -1064,4 +1064,20 @@ class GoalEditorViewModel {
         // Return reset timestamp
         return 0
     }
+    
+    // MARK: - Theme Color Logic
+    
+    /// Get the active theme color based on current selections
+    func getActiveThemeColor(colorScheme: ColorScheme) -> Color {
+        if let selectedPreset = selectedColorPreset {
+            return selectedPreset.color(for: colorScheme)
+        } else if let selectedTheme = selectedGoalTheme {
+            return selectedTheme.themePreset.color(for: colorScheme)
+        } else if let template = selectedTemplate,
+                  let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
+            let matchedTheme = matchTheme(named: category.color)
+            return matchedTheme.color(for: colorScheme)
+        }
+        return .accentColor
+    }
 }
