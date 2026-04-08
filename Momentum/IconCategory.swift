@@ -1,3 +1,11 @@
+//
+//  IconCategory.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 06/04/2026.
+//
+
+import Foundation
 
 enum IconCategory: String, CaseIterable {
     case fitness = "Fitness"

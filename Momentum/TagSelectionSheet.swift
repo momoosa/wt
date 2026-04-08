@@ -1,3 +1,14 @@
+//
+//  TagSelectionSheet.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 07/04/2026.
+//
+
+import SwiftData
+import SwiftUI
+import MomentumKit
+
 struct TagSelectionSheet: View {
     let allTags: [GoalTag]
     @Binding var selectedTags: [GoalTag]

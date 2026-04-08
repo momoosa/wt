@@ -40,6 +40,12 @@
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
 		CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */; };
+		CD1D0F612F845F6700A36562 /* SuggestionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D0F602F845F6700A36562 /* SuggestionRow.swift */; };
+		CD1D0F632F845F8C00A36562 /* CategoryTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D0F622F845F8C00A36562 /* CategoryTab.swift */; };
+		CD1D0F652F84600100A36562 /* ColorPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D0F642F84600100A36562 /* ColorPickerSheet.swift */; };
+		CD1D0F672F84600D00A36562 /* IconPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D0F662F84600D00A36562 /* IconPickerSheet.swift */; };
+		CD1D0F692F84603400A36562 /* IconCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D0F682F84603400A36562 /* IconCategory.swift */; };
+		CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D0F6A2F84608700A36562 /* RemindersTab.swift */; };
 		CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */; };
 		CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */; };
 		CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD22C80D2F3BA143001F2406 /* GoalFilterBar.swift */; };
@@ -85,6 +91,18 @@
 		CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */; };
 		CDBC06882F56C95400D87642 /* MomentumWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CDBC069A2F56C98600D87642 /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CDBC06992F56C98600D87642 /* MomentumKit */; };
+		CDBE14492F85126B00B7FCD6 /* WeatherConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14482F85126B00B7FCD6 /* WeatherConfigSection.swift */; };
+		CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE144A2F85126C00B7FCD6 /* ChecklistSection.swift */; };
+		CDBE144D2F85149800B7FCD6 /* CategorySuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE144C2F85149800B7FCD6 /* CategorySuggestionsView.swift */; };
+		CDBE144F2F8514B100B7FCD6 /* ThemeTagButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE144E2F8514B100B7FCD6 /* ThemeTagButton.swift */; };
+		CDBE14512F8514D600B7FCD6 /* TagSelectionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14502F8514D600B7FCD6 /* TagSelectionSheet.swift */; };
+		CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14522F85155100B7FCD6 /* CategoryButton.swift */; };
+		CDBE14552F85155D00B7FCD6 /* IconButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14542F85155D00B7FCD6 /* IconButton.swift */; };
+		CDBE14FC2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14FB2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift */; };
+		CDBE14FE2F86444B00B7FCD6 /* NotesAndResourcesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14FD2F86444B00B7FCD6 /* NotesAndResourcesSection.swift */; };
+		CDBE15002F86446E00B7FCD6 /* ThemeSelectionSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14FF2F86446E00B7FCD6 /* ThemeSelectionSection.swift */; };
+		CDBE15022F86449400B7FCD6 /* SuggestionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15012F86449400B7FCD6 /* SuggestionsSection.swift */; };
+		CDCE06A22F84420900034FD3 /* GoalTypeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */; };
 		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
@@ -209,6 +227,12 @@
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
 		CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricalSessionEditorView.swift; sourceTree = "<group>"; };
+		CD1D0F602F845F6700A36562 /* SuggestionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionRow.swift; sourceTree = "<group>"; };
+		CD1D0F622F845F8C00A36562 /* CategoryTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryTab.swift; sourceTree = "<group>"; };
+		CD1D0F642F84600100A36562 /* ColorPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPickerSheet.swift; sourceTree = "<group>"; };
+		CD1D0F662F84600D00A36562 /* IconPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconPickerSheet.swift; sourceTree = "<group>"; };
+		CD1D0F682F84603400A36562 /* IconCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconCategory.swift; sourceTree = "<group>"; };
+		CD1D0F6A2F84608700A36562 /* RemindersTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersTab.swift; sourceTree = "<group>"; };
 		CD22552B2F543DB300777C79 /* InlinePlannerPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlinePlannerPrompt.swift; sourceTree = "<group>"; };
 		CD22C8092F3BA109001F2406 /* GoalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalManager.swift; sourceTree = "<group>"; };
 		CD22C80B2F3BA12F001F2406 /* SessionFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFilterService.swift; sourceTree = "<group>"; };
@@ -257,6 +281,25 @@
 		CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MomentumWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDBC06742F56C95400D87642 /* MomentumWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDBC067E2F56C95400D87642 /* MomentumWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDBE14482F85126B00B7FCD6 /* WeatherConfigSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherConfigSection.swift; sourceTree = "<group>"; };
+		CDBE144A2F85126C00B7FCD6 /* ChecklistSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistSection.swift; sourceTree = "<group>"; };
+		CDBE144C2F85149800B7FCD6 /* CategorySuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySuggestionsView.swift; sourceTree = "<group>"; };
+		CDBE144E2F8514B100B7FCD6 /* ThemeTagButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTagButton.swift; sourceTree = "<group>"; };
+		CDBE14502F8514D600B7FCD6 /* TagSelectionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagSelectionSheet.swift; sourceTree = "<group>"; };
+		CDBE14522F85155100B7FCD6 /* CategoryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryButton.swift; sourceTree = "<group>"; };
+		CDBE14542F85155D00B7FCD6 /* IconButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconButton.swift; sourceTree = "<group>"; };
+		CDBE14562F85AAB500B7FCD6 /* ThemeSelectionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeSelectionSection.swift; sourceTree = "<group>"; };
+		CDBE14572F85AAD900B7FCD6 /* CompletionBehaviorsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionBehaviorsSection.swift; sourceTree = "<group>"; };
+		CDBE14582F85AB0600B7FCD6 /* NotesAndResourcesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesAndResourcesSection.swift; sourceTree = "<group>"; };
+		CDBE14592F85AB2A00B7FCD6 /* SuggestionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsSection.swift; sourceTree = "<group>"; };
+		CDBE14FB2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionBehaviorsSection.swift; sourceTree = "<group>"; };
+		CDBE14FD2F86444B00B7FCD6 /* NotesAndResourcesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesAndResourcesSection.swift; sourceTree = "<group>"; };
+		CDBE14FF2F86446E00B7FCD6 /* ThemeSelectionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeSelectionSection.swift; sourceTree = "<group>"; };
+		CDBE15012F86449400B7FCD6 /* SuggestionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsSection.swift; sourceTree = "<group>"; };
+		CDCE069E2F82826700034FD3 /* VIEWMODEL_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = VIEWMODEL_REFACTORING.md; sourceTree = "<group>"; };
+		CDCE069F2F84416200034FD3 /* COMPOSITION_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMPOSITION_REFACTORING.md; sourceTree = "<group>"; };
+		CDCE06A02F8441A300034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
+		CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
 		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
 		CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePreviewView.swift; sourceTree = "<group>"; };
 		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
@@ -469,6 +512,13 @@
 				CDBC06812F56C95400D87642 /* MomentumWatch Watch AppUITests */,
 				CD06684F2E34C3620063AC1F /* Frameworks */,
 				CD75CC5C2E2FE5E600890F20 /* Products */,
+				CDCE069E2F82826700034FD3 /* VIEWMODEL_REFACTORING.md */,
+				CDCE069F2F84416200034FD3 /* COMPOSITION_REFACTORING.md */,
+				CDCE06A02F8441A300034FD3 /* GoalTypeSection.swift */,
+				CDBE14562F85AAB500B7FCD6 /* ThemeSelectionSection.swift */,
+				CDBE14572F85AAD900B7FCD6 /* CompletionBehaviorsSection.swift */,
+				CDBE14582F85AB0600B7FCD6 /* NotesAndResourcesSection.swift */,
+				CDBE14592F85AB2A00B7FCD6 /* SuggestionsSection.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -501,7 +551,22 @@
 				CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */,
 				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
 				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
+				CDBE14FB2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift */,
 				CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */,
+				CDBE14FD2F86444B00B7FCD6 /* NotesAndResourcesSection.swift */,
+				CDBE15012F86449400B7FCD6 /* SuggestionsSection.swift */,
+				CDBE14FF2F86446E00B7FCD6 /* ThemeSelectionSection.swift */,
+				CDBE14522F85155100B7FCD6 /* CategoryButton.swift */,
+				CDBE14542F85155D00B7FCD6 /* IconButton.swift */,
+				CDBE14502F8514D600B7FCD6 /* TagSelectionSheet.swift */,
+				CDBE144E2F8514B100B7FCD6 /* ThemeTagButton.swift */,
+				CDBE144C2F85149800B7FCD6 /* CategorySuggestionsView.swift */,
+				CD1D0F6A2F84608700A36562 /* RemindersTab.swift */,
+				CD1D0F682F84603400A36562 /* IconCategory.swift */,
+				CD1D0F662F84600D00A36562 /* IconPickerSheet.swift */,
+				CD1D0F642F84600100A36562 /* ColorPickerSheet.swift */,
+				CD1D0F622F845F8C00A36562 /* CategoryTab.swift */,
+				CD1D0F602F845F6700A36562 /* SuggestionRow.swift */,
 				CD11E0B02F3C71980040B032 /* ExpandableDayRow.swift */,
 				CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */,
 				CDEBAA2F2EE9FA1000C1C411 /* Info.plist */,
@@ -574,6 +639,9 @@
 				CD5ADA492F7BA33D000C0FD8 /* ScreenTimeManager.swift */,
 				CD5ADA4B2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift */,
 				CD5ADA4D2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift */,
+				CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */,
+				CDBE14482F85126B00B7FCD6 /* WeatherConfigSection.swift */,
+				CDBE144A2F85126C00B7FCD6 /* ChecklistSection.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -885,9 +953,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDBE144D2F85149800B7FCD6 /* CategorySuggestionsView.swift in Sources */,
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
 				CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
+				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
 				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
@@ -896,14 +966,17 @@
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */,
 				CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */,
+				CD1D0F652F84600100A36562 /* ColorPickerSheet.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
+				CDBE14492F85126B00B7FCD6 /* WeatherConfigSection.swift in Sources */,
 				CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */,
 				CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */,
 				CDEBAA382EE9FA1000C1C411 /* GoalSessionDetailView.swift in Sources */,
 				CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */,
+				CD1D0F632F845F8C00A36562 /* CategoryTab.swift in Sources */,
 				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
@@ -911,22 +984,31 @@
 				CD5ADA4C2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift in Sources */,
 				CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
+				CDBE14512F8514D600B7FCD6 /* TagSelectionSheet.swift in Sources */,
 				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
+				CDBE144F2F8514B100B7FCD6 /* ThemeTagButton.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
 				CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */,
+				CDBE15002F86446E00B7FCD6 /* ThemeSelectionSection.swift in Sources */,
+				CDBE14552F85155D00B7FCD6 /* IconButton.swift in Sources */,
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
+				CDBE14FE2F86444B00B7FCD6 /* NotesAndResourcesSection.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
+				CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
+				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
+				CDBE14FC2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift in Sources */,
 				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
 				CD2A6FC12F5778EB00F5503A /* ColorConstants.swift in Sources */,
+				CDCE06A22F84420900034FD3 /* GoalTypeSection.swift in Sources */,
 				CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */,
 				CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */,
 				CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */,
@@ -939,6 +1021,7 @@
 				CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */,
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
+				CD1D0F612F845F6700A36562 /* SuggestionRow.swift in Sources */,
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
 				CD07E13C2F6D571100D751D9 /* CalendarSettingsView.swift in Sources */,
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,
@@ -957,10 +1040,13 @@
 				CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */,
 				CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */,
 				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
+				CDBE15022F86449400B7FCD6 /* SuggestionsSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,
+				CD1D0F692F84603400A36562 /* IconCategory.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
+				CD1D0F672F84600D00A36562 /* IconPickerSheet.swift in Sources */,
 				CD2A6FB92F576B6B00F5503A /* LayoutConstants.swift in Sources */,
 				CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */,
 				CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */,

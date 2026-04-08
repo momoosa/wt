@@ -84,7 +84,7 @@ struct GoalRow: View {
                     .fontWeight(.semibold)
 
 
-                    if goal.notificationsEnabled {
+                    if goal.scheduleNotificationsEnabled {
                         Image(systemName: "bell.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)

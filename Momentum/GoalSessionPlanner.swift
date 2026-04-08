@@ -479,7 +479,7 @@ public class GoalSessionPlanner: ObservableObject {
         }
         
         // 5. Notification preference bonus (0-10 points)
-        if goal.notificationsEnabled {
+        if goal.scheduleNotificationsEnabled {
             score += 10
         }
         

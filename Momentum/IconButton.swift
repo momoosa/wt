@@ -1,3 +1,12 @@
+//
+//  IconButton.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 07/04/2026.
+//
+
+import SwiftUI
+
 struct IconButton: View {
     let icon: String
     let isSelected: Bool

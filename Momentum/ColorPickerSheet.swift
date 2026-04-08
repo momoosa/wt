@@ -1,4 +1,12 @@
-// MARK: - Color Picker Sheet
+//
+//  ColorPickerSheet.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 06/04/2026.
+//
+
+import SwiftUI
+import MomentumKit
 
 struct ColorPickerSheet: View {
     @Environment(\.dismiss) private var dismiss

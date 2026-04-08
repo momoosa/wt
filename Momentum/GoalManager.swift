@@ -107,7 +107,7 @@ class GoalManager {
             title: "\(goal.title) (Copy)",
             primaryTag: goal.primaryTag,
             weeklyTarget: goal.weeklyTarget,
-            notificationsEnabled: goal.notificationsEnabled,
+            scheduleNotificationsEnabled: goal.scheduleNotificationsEnabled,
             healthKitMetric: goal.healthKitMetric,
             healthKitSyncEnabled: goal.healthKitSyncEnabled
         )

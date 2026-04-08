@@ -1,3 +1,13 @@
+//
+//  CategoryTab.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 06/04/2026.
+//
+
+import SwiftUI
+import MomentumKit
+
 // MARK: - Category Tab
 struct CategoryTab: View {
     let category: GoalCategory

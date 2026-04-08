@@ -1,3 +1,12 @@
+//
+//  IconPickerSheet.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 06/04/2026.
+//
+import SwiftUI
+import MomentumKit
+
 // MARK: - Icon Picker Sheet
 struct IconPickerSheet: View {
     @Environment(\.dismiss) private var dismiss

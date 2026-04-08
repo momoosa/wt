@@ -153,354 +153,133 @@ struct GoalEditorView: View {
         }
     }
 
+    // Helper to find matching suggestion and category
+    private func findMatchingSuggestion(for input: String) -> (categoryIndex: Int, suggestion: GoalTemplateSuggestion)? {
+        return viewModel.suggestionsData.categories.enumerated().compactMap { (idx, category) -> (Int, GoalTemplateSuggestion)? in
+            if let suggestion = category.suggestions.first(where: { viewModel.matchesSuggestion($0, with: input, aliases: viewModel.suggestionAliases) }) {
+                return (idx, suggestion)
+            }
+            return nil
+        }.first
+    }
+    
+    // Computed binding for HealthKit daily target
+    private var healthKitDailyTargetBinding: Binding<Int?> {
+        Binding(
+            get: {
+                // Return the first active day's target as representative
+                return viewModel.activeDays.sorted().first.flatMap { viewModel.dailyTargets[$0] }
+            },
+            set: { newValue in
+                // Apply to all active days
+                if let minutes = newValue {
+                    for weekday in viewModel.activeDays {
+                        viewModel.dailyTargets[weekday] = minutes
+                    }
+                }
+            }
+        )
+    }
+    
+    // Handle user input changes
+    private func handleUserInputChange(_ newValue: String) {
+        // Clear selection if user is typing freeform
+        if !newValue.isEmpty {
+            viewModel.selectedTemplate = nil
+        }
+
+        // Try to find a match among suggestions by title or aliases and select it
+        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        if let (categoryIndex, matchedSuggestion) = findMatchingSuggestion(for: trimmed) {
+            // Select the template and category
+            viewModel.selectedTemplate = matchedSuggestion
+            viewModel.selectedCategoryIndex = categoryIndex
+
+            // Scroll category tabs to selected category if available
+            if let proxy = scrollProxy {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    proxy.scrollTo(categoryIndex, anchor: .center)
+                }
+            }
+        }
+        
+        // Infer icon from user input if no icon is selected yet
+        if viewModel.selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
+            Task { @MainActor in
+                if viewModel.selectedIcon == nil {
+                    viewModel.selectedIcon = viewModel.inferIcon(from: trimmed)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var listContent: some View {
+        // Custom input section
+        Section {
+            TextField("What do you want to do?", text: $viewModel.userInput)
+                .focused($focusedField, equals: .goalName)
+                .onChange(of: viewModel.userInput) { _, newValue in
+                    handleUserInputChange(newValue)
+                }
+        }
+        
+        if viewModel.currentStage == .name {
+            SuggestionsSection(
+                viewModel: viewModel,
+                scrollProxy: $scrollProxy
+            )
+        }
+        
+        if viewModel.currentStage == .duration {
+            ThemeSelectionSection(
+                viewModel: viewModel,
+                activeThemeColor: activeThemeColor
+            )
+
+            scheduleSection
+
+            CompletionBehaviorsSection(
+                viewModel: viewModel,
+                activeThemeColor: activeThemeColor
+            )
+            
+            HealthKitConfigurationView(
+                selectedMetric: $viewModel.selectedHealthKitMetric,
+                syncEnabled: $viewModel.healthKitSyncEnabled,
+                dailyTargetMinutes: healthKitDailyTargetBinding
+            )
+            
+            // Screen Time Configuration (only shown when editing an existing goal)
+            if let existingGoal = viewModel.existingGoal {
+                ScreenTimeGoalConfigurationView(goal: existingGoal)
+            }
+            
+            NotesAndResourcesSection(
+                viewModel: viewModel,
+                activeThemeColor: activeThemeColor
+            )
+            
+            // Checklist Section
+            ChecklistSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
+            
+            // Weather-based visibility
+            WeatherConfigSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
+        }
+        
+        Spacer()
+            .frame(height: LayoutConstants.Heights.filterBar)
+    }
+    
     var body: some View {
         NavigationStack {
-                    
-                    List {
-                            // Custom input section
-                            Section {
-                                TextField("What do you want to do?", text: $viewModel.userInput)
-                                    .focused($focusedField, equals: .goalName)
-                                    .onChange(of: viewModel.userInput) { _, newValue in
-                                        // Clear selection if user is typing freeform
-                                        if !newValue.isEmpty {
-                                            viewModel.selectedTemplate = nil
-                                        }
-
-                                        // Try to find a match among suggestions by title or aliases and select it
-                                        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                                        guard !trimmed.isEmpty else { return }
-
-                                        if let (categoryIndex, matchedSuggestion) = viewModel.suggestionsData.categories.enumerated().compactMap({ (idx, category) -> (Int, GoalTemplateSuggestion)? in
-                                            if let suggestion = category.suggestions.first(where: { viewModel.matchesSuggestion($0, with: trimmed, aliases: viewModel.suggestionAliases) }) {
-                                                return (idx, suggestion)
-                                            }
-                                            return nil
-                                        }).first {
-                                            // Select the template and category
-                                            viewModel.selectedTemplate = matchedSuggestion
-                                            viewModel.selectedCategoryIndex = categoryIndex
-
-                                            // Scroll category tabs to selected category if available
-                                            if let proxy = scrollProxy {
-                                                withAnimation(.easeInOut(duration: 0.25)) {
-                                                    proxy.scrollTo(categoryIndex, anchor: .center)
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Infer icon from user input if no icon is selected yet
-                                        if viewModel.selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
-                                            Task { @MainActor in
-                                                if viewModel.selectedIcon == nil {
-                                                    viewModel.selectedIcon = viewModel.inferIcon(from: trimmed)
-                                                }
-                                            }
-                                        }
-                                    }
-                                
-                            }
-                        if viewModel.currentStage == .name {
-
-                            // Scrollable Category Tabs
-                            Section {
-                                
-                                
-                                VStack(spacing: 0) {
-                                    ScrollViewReader { proxy in
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack {
-                                                HStack(spacing: 12) {
-                                                    // Reminders tab
-                                                    RemindersTab(isSelected: viewModel.selectedCategoryIndex == -1)
-                                                        .id(-1)
-                                                        .onTapGesture {
-                                                            withAnimation(AnimationPresets.quickSpring) {
-                                                                viewModel.selectedCategoryIndex = -1
-                                                            }
-                                                            
-                                                            // Haptic feedback
-                                                            HapticFeedbackManager.trigger(.light)
-                                                        }
-                                                    
-                                                    ForEach(Array(viewModel.suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
-                                                        CategoryTab(
-                                                            category: category,
-                                                            isSelected: viewModel.selectedCategoryIndex == index
-                                                        )
-                                                        .id(index) // Add ID for scrolling
-                                                        .onTapGesture {
-                                                            withAnimation(AnimationPresets.quickSpring) {
-                                                                viewModel.selectedCategoryIndex = index
-                                                            }
-                                                            
-                                                            // Haptic feedback
-                                                            HapticFeedbackManager.trigger(.light)
-                                                        }
-                                                    }
-                                                }
-                                                .padding(.horizontal)
-                                                .padding(.vertical)
-                                            }
-                                        }
-                                        .onAppear {
-                                            scrollProxy = proxy
-                                        }
-                                        .onChange(of: viewModel.selectedCategoryIndex) { _, newIndex in
-                                            // Auto-scroll to selected tab
-                                            withAnimation(.easeInOut(duration: 0.3)) {
-                                                proxy.scrollTo(newIndex, anchor: .center)
-                                            }
-                                        }
-                                    }
-                                    // Category Tabs
-                                    TabView(selection: $viewModel.selectedCategoryIndex) {
-                                        // Reminders tab content
-                                        RemindersTabView(
-                                            userInput: $viewModel.userInput,
-                                            onReminderSelected: { reminder in
-                                                // Fill in the goal name from reminder
-                                                viewModel.userInput = reminder.title ?? ""
-                                                viewModel.selectedTemplate = nil
-                                            }
-                                        )
-                                        .tag(-1)
-                                        
-                                        ForEach(Array(viewModel.suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
-                                            CategorySuggestionsView(
-                                                category: category,
-                                                selectedTemplate: $viewModel.selectedTemplate,
-                                                userInput: $viewModel.userInput
-                                            )
-                                            .tag(index)
-                                        }
-                                    }
-                                    .tabViewStyle(.page(indexDisplayMode: .never))
-                                    .frame(height: LayoutConstants.Heights.suggestionPanel)
-                                }
-                                
-                            } header: {
-                                Text("Suggestions")
-                            }
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                        }
-                        
-                        if viewModel.currentStage == .duration {
-                                         
-                            Section(header: Text("Theme")) {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        // Color picker button
-                                        Button(action: {
-                                            viewModel.showingColorPicker = true
-                                        }) {
-                                            HStack(spacing: 8) {
-                                                // Color preview circle
-                                                Circle()
-                                                    .fill(
-                                                        LinearGradient(
-                                                            colors: [
-                                                                viewModel.selectedColorPreset?.neon ?? activeThemeColor,
-                                                                viewModel.selectedColorPreset?.dark ?? activeThemeColor
-                                                            ],
-                                                            startPoint: .topLeading,
-                                                            endPoint: .bottomTrailing
-                                                        )
-                                                    )
-                                                    .frame(width: 24, height: 24)
-                                                
-                                                Text(viewModel.selectedColorPreset?.title ?? "Color")
-                                                    .foregroundStyle(.primary)
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 12)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        }
-                                        .buttonStyle(.plain)
-                                        
-                                        // Icon picker button
-                                        Button(action: {
-                                            viewModel.showingIconPicker = true
-                                        }) {
-                                            HStack(spacing: 8) {
-                                                // Icon preview
-                                                Image(systemName: viewModel.selectedIcon ?? "star.fill")
-                                                    .font(.system(size: 20))
-                                                    .foregroundStyle(activeThemeColor)
-                                                    .frame(width: 24, height: 24)
-                                                
-                                                Text("Icon")
-                                                    .foregroundStyle(.primary)
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 12)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    // Tag cloud with flow layout - show only selected themes
-                                    TagFlowLayout(spacing: 8) {
-                                        ForEach(viewModel.selectedTags, id: \.title) { goalTheme in
-                                            ThemeTagButton(
-                                                goalTheme: goalTheme,
-                                                isSelected: true,
-                                                action: {
-                                                    HapticFeedbackManager.trigger(.light)
-                                                },
-                                                onRemove: {
-                                                    withAnimation(AnimationPresets.quickSpring) {
-                                                        viewModel.removeGoalTheme(goalTheme)
-                                                    }
-                                                    #if os(iOS)
-                                                    let generator = UINotificationFeedbackGenerator()
-                                                    generator.notificationOccurred(.warning)
-                                                    #endif
-                                                }
-                                            )
-                                        }
-                                        
-                                        // Add theme button
-                                        Button(action: {
-                                            viewModel.showingAddThemeSheet = true
-                                        }) {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "plus.circle.fill")
-                                                    .font(.system(size: 16))
-                                                Text("Add Theme")
-                                                    .font(.subheadline)
-                                                    .fontWeight(.medium)
-                                            }
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 10)
-                                            .background(
-                                                Capsule()
-                                                    .strokeBorder(activeThemeColor, lineWidth: 2, antialiased: true)
-                                            )
-                                            .foregroundStyle(activeThemeColor)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.vertical, 8)
-                                    
-                                    if viewModel.selectedTags.isEmpty {
-                                        Text("Tap 'Add Theme' to choose a color theme for your goal")
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                            .padding(.top, 4)
-                                    }
-                                }
-                            }
-
-                            scheduleSection
-
-
-
-                            Section(header: Text("When Daily Goal Completes")) {
-                                ForEach(Goal.CompletionBehavior.allCases) { behavior in
-                                    Toggle(isOn: Binding(
-                                        get: { viewModel.selectedCompletionBehaviors.contains(behavior) },
-                                        set: { isOn in
-                                            if isOn {
-                                                viewModel.selectedCompletionBehaviors.insert(behavior)
-                                            } else {
-                                                viewModel.selectedCompletionBehaviors.remove(behavior)
-                                            }
-                                            HapticFeedbackManager.trigger(.light)
-                                        }
-                                    )) {
-                                        HStack(spacing: 12) {
-                                            Image(systemName: behavior.icon)
-                                                .font(.body)
-                                                .foregroundStyle(viewModel.selectedCompletionBehaviors.contains(behavior) ? activeThemeColor : .secondary)
-                                                .frame(width: 24)
-                                            
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(behavior.displayName)
-                                                    .font(.subheadline)
-                                                Text(behavior.description)
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                        }
-                                    }
-                                    .tint(activeThemeColor)
-                                }
-                            }
-                            
-                            HealthKitConfigurationView(
-                                selectedMetric: $viewModel.selectedHealthKitMetric,
-                                syncEnabled: $viewModel.healthKitSyncEnabled,
-                                dailyTargetMinutes: Binding(
-                                    get: {
-                                        // Return the first active day's target as representative
-                                        return viewModel.activeDays.sorted().first.flatMap { viewModel.dailyTargets[$0] }
-                                    },
-                                    set: { newValue in
-                                        // Apply to all active days
-                                        if let minutes = newValue {
-                                            for weekday in viewModel.activeDays {
-                                                viewModel.dailyTargets[weekday] = minutes
-                                            }
-                                        }
-                                    }
-                                )
-                            )
-                            
-                            // Screen Time Configuration (only shown when editing an existing goal)
-                            if let existingGoal = viewModel.existingGoal {
-                                ScreenTimeGoalConfigurationView(goal: existingGoal)
-                            }
-                            
-                            Section(header: Text("Notes & Resources")) {
-                                    // Notes field
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        TextField("Add any notes about this goal...", text: $viewModel.goalNotes, axis: .vertical)
-                                            .lineLimit(3...6)
-                                            
-                                    
-                                    // Link field
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "link")
-                                                .foregroundStyle(.secondary)
-                                                .font(.subheadline)
-                                            
-                                            TextField("Add a link here...", text: $viewModel.goalLink)
-                                                .keyboardType(.URL)
-                                                .autocapitalization(.none)
-                                        
-                                        
-                                        if !viewModel.goalLink.isEmpty, let url = URL(string: viewModel.goalLink), UIApplication.shared.canOpenURL(url) {
-                                            Button(action: {
-                                                UIApplication.shared.open(url)
-                                            }) {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "arrow.up.right.square")
-                                                    Text("Open Link")
-                                                }
-                                                .font(.caption)
-                                                .foregroundStyle(activeThemeColor)
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                            
-                            // Checklist Section
-                            ChecklistSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
-                            
-                            // Weather-based visibility
-                            WeatherConfigSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
-                        }
-                        
-                        Spacer()
-                            .frame(height: LayoutConstants.Heights.filterBar)
-                    }
-                    .animation(.spring(), value: viewModel.result)
-                    .animation(AnimationPresets.smoothSpring, value: viewModel.currentStage)
+            List {
+                listContent
+            }
+            .animation(.spring(), value: viewModel.result)
+            .animation(AnimationPresets.smoothSpring, value: viewModel.currentStage)
                     
             .overlay(alignment: .bottom) {
                 // Bottom button (hide when keyboard is active or when editing existing goal on duration stage)
@@ -854,35 +633,27 @@ struct GoalEditorView: View {
     func handleButtonTap() {
         switch viewModel.currentStage {
         case .name:
-            if let template = viewModel.selectedTemplate {
-                // Prefill from template and go to duration without AI
-                applyTemplate(template)
-            }
-            // Call ViewModel for stage progression logic
+            // Call ViewModel for stage progression logic (handles template application internally)
             withAnimation {
                 viewModel.handleButtonTap(allTags: allTags)
             }
-        case .duration:
-            saveGoal()
-        }
-    }
-    
-    /// Apply a template's predefined values
-    func applyTemplate(_ template: GoalTemplateSuggestion) {
-        viewModel.applyTemplate(template, allTags: allTags)
-        
-        // Request HealthKit authorization immediately if needed
-        if let metric = viewModel.selectedHealthKitMetric, viewModel.healthKitSyncEnabled {
-            Task {
-                let healthKitManager = HealthKitManager()
-                do {
-                    try await healthKitManager.requestAuthorization(for: [metric])
-                    print("✅ HealthKit authorization requested for \(metric.displayName)")
-                } catch {
-                    print("⚠️ Failed to request HealthKit authorization: \(error.localizedDescription)")
-                    // Don't disable sync - user might grant permission later
+            
+            // Request HealthKit authorization if template applied and needed
+            if let template = viewModel.selectedTemplate,
+               let metric = viewModel.selectedHealthKitMetric,
+               viewModel.healthKitSyncEnabled {
+                Task {
+                    let healthKitManager = HealthKitManager()
+                    do {
+                        try await healthKitManager.requestAuthorization(for: [metric])
+                        print("✅ HealthKit authorization requested for \(metric.displayName)")
+                    } catch {
+                        print("⚠️ Failed to request HealthKit authorization: \(error.localizedDescription)")
+                    }
                 }
             }
+        case .duration:
+            saveGoal()
         }
     }
     

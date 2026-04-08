@@ -7,10 +7,10 @@
 
 import SwiftUI
 import SwiftData
+import EventKit
 import MomentumKit
 import HealthKit
 import OSLog
-import EventKit
 import WeatherKit
 #if canImport(WidgetKit)
 import WidgetKit

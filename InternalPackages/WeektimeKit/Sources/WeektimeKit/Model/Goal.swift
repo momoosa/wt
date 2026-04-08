@@ -27,7 +27,6 @@ public final class Goal {
     public var dailyMinimum: TimeInterval? // Optional minimum time required each day (for strict daily habits)
     
     // Notifications
-    public var notificationsEnabled: Bool = false // Legacy: kept for backward compatibility
     public var scheduleNotificationsEnabled: Bool = false // Whether to send notifications at scheduled times
     public var completionNotificationsEnabled: Bool = false // Whether to send notifications when daily target is reached
     
@@ -110,14 +109,13 @@ public final class Goal {
         set { goalTypeRawValue = newValue.rawValue }
     }
 
-    public init(title: String, primaryTag: GoalTag? = nil, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, notificationsEnabled: Bool = false, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
+    public init(title: String, primaryTag: GoalTag? = nil, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
         self.title = title
         self.status = .active
         self.primaryTag = primaryTag
         self.otherTags = otherTags
         self.weeklyTarget = weeklyTarget
-        self.notificationsEnabled = notificationsEnabled
         self.scheduleNotificationsEnabled = scheduleNotificationsEnabled
         self.completionNotificationsEnabled = completionNotificationsEnabled
         self.healthKitMetricRawValue = healthKitMetric?.rawValue

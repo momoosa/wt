@@ -1,3 +1,13 @@
+//
+//  SuggestionRow.swift
+//  Momentum
+//
+//  Created by Mo Moosa on 06/04/2026.
+//
+
+import SwiftUI
+import MomentumKit
+
 
 // MARK: - Suggestion Row
 
