@@ -68,7 +68,8 @@ struct ThemeTagButton: View {
     }
 }
 
-struct TagButton: View { // TODO: Combine with theme
+// Button for selecting and editing tags - similar to ThemeTagButton but for GoalTag objects
+struct TagButton: View {
     let tag: GoalTag
     let isSelected: Bool
     let onSelect: () -> Void

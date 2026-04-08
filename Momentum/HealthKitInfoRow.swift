@@ -55,33 +55,30 @@ struct HealthKitInfoRow: View {
                 
                 // Breakdown
                 VStack(spacing: 6) {
-                    HStack {
-                        Text("Manual Tracking")
-                        Spacer()
-                        let manualTime = session.historicalSessions.reduce(0) { $0 + $1.duration }
-                        Text(manualTime.formatted(style: .components))
-                            .fontWeight(.medium)
-                    }
-                    .font(.caption)
+                    let manualTime = session.historicalSessions.reduce(0) { $0 + $1.duration }
                     
-                    HStack {
-                        Text("HealthKit Data")
-                        Spacer()
-                        Text(session.healthKitTime.formatted(style: .components))
-                            .fontWeight(.medium)
-                    }
-                    .font(.caption)
+                    timeBreakdownRow(
+                        label: "Manual Tracking",
+                        duration: manualTime,
+                        font: .caption,
+                        weight: .medium
+                    )
+                    
+                    timeBreakdownRow(
+                        label: "HealthKit Data",
+                        duration: session.healthKitTime,
+                        font: .caption,
+                        weight: .medium
+                    )
                     
                     Divider()
                     
-                    HStack {
-                        Text("Total Time")
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Text(session.elapsedTime.formatted(style: .components))
-                            .fontWeight(.semibold)
-                    }
-                    .font(.callout)
+                    timeBreakdownRow(
+                        label: "Total Time",
+                        duration: session.elapsedTime,
+                        font: .callout,
+                        weight: .semibold
+                    )
                 }
                 .padding(.horizontal)
             }
@@ -92,6 +89,25 @@ struct HealthKitInfoRow: View {
                     .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
             )
         }
+    }
+    
+    // MARK: - Helper Views
+    
+    @ViewBuilder
+    private func timeBreakdownRow(
+        label: String,
+        duration: TimeInterval,
+        font: Font,
+        weight: Font.Weight
+    ) -> some View {
+        HStack {
+            Text(label)
+                .fontWeight(label == "Total Time" ? .semibold : .regular)
+            Spacer()
+            Text(duration.formatted(style: .components))
+                .fontWeight(weight)
+        }
+        .font(font)
     }
 }
 

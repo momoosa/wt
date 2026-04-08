@@ -44,14 +44,12 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     
     public func timerText(currentTime: Date = .now) -> String {
         let elapsed = elapsedTime + currentTime.timeIntervalSince(startDate)
-        let elapsedFormatted = elapsed.formatted(style: .components)
         
         // If we have a daily target, show it in the format "31m 6s/1h 30m"
         if dailyTarget > 0 {
-            let targetFormatted = dailyTarget.formatted(style: .components)
-            return "\(elapsedFormatted)/\(targetFormatted)"
+            return elapsed.formattedProgress(target: dailyTarget)
         } else {
-            return elapsedFormatted
+            return elapsed.formatted(style: .components)
         }
     }
     

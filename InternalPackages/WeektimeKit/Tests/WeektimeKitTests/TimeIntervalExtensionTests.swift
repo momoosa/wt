@@ -270,4 +270,60 @@ struct TimeIntervalExtensionTests {
 
         #expect(formatted == "1h 30m")
     }
+    
+    // MARK: - Formatted Progress Tests
+    
+    @Test("formattedProgress with components style")
+    func formattedProgressWithComponentsStyle() {
+        let elapsed: TimeInterval = 5400 // 1h 30m
+        let target: TimeInterval = 7200 // 2h
+        let formatted = elapsed.formattedProgress(target: target)
+        
+        #expect(formatted == "1h 30m/2h")
+    }
+    
+    @Test("formattedProgress with partial progress")
+    func formattedProgressWithPartialProgress() {
+        let elapsed: TimeInterval = 1800 // 30m
+        let target: TimeInterval = 5400 // 1h 30m
+        let formatted = elapsed.formattedProgress(target: target)
+        
+        #expect(formatted == "30m/1h 30m")
+    }
+    
+    @Test("formattedProgress with zero elapsed")
+    func formattedProgressWithZeroElapsed() {
+        let elapsed: TimeInterval = 0
+        let target: TimeInterval = 3600 // 1h
+        let formatted = elapsed.formattedProgress(target: target)
+        
+        #expect(formatted == "0s/1h")
+    }
+    
+    @Test("formattedProgress with exceeded target")
+    func formattedProgressWithExceededTarget() {
+        let elapsed: TimeInterval = 5400 // 1h 30m
+        let target: TimeInterval = 3600 // 1h
+        let formatted = elapsed.formattedProgress(target: target)
+        
+        #expect(formatted == "1h 30m/1h")
+    }
+    
+    @Test("formattedProgress with hourMinute style")
+    func formattedProgressWithHourMinuteStyle() {
+        let elapsed: TimeInterval = 5445 // 1h 30m 45s
+        let target: TimeInterval = 7200 // 2h
+        let formatted = elapsed.formattedProgress(target: target, style: .hourMinute)
+        
+        #expect(formatted == "1h 30m/2h 0m")
+    }
+    
+    @Test("formattedProgress with seconds shown")
+    func formattedProgressWithSeconds() {
+        let elapsed: TimeInterval = 5475 // 1h 31m 15s
+        let target: TimeInterval = 7200 // 2h
+        let formatted = elapsed.formattedProgress(target: target, style: .components)
+        
+        #expect(formatted == "1h 31m 15s/2h")
+    }
 }

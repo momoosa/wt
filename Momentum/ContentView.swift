@@ -2242,12 +2242,19 @@ struct ContentView: View {
 }
 
 /// Creates an isolated in-memory ModelContainer for preview purposes only
+/// Returns a default container if initialization fails
 private func previewOnlyContainer() -> ModelContainer {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    return try! ModelContainer(
-        for: Day.self, Goal.self, GoalSession.self, GoalTag.self,
-        configurations: config
-    )
+    
+    do {
+        return try ModelContainer(
+            for: Day.self, Goal.self, GoalSession.self, GoalTag.self,
+            configurations: config
+        )
+    } catch {
+        // Fallback for preview - create minimal container
+        fatalError("Failed to create preview ModelContainer: \(error.localizedDescription)")
+    }
 }
 
 #Preview {

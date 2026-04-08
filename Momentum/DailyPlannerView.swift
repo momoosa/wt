@@ -423,7 +423,11 @@ struct PlannedSessionCard: View {
                     // Action Buttons
                     HStack {
                         Button {
-                            // TODO: Start session action
+                            // Start session action - navigate to session via NotificationCenter
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("OpenSessionFromWidget"),
+                                object: session.id
+                            )
                         } label: {
                             Label("Start Now", systemImage: "play.fill")
                                 .font(.caption)
@@ -437,7 +441,8 @@ struct PlannedSessionCard: View {
                         }
                         
                         Button {
-                            // TODO: Adjust time action
+                            // Adjust time action - to be implemented with time picker sheet
+                            // Future: Show time picker to reschedule this session
                         } label: {
                             Label("Adjust Time", systemImage: "clock")
                                 .font(.caption)

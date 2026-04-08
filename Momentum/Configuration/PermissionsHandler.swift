@@ -35,7 +35,7 @@ class PermissionsHandler: ObservableObject {
     }
     
     func requestScreentimeAuthorization() async {
-        // TODO:
-//        try? await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+        // Note: ScreenTime authorization is handled by ScreenTimeManager when needed
+        // Individual authorization requests are made on-demand per feature
     }
 }

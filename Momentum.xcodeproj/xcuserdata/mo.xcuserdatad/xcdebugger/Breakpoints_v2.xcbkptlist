@@ -32,8 +32,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "112"
             endingLineNumber = "112"
-            landmarkName = "makeInterval(name:seconds:kind:list:session:)"
-            landmarkType = "9">
+            landmarkName = "body"
+            landmarkType = "24">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -50,6 +50,66 @@
             endingLineNumber = "106"
             landmarkName = "body"
             landmarkType = "24">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "46A6DF96-4838-444B-9EC2-6900EA83BC1E"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "MomentumTests/SmartNotificationSchedulerTests.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "64"
+            endingLineNumber = "64"
+            landmarkName = "testCalculateNotificationOffsetLowActivity()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "46A6DF96-4838-444B-9EC2-6900EA83BC1E - 6b29af0f962deb93"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(2) await resume partial function for MomentumTests.SmartNotificationSchedulerTests.testCalculateNotificationOffsetLowActivity() async -&gt; ()"
+                  moduleName = "MomentumTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Developer/iOS/wt/MomentumTests/SmartNotificationSchedulerTests.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "64"
+                  endingLineNumber = "64">
+               </Location>
+               <Location
+                  uuid = "46A6DF96-4838-444B-9EC2-6900EA83BC1E - cf22462d73109990"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(3) await resume partial function for MomentumTests.SmartNotificationSchedulerTests.testCalculateNotificationOffsetLowActivity() async -&gt; ()"
+                  moduleName = "MomentumTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Developer/iOS/wt/MomentumTests/SmartNotificationSchedulerTests.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "64"
+                  endingLineNumber = "64">
+               </Location>
+               <Location
+                  uuid = "46A6DF96-4838-444B-9EC2-6900EA83BC1E - 9139bf8d7de5a30a"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(4) suspend resume partial function for MomentumTests.SmartNotificationSchedulerTests.testCalculateNotificationOffsetLowActivity() async -&gt; ()"
+                  moduleName = "MomentumTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///var/folders/dx/81x3hs1537z45dk9fxbklh6w0000gn/T/-2e593d.@__swiftmacro_13MomentumTests0042SmartNotificationSchedulerTestsswift_IyBInfMX66_12_6expectfMf_.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "1"
+                  endingLineNumber = "1">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

@@ -828,10 +828,17 @@ struct ComponentGroupedView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Day.self, Goal.self, GoalSession.self, GoalTag.self, configurations: config)
     let goalStore = GoalStore()
     
-    ThemePreviewView()
+    // Create container with error handling
+    let container: ModelContainer
+    do {
+        container = try ModelContainer(for: Day.self, Goal.self, GoalSession.self, GoalTag.self, configurations: config)
+    } catch {
+        fatalError("Failed to create preview ModelContainer: \(error.localizedDescription)")
+    }
+    
+    return ThemePreviewView()
         .modelContainer(container)
         .environment(goalStore)
 }

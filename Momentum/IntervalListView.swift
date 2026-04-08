@@ -210,9 +210,8 @@ struct IntervalListView: View {
         // Trigger initial tick
         tickCurrentInterval()
         
-        // TODO:
-//        cancelAllIntervalNotifications(for: session)
-//        scheduleNotifications(from: item, in: session, startingIn: remainingOffset)
+        // Note: Interval notifications will be implemented in a future update
+        // to provide reminders when intervals are about to complete
     }
 
     private func tickCurrentInterval() {
@@ -286,7 +285,7 @@ struct IntervalListView: View {
             timerManager.intervalProgress = nil
             timerManager.intervalTimeRemaining = nil
         }
-//  TODO:       cancelAllIntervalNotifications(for: listSession)
+        // Note: Interval notification cancellation will be added in future update
     }
     
     private func startAllIntervals() {

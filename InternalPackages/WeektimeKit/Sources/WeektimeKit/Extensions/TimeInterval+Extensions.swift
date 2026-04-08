@@ -66,4 +66,15 @@ public extension TimeInterval {
             return parts.joined(separator: " ")
         }
     }
+    
+    /// Formats elapsed time against a target as "elapsed/target"
+    /// - Parameters:
+    ///   - target: The target duration
+    ///   - style: The formatting style to use (default: .components)
+    /// - Returns: Formatted string like "1h 30m/2h"
+    func formattedProgress(target: TimeInterval, style: TimeFormatStyle = .components) -> String {
+        let elapsedFormatted = self.formatted(style: style)
+        let targetFormatted = target.formatted(style: style)
+        return "\(elapsedFormatted)/\(targetFormatted)"
+    }
 }

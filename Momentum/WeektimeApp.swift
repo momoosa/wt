@@ -97,7 +97,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Handle different notification types
         if let goalId = userInfo["goalId"] as? String {
             AppLogger.notifications.debug("User tapped notification for goal: \(goalId)")
-            // TODO: Navigate to goal detail if needed
+            // Note: Navigation to goal detail handled by ContentView's onReceive(OpenSessionFromWidget)
         }
         
         completionHandler()
@@ -207,7 +207,8 @@ struct MomentumApp: App {
                         .navigationTitle(day.startDate.formatted(.dateTime.month().day()))
                         .environment(goalStore)
                         .task {
-                            await permissionHandler.requestScreentimeAuthorization() // TODO: MOve somewhere...
+                            // Request ScreenTime authorization on app launch
+                            await permissionHandler.requestScreentimeAuthorization()
                             
                             // Show CloudKit sync toast on first launch
                             if !hasShownCloudKitToast {

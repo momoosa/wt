@@ -269,16 +269,12 @@ public final class GoalSession: SessionProgressProvider {
     
     public var formattedTime: String {
         guard let goal = goal else {
-            let elapsedFormatted = elapsedTime.formatted(style: .components)
-            let targetFormatted = dailyTarget.formatted(style: .components)
-            return "\(elapsedFormatted)/\(targetFormatted)"
+            return elapsedTime.formattedProgress(target: dailyTarget)
         }
         
         switch goal.goalType {
         case .time:
-            let elapsedFormatted = elapsedTime.formatted(style: .components)
-            let targetFormatted = dailyTarget.formatted(style: .components)
-            return "\(elapsedFormatted)/\(targetFormatted)"
+            return elapsedTime.formattedProgress(target: dailyTarget)
         case .count:
             let currentValue = Int(primaryMetricValue)
             let targetValue = Int(primaryMetricTarget)

@@ -681,7 +681,14 @@ extension Collection {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Goal.self, GoalSession.self, configurations: config)
+    
+    // Create container with error handling
+    let container: ModelContainer
+    do {
+        container = try ModelContainer(for: Goal.self, GoalSession.self, configurations: config)
+    } catch {
+        fatalError("Failed to create preview ModelContainer: \(error.localizedDescription)")
+    }
     
     return ConsolidatedTodayView()
         .modelContainer(container)
