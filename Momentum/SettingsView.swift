@@ -17,6 +17,9 @@ struct SettingsView: View {
     @AppStorage("skipPlanningAnimation") private var skipPlanningAnimation: Bool = false
     @AppStorage("weekStartDay") private var weekStartDay: Int = Calendar.current.firstWeekday
     @AppStorage("useGradientOutline") private var useGradientOutline: Bool = false
+    @AppStorage("showProgressTile") private var showProgressTile: Bool = true
+    @AppStorage("showWeatherTile") private var showWeatherTile: Bool = true
+    @AppStorage("showCalendarTile") private var showCalendarTile: Bool = true
     @State private var showingRemindersImport = false
     
     var body: some View {
@@ -94,6 +97,22 @@ struct SettingsView: View {
                     Label("Appearance", systemImage: "paintbrush")
                 } footer: {
                     Text("Gradient outlines provide a cleaner look in dark mode while still highlighting recommended sessions.")
+                }
+                
+                Section {
+                    Toggle("Progress Ring", isOn: $showProgressTile)
+                    Toggle("Weather", isOn: $showWeatherTile)
+                    Toggle("Calendar", isOn: $showCalendarTile)
+                    
+                    if !showProgressTile && !showWeatherTile && !showCalendarTile {
+                        Text("At least one tile should be enabled to see the progress card.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                } header: {
+                    Label("Progress Card Tiles", systemImage: "square.grid.2x2")
+                } footer: {
+                    Text("Choose which tiles to show on your daily progress card. The progress card will be hidden if all tiles are disabled.")
                 }
                 
                 Section {
@@ -198,15 +217,14 @@ struct SettingsView: View {
         }
     }
     
+#if DEBUG
     private func addDebugGoals() {
-        #if DEBUG
         for debugGoal in DebugGoals.allCases {
             addDebugGoal(debugGoal)
         }
         
         // Add historical sessions for the previous week to test weekly progress chart
         addDebugHistoricalSessions()
-        #endif
     }
     
     private func addDebugGoal(_ debugGoal: DebugGoals) {
@@ -223,6 +241,8 @@ struct SettingsView: View {
         }
     }
     
+#endif
+
     private func addDebugHistoricalSessions() {
         let calendar = Calendar.current
         let today = Date()

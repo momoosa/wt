@@ -72,6 +72,11 @@ struct ContentView: View {
     @State private var nextCalendarEvent: EKEvent?
     @State private var calendarEventStore = EKEventStore()
     
+    // Progress Card Tile Visibility Settings
+    @AppStorage("showProgressTile") private var showProgressTile: Bool = true
+    @AppStorage("showWeatherTile") private var showWeatherTile: Bool = true
+    @AppStorage("showCalendarTile") private var showCalendarTile: Bool = true
+    
     var body: some View {
         let recommendedSessionIDs = getRecommendedSessions().map { $0.id }
         
@@ -685,73 +690,122 @@ struct ContentView: View {
     private var dailyProgressCard: some View {
         let size = 80.0
         let viewModel = progressViewModel
-        return HStack(spacing: 12) {
-            // Progress Ring
-            CircularProgressView(progress: viewModel.dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
-                .overlay {
-                    VStack(spacing: 2) {
-                        Text("\(Int(viewModel.dailyProgress * 100))%")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                        Text("done")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+        let hasVisibleTiles = showProgressTile || showWeatherTile || showCalendarTile
+        
+        return Group {
+            if hasVisibleTiles {
+                HStack(spacing: 12) {
+                    // Progress Ring
+                    if showProgressTile {
+                        CircularProgressView(progress: viewModel.dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
+                            .overlay {
+                                VStack(spacing: 2) {
+                                    Text("\(Int(viewModel.dailyProgress * 100))%")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                    Text("done")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(width: size, height: size)
+                            .glassCardStyle(shadowColor: .black)
+                            .matchedTransitionSource(id: "dayOverviewCard", in: animation)
+                            .onTapGesture {
+                                showDayOverview = true
+                            }
+                            .transition(.scale.combined(with: .opacity))
                     }
-                }
-                .frame(width: size, height: size)
-                .glassCardStyle(shadowColor: .black)
-                .matchedTransitionSource(id: "dayOverviewCard", in: animation)
-                .onTapGesture {
-                    showDayOverview = true
-                }
 
-            // Weather Card
-            if let weather = weatherManager.currentWeather {
-                VStack(spacing: 6) {
-                    Image(systemName: weatherSymbol(for: weather.condition))
-                        .font(.title)
-                        .foregroundStyle(.blue)
+                    // Weather Card
+                    if showWeatherTile {
+                        if let weather = weatherManager.currentWeather {
+                            VStack(spacing: 6) {
+                                Image(systemName: weatherSymbol(for: weather.condition))
+                                    .font(.title)
+                                    .foregroundStyle(.blue)
+                                
+                                Text("\(Int(weather.temperature.value))°")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(width: size, height: size)
+                            .glassCardStyle(shadowColor: .black)
+                            .transition(.scale.combined(with: .opacity))
+                        } else if weatherManager.isLoading {
+                            // Loading state
+                            VStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.regular)
+                                
+                                Text("Loading")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(width: size, height: size)
+                            .glassCardStyle(shadowColor: .black)
+                            .transition(.scale.combined(with: .opacity))
+                        } else {
+                            // Error or no data state
+                            VStack(spacing: 6) {
+                                Image(systemName: weatherManager.error != nil ? "exclamationmark.triangle" : "cloud.slash")
+                                    .font(.title)
+                                    .foregroundStyle(.gray)
+                                
+                                Text(weatherManager.error != nil ? "Error" : "No Data")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(width: size, height: size)
+                            .glassCardStyle(shadowColor: .black)
+                            .onTapGesture {
+                                weatherManager.forceRefreshWeather()
+                            }
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                    }
                     
-                    Text("\(Int(weather.temperature.value))°")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                    // Calendar Free Time Card
+                    if showCalendarTile {
+                        if let nextEvent = nextCalendarEvent {
+                            VStack(spacing: 6) {
+                                Image(systemName: "calendar")
+                                    .font(.title)
+                                    .foregroundStyle(.orange)
+                                
+                                Text(freeTimeText)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .multilineTextAlignment(.center)
+                                
+                            }
+                            .frame(width: size, height: size)
+                            .glassCardStyle(shadowColor: .black)
+                            .transition(.scale.combined(with: .opacity))
+                        } else {
+                            VStack(spacing: 6) {
+                                Image(systemName: "calendar")
+                                    .font(.title)
+                                    .foregroundStyle(.green)
+                                                
+                                Text("Free")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(width: size, height: size)
+                            .glassCardStyle(shadowColor: .black)
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    
+                    Spacer()
                 }
-                .frame(width: size, height: size)
-                .glassCardStyle(shadowColor: .black)
+                .padding()
+                .animation(.spring(), value: showProgressTile)
+                .animation(.spring(), value: showWeatherTile)
+                .animation(.spring(), value: showCalendarTile)
             }
-            
-            // Calendar Free Time Card
-            if let nextEvent = nextCalendarEvent {
-                VStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.title)
-                        .foregroundStyle(.orange)
-                    
-                    Text(freeTimeText)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-                    
-                }
-                .frame(width: size, height: size)
-                .glassCardStyle(shadowColor: .black)
-            } else {
-                VStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.title)
-                        .foregroundStyle(.green)
-                                    
-                    Text("Free")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(width: size, height: size)
-                .glassCardStyle(shadowColor: .black)
-            }
-            
-            Spacer()
         }
-        .padding()
     }
     
     private var progressViewModel: DailyProgressViewModel {

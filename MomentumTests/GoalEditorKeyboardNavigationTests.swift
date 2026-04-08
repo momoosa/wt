@@ -81,7 +81,7 @@ struct GoalEditorKeyboardNavigationTests {
     func testCanFocusNextFromDurationWithActiveDays() {
         let viewModel = createTestViewModel()
         viewModel.hasDailyMinimum = false
-        viewModel.toggleActiveDay(1) // Add Monday
+        viewModel.toggleActiveDay(2) // Add Monday (weekday 2)
         
         let focusedField: GoalEditorView.Field? = .duration
         let result: Bool = {
@@ -118,7 +118,7 @@ struct GoalEditorKeyboardNavigationTests {
     @Test("canFocusNext returns true from dailyMinimum when active days exist")
     func testCanFocusNextFromDailyMinimum() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(1) // Add Monday
+        viewModel.toggleActiveDay(2) // Add Monday (weekday 2)
         
         let focusedField: GoalEditorView.Field? = .dailyMinimum
         let result: Bool = {
@@ -136,13 +136,12 @@ struct GoalEditorKeyboardNavigationTests {
     @Test("canFocusNext returns false from last schedule day")
     func testCanFocusNextFromLastScheduleDay() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(1) // Only Monday
-        
-        let focusedField: GoalEditorView.Field? = .scheduleDay(1)
-        
+        viewModel.activeDays.removeAll() // Clear all days first
+        viewModel.toggleActiveDay(2) // Only Monday (weekday 2)
+                
         // Get next active day after Monday
-        let sortedDays = viewModel.activeDays.sorted()
-        let hasNext = sortedDays.first(where: { $0 > 1 }) != nil
+        let nextDay = viewModel.getNextActiveScheduleDay(after: 2)
+        let hasNext = nextDay != nil
         
         #expect(hasNext == false)
     }
@@ -150,15 +149,14 @@ struct GoalEditorKeyboardNavigationTests {
     @Test("canFocusNext returns true from middle schedule day")
     func testCanFocusNextFromMiddleScheduleDay() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(1) // Monday
-        viewModel.toggleActiveDay(3) // Wednesday
-        viewModel.toggleActiveDay(5) // Friday
-        
-        let focusedField: GoalEditorView.Field? = .scheduleDay(3)
-        
+        viewModel.activeDays.removeAll() // Clear all days first
+        viewModel.toggleActiveDay(2) // Monday (weekday 2)
+        viewModel.toggleActiveDay(4) // Wednesday (weekday 4)
+        viewModel.toggleActiveDay(6) // Friday (weekday 6)
+                
         // Get next active day after Wednesday (should be Friday)
-        let sortedDays = viewModel.activeDays.sorted()
-        let hasNext = sortedDays.first(where: { $0 > 3 }) != nil
+        let nextDay = viewModel.getNextActiveScheduleDay(after: 4)
+        let hasNext = nextDay != nil
         
         #expect(hasNext == true)
     }
@@ -281,55 +279,59 @@ struct GoalEditorKeyboardNavigationTests {
     @Test("getNextActiveScheduleDay returns correct next day")
     func testGetNextActiveScheduleDay() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(1) // Monday
-        viewModel.toggleActiveDay(3) // Wednesday
-        viewModel.toggleActiveDay(5) // Friday
+        viewModel.activeDays.removeAll() // Clear all days first
+        viewModel.toggleActiveDay(2) // Monday (weekday 2)
+        viewModel.toggleActiveDay(4) // Wednesday (weekday 4)
+        viewModel.toggleActiveDay(6) // Friday (weekday 6)
         
-        let nextAfterMonday = viewModel.getNextActiveScheduleDay(after: 1)
-        #expect(nextAfterMonday == 3)
+        let nextAfterMonday = viewModel.getNextActiveScheduleDay(after: 2)
+        #expect(nextAfterMonday == 4)
         
-        let nextAfterWednesday = viewModel.getNextActiveScheduleDay(after: 3)
-        #expect(nextAfterWednesday == 5)
+        let nextAfterWednesday = viewModel.getNextActiveScheduleDay(after: 4)
+        #expect(nextAfterWednesday == 6)
         
-        let nextAfterFriday = viewModel.getNextActiveScheduleDay(after: 5)
+        let nextAfterFriday = viewModel.getNextActiveScheduleDay(after: 6)
         #expect(nextAfterFriday == nil)
     }
     
     @Test("getNextActiveScheduleDay returns first day when passed nil")
     func testGetNextActiveScheduleDayFromNil() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(3) // Wednesday
-        viewModel.toggleActiveDay(5) // Friday
+        viewModel.activeDays.removeAll() // Clear all days first
+        viewModel.toggleActiveDay(4) // Wednesday (weekday 4)
+        viewModel.toggleActiveDay(6) // Friday (weekday 6)
         
         let firstDay = viewModel.getNextActiveScheduleDay(after: nil)
-        #expect(firstDay == 3)
+        #expect(firstDay == 4)
     }
     
     @Test("getPreviousActiveScheduleDay returns correct previous day")
     func testGetPreviousActiveScheduleDay() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(1) // Monday
-        viewModel.toggleActiveDay(3) // Wednesday
-        viewModel.toggleActiveDay(5) // Friday
+        viewModel.activeDays.removeAll() // Clear all days first
+        viewModel.toggleActiveDay(2) // Monday (weekday 2)
+        viewModel.toggleActiveDay(4) // Wednesday (weekday 4)
+        viewModel.toggleActiveDay(6) // Friday (weekday 6)
         
-        let prevBeforeFriday = viewModel.getPreviousActiveScheduleDay(before: 5)
-        #expect(prevBeforeFriday == 3)
+        let prevBeforeFriday = viewModel.getPreviousActiveScheduleDay(before: 6)
+        #expect(prevBeforeFriday == 4)
         
-        let prevBeforeWednesday = viewModel.getPreviousActiveScheduleDay(before: 3)
-        #expect(prevBeforeWednesday == 1)
+        let prevBeforeWednesday = viewModel.getPreviousActiveScheduleDay(before: 4)
+        #expect(prevBeforeWednesday == 2)
         
-        let prevBeforeMonday = viewModel.getPreviousActiveScheduleDay(before: 1)
+        let prevBeforeMonday = viewModel.getPreviousActiveScheduleDay(before: 2)
         #expect(prevBeforeMonday == nil)
     }
     
     @Test("getPreviousActiveScheduleDay returns last day when passed nil")
     func testGetPreviousActiveScheduleDayFromNil() {
         let viewModel = createTestViewModel()
-        viewModel.toggleActiveDay(1) // Monday
-        viewModel.toggleActiveDay(3) // Wednesday
+        viewModel.activeDays.removeAll() // Clear all days first
+        viewModel.toggleActiveDay(2) // Monday (weekday 2)
+        viewModel.toggleActiveDay(4) // Wednesday (weekday 4)
         
         let lastDay = viewModel.getPreviousActiveScheduleDay(before: nil)
-        #expect(lastDay == 3)
+        #expect(lastDay == 4)
     }
     
     // MARK: - Edge Cases
@@ -337,13 +339,12 @@ struct GoalEditorKeyboardNavigationTests {
     @Test("Navigation with all days active")
     func testNavigationWithAllDaysActive() {
         let viewModel = createTestViewModel()
-        for weekday in 1...7 {
-            viewModel.toggleActiveDay(weekday)
-        }
+        // Days are already all active by default (1-7), no need to toggle
         
-        // Should be able to navigate from day 1 to day 7
-        var currentDay: Int? = 1
-        var visitedDays: [Int] = [1]
+        // Should be able to navigate from day 2 (Monday) through day 1 (Sunday)
+        // The order is Mon-Sun: 2, 3, 4, 5, 6, 7, 1
+        var currentDay: Int? = 2
+        var visitedDays: [Int] = [2]
         
         while let next = viewModel.getNextActiveScheduleDay(after: currentDay) {
             visitedDays.append(next)
@@ -356,12 +357,13 @@ struct GoalEditorKeyboardNavigationTests {
         }
         
         #expect(visitedDays.count == 7)
-        #expect(visitedDays == [1, 2, 3, 4, 5, 6, 7])
+        #expect(visitedDays == [2, 3, 4, 5, 6, 7, 1])
     }
     
     @Test("Navigation with single active day")
     func testNavigationWithSingleActiveDay() {
         let viewModel = createTestViewModel()
+        viewModel.activeDays.removeAll() // Clear all days first
         viewModel.toggleActiveDay(4) // Only Thursday
         
         let nextAfterThursday = viewModel.getNextActiveScheduleDay(after: 4)
