@@ -1116,7 +1116,7 @@ struct ContentView: View {
                 let reasons = calculateRecommendationReasons(for: session, goal: goal)
                 session.recommendationReasons = reasons
             }
-            try? modelContext.save()
+            modelContext.safeSave(showingToast: $toastConfig)
         }
     }
     
@@ -1316,12 +1316,12 @@ struct ContentView: View {
         
         // Save changes if there were any insertions or deletions
         if modelContext.hasChanges {
-            try? modelContext.save()
-
-            // Reload widgets when sessions are created or deleted
-            #if canImport(WidgetKit)
-            WidgetCenter.shared.reloadAllTimelines()
-            #endif
+            if modelContext.safeSave(showingToast: $toastConfig) {
+                // Reload widgets when sessions are created or deleted
+                #if canImport(WidgetKit)
+                WidgetCenter.shared.reloadAllTimelines()
+                #endif
+            }
         }
     }
 
@@ -1383,7 +1383,7 @@ struct ContentView: View {
 
         // Save changes
         if modelContext.hasChanges {
-            try? modelContext.save()
+            modelContext.safeSave(showingToast: $toastConfig)
         }
     }
 
@@ -1559,14 +1559,14 @@ struct ContentView: View {
         }
         
         // Save context
-        try? modelContext.save()
-        
-        let minutes = Int(abs(adjustment) / 60)
-        let direction = adjustment > 0 ? "increased" : "decreased"
-        toastConfig = ToastConfig(
-            message: "Daily goal \(direction) by \(minutes)m",
-            showUndo: false
-        )
+        if modelContext.safeSave(showingToast: $toastConfig) {
+            let minutes = Int(abs(adjustment) / 60)
+            let direction = adjustment > 0 ? "increased" : "decreased"
+            toastConfig = ToastConfig(
+                message: "Daily goal \(direction) by \(minutes)m",
+                showUndo: false
+            )
+        }
         
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
@@ -1988,7 +1988,7 @@ struct ContentView: View {
                 for session in sessions {
                     session.clearPlanningDetails()
                 }
-                try? modelContext.save()
+                modelContext.safeSave()
             }
             
             // Use streaming to get real-time updates
@@ -2056,7 +2056,7 @@ struct ContentView: View {
                             session.clearPlanningDetails()
                         }
                     }
-                    try? modelContext.save()
+                    modelContext.safeSave()
                 }
             }
             
@@ -2083,7 +2083,7 @@ struct ContentView: View {
                     }
                 }
                 
-                try? modelContext.save()
+                modelContext.safeSave()
             }
             
         } catch {
@@ -2274,7 +2274,7 @@ struct ContentView: View {
             }
             
             // Save the new/updated sessions
-            try? modelContext.save()
+            modelContext.safeSave()
     }
     
     // MARK: - Deep Link Handling

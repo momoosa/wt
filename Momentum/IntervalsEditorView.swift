@@ -200,7 +200,7 @@ public struct IntervalsEditorView: View {
             }
         }
 
-        try? modelContext.save()
+        modelContext.safeSave()
     }
     
     private func intervalGroupIndex(_ group: IntervalGroup) -> Int {

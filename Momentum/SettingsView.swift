@@ -290,7 +290,7 @@ struct SettingsView: View {
             }
         }
         
-        try? modelContext.save()
+        modelContext.safeSave()
     }
 }
 

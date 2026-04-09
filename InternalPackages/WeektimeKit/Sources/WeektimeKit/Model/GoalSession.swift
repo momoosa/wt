@@ -339,12 +339,12 @@ public extension GoalSession {
     }
     
     /// Update the HealthKit time for this session
-    public func updateHealthKitTime(_ time: TimeInterval) {
+    func updateHealthKitTime(_ time: TimeInterval) {
         healthKitTime = time
     }
     
     /// Update the primary metric value (for count/calorie-based goals)
-    public func updatePrimaryMetricValue(_ value: Double) {
+    func updatePrimaryMetricValue(_ value: Double) {
         primaryMetricValue = value
     }
     

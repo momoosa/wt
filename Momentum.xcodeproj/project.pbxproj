@@ -74,6 +74,7 @@
 		CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */; };
 		CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */; };
 		CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */; };
+		CD6A0C1A2F883789008F5D93 /* ModelContextExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -262,6 +263,7 @@
 		CD5F7AFD2F39C37C00B3E941 /* DayOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOverviewView.swift; sourceTree = "<group>"; };
 		CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorViewModel.swift; sourceTree = "<group>"; };
 		CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorHelpers.swift; sourceTree = "<group>"; };
+		CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContextExtensions.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -483,6 +485,7 @@
 			children = (
 				CD2A6FC32F5778FC00F5503A /* ThemeColorHelper.swift */,
 				CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */,
+				CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -973,6 +976,7 @@
 				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
+				CD6A0C1A2F883789008F5D93 /* ModelContextExtensions.swift in Sources */,
 				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
 				CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,

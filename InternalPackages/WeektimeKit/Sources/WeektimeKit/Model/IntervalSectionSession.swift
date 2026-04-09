@@ -21,7 +21,7 @@ public final class IntervalSectionSession: Identifiable  {
         self.orderIndex = orderIndex
         self.section = section
         var intervals = [IntervalSession]()
-        for (index, interval) in section.intervals.enumerated() {
+        for interval in section.intervals {
             let interval = IntervalSession(interval: interval)
             intervals.append(interval)
         }

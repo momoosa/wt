@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import OSLog
 import MomentumKit
 import UserNotifications
 import Charts
@@ -157,15 +158,20 @@ struct GoalSessionDetailView: View {
                 
                 // Find the day and its sessions
                 let dayMinutes: Double
-                if let day = try? context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first,
-                   let historicalSessions = day.historicalSessions {
-                    // Sum up time for this goal
-                    let goalIDString = goal.id.uuidString
-                    let totalSeconds = historicalSessions
-                        .filter { $0.goalIDs.contains(goalIDString) }
-                        .reduce(0.0) { $0 + $1.duration }
-                    dayMinutes = totalSeconds / 60.0
-                } else {
+                do {
+                    if let day = try context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first,
+                       let historicalSessions = day.historicalSessions {
+                        // Sum up time for this goal
+                        let goalIDString = goal.id.uuidString
+                        let totalSeconds = historicalSessions
+                            .filter { $0.goalIDs.contains(goalIDString) }
+                            .reduce(0.0) { $0 + $1.duration }
+                        dayMinutes = totalSeconds / 60.0
+                    } else {
+                        dayMinutes = 0
+                    }
+                } catch {
+                    AppLogger.data.error("Failed to fetch day for daily progress: \(error)")
                     dayMinutes = 0
                 }
                 
@@ -200,11 +206,16 @@ struct GoalSessionDetailView: View {
         
         // Get all historical sessions for this goal on this day
         let historicalSessions: [HistoricalSession]
-        if let day = try? context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first,
-           let sessions = day.historicalSessions {
-            let goalIDString = goal.id.uuidString
-            historicalSessions = sessions.filter { $0.goalIDs.contains(goalIDString) }
-        } else {
+        do {
+            if let day = try context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first,
+               let sessions = day.historicalSessions {
+                let goalIDString = goal.id.uuidString
+                historicalSessions = sessions.filter { $0.goalIDs.contains(goalIDString) }
+            } else {
+                historicalSessions = []
+            }
+        } catch {
+            AppLogger.data.error("Failed to fetch day for hourly progress: \(error)")
             historicalSessions = []
         }
         
@@ -626,12 +637,16 @@ struct GoalSessionDetailView: View {
                         get: { goal.scheduleNotificationsEnabled },
                         set: { newValue in
                             goal.scheduleNotificationsEnabled = newValue
-                            try? context.save()
+                            context.safeSave()
                             
                             // Schedule or cancel schedule notifications
                             Task {
                                 if newValue {
-                                    try? await notificationManager.scheduleNotifications(for: goal)
+                                    do {
+                                        try await notificationManager.scheduleNotifications(for: goal)
+                                    } catch {
+                                        AppLogger.notifications.error("Failed to schedule notifications: \(error)")
+                                    }
                                 } else {
                                     await notificationManager.cancelScheduleNotifications(for: goal)
                                 }
@@ -667,7 +682,7 @@ struct GoalSessionDetailView: View {
                         get: { goal.completionNotificationsEnabled },
                         set: { newValue in
                             goal.completionNotificationsEnabled = newValue
-                            try? context.save()
+                            context.safeSave()
                         }
                     )) {
                         Label {
@@ -1133,7 +1148,7 @@ struct GoalSessionDetailView: View {
             }
         }
         
-        try? context.save()
+        context.safeSave()
     }
     
     private func deleteGoal() {
@@ -1143,8 +1158,9 @@ struct GoalSessionDetailView: View {
             context.delete(goal)
         }
         
-        try? context.save()
-        dismiss()
+        if context.safeSave() {
+            dismiss()
+        }
     }
     
     // MARK: - Notifications

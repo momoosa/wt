@@ -555,8 +555,9 @@ struct GoalDetailView: View {
             modelContext.delete(goal)
         }
         
-        try? modelContext.save()
-        dismiss()
+        if modelContext.safeSave() {
+            dismiss()
+        }
     }
     
     // MARK: - Notes & Link

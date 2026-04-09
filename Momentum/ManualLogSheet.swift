@@ -89,11 +89,11 @@ struct ManualLogSheet: View {
         modelContext.insert(historicalSession)
         
         // Save context
-        try? modelContext.save()
-        
-        #if os(iOS)
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        #endif
+        if modelContext.safeSave() {
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            #endif
+        }
     }
 }

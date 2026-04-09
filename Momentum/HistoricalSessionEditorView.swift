@@ -117,9 +117,9 @@ struct HistoricalSessionEditorView: View {
             }
         }
         
-        try? modelContext.save()
-        
-        HapticFeedbackManager.trigger(.success)
+        if modelContext.safeSave() {
+            HapticFeedbackManager.trigger(.success)
+        }
     }
 }
 
