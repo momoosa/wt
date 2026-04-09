@@ -75,6 +75,8 @@
 		CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */; };
 		CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */; };
 		CD6A0C1A2F883789008F5D93 /* ModelContextExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */; };
+		CD6A0C1D2F883938008F5D93 /* NavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C1C2F883938008F5D93 /* NavigationState.swift */; };
+		CD6A0C1F2F8839CD008F5D93 /* REFACTORING_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -264,6 +266,8 @@
 		CD62581C2F783C5D008B9140 /* GoalEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorViewModel.swift; sourceTree = "<group>"; };
 		CD62581E2F783CF9008B9140 /* GoalEditorHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorHelpers.swift; sourceTree = "<group>"; };
 		CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContextExtensions.swift; sourceTree = "<group>"; };
+		CD6A0C1C2F883938008F5D93 /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
+		CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = REFACTORING_GUIDE.md; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -506,6 +510,15 @@
 			path = Screentime;
 			sourceTree = "<group>";
 		};
+		CD6A0C1B2F88392F008F5D93 /* ContentView */ = {
+			isa = PBXGroup;
+			children = (
+				CD6A0C1C2F883938008F5D93 /* NavigationState.swift */,
+				CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */,
+			);
+			path = ContentView;
+			sourceTree = "<group>";
+		};
 		CD75CC522E2FE5E600890F20 = {
 			isa = PBXGroup;
 			children = (
@@ -658,6 +671,7 @@
 				CDBE15032F864AC800B7FCD6 /* ScheduleSection.swift */,
 				CDBE15042F864AC900B7FCD6 /* ScheduleDaysListSection.swift */,
 				CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */,
+				CD6A0C1B2F88392F008F5D93 /* ContentView */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -913,6 +927,7 @@
 				CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */,
 				CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */,
 				CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */,
+				CD6A0C1F2F8839CD008F5D93 /* REFACTORING_GUIDE.md in Resources */,
 				CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */,
 				CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */,
 				CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */,
@@ -994,6 +1009,7 @@
 				CDEBAA382EE9FA1000C1C411 /* GoalSessionDetailView.swift in Sources */,
 				CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */,
 				CD1D0F632F845F8C00A36562 /* CategoryTab.swift in Sources */,
+				CD6A0C1D2F883938008F5D93 /* NavigationState.swift in Sources */,
 				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,

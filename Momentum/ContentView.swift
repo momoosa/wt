@@ -24,38 +24,19 @@ struct ContentView: View {
     @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var sessions: [GoalSession]
     @Query private var allSessions: [GoalSession]
     let day: Day
-    @State private var selectedSession: GoalSession?
-    @State private var sessionIDToOpen: String?
     @Namespace var animation
-    @State private var showingGoalEditor = false
-    @State private var activeFilter: Filter = .activeToday
-    @State private var navigationPath = NavigationPath()
-    @State private var scrollProxy: ScrollViewProxy?
-    @State private var expandedSections: Set<ContextualSection.SectionType> = [.recommendedNow, .later]
-    
+
+    // Consolidated navigation and UI state
+    @State private var navigation = NavigationState()
+
     // Timer manager for session tracking
     @State private var timerManager: SessionTimerManager?
-    
+
     // Planning
     @State private var planningViewModel = PlanningViewModel()
-    
-    // Navigation state
-    @State private var showPlannerSheet = false
-    @State private var showAllGoals = false
-    @State private var showSettings = false
-    @State private var showNowPlaying = false
-    @State private var showDayOverview = false
-    @State private var sessionToLogManually: GoalSession?
-    
+
     // Focus filter
     @State private var focusFilterStore = FocusFilterStore.shared
-
-    // Search state
-    @State private var isSearching = false
-    @State private var searchText = ""
-    
-    // Toast state
-    @State private var toastConfig: ToastConfig?
     
     // HealthKit
     @State private var healthKitManager = HealthKitManager()
@@ -91,7 +72,7 @@ struct ContentView: View {
                     }
                     GoalFilterBar(
                         filters: availableFilters,
-                        activeFilter: $activeFilter,
+                        activeFilter: $navigation.activeFilter,
                         sessionCounts: sessionCountsForFilters,
                         onFilterTap: scrollToFilterSection
                     )
@@ -99,20 +80,20 @@ struct ContentView: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                if let toastConfig = toastConfig {
+                if let toastConfig = navigation.toastConfig {
                     VStack {
                         Spacer()
                         ToastView(
                             config: toastConfig,
                             onDismiss: {
-                                self.toastConfig = nil
+                                self.navigation.toastConfig = nil
                             }
                         )
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .sheet(isPresented: $isSearching) {
+            .sheet(isPresented: $navigation.isSearching) {
                 searchSheet
             }
             .toolbar {
@@ -148,27 +129,27 @@ struct ContentView: View {
                 timerManager?.checkForExternalChanges()
             }
 #endif
-            .sheet(isPresented: $showPlannerSheet) {
+            .sheet(isPresented: $navigation.showPlannerSheet) {
                 plannerSheet
             }
 
         
-            .sheet(isPresented: $showingGoalEditor) {
+            .sheet(isPresented: $navigation.showingGoalEditor) {
                 goalEditorSheet
             }
-            .sheet(isPresented: $showAllGoals) {
+            .sheet(isPresented: $navigation.showAllGoals) {
                 allGoalsSheet
             }
-            .fullScreenCover(isPresented: $showNowPlaying) {
+            .fullScreenCover(isPresented: $navigation.showNowPlaying) {
                 nowPlayingView
             }
-            .sheet(isPresented: $showSettings) {
+            .sheet(isPresented: $navigation.showSettings) {
                 settingsSheet
             }
-            .sheet(isPresented: $showDayOverview) {
+            .sheet(isPresented: $navigation.showDayOverview) {
                 dayOverviewSheet
             }
-            .sheet(item: $sessionToLogManually) { session in
+            .sheet(item: $navigation.sessionToLogManually) { session in
                 manualLogSheet(for: session)
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSessionFromWidget"))) { notification in
@@ -177,14 +158,14 @@ struct ContentView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSearch"))) { _ in
-                isSearching = true
+                navigation.isSearching = true
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
-                showingGoalEditor = true
+                navigation.showingGoalEditor = true
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowToast"))) { notification in
                 if let message = notification.object as? String {
-                    toastConfig = ToastConfig(
+                    navigation.toastConfig = ToastConfig(
                         message: message,
                         showUndo: false
                     )
@@ -195,7 +176,7 @@ struct ContentView: View {
                     syncChecklistToSessions(for: goal)
                 }
             }
-            .navigationDestination(item: $selectedSession) { session in
+            .navigationDestination(item: $navigation.selectedSession) { session in
                 if let timerManager = timerManager {
                     GoalSessionDetailView(
                         session: session,
@@ -203,10 +184,10 @@ struct ContentView: View {
                         timerManager: timerManager,
                         onMarkedComplete: {
                             // Dismiss the detail view
-                            selectedSession = nil
+                            navigation.selectedSession = nil
                             
                             // Show toast
-                            toastConfig = ToastConfig(
+                            navigation.toastConfig = ToastConfig(
                                 message: "Marked as complete - moved to Completed filter",
                                 showUndo: false
                             )
@@ -229,9 +210,9 @@ struct ContentView: View {
             day: day,
             timerManager: timerManager,
             animation: animation,
-            selectedSession: $selectedSession,
-            sessionToLogManually: $sessionToLogManually,
-            searchText: $searchText,
+            selectedSession: $navigation.selectedSession,
+            sessionToLogManually: $navigation.sessionToLogManually,
+            searchText: $navigation.searchText,
             onSkip: skip,
             onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
             isSyncingHealthKit: isSyncingHealthKit,
@@ -313,7 +294,7 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
             .onAppear {
-                scrollProxy = proxy
+                navigation.scrollProxy = proxy
             }
         }
     }
@@ -355,8 +336,8 @@ struct ContentView: View {
                         day: day,
                         timerManager: timerManager,
                         animation: animation,
-                        selectedSession: $selectedSession,
-                        sessionToLogManually: $sessionToLogManually,
+                        selectedSession: $navigation.selectedSession,
+                        sessionToLogManually: $navigation.sessionToLogManually,
                         onSkip: skip,
                         onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
                         isSyncingHealthKit: isSyncingHealthKit
@@ -372,7 +353,7 @@ struct ContentView: View {
         case .weatherWindow, .timeWindow, .energyWindow:
             // Contextual time-based sections
             Section {
-                if expandedSections.contains(section.type) {
+                if navigation.expandedSections.contains(section.type) {
                     ForEach(section.sessions) { session in
                         sessionRow(for: session)
                     }
@@ -380,10 +361,10 @@ struct ContentView: View {
             } header: {
                 Button(action: {
                     withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
+                        if navigation.expandedSections.contains(section.type) {
+                            navigation.expandedSections.remove(section.type)
                         } else {
-                            expandedSections.insert(section.type)
+                            navigation.expandedSections.insert(section.type)
                         }
                     }
                 }) {
@@ -395,18 +376,18 @@ struct ContentView: View {
                             }
                             Text(section.type.title)
                                 .font(.headline)
-                            if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
                                 Text("(\(section.sessions.count))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                            Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         
-                        if let explanation = section.explanation, expandedSections.contains(section.type) {
+                        if let explanation = section.explanation, navigation.expandedSections.contains(section.type) {
                             Text(explanation)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -421,7 +402,7 @@ struct ContentView: View {
         case .available:
             // Available goals section (backup goals not scheduled today)
             Section {
-                if expandedSections.contains(section.type) {
+                if navigation.expandedSections.contains(section.type) {
                     ForEach(section.sessions) { session in
                         sessionRow(for: session)
                     }
@@ -429,10 +410,10 @@ struct ContentView: View {
             } header: {
                 Button(action: {
                     withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
+                        if navigation.expandedSections.contains(section.type) {
+                            navigation.expandedSections.remove(section.type)
                         } else {
-                            expandedSections.insert(section.type)
+                            navigation.expandedSections.insert(section.type)
                         }
                     }
                 }) {
@@ -444,18 +425,18 @@ struct ContentView: View {
                             }
                             Text(section.type.title)
                                 .font(.headline)
-                            if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
                                 Text("(\(section.sessions.count))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                            Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         
-                        if let explanation = section.explanation, expandedSections.contains(section.type) {
+                        if let explanation = section.explanation, navigation.expandedSections.contains(section.type) {
                             Text(explanation)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -470,7 +451,7 @@ struct ContentView: View {
         case .later:
             // Later section (standard rows)
             Section {
-                if expandedSections.contains(section.type) {
+                if navigation.expandedSections.contains(section.type) {
                     ForEach(section.sessions) { session in
                         sessionRow(for: session)
                     }
@@ -478,23 +459,23 @@ struct ContentView: View {
             } header: {
                 Button(action: {
                     withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
+                        if navigation.expandedSections.contains(section.type) {
+                            navigation.expandedSections.remove(section.type)
                         } else {
-                            expandedSections.insert(section.type)
+                            navigation.expandedSections.insert(section.type)
                         }
                     }
                 }) {
                     HStack {
                         Text(section.type.title)
                             .font(.headline)
-                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                        if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
                             Text("(\(section.sessions.count))")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                        Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -507,7 +488,7 @@ struct ContentView: View {
         case .workingOffSchedule:
             // Working off-schedule section
             Section {
-                if expandedSections.contains(section.type) {
+                if navigation.expandedSections.contains(section.type) {
                     ForEach(section.sessions) { session in
                         sessionRow(for: session)
                     }
@@ -515,10 +496,10 @@ struct ContentView: View {
             } header: {
                 Button(action: {
                     withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
+                        if navigation.expandedSections.contains(section.type) {
+                            navigation.expandedSections.remove(section.type)
                         } else {
-                            expandedSections.insert(section.type)
+                            navigation.expandedSections.insert(section.type)
                         }
                     }
                 }) {
@@ -530,18 +511,18 @@ struct ContentView: View {
                             }
                             Text(section.type.title)
                                 .font(.headline)
-                            if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                            if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
                                 Text("(\(section.sessions.count))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                            Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         
-                        if let explanation = section.explanation, expandedSections.contains(section.type) {
+                        if let explanation = section.explanation, navigation.expandedSections.contains(section.type) {
                             Text(explanation)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -556,7 +537,7 @@ struct ContentView: View {
         case .completed:
             // Completed Today section
             Section {
-                if expandedSections.contains(section.type) {
+                if navigation.expandedSections.contains(section.type) {
                     ForEach(section.sessions) { session in
                         sessionRow(for: session)
                     }
@@ -564,10 +545,10 @@ struct ContentView: View {
             } header: {
                 Button(action: {
                     withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
+                        if navigation.expandedSections.contains(section.type) {
+                            navigation.expandedSections.remove(section.type)
                         } else {
-                            expandedSections.insert(section.type)
+                            navigation.expandedSections.insert(section.type)
                         }
                     }
                 }) {
@@ -578,13 +559,13 @@ struct ContentView: View {
                         }
                         Text(section.type.title)
                             .font(.headline)
-                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                        if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
                             Text("(\(section.sessions.count))")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                        Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -597,7 +578,7 @@ struct ContentView: View {
         case .inactive:
             // Inactive section
             Section {
-                if expandedSections.contains(section.type) {
+                if navigation.expandedSections.contains(section.type) {
                     ForEach(section.sessions) { session in
                         sessionRow(for: session)
                     }
@@ -605,10 +586,10 @@ struct ContentView: View {
             } header: {
                 Button(action: {
                     withAnimation {
-                        if expandedSections.contains(section.type) {
-                            expandedSections.remove(section.type)
+                        if navigation.expandedSections.contains(section.type) {
+                            navigation.expandedSections.remove(section.type)
                         } else {
-                            expandedSections.insert(section.type)
+                            navigation.expandedSections.insert(section.type)
                         }
                     }
                 }) {
@@ -619,13 +600,13 @@ struct ContentView: View {
                         }
                         Text(section.type.title)
                             .font(.headline)
-                        if !expandedSections.contains(section.type) && !section.sessions.isEmpty {
+                        if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
                             Text("(\(section.sessions.count))")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Image(systemName: expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
+                        Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -712,7 +693,7 @@ struct ContentView: View {
                             .glassCardStyle(shadowColor: .black)
                             .matchedTransitionSource(id: "dayOverviewCard", in: animation)
                             .onTapGesture {
-                                showDayOverview = true
+                                navigation.showDayOverview = true
                             }
                             .transition(.scale.combined(with: .opacity))
                     }
@@ -903,7 +884,7 @@ struct ContentView: View {
         ToolbarItem(placement: .navigationBarTrailing) {
             HStack {
                 Button {
-                    showAllGoals = true
+                    navigation.showAllGoals = true
                 } label: {
                     Image(systemName: "target")
                 }
@@ -923,7 +904,7 @@ struct ContentView: View {
         
         ToolbarItem(placement: .navigationBarLeading) {
             Button {
-                showSettings = true
+                navigation.showSettings = true
             } label: {
                 Image(systemName: "gear")
             }
@@ -936,7 +917,7 @@ struct ContentView: View {
         
         ToolbarItem(placement: .bottomBar) {
             Button {
-                isSearching = true
+                navigation.isSearching = true
             } label: {
                 Label("Search", systemImage: "magnifyingglass")
             }
@@ -945,7 +926,7 @@ struct ContentView: View {
         
         ToolbarItem(placement: .bottomBar) {
             Button {
-                showDayOverview = true
+                navigation.showDayOverview = true
             } label: {
                 Label("Day Overview", systemImage: "calendar.badge.checkmark")
             }
@@ -955,7 +936,7 @@ struct ContentView: View {
             Button {
                 // Cache themes before showing sheet to avoid SwiftData faults
                 planningViewModel.cachedThemes = availableGoalThemes
-                showPlannerSheet = true
+                navigation.showPlannerSheet = true
             } label: {
                 if planningViewModel.isPlanning {
                     ProgressView()
@@ -982,7 +963,7 @@ struct ContentView: View {
                     handle(event: event)
                 }
                 .onTapGesture {
-                    showNowPlaying = true
+                    navigation.showNowPlaying = true
                 }
                 .frame(minWidth: 140.0)
             }
@@ -993,7 +974,7 @@ struct ContentView: View {
         }
         
         ToolbarItem(placement: .bottomBar) {
-            Button(action: { showingGoalEditor = true }) {
+            Button(action: { navigation.showingGoalEditor = true }) {
                 Label("Add Item", systemImage: "plus")
             }
             .overlay {
@@ -1116,7 +1097,7 @@ struct ContentView: View {
                 let reasons = calculateRecommendationReasons(for: session, goal: goal)
                 session.recommendationReasons = reasons
             }
-            modelContext.safeSave(showingToast: $toastConfig)
+            modelContext.safeSave(showingToast: $navigation.toastConfig)
         }
     }
     
@@ -1157,7 +1138,7 @@ struct ContentView: View {
             allThemes: planningViewModel.cachedThemes,
             animation: animation
         ) {
-            showPlannerSheet = false
+            navigation.showPlannerSheet = false
             planningViewModel.planningTask = Task {
                 await generateDailyPlan()
             }
@@ -1221,8 +1202,8 @@ struct ContentView: View {
             goals: goals,
             animation: animation,
             timerManager: timerManager,
-            selectedSession: $selectedSession,
-            sessionToLogManually: $sessionToLogManually,
+            selectedSession: $navigation.selectedSession,
+            sessionToLogManually: $navigation.sessionToLogManually,
             onSkip: skip,
             onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
             isSyncingHealthKit: isSyncingHealthKit
@@ -1316,7 +1297,7 @@ struct ContentView: View {
         
         // Save changes if there were any insertions or deletions
         if modelContext.hasChanges {
-            if modelContext.safeSave(showingToast: $toastConfig) {
+            if modelContext.safeSave(showingToast: $navigation.toastConfig) {
                 // Reload widgets when sessions are created or deleted
                 #if canImport(WidgetKit)
                 WidgetCenter.shared.reloadAllTimelines()
@@ -1383,7 +1364,7 @@ struct ContentView: View {
 
         // Save changes
         if modelContext.hasChanges {
-            modelContext.safeSave(showingToast: $toastConfig)
+            modelContext.safeSave(showingToast: $navigation.toastConfig)
         }
     }
 
@@ -1395,7 +1376,7 @@ struct ContentView: View {
         }
         
         let message = session.status == .skipped ? "Goal skipped" : "Goal unskipped"
-        toastConfig = ToastConfig(
+        navigation.toastConfig = ToastConfig(
             message: message,
             showUndo: true,
             onUndo: { [weak session] in
@@ -1431,7 +1412,7 @@ struct ContentView: View {
     
     /// Scrolls to the section corresponding to the selected filter
     private func scrollToFilterSection(_ filter: Filter) {
-        guard let proxy = scrollProxy else { return }
+        guard let proxy = navigation.scrollProxy else { return }
         
         // Map filter to section type
         let targetSection: ContextualSection.SectionType?
@@ -1471,7 +1452,7 @@ struct ContentView: View {
     private func getRecommendedSessions() -> [GoalSession] {
         return SessionFilterService.getRecommendedSessions(
             from: focusFilteredSessions,
-            filter: activeFilter,
+            filter: navigation.activeFilter,
             planner: planningViewModel.planner,
             preferences: planningViewModel.plannerPreferences,
             validationCheck: isGoalValid,
@@ -1489,8 +1470,8 @@ struct ContentView: View {
             day: day,
             timerManager: timerManager,
             animation: animation,
-            selectedSession: $selectedSession,
-            sessionToLogManually: $sessionToLogManually,
+            selectedSession: $navigation.selectedSession,
+            sessionToLogManually: $navigation.sessionToLogManually,
             onSkip: skip,
             onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
             isSyncingHealthKit: isSyncingHealthKit
@@ -1510,10 +1491,10 @@ struct ContentView: View {
         // If it was completed and we just started it, switch to Today filter and show toast
         if wasCompleted && timerManager.activeSession?.id == session.id {
             withAnimation {
-                activeFilter = .activeToday
+                navigation.activeFilter = .activeToday
             }
             
-            toastConfig = ToastConfig(
+            navigation.toastConfig = ToastConfig(
                 message: "Session resumed - moved to Today",
                 showUndo: false
             )
@@ -1536,7 +1517,7 @@ struct ContentView: View {
         
         let minutes = Int(abs(adjustment) / 60)
         let direction = adjustment > 0 ? "earlier" : "later"
-        toastConfig = ToastConfig(
+        navigation.toastConfig = ToastConfig(
             message: "Adjusted start time: \(minutes)m \(direction)",
             showUndo: false
         )
@@ -1559,10 +1540,10 @@ struct ContentView: View {
         }
         
         // Save context
-        if modelContext.safeSave(showingToast: $toastConfig) {
+        if modelContext.safeSave(showingToast: $navigation.toastConfig) {
             let minutes = Int(abs(adjustment) / 60)
             let direction = adjustment > 0 ? "increased" : "decreased"
-            toastConfig = ToastConfig(
+            navigation.toastConfig = ToastConfig(
                 message: "Daily goal \(direction) by \(minutes)m",
                 showUndo: false
             )
@@ -1718,7 +1699,7 @@ struct ContentView: View {
                     // Show toast with sync results
                     if !syncErrors.isEmpty {
                         // Show error toast
-                        toastConfig = ToastConfig(
+                        navigation.toastConfig = ToastConfig(
                             message: "Sync failed for \(syncErrors.count) goal\(syncErrors.count == 1 ? "" : "s")"
                         )
                     } else if syncedGoalsCount > 0 {
@@ -1726,12 +1707,12 @@ struct ContentView: View {
                         let minutes = Int(totalDurationImported / 60)
                         let goalText = syncedGoalsCount == 1 ? "goal" : "goals"
                         let minuteText = minutes == 1 ? "minute" : "minutes"
-                        toastConfig = ToastConfig(
+                        navigation.toastConfig = ToastConfig(
                             message: "Synced \(syncedGoalsCount) \(goalText): \(minutes) \(minuteText) imported"
                         )
                     } else {
                         // No data synced
-                        toastConfig = ToastConfig(
+                        navigation.toastConfig = ToastConfig(
                             message: "No new data to sync"
                         )
                     }
@@ -2290,7 +2271,7 @@ struct ContentView: View {
         AppLogger.app.info("Found session to open: \(session.title)")
         
         // Open the session detail using selectedSession which triggers NavigationLink
-        selectedSession = session
+        navigation.selectedSession = session
         
     }
 }
