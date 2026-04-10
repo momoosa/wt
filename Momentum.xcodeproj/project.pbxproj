@@ -78,6 +78,10 @@
 		CD6A0C1D2F883938008F5D93 /* NavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C1C2F883938008F5D93 /* NavigationState.swift */; };
 		CD6A0C1F2F8839CD008F5D93 /* REFACTORING_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */; };
 		CD6A0C212F88429F008F5D93 /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C202F88429F008F5D93 /* ContentViewModel.swift */; };
+		CD6A0C252F8994D8008F5D93 /* HealthKitManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C242F8994D8008F5D93 /* HealthKitManaging.swift */; };
+		CD6A0C272F8994FD008F5D93 /* HealthKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C262F8994FD008F5D93 /* HealthKitSyncService.swift */; };
+		CD6A0C292F89961A008F5D93 /* SessionError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C282F89961A008F5D93 /* SessionError.swift */; };
+		CD6A0C2B2F899624008F5D93 /* ToastMessageFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C2A2F899624008F5D93 /* ToastMessageFactory.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -270,6 +274,10 @@
 		CD6A0C1C2F883938008F5D93 /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
 		CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = REFACTORING_GUIDE.md; sourceTree = "<group>"; };
 		CD6A0C202F88429F008F5D93 /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
+		CD6A0C242F8994D8008F5D93 /* HealthKitManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManaging.swift; sourceTree = "<group>"; };
+		CD6A0C262F8994FD008F5D93 /* HealthKitSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSyncService.swift; sourceTree = "<group>"; };
+		CD6A0C282F89961A008F5D93 /* SessionError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionError.swift; sourceTree = "<group>"; };
+		CD6A0C2A2F899624008F5D93 /* ToastMessageFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastMessageFactory.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -675,6 +683,10 @@
 				CDBE15042F864AC900B7FCD6 /* ScheduleDaysListSection.swift */,
 				CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */,
 				CD6A0C1B2F88392F008F5D93 /* ContentView */,
+				CD6A0C242F8994D8008F5D93 /* HealthKitManaging.swift */,
+				CD6A0C262F8994FD008F5D93 /* HealthKitSyncService.swift */,
+				CD6A0C282F89961A008F5D93 /* SessionError.swift */,
+				CD6A0C2A2F899624008F5D93 /* ToastMessageFactory.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1012,6 +1024,7 @@
 				CDEBAA382EE9FA1000C1C411 /* GoalSessionDetailView.swift in Sources */,
 				CD07C4D02F5C8E7C001EFE97 /* GoalEntity.swift in Sources */,
 				CD1D0F632F845F8C00A36562 /* CategoryTab.swift in Sources */,
+				CD6A0C292F89961A008F5D93 /* SessionError.swift in Sources */,
 				CD6A0C1D2F883938008F5D93 /* NavigationState.swift in Sources */,
 				CD13E01D2F44962C00E65CCA /* FocusFilterIntent.swift in Sources */,
 				CD22C8172F3BB44D001F2406 /* AllGoalsView.swift in Sources */,
@@ -1033,10 +1046,12 @@
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD6A0C212F88429F008F5D93 /* ContentViewModel.swift in Sources */,
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
+				CD6A0C2B2F899624008F5D93 /* ToastMessageFactory.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */,
+				CD6A0C252F8994D8008F5D93 /* HealthKitManaging.swift in Sources */,
 				CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
 				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
@@ -1060,6 +1075,7 @@
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
 				CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */,
 				CD1D0F612F845F6700A36562 /* SuggestionRow.swift in Sources */,
+				CD6A0C272F8994FD008F5D93 /* HealthKitSyncService.swift in Sources */,
 				CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */,
 				CD07E13C2F6D571100D751D9 /* CalendarSettingsView.swift in Sources */,
 				CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */,

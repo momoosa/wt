@@ -200,14 +200,20 @@ struct MomentumApp: App {
     @State private var dayChangeTimer: Timer?
 
     // ContentViewModel for dependency injection
-    @State private var contentViewModel = ContentViewModel(
-        navigation: NavigationState(),
-        planningViewModel: PlanningViewModel(),
-        focusFilterStore: FocusFilterStore.shared,
-        healthKitManager: HealthKitManager(),
-        weatherManager: WeatherManager.shared,
-        calendarEventStore: EKEventStore()
-    )
+    @State private var contentViewModel: ContentViewModel = {
+        let healthKitManager = HealthKitManager()
+        let healthKitSyncService = HealthKitSyncService(healthKitManager: healthKitManager)
+        
+        return ContentViewModel(
+            navigation: NavigationState(),
+            planningViewModel: PlanningViewModel(),
+            focusFilterStore: FocusFilterStore.shared,
+            healthKitManager: healthKitManager,
+            healthKitSyncService: healthKitSyncService,
+            weatherManager: WeatherManager.shared,
+            calendarEventStore: EKEventStore()
+        )
+    }()
 
     var body: some Scene {
         WindowGroup {

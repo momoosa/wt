@@ -2298,11 +2298,14 @@ private func previewOnlyContainer() -> ModelContainer {
 #Preview {
     let store = GoalStore()
     let day = Day(start: Date.now.startOfDay()!, end: Date.now.endOfDay()!)
+    let healthKitManager = HealthKitManager()
+    let healthKitSyncService = HealthKitSyncService(healthKitManager: healthKitManager)
     let viewModel = ContentViewModel(
         navigation: NavigationState(),
         planningViewModel: PlanningViewModel(),
         focusFilterStore: FocusFilterStore.shared,
-        healthKitManager: HealthKitManager(),
+        healthKitManager: healthKitManager,
+        healthKitSyncService: healthKitSyncService,
         weatherManager: WeatherManager.shared,
         calendarEventStore: EKEventStore()
     )

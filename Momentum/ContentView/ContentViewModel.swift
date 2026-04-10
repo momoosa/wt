@@ -30,7 +30,10 @@ class ContentViewModel {
     var focusFilterStore: FocusFilterStore
 
     /// HealthKit manager
-    var healthKitManager: HealthKitManager
+    var healthKitManager: HealthKitManaging
+    
+    /// HealthKit sync service
+    var healthKitSyncService: HealthKitSyncService
 
     /// Weather manager
     var weatherManager: WeatherManager
@@ -56,7 +59,8 @@ class ContentViewModel {
         navigation: NavigationState,
         planningViewModel: PlanningViewModel,
         focusFilterStore: FocusFilterStore,
-        healthKitManager: HealthKitManager,
+        healthKitManager: HealthKitManaging,
+        healthKitSyncService: HealthKitSyncService,
         weatherManager: WeatherManager,
         calendarEventStore: EKEventStore
     ) {
@@ -64,6 +68,7 @@ class ContentViewModel {
         self.planningViewModel = planningViewModel
         self.focusFilterStore = focusFilterStore
         self.healthKitManager = healthKitManager
+        self.healthKitSyncService = healthKitSyncService
         self.weatherManager = weatherManager
         self.calendarEventStore = calendarEventStore
     }
@@ -101,8 +106,11 @@ class ContentViewModel {
     // MARK: - Session Actions
 
     /// Toggle timer for a session
-    func handleTimerToggle(for session: GoalSession, in day: Day) {
-        guard let timerManager else { return }
+    @discardableResult
+    func handleTimerToggle(for session: GoalSession, in day: Day) -> Result<Void, SessionError> {
+        guard let timerManager else {
+            return .failure(.timerNotAvailable)
+        }
 
         // Check if session is currently completed
         let wasCompleted = session.hasMetDailyTarget
@@ -117,18 +125,21 @@ class ContentViewModel {
             }
 
             navigation.toastConfig = ToastConfig(
-                message: "Session resumed - moved to Today",
+                message: ToastMessageFactory.sessionResumed(),
                 showUndo: false
             )
         }
+        
+        return .success(())
     }
 
     /// Adjust daily target for a session
+    @discardableResult
     func adjustDailyTarget(
         for session: GoalSession,
         by adjustment: TimeInterval,
         in modelContext: ModelContext
-    ) {
+    ) -> Result<TimeInterval, SessionError> {
         let newTarget = max(0, session.dailyTarget + adjustment)
 
         // Update goal if needed
@@ -147,29 +158,40 @@ class ContentViewModel {
         }
 
         // Save context
-        if modelContext.safeSave() {
-            let minutes = Int(abs(adjustment) / 60)
-            let direction = adjustment > 0 ? "increased" : "decreased"
-            navigation.toastConfig = ToastConfig(
-                message: "Daily goal \(direction) by \(minutes)m",
-                showUndo: false
-            )
+        guard modelContext.safeSave() else {
+            navigation.toastConfig = ToastConfig(message: ToastMessageFactory.saveFailed())
+            return .failure(.saveFailed)
         }
+        
+        let minutes = Int(abs(adjustment) / 60)
+        navigation.toastConfig = ToastConfig(
+            message: ToastMessageFactory.dailyGoalAdjusted(by: minutes, increased: adjustment > 0),
+            showUndo: false
+        )
+        
+        return .success(newTarget)
     }
 
     /// Skip a session
-    func skip(_ session: GoalSession, in modelContext: ModelContext) {
+    @discardableResult
+    func skip(_ session: GoalSession, in modelContext: ModelContext) -> Result<Void, SessionError> {
         session.status = .skipped
-        modelContext.safeSave()
+        
+        guard modelContext.safeSave() else {
+            navigation.toastConfig = ToastConfig(message: ToastMessageFactory.saveFailed())
+            return .failure(.saveFailed)
+        }
 
         navigation.toastConfig = ToastConfig(
-            message: "Session skipped for today",
+            message: ToastMessageFactory.sessionSkipped(),
             showUndo: true,
             onUndo: {
                 session.status = .active
                 modelContext.safeSave()
             }
         )
+        
+        return .success(())
     }
 
     // MARK: - HealthKit Integration
@@ -182,236 +204,52 @@ class ContentViewModel {
         modelContext: ModelContext,
         userInitiated: Bool = false
     ) async {
-        guard healthKitManager.isHealthKitAvailable else {
-            if userInitiated {
-                await MainActor.run {
-                    navigation.toastConfig = ToastConfig(message: "HealthKit not available")
-                }
-            }
-            return
-        }
-
-        await MainActor.run {
-            isSyncingHealthKit = true
-        }
-
-        let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
-
-        guard !healthKitGoals.isEmpty else {
-            await MainActor.run {
-                isSyncingHealthKit = false
-                if userInitiated {
-                    navigation.toastConfig = ToastConfig(message: "No goals with HealthKit sync enabled")
-                }
-            }
-            return
-        }
-
-        // Track allocated samples to prevent double-counting across goals
-        var allocatedSampleIDs = Set<String>()
-
-        // Track sync results for toast notification
-        var syncedGoalsCount = 0
-        var totalDurationImported: TimeInterval = 0
-        var syncErrors: [String] = []
-
-        // Fetch and allocate data for each goal (first-come-first-served)
-        for goal in healthKitGoals {
-            guard let metric = goal.healthKitMetric else { continue }
-
-            do {
-                // Fetch individual samples (for history display)
-                let samples = try await healthKitManager.fetchSamples(
-                    for: metric,
-                    from: day.startDate,
-                    to: day.endDate
-                )
-
-                // Filter out samples created by this app to prevent double-counting
-                let externalSamples = samples.filter { !$0.isFromThisApp }
-
-                // Filter out samples already allocated to other goals
-                let availableSamples = externalSamples.filter { !allocatedSampleIDs.contains($0.id) }
-
-                // Merge samples to avoid double-counting
-                let mergedSamples = mergeSamples(availableSamples)
-
-                // Calculate total duration from merged samples
-                let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
-
-                // Update the corresponding session
-                await MainActor.run {
-                    AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue))")
-                    AppLogger.healthKit.info("  - Found \(samples.count) samples total")
-                    AppLogger.healthKit.info("  - Filtered out \(samples.count - externalSamples.count) samples from this app")
-                    AppLogger.healthKit.info("  - \(availableSamples.count) external samples available after allocation")
-                    AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
-                    AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
-
-                    if let session = sessions.first(where: { $0.goal?.id == goal.id }) {
-                        AppLogger.healthKit.info("  - Found matching session for goal '\(goal.title)'")
-                        session.updateHealthKitTime(duration)
-
-                        // Sync primary metric value for count/calorie goals
-                        if goal.goalType == .count || goal.goalType == .calories {
-                            Task {
-                                do {
-                                    let value: Double
-                                    if metric.unit == .count() {
-                                        value = try await self.healthKitManager.fetchTodayCount(for: metric)
-                                    } else {
-                                        value = try await self.healthKitManager.fetchTodayCount(for: metric)
-                                    }
-                                    await MainActor.run {
-                                        session.updatePrimaryMetricValue(value)
-                                        AppLogger.healthKit.info("  - Synced primary metric value: \(value)")
-                                    }
-                                } catch {
-                                    AppLogger.healthKit.error("  - Failed to sync primary metric: \(error)")
-                                }
-                            }
-                        }
-
-                        // Mark these samples as allocated
-                        for sample in mergedSamples {
-                            allocatedSampleIDs.insert(sample.id)
-                        }
-
-                        // Track sync results
-                        if duration > 0 {
-                            syncedGoalsCount += 1
-                            totalDurationImported += duration
-                        }
-
-                        // Note: Historical session sync moved back to ContentView due to API changes
-                    } else {
-                        AppLogger.healthKit.warning("  - No session found for goal '\(goal.title)' (ID: \(goal.id))")
-                    }
-                }
-            } catch {
-                AppLogger.healthKit.error("Failed to fetch HealthKit data for \(goal.title): \(error)")
-                syncErrors.append(goal.title)
-            }
-        }
-
-        // Reset syncing state and show toast when done
-        await MainActor.run {
-            isSyncingHealthKit = false
-
-            // Only show toast if user-initiated
-            if userInitiated {
-                if syncedGoalsCount > 0 {
-                    let minutes = Int(totalDurationImported / 60)
-                    navigation.toastConfig = ToastConfig(
-                        message: "Synced \(syncedGoalsCount) goal\(syncedGoalsCount == 1 ? "" : "s") (\(minutes)m imported)"
-                    )
-                } else if !syncErrors.isEmpty {
-                    navigation.toastConfig = ToastConfig(
-                        message: "Failed to sync \(syncErrors.count) goal\(syncErrors.count == 1 ? "" : "s")"
-                    )
-                } else {
-                    navigation.toastConfig = ToastConfig(message: "No new HealthKit data to sync")
-                }
-            }
-        }
-    }
-
-    // Note: syncHistoricalSessions moved back to ContentView due to HistoricalSession API changes
-
-    /// Merge consecutive HealthKit samples that are short and have no time gap between them
-    private func mergeSamples(_ samples: [HealthKitSample]) -> [HealthKitSample] {
-        guard !samples.isEmpty else { return [] }
-
-        // Sort by start date
-        let sorted = samples.sorted { $0.startDate < $1.startDate }
-        var merged: [HealthKitSample] = []
-        var currentGroup: [HealthKitSample] = [sorted[0]]
-
-        for i in 1..<sorted.count {
-            let previous = sorted[i - 1]
-            let current = sorted[i]
-
-            // Check if we should merge with the current group
-            let timeBetween = current.startDate.timeIntervalSince(previous.endDate)
-            let shouldMerge = timeBetween <= 0 && // No gap (or overlap)
-                              previous.duration < 300 && // Previous session < 5 minutes
-                              current.duration < 300 && // Current session < 5 minutes
-                              previous.metric == current.metric && // Same metric type
-                              previous.sourceName == current.sourceName // Same source app
-
-            if shouldMerge {
-                currentGroup.append(current)
-            } else {
-                // Finalize the current group
-                merged.append(createMergedSample(from: currentGroup))
-                currentGroup = [current]
-            }
-        }
-
-        // Don't forget the last group
-        merged.append(createMergedSample(from: currentGroup))
-
-        return merged
-    }
-
-    /// Create a single merged sample from a group of samples
-    private func createMergedSample(from samples: [HealthKitSample]) -> HealthKitSample {
-        guard !samples.isEmpty else {
-            fatalError("Cannot create merged sample from empty array")
-        }
-
-        // If only one sample, return it as-is
-        if samples.count == 1 {
-            return samples[0]
-        }
-
-        // Merge multiple samples
-        let sortedByDate = samples.sorted { $0.startDate < $1.startDate }
-        let earliestStart = sortedByDate.first!.startDate
-        let latestEnd = sortedByDate.max { $0.endDate < $1.endDate }!.endDate
-        let totalDuration = latestEnd.timeIntervalSince(earliestStart)
-
-        // Create a combined ID from all merged sample IDs
-        let combinedID = sortedByDate.map { $0.id }.joined(separator: "_")
-
-        return HealthKitSample(
-            id: combinedID,
-            startDate: earliestStart,
-            endDate: latestEnd,
-            duration: totalDuration,
-            metric: samples[0].metric,
-            sourceName: samples[0].sourceName
+        isSyncingHealthKit = true
+        
+        // Delegate to service for the actual sync
+        let result = await healthKitSyncService.syncHealthKitData(
+            for: goals,
+            sessions: sessions,
+            in: day,
+            userInitiated: userInitiated
         )
+        
+        isSyncingHealthKit = false
+        
+        // Show toast if user-initiated
+        if userInitiated {
+            if result.hadData {
+                let minutes = Int(result.totalDurationImported / 60)
+                navigation.toastConfig = ToastConfig(
+                    message: ToastMessageFactory.healthKitSyncSuccess(
+                        goalCount: result.syncedGoalsCount,
+                        minutes: minutes
+                    )
+                )
+            } else if result.hasErrors {
+                navigation.toastConfig = ToastConfig(
+                    message: ToastMessageFactory.healthKitSyncFailed(goalCount: result.errors.count)
+                )
+            } else {
+                navigation.toastConfig = ToastConfig(
+                    message: ToastMessageFactory.noHealthKitData()
+                )
+            }
+        }
     }
 
     /// Start observing HealthKit changes for real-time updates
     func startHealthKitObservers(for goals: [Goal]) {
         // Stop any existing observers first
         stopHealthKitObservers()
-
-        guard healthKitManager.isHealthKitAvailable else { return }
-
-        let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
-        let uniqueMetrics = Set(healthKitGoals.compactMap { $0.healthKitMetric })
-
-        for metric in uniqueMetrics {
-            do {
-                let observer = try healthKitManager.observeMetric(metric) { _ in
-                    // When HealthKit data changes, trigger a re-sync
-                    // This will be handled by the view calling syncHealthKitData
-                }
-                healthKitObservers.append(observer)
-            } catch {
-                AppLogger.healthKit.error("Failed to start observer for \(metric.displayName): \(error)")
-            }
-        }
+        
+        // Delegate to service for observer setup
+        healthKitObservers = healthKitSyncService.startHealthKitObservers(for: goals)
     }
 
     /// Stop all HealthKit observers
     func stopHealthKitObservers() {
-        for observer in healthKitObservers {
-            healthKitManager.stopObserving(observer)
-        }
+        healthKitSyncService.stopHealthKitObservers(healthKitObservers)
         healthKitObservers.removeAll()
     }
 
