@@ -20,8 +20,31 @@ class ContentViewModel {
     /// Navigation state (sheet presentation, selection, etc.)
     let navigation: NavigationState
 
-    /// Timer manager for session tracking
-    var timerManager: SessionTimerManager?
+    /// Session view model for session-specific operations
+    var sessionViewModel: SessionViewModel
+    
+    /// Timer manager for session tracking (delegated to SessionViewModel)
+    var timerManager: SessionTimerManager? {
+        get { sessionViewModel.timerManager }
+        set { sessionViewModel.timerManager = newValue }
+    }
+    
+    /// HealthKit view model for HealthKit operations
+    var healthKitViewModel: HealthKitViewModel
+    
+    /// Is currently syncing HealthKit data (delegated to HealthKitViewModel)
+    var isSyncingHealthKit: Bool {
+        healthKitViewModel.isSyncingHealthKit
+    }
+    
+    /// Calendar view model for calendar operations
+    var calendarViewModel: CalendarViewModel
+    
+    /// Next calendar event (delegated to CalendarViewModel)
+    var nextCalendarEvent: EKEvent? {
+        get { calendarViewModel.nextCalendarEvent }
+        set { calendarViewModel.nextCalendarEvent = newValue }
+    }
 
     /// Planning view model
     var planningViewModel: PlanningViewModel
@@ -31,72 +54,43 @@ class ContentViewModel {
 
     /// HealthKit manager
     var healthKitManager: HealthKitManaging
-    
-    /// HealthKit sync service
-    var healthKitSyncService: HealthKitSyncService
 
     /// Weather manager
     var weatherManager: WeatherManager
-
-    /// Calendar event store
-    var calendarEventStore: EKEventStore
-
-    // MARK: - State
-
-    /// HealthKit observers for real-time updates
-    var healthKitObservers: [HKObserverQuery] = []
-
-    /// Is currently syncing HealthKit data
-    var isSyncingHealthKit = false
-
-    /// Next calendar event
-    var nextCalendarEvent: EKEvent?
 
     // MARK: - Initialization
 
     @MainActor
     init(
         navigation: NavigationState,
+        sessionViewModel: SessionViewModel,
+        healthKitViewModel: HealthKitViewModel,
+        calendarViewModel: CalendarViewModel,
         planningViewModel: PlanningViewModel,
         focusFilterStore: FocusFilterStore,
         healthKitManager: HealthKitManaging,
-        healthKitSyncService: HealthKitSyncService,
-        weatherManager: WeatherManager,
-        calendarEventStore: EKEventStore
+        weatherManager: WeatherManager
     ) {
         self.navigation = navigation
+        self.sessionViewModel = sessionViewModel
+        self.healthKitViewModel = healthKitViewModel
+        self.calendarViewModel = calendarViewModel
         self.planningViewModel = planningViewModel
         self.focusFilterStore = focusFilterStore
         self.healthKitManager = healthKitManager
-        self.healthKitSyncService = healthKitSyncService
         self.weatherManager = weatherManager
-        self.calendarEventStore = calendarEventStore
     }
 
     // MARK: - Computed Properties
 
     /// Get sessions filtered by focus filter
     func focusFilteredSessions(from sessions: [GoalSession]) -> [GoalSession] {
-        guard focusFilterStore.isFocusFilterActive else {
-            return sessions
-        }
-
-        return sessions.filter { session in
-            guard let goal = session.goal else { return false }
-
-            // Include if goal matches any active focus tag
-            if let primaryTag = goal.primaryTag,
-               focusFilterStore.activeFocusTagTitles.contains(primaryTag.title) {
-                return true
-            }
-
-            return false
-        }
+        FilterService.focusFilteredSessions(from: sessions, focusFilterStore: focusFilterStore)
     }
 
     /// Get all active sessions (non-skipped)
     func allActiveSessions(from sessions: [GoalSession]) -> [GoalSession] {
-        sessions.filter { $0.status != .skipped }
+        FilterService.allActiveSessions(from: sessions)
     }
 
     // Note: getRecommendedSessions, sessionCountsForFilters, and getContextualSections
@@ -108,90 +102,77 @@ class ContentViewModel {
     /// Toggle timer for a session
     @discardableResult
     func handleTimerToggle(for session: GoalSession, in day: Day) -> Result<Void, SessionError> {
-        guard let timerManager else {
-            return .failure(.timerNotAvailable)
-        }
-
-        // Check if session is currently completed
+        // Check if session is currently completed before toggling
         let wasCompleted = session.hasMetDailyTarget
 
-        // Toggle the timer
-        timerManager.toggleTimer(for: session, in: day)
+        // Delegate to SessionViewModel
+        let result = sessionViewModel.toggleTimer(for: session, in: day)
+        
+        // Handle navigation and toast if successful
+        if case .success = result {
+            // If it was completed and we just started it, switch to Today filter and show toast
+            if wasCompleted && timerManager?.activeSession?.id == session.id {
+                withAnimation {
+                    navigation.activeFilter = .activeToday
+                }
 
-        // If it was completed and we just started it, switch to Today filter and show toast
-        if wasCompleted && timerManager.activeSession?.id == session.id {
-            withAnimation {
-                navigation.activeFilter = .activeToday
+                navigation.toastConfig = ToastConfig(
+                    message: ToastMessageFactory.sessionResumed(),
+                    showUndo: false
+                )
             }
-
-            navigation.toastConfig = ToastConfig(
-                message: ToastMessageFactory.sessionResumed(),
-                showUndo: false
-            )
         }
         
-        return .success(())
+        return result
     }
 
     /// Adjust daily target for a session
     @discardableResult
     func adjustDailyTarget(
         for session: GoalSession,
-        by adjustment: TimeInterval,
-        in modelContext: ModelContext
+        by adjustment: TimeInterval
     ) -> Result<TimeInterval, SessionError> {
-        let newTarget = max(0, session.dailyTarget + adjustment)
-
-        // Update goal if needed
-        if let goal = session.goal {
-            goal.weeklyTarget = newTarget * 7
-        }
-
-        // Update session
-        session.dailyTarget = newTarget
-
-        // Update timerManager if this is the active session
-        if let timerManager,
-           let activeSession = timerManager.activeSession,
-           activeSession.id == session.id {
-            activeSession.dailyTarget = newTarget
-        }
-
-        // Save context
-        guard modelContext.safeSave() else {
+        // Delegate to SessionViewModel
+        let result = sessionViewModel.adjustDailyTarget(for: session, by: adjustment)
+        
+        // Handle toast notification based on result
+        switch result {
+        case .success(let newTarget):
+            let minutes = Int(abs(adjustment) / 60)
+            navigation.toastConfig = ToastConfig(
+                message: ToastMessageFactory.dailyGoalAdjusted(by: minutes, increased: adjustment > 0),
+                showUndo: false
+            )
+            return .success(newTarget)
+            
+        case .failure(let error):
             navigation.toastConfig = ToastConfig(message: ToastMessageFactory.saveFailed())
-            return .failure(.saveFailed)
+            return .failure(error)
         }
-        
-        let minutes = Int(abs(adjustment) / 60)
-        navigation.toastConfig = ToastConfig(
-            message: ToastMessageFactory.dailyGoalAdjusted(by: minutes, increased: adjustment > 0),
-            showUndo: false
-        )
-        
-        return .success(newTarget)
     }
 
     /// Skip a session
     @discardableResult
-    func skip(_ session: GoalSession, in modelContext: ModelContext) -> Result<Void, SessionError> {
-        session.status = .skipped
+    func skip(_ session: GoalSession) -> Result<Void, SessionError> {
+        // Delegate to SessionViewModel
+        let result = sessionViewModel.skip(session)
         
-        guard modelContext.safeSave() else {
+        // Handle toast notification based on result
+        switch result {
+        case .success:
+            navigation.toastConfig = ToastConfig(
+                message: ToastMessageFactory.sessionSkipped(),
+                showUndo: true,
+                onUndo: { [weak sessionViewModel] in
+                    sessionViewModel?.resumeSession(session)
+                }
+            )
+            return .success(())
+            
+        case .failure(let error):
             navigation.toastConfig = ToastConfig(message: ToastMessageFactory.saveFailed())
-            return .failure(.saveFailed)
+            return .failure(error)
         }
-
-        navigation.toastConfig = ToastConfig(
-            message: ToastMessageFactory.sessionSkipped(),
-            showUndo: true,
-            onUndo: {
-                session.status = .active
-                modelContext.safeSave()
-            }
-        )
-        
-        return .success(())
     }
 
     // MARK: - HealthKit Integration
@@ -201,20 +182,15 @@ class ContentViewModel {
         for goals: [Goal],
         sessions: [GoalSession],
         in day: Day,
-        modelContext: ModelContext,
         userInitiated: Bool = false
     ) async {
-        isSyncingHealthKit = true
-        
-        // Delegate to service for the actual sync
-        let result = await healthKitSyncService.syncHealthKitData(
+        // Delegate to HealthKitViewModel
+        let result = await healthKitViewModel.syncHealthKitData(
             for: goals,
             sessions: sessions,
             in: day,
             userInitiated: userInitiated
         )
-        
-        isSyncingHealthKit = false
         
         // Show toast if user-initiated
         if userInitiated {
@@ -240,17 +216,14 @@ class ContentViewModel {
 
     /// Start observing HealthKit changes for real-time updates
     func startHealthKitObservers(for goals: [Goal]) {
-        // Stop any existing observers first
-        stopHealthKitObservers()
-        
-        // Delegate to service for observer setup
-        healthKitObservers = healthKitSyncService.startHealthKitObservers(for: goals)
+        // Delegate to HealthKitViewModel
+        healthKitViewModel.startHealthKitObservers(for: goals)
     }
 
     /// Stop all HealthKit observers
     func stopHealthKitObservers() {
-        healthKitSyncService.stopHealthKitObservers(healthKitObservers)
-        healthKitObservers.removeAll()
+        // Delegate to HealthKitViewModel
+        healthKitViewModel.stopHealthKitObservers()
     }
 
     // MARK: - Lifecycle

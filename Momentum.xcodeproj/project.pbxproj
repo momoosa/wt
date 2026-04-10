@@ -82,6 +82,12 @@
 		CD6A0C272F8994FD008F5D93 /* HealthKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C262F8994FD008F5D93 /* HealthKitSyncService.swift */; };
 		CD6A0C292F89961A008F5D93 /* SessionError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C282F89961A008F5D93 /* SessionError.swift */; };
 		CD6A0C2B2F899624008F5D93 /* ToastMessageFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C2A2F899624008F5D93 /* ToastMessageFactory.swift */; };
+		CD6A0C2D2F899989008F5D93 /* SessionRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C2C2F899989008F5D93 /* SessionRepository.swift */; };
+		CD6A0C2F2F899990008F5D93 /* LoggerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C2E2F899990008F5D93 /* LoggerProtocol.swift */; };
+		CD6A0C312F89999F008F5D93 /* SessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C302F89999F008F5D93 /* SessionViewModel.swift */; };
+		CD6A0C332F899C97008F5D93 /* HealthKitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C322F899C97008F5D93 /* HealthKitViewModel.swift */; };
+		CD6A0C352F899CE4008F5D93 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C342F899CE4008F5D93 /* CalendarViewModel.swift */; };
+		CD6A0C372F899D0C008F5D93 /* FilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C362F899D0C008F5D93 /* FilterService.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -278,6 +284,12 @@
 		CD6A0C262F8994FD008F5D93 /* HealthKitSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSyncService.swift; sourceTree = "<group>"; };
 		CD6A0C282F89961A008F5D93 /* SessionError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionError.swift; sourceTree = "<group>"; };
 		CD6A0C2A2F899624008F5D93 /* ToastMessageFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastMessageFactory.swift; sourceTree = "<group>"; };
+		CD6A0C2C2F899989008F5D93 /* SessionRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRepository.swift; sourceTree = "<group>"; };
+		CD6A0C2E2F899990008F5D93 /* LoggerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggerProtocol.swift; sourceTree = "<group>"; };
+		CD6A0C302F89999F008F5D93 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
+		CD6A0C322F899C97008F5D93 /* HealthKitViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitViewModel.swift; sourceTree = "<group>"; };
+		CD6A0C342F899CE4008F5D93 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewModel.swift; sourceTree = "<group>"; };
+		CD6A0C362F899D0C008F5D93 /* FilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterService.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -687,6 +699,12 @@
 				CD6A0C262F8994FD008F5D93 /* HealthKitSyncService.swift */,
 				CD6A0C282F89961A008F5D93 /* SessionError.swift */,
 				CD6A0C2A2F899624008F5D93 /* ToastMessageFactory.swift */,
+				CD6A0C2C2F899989008F5D93 /* SessionRepository.swift */,
+				CD6A0C2E2F899990008F5D93 /* LoggerProtocol.swift */,
+				CD6A0C302F89999F008F5D93 /* SessionViewModel.swift */,
+				CD6A0C322F899C97008F5D93 /* HealthKitViewModel.swift */,
+				CD6A0C342F899CE4008F5D93 /* CalendarViewModel.swift */,
+				CD6A0C362F899D0C008F5D93 /* FilterService.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1002,6 +1020,7 @@
 				CDBE144D2F85149800B7FCD6 /* CategorySuggestionsView.swift in Sources */,
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
 				CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */,
+				CD6A0C332F899C97008F5D93 /* HealthKitViewModel.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
@@ -1010,6 +1029,7 @@
 				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
 				CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
+				CD6A0C312F89999F008F5D93 /* SessionViewModel.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */,
 				CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */,
@@ -1067,6 +1087,7 @@
 				CD22C8182F3BB461001F2406 /* ManualLogSheet.swift in Sources */,
 				CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */,
 				CD22C81A2F3BB4BF001F2406 /* GoalManager.swift in Sources */,
+				CD6A0C2F2F899990008F5D93 /* LoggerProtocol.swift in Sources */,
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
 				CD2A6FC72F57795400F5503A /* CommonModifiers.swift in Sources */,
 				CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */,
@@ -1091,14 +1112,17 @@
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */,
+				CD6A0C372F899D0C008F5D93 /* FilterService.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
 				CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */,
+				CD6A0C2D2F899989008F5D93 /* SessionRepository.swift in Sources */,
 				CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */,
 				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
 				CDBE15022F86449400B7FCD6 /* SuggestionsSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,
 				CDBE15062F864D7200B7FCD6 /* ScheduleSection.swift in Sources */,
+				CD6A0C352F899CE4008F5D93 /* CalendarViewModel.swift in Sources */,
 				CD1D0F692F84603400A36562 /* IconCategory.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
 				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,

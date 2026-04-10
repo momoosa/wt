@@ -41,10 +41,8 @@ struct ContentView: View {
     // Focus filter
     @State private var focusFilterStore = FocusFilterStore.shared
 
-    // HealthKit
+    // HealthKit (delegated to ViewModel)
     @State private var healthKitManager = HealthKitManager()
-    @State private var healthKitObservers = [HKObserverQuery]()
-    @State private var isSyncingHealthKit = false
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
@@ -225,7 +223,7 @@ struct ContentView: View {
             searchText: $navigation.searchText,
             onSkip: skip,
             onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-            isSyncingHealthKit: isSyncingHealthKit,
+            isSyncingHealthKit: viewModel.isSyncingHealthKit,
             isGoalValid: isGoalValid
         )
     }
@@ -350,7 +348,7 @@ struct ContentView: View {
                         sessionToLogManually: $navigation.sessionToLogManually,
                         onSkip: skip,
                         onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-                        isSyncingHealthKit: isSyncingHealthKit
+                        isSyncingHealthKit: viewModel.isSyncingHealthKit
                     )
                 }
                 .listSectionSpacing(.compact)
@@ -1219,7 +1217,7 @@ struct ContentView: View {
             sessionToLogManually: $navigation.sessionToLogManually,
             onSkip: skip,
             onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-            isSyncingHealthKit: isSyncingHealthKit
+            isSyncingHealthKit: viewModel.isSyncingHealthKit
         )
     }
     
@@ -1372,23 +1370,8 @@ struct ContentView: View {
     }
 
     func skip(session: GoalSession) {
-        let previousStatus = session.status
-        
-        withAnimation {
-            session.status = session.status == .skipped ? .active : .skipped
-        }
-        
-        let message = session.status == .skipped ? "Goal skipped" : "Goal unskipped"
-        navigation.toastConfig = ToastConfig(
-            message: message,
-            showUndo: true,
-            onUndo: { [weak session] in
-                guard let session = session else { return }
-                withAnimation {
-                    session.status = previousStatus
-                }
-            }
-        )
+        // Delegate to ViewModel
+        viewModel.skip(session)
     }
     
     /// Check if a session's goal is still valid (not deleted)
@@ -1477,7 +1460,7 @@ struct ContentView: View {
             sessionToLogManually: $navigation.sessionToLogManually,
             onSkip: skip,
             onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-            isSyncingHealthKit: isSyncingHealthKit
+            isSyncingHealthKit: viewModel.isSyncingHealthKit
         )
     }
     
@@ -1531,26 +1514,8 @@ struct ContentView: View {
     }
     
     func handleDailyGoalAdjustment(for session: GoalSession, adjustment: TimeInterval) {
-        // Adjust the session's daily target
-        let newTarget = max(60, session.dailyTarget + adjustment) // Minimum 1 minute
-        session.dailyTarget = newTarget
-        
-        // Update active session if needed
-        if let timerManager,
-           let activeSession = timerManager.activeSession,
-           activeSession.id == session.id {
-            activeSession.dailyTarget = newTarget
-        }
-        
-        // Save context
-        if modelContext.safeSave(showingToast: $navigation.toastConfig) {
-            let minutes = Int(abs(adjustment) / 60)
-            let direction = adjustment > 0 ? "increased" : "decreased"
-            navigation.toastConfig = ToastConfig(
-                message: "Daily goal \(direction) by \(minutes)m",
-                showUndo: false
-            )
-        }
+        // Delegate to ViewModel
+        viewModel.adjustDailyTarget(for: session, by: adjustment)
         
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
@@ -1574,153 +1539,14 @@ struct ContentView: View {
     // MARK: - HealthKit Integration
     
     private func syncHealthKitData(userInitiated: Bool = false) {
-        guard healthKitManager.isHealthKitAvailable else { return }
-        
-        // Set syncing state
-        isSyncingHealthKit = true
-        
-        // Get all goals with HealthKit sync enabled
-        let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
-        
-        AppLogger.healthKit.info("Starting HealthKit sync for \(healthKitGoals.count) goals (user initiated: \(userInitiated))")
-        for goal in healthKitGoals {
-            AppLogger.healthKit.info("  - '\(goal.title)' (metric: \(goal.healthKitMetric?.rawValue ?? "none"))")
-        }
-        
-        // Request authorization if needed
-        let metrics = healthKitGoals.compactMap { $0.healthKitMetric }
-        guard !metrics.isEmpty else {
-            isSyncingHealthKit = false
-            return
-        }
-        
+        // Delegate to ViewModel
         Task {
-            // Request authorization first (this will be a no-op if already authorized)
-            do {
-                try await healthKitManager.requestAuthorization(for: metrics)
-            } catch {
-                AppLogger.healthKit.error("HealthKit authorization failed: \(error)")
-                return
-            }
-            
-            // Track allocated samples to prevent double-counting across goals
-            var allocatedSampleIDs = Set<String>()
-            
-            // Track sync results for toast notification
-            var syncedGoalsCount = 0
-            var totalDurationImported: TimeInterval = 0
-            var syncErrors: [String] = []
-            
-            // Fetch and allocate data for each goal (first-come-first-served)
-            for goal in healthKitGoals {
-                guard let metric = goal.healthKitMetric else { continue }
-                
-                do {
-                    // Fetch individual samples (for history display)
-                    let samples = try await healthKitManager.fetchSamples(
-                        for: metric,
-                        from: day.startDate,
-                        to: day.endDate
-                    )
-                    
-                    // Filter out samples created by this app to prevent double-counting
-                    let externalSamples = samples.filter { !$0.isFromThisApp }
-                    
-                    // Filter out samples already allocated to other goals
-                    let availableSamples = externalSamples.filter { !allocatedSampleIDs.contains($0.id) }
-                    
-                    // Merge samples to avoid double-counting
-                    let mergedSamples = mergeSamples(availableSamples)
-                    
-                    // Calculate total duration from merged samples
-                    let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
-                    
-                    // Update the corresponding session
-                    await MainActor.run {
-                        AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue))")
-                        AppLogger.healthKit.info("  - Found \(samples.count) samples total")
-                        AppLogger.healthKit.info("  - Filtered out \(samples.count - externalSamples.count) samples from this app")
-                        AppLogger.healthKit.info("  - \(availableSamples.count) external samples available after allocation")
-                        AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
-                        AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
-                        AppLogger.healthKit.info("  - Looking for session in \(sessions.count) total sessions")
-                        
-                        if let session = sessions.first(where: { $0.goal?.id == goal.id }) {
-                            AppLogger.healthKit.info("  - Found matching session for goal '\(goal.title)'")
-                            session.updateHealthKitTime(duration)
-
-                            // Sync primary metric value for count/calorie goals
-                            if goal.goalType == .count || goal.goalType == .calories {
-                                Task {
-                                    do {
-                                        let value: Double
-                                        if metric.unit == .count() {
-                                            value = try await healthKitManager.fetchTodayCount(for: metric)
-                                        } else {
-                                            value = try await healthKitManager.fetchTodayCount(for: metric)
-                                        }
-                                        await MainActor.run {
-                                            session.updatePrimaryMetricValue(value)
-                                            AppLogger.healthKit.info("  - Synced primary metric value: \(value)")
-                                        }
-                                    } catch {
-                                        AppLogger.healthKit.error("  - Failed to sync primary metric: \(error)")
-                                    }
-                                }
-                            }
-
-                            // Mark these samples as allocated
-                            for sample in mergedSamples {
-                                allocatedSampleIDs.insert(sample.id)
-                            }
-
-                            // Track sync results
-                            if duration > 0 {
-                                syncedGoalsCount += 1
-                                totalDurationImported += duration
-                            }
-
-                            // Create or update historical sessions from HealthKit samples
-                            syncHistoricalSessions(from: mergedSamples, for: goal, in: session)
-                        } else {
-                            AppLogger.healthKit.warning("  - No session found for goal '\(goal.title)' (ID: \(goal.id))")
-                            AppLogger.healthKit.warning("  - Available sessions: \(sessions.map { ($0.goal?.title ?? "nil", $0.goal?.id.uuidString ?? "nil") })")
-                        }
-                    }
-                } catch {
-                    AppLogger.healthKit.error("Failed to fetch HealthKit data for \(goal.title): \(error)")
-                    syncErrors.append(goal.title)
-                }
-            }
-            
-            // Reset syncing state and show toast when done
-            await MainActor.run {
-                isSyncingHealthKit = false
-                
-                // Only show toast if user-initiated
-                if userInitiated {
-                    // Show toast with sync results
-                    if !syncErrors.isEmpty {
-                        // Show error toast
-                        navigation.toastConfig = ToastConfig(
-                            message: "Sync failed for \(syncErrors.count) goal\(syncErrors.count == 1 ? "" : "s")"
-                        )
-                    } else if syncedGoalsCount > 0 {
-                        // Show success toast with details
-                        let minutes = Int(totalDurationImported / 60)
-                        let goalText = syncedGoalsCount == 1 ? "goal" : "goals"
-                        let minuteText = minutes == 1 ? "minute" : "minutes"
-                        navigation.toastConfig = ToastConfig(
-                            message: "Synced \(syncedGoalsCount) \(goalText): \(minutes) \(minuteText) imported"
-                        )
-                    } else {
-                        // No data synced
-                        navigation.toastConfig = ToastConfig(
-                            message: "No new data to sync"
-                        )
-                    }
-                }
-            }
+            await viewModel.syncHealthKitData(
+                for: goals,
+                sessions: Array(sessions),
+                in: day,
+                userInitiated: userInitiated
+            )
         }
     }
     
@@ -1847,33 +1673,14 @@ struct ContentView: View {
     
     /// Start observing HealthKit changes for real-time updates
     private func startHealthKitObservers() {
-        // Stop any existing observers first
-        stopHealthKitObservers()
-        
-        guard healthKitManager.isHealthKitAvailable else { return }
-        
-        let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
-        let uniqueMetrics = Set(healthKitGoals.compactMap { $0.healthKitMetric })
-        
-        for metric in uniqueMetrics {
-            do {
-                let observer = try healthKitManager.observeMetric(metric) { _ in
-                    // When HealthKit data changes, re-sync
-                    self.syncHealthKitData()
-                }
-                healthKitObservers.append(observer)
-            } catch {
-                AppLogger.healthKit.error("Failed to start observer for \(metric.displayName): \(error)")
-            }
-        }
+        // Delegate to ViewModel
+        viewModel.startHealthKitObservers(for: goals)
     }
     
     /// Stop all HealthKit observers
     private func stopHealthKitObservers() {
-        for observer in healthKitObservers {
-            healthKitManager.stopObserving(observer)
-        }
-        healthKitObservers.removeAll()
+        // Delegate to ViewModel
+        viewModel.stopHealthKitObservers()
     }
     
     
@@ -2300,14 +2107,27 @@ private func previewOnlyContainer() -> ModelContainer {
     let day = Day(start: Date.now.startOfDay()!, end: Date.now.endOfDay()!)
     let healthKitManager = HealthKitManager()
     let healthKitSyncService = HealthKitSyncService(healthKitManager: healthKitManager)
+    
+    // Create dependencies for preview
+    let container = previewOnlyContainer()
+    let repository = SessionRepository(modelContext: container.mainContext)
+    let logger = ProductionLogger(subsystem: "com.moosa.momentum.ios", category: "SessionViewModel")
+    let sessionViewModel = SessionViewModel(repository: repository, logger: logger)
+    let healthKitViewModel = HealthKitViewModel(
+        healthKitManager: healthKitManager,
+        healthKitSyncService: healthKitSyncService
+    )
+    let calendarViewModel = CalendarViewModel(calendarEventStore: EKEventStore())
+    
     let viewModel = ContentViewModel(
         navigation: NavigationState(),
+        sessionViewModel: sessionViewModel,
+        healthKitViewModel: healthKitViewModel,
+        calendarViewModel: calendarViewModel,
         planningViewModel: PlanningViewModel(),
         focusFilterStore: FocusFilterStore.shared,
         healthKitManager: healthKitManager,
-        healthKitSyncService: healthKitSyncService,
-        weatherManager: WeatherManager.shared,
-        calendarEventStore: EKEventStore()
+        weatherManager: WeatherManager.shared
     )
     ContentView(day: day, viewModel: viewModel)
         .environment(store)

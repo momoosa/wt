@@ -200,24 +200,42 @@ struct MomentumApp: App {
     @State private var dayChangeTimer: Timer?
 
     // ContentViewModel for dependency injection
-    @State private var contentViewModel: ContentViewModel = {
+    @State private var contentViewModel: ContentViewModel?
+    
+    // Create ContentViewModel with all dependencies
+    private func createContentViewModel() -> ContentViewModel {
         let healthKitManager = HealthKitManager()
         let healthKitSyncService = HealthKitSyncService(healthKitManager: healthKitManager)
         
+        // Create repository and logger for SessionViewModel
+        let repository = SessionRepository(modelContext: sharedModelContainer.mainContext)
+        let logger = ProductionLogger(subsystem: "com.moosa.momentum.ios", category: "SessionViewModel")
+        let sessionViewModel = SessionViewModel(repository: repository, logger: logger)
+        
+        // Create HealthKitViewModel
+        let healthKitViewModel = HealthKitViewModel(
+            healthKitManager: healthKitManager,
+            healthKitSyncService: healthKitSyncService
+        )
+        
+        // Create CalendarViewModel
+        let calendarViewModel = CalendarViewModel(calendarEventStore: EKEventStore())
+        
         return ContentViewModel(
             navigation: NavigationState(),
+            sessionViewModel: sessionViewModel,
+            healthKitViewModel: healthKitViewModel,
+            calendarViewModel: calendarViewModel,
             planningViewModel: PlanningViewModel(),
             focusFilterStore: FocusFilterStore.shared,
             healthKitManager: healthKitManager,
-            healthKitSyncService: healthKitSyncService,
-            weatherManager: WeatherManager.shared,
-            calendarEventStore: EKEventStore()
+            weatherManager: WeatherManager.shared
         )
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
-            if let day {
+            if let day, let contentViewModel {
                 NavigationStack {
                     ContentView(
                         day: day,
@@ -262,6 +280,11 @@ struct MomentumApp: App {
             } else {
                 Text("")
                     .task {
+                        // Initialize ContentViewModel if needed
+                        if contentViewModel == nil {
+                            contentViewModel = createContentViewModel()
+                        }
+                        
                         if day == nil {
                             do {
                                 let weekStore = WeekStore(modelContext: sharedModelContainer.mainContext)
