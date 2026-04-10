@@ -26,7 +26,10 @@ struct ContentView: View {
     let day: Day
     @Namespace var animation
 
-    // Consolidated navigation and UI state
+    // View Model (business logic) - injected from WeektimeApp
+    @State var viewModel: ContentViewModel
+
+    // Navigation and UI state (from ViewModel when created)
     @State private var navigation = NavigationState()
 
     // Timer manager for session tracking
@@ -37,7 +40,7 @@ struct ContentView: View {
 
     // Focus filter
     @State private var focusFilterStore = FocusFilterStore.shared
-    
+
     // HealthKit
     @State private var healthKitManager = HealthKitManager()
     @State private var healthKitObservers = [HKObserverQuery]()
@@ -45,10 +48,10 @@ struct ContentView: View {
     @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
     @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
-    
+
     // Weather
     @State private var weatherManager = WeatherManager.shared
-    
+
     // Calendar
     @State private var nextCalendarEvent: EKEvent?
     @State private var calendarEventStore = EKEventStore()
@@ -57,7 +60,14 @@ struct ContentView: View {
     @AppStorage("showProgressTile") private var showProgressTile: Bool = true
     @AppStorage("showWeatherTile") private var showWeatherTile: Bool = true
     @AppStorage("showCalendarTile") private var showCalendarTile: Bool = true
-    
+
+    // MARK: - Initialization
+
+    init(day: Day, viewModel: ContentViewModel) {
+        self.day = day
+        self._viewModel = State(initialValue: viewModel)
+    }
+
     var body: some View {
         let recommendedSessionIDs = getRecommendedSessions().map { $0.id }
         
@@ -987,6 +997,9 @@ struct ContentView: View {
     // MARK: - Setup Methods
     
     private func setupOnAppear() {
+        // Sync ViewModel's timerManager with ContentView's (ViewModel is injected from WeektimeApp)
+        viewModel.timerManager = timerManager
+
         // Initialize timer manager if needed
         if timerManager == nil {
             let manager = SessionTimerManager(goalStore: goalStore, modelContext: modelContext)
@@ -1259,17 +1272,7 @@ struct ContentView: View {
         }
     }
 
-    
-    init(day: Day) {
-        self.day = day
-        let dayID = day.id
-        
-        self._sessions = Query(
-            filter: #Predicate<GoalSession> { event in
-                event.day?.id == dayID
-            }
-        )
-    }
+
     
     private func refreshGoals() {
         // First, clean up any sessions whose goals have been deleted
@@ -2295,7 +2298,15 @@ private func previewOnlyContainer() -> ModelContainer {
 #Preview {
     let store = GoalStore()
     let day = Day(start: Date.now.startOfDay()!, end: Date.now.endOfDay()!)
-    ContentView(day: day)
+    let viewModel = ContentViewModel(
+        navigation: NavigationState(),
+        planningViewModel: PlanningViewModel(),
+        focusFilterStore: FocusFilterStore.shared,
+        healthKitManager: HealthKitManager(),
+        weatherManager: WeatherManager.shared,
+        calendarEventStore: EKEventStore()
+    )
+    ContentView(day: day, viewModel: viewModel)
         .environment(store)
         .modelContainer(for: Item.self, inMemory: true)
 }

@@ -12,6 +12,7 @@ import UserNotifications
 import BackgroundTasks
 import OSLog
 import AppIntents
+import EventKit
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -197,12 +198,25 @@ struct MomentumApp: App {
     
     // Day change detection
     @State private var dayChangeTimer: Timer?
-    
+
+    // ContentViewModel for dependency injection
+    @State private var contentViewModel = ContentViewModel(
+        navigation: NavigationState(),
+        planningViewModel: PlanningViewModel(),
+        focusFilterStore: FocusFilterStore.shared,
+        healthKitManager: HealthKitManager(),
+        weatherManager: WeatherManager.shared,
+        calendarEventStore: EKEventStore()
+    )
+
     var body: some Scene {
         WindowGroup {
             if let day {
                 NavigationStack {
-                    ContentView(day: day)
+                    ContentView(
+                        day: day,
+                        viewModel: contentViewModel
+                    )
                         .navigationBarTitleDisplayMode(.inline)
                         .navigationTitle(day.startDate.formatted(.dateTime.month().day()))
                         .environment(goalStore)
@@ -419,4 +433,5 @@ struct MomentumApp: App {
             AppLogger.app.info("Created \(activeGoals.count - existingSessions.count) new sessions for day \(day.id)")
         }
     }
+
 }

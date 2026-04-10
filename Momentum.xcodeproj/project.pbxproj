@@ -77,6 +77,7 @@
 		CD6A0C1A2F883789008F5D93 /* ModelContextExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */; };
 		CD6A0C1D2F883938008F5D93 /* NavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C1C2F883938008F5D93 /* NavigationState.swift */; };
 		CD6A0C1F2F8839CD008F5D93 /* REFACTORING_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */; };
+		CD6A0C212F88429F008F5D93 /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD6A0C202F88429F008F5D93 /* ContentViewModel.swift */; };
 		CD713B172F200BDE003F901D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B162F200BDE003F901D /* SettingsView.swift */; };
 		CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */; };
 		CD713B1B2F200D77003F901D /* PLANNER_CONFIGURATION.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */; };
@@ -268,6 +269,7 @@
 		CD6A0C192F883789008F5D93 /* ModelContextExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContextExtensions.swift; sourceTree = "<group>"; };
 		CD6A0C1C2F883938008F5D93 /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
 		CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = REFACTORING_GUIDE.md; sourceTree = "<group>"; };
+		CD6A0C202F88429F008F5D93 /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
 		CD713B162F200BDE003F901D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		CD713B182F200C15003F901D /* ANIMATION_AND_LIMITS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ANIMATION_AND_LIMITS.md; sourceTree = "<group>"; };
 		CD713B1A2F200D77003F901D /* PLANNER_CONFIGURATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLANNER_CONFIGURATION.md; sourceTree = "<group>"; };
@@ -515,6 +517,7 @@
 			children = (
 				CD6A0C1C2F883938008F5D93 /* NavigationState.swift */,
 				CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */,
+				CD6A0C202F88429F008F5D93 /* ContentViewModel.swift */,
 			);
 			path = ContentView;
 			sourceTree = "<group>";
@@ -1028,6 +1031,7 @@
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDBE14FE2F86444B00B7FCD6 /* NotesAndResourcesSection.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
+				CD6A0C212F88429F008F5D93 /* ContentViewModel.swift in Sources */,
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
