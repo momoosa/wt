@@ -35,7 +35,14 @@ public struct ThemePreset: Sendable{
     /// Always returns white for maximum contrast on vibrant gradients
     public func textColor(for colorScheme: ColorScheme) -> Color {
         // For vibrant gradient backgrounds, white provides best contrast
-        .white
+        switch colorScheme {
+        case .light:
+            foregroundLight
+        case .dark:
+            foregroundDark
+        default:
+            foregroundLight
+        }
     }
     
     /// Foreground color for use on non-gradient backgrounds

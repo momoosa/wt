@@ -21,10 +21,19 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var goals: [Goal]
-    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var sessions: [GoalSession]
-    @Query private var allSessions: [GoalSession]
+    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var _sessions: [GoalSession]
+    @Query private var _allSessions: [GoalSession]
     let day: Day
     @Namespace var animation
+    
+    // Filtered sessions for the current day only
+    private var sessions: [GoalSession] {
+        _sessions.filter { $0.day?.id == day.id }
+    }
+    
+    private var allSessions: [GoalSession] {
+        _allSessions.filter { $0.day?.id == day.id }
+    }
 
     // View Model (business logic) - injected from WeektimeApp
     @State var viewModel: ContentViewModel
@@ -1274,14 +1283,15 @@ struct ContentView: View {
     
     private func refreshGoals() {
         // First, clean up any sessions whose goals have been deleted
-        let orphanedSessions = sessions.filter { !isGoalValid($0) }
+        let orphanedSessions = allSessions.filter { !isGoalValid($0) }
         for session in orphanedSessions {
             modelContext.delete(session)
         }
         
         // Then create sessions for goals that don't have them
+        // Use allSessions (not filtered) to check existence to avoid duplicates
         for goal in goals {
-            if !sessions.contains(where: { $0.goal == goal }) {
+            if !allSessions.contains(where: { $0.goal == goal && $0.day == day }) {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
                 modelContext.insert(session)
                 

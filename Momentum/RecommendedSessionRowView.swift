@@ -50,7 +50,7 @@ struct RecommendedSessionRowView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.ultraThinMaterial, in: Capsule())
-                        .foregroundStyle(useOutline ? Color.primary : Color.white.opacity(0.9))
+                        .foregroundStyle(useOutline ? Color.primary : session.themeTextColor(for: colorScheme))
                     }
                 }
             } else {
