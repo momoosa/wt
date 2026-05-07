@@ -182,6 +182,7 @@ class ContentViewModel {
         for goals: [Goal],
         sessions: [GoalSession],
         in day: Day,
+        modelContext: ModelContext,
         userInitiated: Bool = false
     ) async {
         // Delegate to HealthKitViewModel
@@ -189,6 +190,7 @@ class ContentViewModel {
             for: goals,
             sessions: sessions,
             in: day,
+            modelContext: modelContext,
             userInitiated: userInitiated
         )
         
@@ -215,9 +217,9 @@ class ContentViewModel {
     }
 
     /// Start observing HealthKit changes for real-time updates
-    func startHealthKitObservers(for goals: [Goal]) {
+    func startHealthKitObservers(for goals: [Goal], onDataChange: @escaping () -> Void) {
         // Delegate to HealthKitViewModel
-        healthKitViewModel.startHealthKitObservers(for: goals)
+        healthKitViewModel.startHealthKitObservers(for: goals, onDataChange: onDataChange)
     }
 
     /// Stop all HealthKit observers

@@ -483,12 +483,13 @@ struct ContentView: View {
                         }
                     }
                 }) {
-                    HStack {
+                    HStack(spacing: 0) {
                         Text(section.type.title)
                             .font(.headline)
                         if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                            Text("(\(section.sessions.count))")
+                            Text("\(section.sessions.count)")
                                 .font(.subheadline)
+                                .fontWeight(.semibold)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -634,23 +635,7 @@ struct ContentView: View {
             .listSectionSpacing(.compact)
         }
     }
-    
-    private func laterSection(sessions: [GoalSession]) -> some View {
-        Section {
-            ForEach(sessions) { session in
-                sessionRow(for: session)
-            }
-        } header: {
-            // Only show "Later" title if there are more than 4 total sessions
-            // (which means recommended section is shown)
-            if self.sessions.count > 4 {
-                Text("Later")
-                    .font(.headline)
-            }
-        }
-        .listSectionSpacing(.compact)
-    }
-    
+        
     private var planningIndicatorSection: some View {
         Section {
             HStack {
@@ -1555,136 +1540,18 @@ struct ContentView: View {
                 for: goals,
                 sessions: Array(sessions),
                 in: day,
+                modelContext: modelContext,
                 userInitiated: userInitiated
             )
         }
     }
     
-    /// Sync historical sessions from HealthKit samples
-    /// - Parameter samples: Already-merged HealthKit samples
-    private func syncHistoricalSessions(from samples: [HealthKitSample], for goal: Goal, in session: GoalSession) {
-        // Note: samples are already merged at this point
-        
-        // Get existing HealthKit-sourced historical sessions for this goal and day
-        let existingHealthKitSessionIDs = Set(
-            (day.historicalSessions ?? [])
-                .filter { $0.healthKitType != nil && $0.goalIDs.contains(goal.id.uuidString) }
-                .map { $0.id }
-        )
-        
-        // Track which sample IDs we're keeping
-        var processedSampleIDs = Set<String>()
-        
-        for sample in samples {
-            processedSampleIDs.insert(sample.id)
-            
-            // Check if this sample already exists as a historical session
-            if existingHealthKitSessionIDs.contains(sample.id) {
-                // Session already exists, skip
-                continue
-            }
-            
-            // Create new historical session from HealthKit sample
-            let historicalSession = HistoricalSession(
-                id: sample.id,
-                title: "\(sample.metric.displayName) - \(sample.sourceName)",
-                start: sample.startDate,
-                end: sample.endDate,
-                healthKitType: sample.metric.rawValue,
-                needsHealthKitRecord: false // Already synced from HealthKit
-            )
-            historicalSession.goalIDs.append(goal.id.uuidString)
-            day.add(historicalSession: historicalSession)
-            
-            modelContext.insert(historicalSession)
-        }
-        
-        // Remove historical sessions that no longer exist in HealthKit
-        let sessionsToRemove = (day.historicalSessions ?? []).filter { session in
-            guard session.healthKitType != nil,
-                  session.goalIDs.contains(goal.id.uuidString) else {
-                return false
-            }
-            return !processedSampleIDs.contains(session.id)
-        }
-        
-        for session in sessionsToRemove {
-            modelContext.delete(session)
-        }
-    }
-    
-    /// Merge consecutive HealthKit samples that are short and have no time gap between them
-    /// - Parameter samples: Array of HealthKit samples to merge
-    /// - Returns: Array with consecutive short sessions merged
-    private func mergeSamples(_ samples: [HealthKitSample]) -> [HealthKitSample] {
-        guard !samples.isEmpty else { return [] }
-        
-        // Sort by start date
-        let sorted = samples.sorted { $0.startDate < $1.startDate }
-        var merged: [HealthKitSample] = []
-        var currentGroup: [HealthKitSample] = [sorted[0]]
-        
-        for i in 1..<sorted.count {
-            let previous = sorted[i - 1]
-            let current = sorted[i]
-            
-            // Check if we should merge with the current group
-            let timeBetween = current.startDate.timeIntervalSince(previous.endDate)
-            let shouldMerge = timeBetween <= 0 && // No gap (or overlap)
-                              previous.duration < 300 && // Previous session < 5 minutes
-                              current.duration < 300 && // Current session < 5 minutes
-                              previous.metric == current.metric && // Same metric type
-                              previous.sourceName == current.sourceName // Same source app
-            
-            if shouldMerge {
-                currentGroup.append(current)
-            } else {
-                // Finalize the current group
-                merged.append(createMergedSample(from: currentGroup))
-                currentGroup = [current]
-            }
-        }
-        
-        // Don't forget the last group
-        merged.append(createMergedSample(from: currentGroup))
-        
-        return merged
-    }
-    
-    /// Create a single merged sample from a group of samples
-    private func createMergedSample(from samples: [HealthKitSample]) -> HealthKitSample {
-        guard !samples.isEmpty else {
-            fatalError("Cannot create merged sample from empty array")
-        }
-        
-        // If only one sample, return it as-is
-        if samples.count == 1 {
-            return samples[0]
-        }
-        
-        // Merge multiple samples
-        let sortedByDate = samples.sorted { $0.startDate < $1.startDate }
-        let earliestStart = sortedByDate.first!.startDate
-        let latestEnd = sortedByDate.max { $0.endDate < $1.endDate }!.endDate
-        let totalDuration = latestEnd.timeIntervalSince(earliestStart)
-        
-        // Create a combined ID from all merged sample IDs
-        let combinedID = sortedByDate.map { $0.id }.joined(separator: "_")
-        
-        return HealthKitSample(
-            id: combinedID,
-            startDate: earliestStart,
-            endDate: latestEnd,
-            duration: totalDuration,
-            metric: samples[0].metric,
-            sourceName: samples[0].sourceName
-        )
-    }
-    
     /// Start observing HealthKit changes for real-time updates
     private func startHealthKitObservers() {
-        // Delegate to ViewModel
-        viewModel.startHealthKitObservers(for: goals)
+        // Delegate to ViewModel, passing callback to re-sync when data changes
+        viewModel.startHealthKitObservers(for: goals) { [self] in
+            self.syncHealthKitData()
+        }
     }
     
     /// Stop all HealthKit observers

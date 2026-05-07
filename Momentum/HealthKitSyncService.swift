@@ -35,6 +35,7 @@ class HealthKitSyncService {
         for goals: [Goal],
         sessions: [GoalSession],
         in day: Day,
+        modelContext: ModelContext,
         userInitiated: Bool = false
     ) async -> HealthKitSyncResult {
         guard healthKitManager.isHealthKitAvailable else {
@@ -44,7 +45,16 @@ class HealthKitSyncService {
         let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
 
         guard !healthKitGoals.isEmpty else {
-            return HealthKitSyncResult(syncedGoalsCount: 0, totalDurationImported: 0, errors: ["No goals with HealthKit sync enabled"])
+            return HealthKitSyncResult(syncedGoalsCount: 0, totalDurationImported: 0, errors: [])
+        }
+
+        // Request authorization for all required metrics
+        let metrics = healthKitGoals.compactMap { $0.healthKitMetric }
+        do {
+            try await healthKitManager.requestAuthorization(for: metrics)
+        } catch {
+            AppLogger.healthKit.error("HealthKit authorization failed: \(error)")
+            return HealthKitSyncResult(syncedGoalsCount: 0, totalDurationImported: 0, errors: ["Authorization failed"])
         }
 
         // Track allocated samples to prevent double-counting across goals
@@ -94,12 +104,7 @@ class HealthKitSyncService {
                     // Sync primary metric value for count/calorie goals
                     if goal.goalType == .count || goal.goalType == .calories {
                         do {
-                            let value: Double
-                            if metric.unit == .count() {
-                                value = try await healthKitManager.fetchTodayCount(for: metric)
-                            } else {
-                                value = try await healthKitManager.fetchTodayCount(for: metric)
-                            }
+                            let value = try await healthKitManager.fetchTodayCount(for: metric)
                             session.updatePrimaryMetricValue(value)
                             AppLogger.healthKit.info("  - Synced primary metric value: \(value)")
                         } catch {
@@ -117,6 +122,9 @@ class HealthKitSyncService {
                         syncedGoalsCount += 1
                         totalDurationImported += duration
                     }
+
+                    // Create or update historical sessions from HealthKit samples
+                    syncHistoricalSessions(from: mergedSamples, for: goal, in: session, day: day, modelContext: modelContext)
                 } else {
                     AppLogger.healthKit.warning("  - No session found for goal '\(goal.title)' (ID: \(goal.id))")
                 }
@@ -133,8 +141,63 @@ class HealthKitSyncService {
         )
     }
 
+    /// Sync historical sessions from HealthKit samples
+    private func syncHistoricalSessions(
+        from samples: [HealthKitSample],
+        for goal: Goal,
+        in session: GoalSession,
+        day: Day,
+        modelContext: ModelContext
+    ) {
+        // Get existing HealthKit-sourced historical sessions for this goal and day
+        let existingHealthKitSessionIDs = Set(
+            (day.historicalSessions ?? [])
+                .filter { $0.healthKitType != nil && $0.goalIDs.contains(goal.id.uuidString) }
+                .map { $0.id }
+        )
+
+        // Track which sample IDs we're keeping
+        var processedSampleIDs = Set<String>()
+
+        for sample in samples {
+            processedSampleIDs.insert(sample.id)
+
+            // Check if this sample already exists as a historical session
+            if existingHealthKitSessionIDs.contains(sample.id) {
+                continue
+            }
+
+            // Create new historical session from HealthKit sample
+            let historicalSession = HistoricalSession(
+                id: sample.id,
+                title: "\(sample.metric.displayName) - \(sample.sourceName)",
+                start: sample.startDate,
+                end: sample.endDate,
+                healthKitType: sample.metric.rawValue,
+                needsHealthKitRecord: false
+            )
+            historicalSession.goalIDs.append(goal.id.uuidString)
+            day.add(historicalSession: historicalSession)
+
+            modelContext.insert(historicalSession)
+        }
+
+        // Remove historical sessions that no longer exist in HealthKit
+        let sessionsToRemove = (day.historicalSessions ?? []).filter { session in
+            guard session.healthKitType != nil,
+                  session.goalIDs.contains(goal.id.uuidString) else {
+                return false
+            }
+            return !processedSampleIDs.contains(session.id)
+        }
+
+        for session in sessionsToRemove {
+            modelContext.delete(session)
+        }
+    }
+
     /// Start observing HealthKit changes for real-time updates
-    func startHealthKitObservers(for goals: [Goal]) -> [HKObserverQuery] {
+    func startHealthKitObservers(for goals: [Goal], onDataChange: @escaping () -> Void) -> [HKObserverQuery] {
         guard healthKitManager.isHealthKitAvailable else { return [] }
 
         let healthKitGoals = goals.filter { $0.healthKitSyncEnabled && $0.healthKitMetric != nil }
@@ -146,7 +209,7 @@ class HealthKitSyncService {
             do {
                 let observer = try healthKitManager.observeMetric(metric) { _ in
                     // When HealthKit data changes, trigger a re-sync
-                    // This will be handled by the view calling syncHealthKitData
+                    onDataChange()
                 }
                 observers.append(observer)
             } catch {

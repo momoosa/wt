@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 import HealthKit
 import MomentumKit
 
@@ -40,6 +41,7 @@ class HealthKitViewModel {
         for goals: [Goal],
         sessions: [GoalSession],
         in day: Day,
+        modelContext: ModelContext,
         userInitiated: Bool = false
     ) async -> HealthKitSyncResult {
         isSyncingHealthKit = true
@@ -49,6 +51,7 @@ class HealthKitViewModel {
             for: goals,
             sessions: sessions,
             in: day,
+            modelContext: modelContext,
             userInitiated: userInitiated
         )
         
@@ -58,12 +61,12 @@ class HealthKitViewModel {
     }
     
     /// Start observing HealthKit changes for real-time updates
-    func startHealthKitObservers(for goals: [Goal]) {
+    func startHealthKitObservers(for goals: [Goal], onDataChange: @escaping () -> Void) {
         // Stop any existing observers first
         stopHealthKitObservers()
         
         // Delegate to service for observer setup
-        healthKitObservers = healthKitSyncService.startHealthKitObservers(for: goals)
+        healthKitObservers = healthKitSyncService.startHealthKitObservers(for: goals, onDataChange: onDataChange)
     }
     
     /// Stop all HealthKit observers
