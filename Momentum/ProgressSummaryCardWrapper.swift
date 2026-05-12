@@ -183,6 +183,8 @@ struct ProgressSummaryCard: View {
                                     .contentTransition(.numericText())
 
                             }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(Int(currentProgress * 100)) percent progress")
                         
                         
                         // Daily progress text
@@ -235,6 +237,7 @@ struct ProgressSummaryCard: View {
                                         .symbolRenderingMode(.hierarchical)
                                         .foregroundStyle(textColor.opacity(0.8))
                                         .font(.subheadline)
+                                        .accessibilityLabel("Goal completed")
                                 }
                             }
                             .font(.headline)

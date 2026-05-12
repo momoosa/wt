@@ -33,7 +33,15 @@ struct SearchSheet: View {
             List {
                 if searchResults.isEmpty {
                     Section {
-                        ContentUnavailableView.search(text: searchText)
+                        if searchText.isEmpty {
+                            ContentUnavailableView {
+                                Label("Search Goals", systemImage: "magnifyingglass")
+                            } description: {
+                                Text("Type a goal name to find it quickly")
+                            }
+                        } else {
+                            ContentUnavailableView.search(text: searchText)
+                        }
                     }
                     .listRowBackground(Color.clear)
                 } else {

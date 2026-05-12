@@ -989,6 +989,7 @@ struct GoalSessionDetailView: View {
                     Image(systemName: "ellipsis.circle.fill")
                         .symbolRenderingMode(.hierarchical)
                 }
+                .accessibilityLabel("Goal options")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -997,6 +998,7 @@ struct GoalSessionDetailView: View {
                     Image(systemName: "pencil.circle.fill")
                         .symbolRenderingMode(.hierarchical)
                 }
+                .accessibilityLabel("Edit goal")
             }
         }
         .tint(tintColor)
@@ -1153,6 +1155,7 @@ struct GoalSessionDetailView: View {
     
     private func deleteGoal() {
         guard let goal = session.goal else { return }
+        HapticFeedbackManager.trigger(.warning)
         
         withAnimation {
             context.delete(goal)

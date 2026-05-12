@@ -237,14 +237,17 @@ struct DayOverviewView: View {
             } else {
                 Section {
                     ContentUnavailableView {
-                        Label("No Data", systemImage: "calendar")
+                        Label("No Activity Yesterday", systemImage: "moon.zzz")
                     } description: {
-                        Text("Yesterday's activity will appear here")
+                        Text("Complete some goals today and check back tomorrow to review your progress")
                     }
                     .frame(minHeight: 300)
                 }
                 .listRowBackground(Color.clear)
             }
+        }
+        .refreshable {
+            await loadYesterdayData()
         }
     }
     
@@ -306,12 +309,15 @@ struct DayOverviewView: View {
                     ContentUnavailableView {
                         Label("No Activity Yet", systemImage: "clock")
                     } description: {
-                        Text("Start tracking your goals to see your progress here")
+                        Text("Start a timer or log progress on one of your goals to see your activity here")
                     }
                     .frame(minHeight: 300)
                 }
                 .listRowBackground(Color.clear)
             }
+        }
+        .refreshable {
+            onSyncHealthKit?()
         }
     }
 
@@ -504,6 +510,7 @@ private struct PlanSessionCard: View {
             // Quick action buttons
             HStack(spacing: 12) {
                 Button {
+                    HapticFeedbackManager.trigger(.medium)
                     timerManager?.toggleTimer(for: session, in: session.day!)
                 } label: {
                     Label("Start", systemImage: "play.fill")
@@ -515,6 +522,7 @@ private struct PlanSessionCard: View {
                 .tint(themeColor)
                 
                 Button {
+                    HapticFeedbackManager.trigger(.light)
                     onSkip(session)
                 } label: {
                     Text("Skip")
@@ -569,6 +577,8 @@ private struct GradientProgressRing: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Int(progress * 100)) percent complete")
     }
 }
 
@@ -587,5 +597,7 @@ private struct StatItem: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(value) \(label)")
     }
 }

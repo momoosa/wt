@@ -78,6 +78,7 @@ struct SessionRowView: View {
                                             .symbolRenderingMode(.hierarchical)
                                             .foregroundStyle(.green)
                                             .font(.footnote)
+                                            .accessibilityLabel("Goal completed")
                                     }
                                 } else {
                                     Text(session.formattedTime)
@@ -88,6 +89,7 @@ struct SessionRowView: View {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundStyle(.green)
                                             .font(.footnote)
+                                            .accessibilityLabel("Goal completed")
                                     }
                                 }
                                 
@@ -109,6 +111,7 @@ struct SessionRowView: View {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundStyle(.green)
                                             .font(.footnote)
+                                            .accessibilityLabel("Goal completed")
                                     }
                                 }
 
@@ -130,6 +133,7 @@ struct SessionRowView: View {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundStyle(.green)
                                             .font(.footnote)
+                                            .accessibilityLabel("Goal completed")
                                     }
                                 }
                             }
@@ -165,6 +169,7 @@ struct SessionRowView: View {
                                 Image(systemName: image)
                                     .font(.title2)
                             }
+                            .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
                         }
                         .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                     } else {
@@ -177,6 +182,7 @@ struct SessionRowView: View {
                                 .rotationEffect(.degrees(isSyncingHealthKit ? 360 : 0))
                                 .animation(isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isSyncingHealthKit)
                         }
+                        .accessibilityLabel(isSyncingHealthKit ? "Syncing health data" : "Sync health data")
                         .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                         .disabled(isSyncingHealthKit)
                     }
@@ -198,12 +204,14 @@ struct SessionRowView: View {
                                 .font(.title2)
                         }
                     }
+                    .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
                     .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
                 }
             }
             .buttonStyle(.plain)
             .listRowBackground(rowBackground)
             .onTapGesture {
+                HapticFeedbackManager.trigger(.light)
                 withAnimation(AnimationPresets.quickSpring) {
                     selectedSession = session
                 }
@@ -213,6 +221,7 @@ struct SessionRowView: View {
         }
         .swipeActions {
             Button {
+                HapticFeedbackManager.trigger(.medium)
                 onSkip(session)
             } label: {
                 Label {

@@ -255,6 +255,8 @@ struct ContentView: View {
         .background(.thinMaterial, in: Capsule())
         .padding(.top, 4)
         .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Focus filter active: \(focusFilterStore.activeFocusTagTitles.joined(separator: ", "))")
     }
 
     // MARK: - Main List View
@@ -309,6 +311,10 @@ struct ContentView: View {
 #endif
             .onAppear {
                 navigation.scrollProxy = proxy
+            }
+            .refreshable {
+                syncHealthKitData(userInitiated: true)
+                refreshGoals()
             }
         }
     }
@@ -409,6 +415,8 @@ struct ContentView: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions, \(isExpanded ? "expanded" : "collapsed")")
+            .accessibilityHint(isExpanded ? "Double tap to collapse" : "Double tap to expand")
         }
         .id(section.type)
         .listSectionSpacing(.compact)
