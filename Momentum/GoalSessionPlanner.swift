@@ -483,6 +483,19 @@ public class GoalSessionPlanner: ObservableObject {
             score += 10
         }
         
+        // 6. Daily completion penalty (-50 to 0 points)
+        // Heavily penalize sessions that have already met or exceeded their daily target
+        if let session = session {
+            let progress = session.progress
+            if progress >= 1.0 {
+                // Already met daily target — strong penalty, scales with over-completion
+                score -= 50 * min(progress, 5.0) // At 400% this is -200
+            } else if progress >= 0.8 {
+                // Nearly done — mild penalty to favor sessions with more work left
+                score -= 10
+            }
+        }
+        
         return score
     }
     

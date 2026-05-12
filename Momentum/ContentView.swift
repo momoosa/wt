@@ -22,17 +22,12 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var goals: [Goal]
     @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var _sessions: [GoalSession]
-    @Query private var _allSessions: [GoalSession]
     let day: Day
     @Namespace var animation
     
     // Filtered sessions for the current day only
     private var sessions: [GoalSession] {
         _sessions.filter { $0.day?.id == day.id }
-    }
-    
-    private var allSessions: [GoalSession] {
-        _allSessions.filter { $0.day?.id == day.id }
     }
 
     // View Model (business logic) - injected from WeektimeApp
@@ -63,6 +58,10 @@ struct ContentView: View {
     @State private var nextCalendarEvent: EKEvent?
     @State private var calendarEventStore = EKEventStore()
     
+    // Lifecycle guards to prevent redundant work
+    @State private var hasCompletedSetup = false
+    @State private var isRefreshingGoals = false
+    
     // Progress Card Tile Visibility Settings
     @AppStorage("showProgressTile") private var showProgressTile: Bool = true
     @AppStorage("showWeatherTile") private var showWeatherTile: Bool = true
@@ -76,12 +75,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        let recommendedSessionIDs = getRecommendedSessions().map { $0.id }
-        
         mainListView
-            .animation(.spring(), value: goals)
-            .animation(AnimationPresets.smoothSpring, value: sessions.count)
-            .animation(AnimationPresets.smoothSpring, value: recommendedSessionIDs)
             .overlay {
                 VStack(spacing: 0) {
                     if focusFilterStore.isFocusFilterActive {
@@ -126,8 +120,11 @@ struct ContentView: View {
                 handleGoalsChange(old: old, new: new)
                 goalStore.goals = new
             }
-            .onChange(of: sessions) { old, new in
-                goalStore.sessions = new
+            .onChange(of: _sessions) { _, _ in
+                // Update goalStore with day-filtered sessions
+                // Using _sessions (the @Query) instead of computed sessions
+                // to avoid creating intermediate arrays for the equality check
+                goalStore.sessions = sessions
             }
 #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -320,8 +317,7 @@ struct ContentView: View {
     
     @ViewBuilder
     private func contextualSectionView(section: ContextualSection) -> some View {
-        switch section.type {
-        case .recommendedNow:
+        if case .recommendedNow = section.type {
             // Recommended Now section with featured card style
             Section {
             } header: {
@@ -329,7 +325,7 @@ struct ContentView: View {
                     HStack {
                         if let icon = section.type.icon {
                             Image(systemName: icon)
-                                .foregroundStyle(.yellow)
+                                .foregroundStyle(section.type.iconColor)
                         }
                         Text(section.type.title)
                             .font(.headline)
@@ -361,279 +357,61 @@ struct ContentView: View {
                     )
                 }
                 .listSectionSpacing(.compact)
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.8).combined(with: .opacity),
-                    removal: .opacity
-                ))
             }
-            
-        case .weatherWindow, .timeWindow, .energyWindow:
-            // Contextual time-based sections
-            Section {
-                if navigation.expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if navigation.expandedSections.contains(section.type) {
-                            navigation.expandedSections.remove(section.type)
-                        } else {
-                            navigation.expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            if let icon = section.type.icon {
-                                Image(systemName: icon)
-                                    .foregroundStyle(.blue)
-                            }
-                            Text(section.type.title)
-                                .font(.headline)
-                            if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                                Text("(\(section.sessions.count))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        if let explanation = section.explanation, navigation.expandedSections.contains(section.type) {
-                            Text(explanation)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
-        case .available:
-            // Available goals section (backup goals not scheduled today)
-            Section {
-                if navigation.expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if navigation.expandedSections.contains(section.type) {
-                            navigation.expandedSections.remove(section.type)
-                        } else {
-                            navigation.expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            if let icon = section.type.icon {
-                                Image(systemName: icon)
-                                    .foregroundStyle(.orange)
-                            }
-                            Text(section.type.title)
-                                .font(.headline)
-                            if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                                Text("(\(section.sessions.count))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        if let explanation = section.explanation, navigation.expandedSections.contains(section.type) {
-                            Text(explanation)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
-        case .later:
-            // Later section (standard rows)
-            Section {
-                if navigation.expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if navigation.expandedSections.contains(section.type) {
-                            navigation.expandedSections.remove(section.type)
-                        } else {
-                            navigation.expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    HStack(spacing: 0) {
-                        Text(section.type.title)
-                            .font(.headline)
-                        if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                            Text("\(section.sessions.count)")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
-        case .workingOffSchedule:
-            // Working off-schedule section
-            Section {
-                if navigation.expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if navigation.expandedSections.contains(section.type) {
-                            navigation.expandedSections.remove(section.type)
-                        } else {
-                            navigation.expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            if let icon = section.type.icon {
-                                Image(systemName: icon)
-                                    .foregroundStyle(.purple)
-                            }
-                            Text(section.type.title)
-                                .font(.headline)
-                            if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                                Text("(\(section.sessions.count))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        if let explanation = section.explanation, navigation.expandedSections.contains(section.type) {
-                            Text(explanation)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
-        case .completed:
-            // Completed Today section
-            Section {
-                if navigation.expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if navigation.expandedSections.contains(section.type) {
-                            navigation.expandedSections.remove(section.type)
-                        } else {
-                            navigation.expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(.green)
-                        }
-                        Text(section.type.title)
-                            .font(.headline)
-                        if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                            Text("(\(section.sessions.count))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
-            
-        case .inactive:
-            // Inactive section
-            Section {
-                if navigation.expandedSections.contains(section.type) {
-                    ForEach(section.sessions) { session in
-                        sessionRow(for: session)
-                    }
-                }
-            } header: {
-                Button(action: {
-                    withAnimation {
-                        if navigation.expandedSections.contains(section.type) {
-                            navigation.expandedSections.remove(section.type)
-                        } else {
-                            navigation.expandedSections.insert(section.type)
-                        }
-                    }
-                }) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(.gray)
-                        }
-                        Text(section.type.title)
-                            .font(.headline)
-                        if !navigation.expandedSections.contains(section.type) && !section.sessions.isEmpty {
-                            Text("(\(section.sessions.count))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: navigation.expandedSections.contains(section.type) ? "chevron.down" : "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-            .id(section.type)
-            .listSectionSpacing(.compact)
+        } else {
+            collapsibleSection(section: section)
         }
+    }
+    
+    private func collapsibleSection(section: ContextualSection) -> some View {
+        let isExpanded = navigation.expandedSections.contains(section.type)
+        
+        return Section {
+            if isExpanded {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session)
+                }
+            }
+        } header: {
+            Button(action: {
+                withAnimation {
+                    if isExpanded {
+                        navigation.expandedSections.remove(section.type)
+                    } else {
+                        navigation.expandedSections.insert(section.type)
+                    }
+                }
+            }) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(section.type.iconColor)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                        if !isExpanded && !section.sessions.isEmpty {
+                            Text("(\(section.sessions.count))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    if let explanation = section.explanation, isExpanded {
+                        Text(explanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .id(section.type)
+        .listSectionSpacing(.compact)
     }
         
     private var planningIndicatorSection: some View {
@@ -697,7 +475,6 @@ struct ContentView: View {
                             .onTapGesture {
                                 navigation.showDayOverview = true
                             }
-                            .transition(.scale.combined(with: .opacity))
                     }
 
                     // Weather Card
@@ -714,7 +491,6 @@ struct ContentView: View {
                             }
                             .frame(width: size, height: size)
                             .glassCardStyle(shadowColor: .black)
-                            .transition(.scale.combined(with: .opacity))
                         } else if weatherManager.isLoading {
                             // Loading state
                             VStack(spacing: 6) {
@@ -727,7 +503,6 @@ struct ContentView: View {
                             }
                             .frame(width: size, height: size)
                             .glassCardStyle(shadowColor: .black)
-                            .transition(.scale.combined(with: .opacity))
                         } else {
                             // Error or no data state
                             VStack(spacing: 6) {
@@ -744,13 +519,12 @@ struct ContentView: View {
                             .onTapGesture {
                                 weatherManager.forceRefreshWeather()
                             }
-                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                     
                     // Calendar Free Time Card
                     if showCalendarTile {
-                        if let nextEvent = nextCalendarEvent {
+                        if nextCalendarEvent != nil {
                             VStack(spacing: 6) {
                                 Image(systemName: "calendar")
                                     .font(.title)
@@ -764,7 +538,6 @@ struct ContentView: View {
                             }
                             .frame(width: size, height: size)
                             .glassCardStyle(shadowColor: .black)
-                            .transition(.scale.combined(with: .opacity))
                         } else {
                             VStack(spacing: 6) {
                                 Image(systemName: "calendar")
@@ -777,7 +550,6 @@ struct ContentView: View {
                             }
                             .frame(width: size, height: size)
                             .glassCardStyle(shadowColor: .black)
-                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                     
@@ -852,28 +624,43 @@ struct ContentView: View {
     }
     
     private func fetchNextCalendarEvent() {
-        Task { @MainActor in
+        // Request authorization on MainActor, then move the synchronous
+        // EventKit query off the main thread to avoid blocking UI.
+        Task {
             do {
                 let granted = try await calendarEventStore.requestFullAccessToEvents()
                 guard granted else { return }
                 
-                let now = Date()
-                let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
+                let store = calendarEventStore
+                let event: EKEvent? = await Task.detached(priority: .utility) {
+                    let now = Date()
+                    let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
+                    
+                    let predicate = store.predicateForEvents(
+                        withStart: now,
+                        end: endOfDay,
+                        calendars: nil
+                    )
+                    
+                    return store.events(matching: predicate)
+                        .filter { !$0.isAllDay }
+                        .sorted { $0.startDate < $1.startDate }
+                        .first
+                }.value
                 
-                let predicate = calendarEventStore.predicateForEvents(
-                    withStart: now,
-                    end: endOfDay,
-                    calendars: nil
-                )
-                
-                let events = calendarEventStore.events(matching: predicate)
-                    .filter { !$0.isAllDay }
-                    .sorted { $0.startDate < $1.startDate }
-                
-                nextCalendarEvent = events.first
+                // Update state on MainActor without triggering animations
+                await MainActor.run {
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        nextCalendarEvent = event
+                    }
+                }
             } catch {
                 // Silently fail - calendar is optional
-                nextCalendarEvent = nil
+                await MainActor.run {
+                    nextCalendarEvent = nil
+                }
             }
         }
     }
@@ -989,6 +776,10 @@ struct ContentView: View {
     // MARK: - Setup Methods
     
     private func setupOnAppear() {
+        // Guard against re-running setup (e.g., if .task re-fires)
+        guard !hasCompletedSetup else { return }
+        hasCompletedSetup = true
+        
         // Sync ViewModel's timerManager with ContentView's (ViewModel is injected from WeektimeApp)
         viewModel.timerManager = timerManager
 
@@ -1013,17 +804,26 @@ struct ContentView: View {
         goalStore.goals = goals
         goalStore.sessions = sessions
         
-        // Use Task to ensure proper async data loading
+        // Critical path: create missing sessions immediately so UI is populated
+        refreshGoals()
+        
+        // Defer non-critical work to separate tasks so it doesn't block initial render
         Task {
-            refreshGoals()
+            // HealthKit sync runs async and updates state when done
             syncHealthKitData()
-            
-            // Fetch calendar events
+        }
+        
+        Task {
+            // Calendar events are supplementary UI
             fetchNextCalendarEvent()
-            
+        }
+        
+        Task {
             // Auto-plan once per day on launch if we haven't already
             await checkAndRunAutoPlan()
-            
+        }
+
+        Task {
             // Reschedule notifications for all goals with notifications enabled
             await rescheduleGoalNotifications()
         }
@@ -1097,28 +897,32 @@ struct ContentView: View {
     /// Update recommendation reasons for existing planned sessions
     private func updateExistingSessionReasons() async {
         await MainActor.run {
-            for session in sessions where session.plannedStartTime != nil {
-                guard let goal = session.goal else { continue }
-                let reasons = calculateRecommendationReasons(for: session, goal: goal)
-                session.recommendationReasons = reasons
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                for session in sessions where session.plannedStartTime != nil {
+                    guard let goal = session.goal else { continue }
+                    let reasons = calculateRecommendationReasons(for: session, goal: goal)
+                    session.recommendationReasons = reasons
+                }
+                modelContext.safeSave(showingToast: $navigation.toastConfig)
             }
-            modelContext.safeSave(showingToast: $navigation.toastConfig)
         }
     }
     
     private func handleGoalsChange(old: [Goal], new: [Goal]) {
-        Task {
-            refreshGoals()
-            
-            // Check if any new goals have HealthKit metrics that need authorization
-            let newHealthKitGoals = new.filter { newGoal in
-                newGoal.healthKitSyncEnabled &&
-                newGoal.healthKitMetric != nil &&
-                !old.contains(where: { $0.id == newGoal.id })
-            }
-            
-            // If there are new HealthKit goals, request authorization immediately
-            if !newHealthKitGoals.isEmpty {
+        // Refresh sessions to match the updated goals
+        refreshGoals()
+        
+        // Only sync HealthKit if new HealthKit-enabled goals were added
+        let newHealthKitGoals = new.filter { newGoal in
+            newGoal.healthKitSyncEnabled &&
+            newGoal.healthKitMetric != nil &&
+            !old.contains(where: { $0.id == newGoal.id })
+        }
+        
+        if !newHealthKitGoals.isEmpty {
+            Task {
                 let newMetrics = newHealthKitGoals.compactMap { $0.healthKitMetric }
                 if !newMetrics.isEmpty {
                     do {
@@ -1127,10 +931,9 @@ struct ContentView: View {
                         AppLogger.healthKit.error("HealthKit authorization failed for new goals: \(error)")
                     }
                 }
+                // Only sync for the newly added goals
+                syncHealthKitData()
             }
-            
-            // Always sync to ensure data is up to date
-            syncHealthKitData()
         }
     }
     
@@ -1154,12 +957,12 @@ struct ContentView: View {
         .presentationBackground(.thinMaterial)
         .onAppear {
             // Cache themes when sheet appears to avoid SwiftData faults
-            planningViewModel.cachedThemes = availableGoalThemes
-            
-            // Prewarm the model to reduce initial planning delay
-            Task {
-                await planningViewModel.planner.prewarm()
-            }
+//            planningViewModel.cachedThemes = availableGoalThemes
+//            
+//            // Prewarm the model to reduce initial planning delay
+//            Task {
+//                await planningViewModel.planner.prewarm()
+//            }
         }
     }
     
@@ -1267,16 +1070,26 @@ struct ContentView: View {
 
     
     private func refreshGoals() {
+        // Guard against re-entrant calls (e.g., refreshGoals modifying sessions triggers onChange which calls refreshGoals again)
+        guard !isRefreshingGoals else { return }
+        isRefreshingGoals = true
+        defer { isRefreshingGoals = false }
+        
+        // Fetch all sessions for today on-demand (avoids a persistent @Query that re-fires on every DB change)
+        let dayID = day.id
+        let descriptor = FetchDescriptor<GoalSession>()
+        let allSessionsForDay = (try? modelContext.fetch(descriptor))?.filter { $0.day?.id == dayID } ?? []
+        
         // First, clean up any sessions whose goals have been deleted
-        let orphanedSessions = allSessions.filter { !isGoalValid($0) }
+        let orphanedSessions = allSessionsForDay.filter { !isGoalValid($0) }
         for session in orphanedSessions {
             modelContext.delete(session)
         }
         
         // Then create sessions for goals that don't have them
-        // Use allSessions (not filtered) to check existence to avoid duplicates
+        // Use allSessionsForDay (not filtered by dailyTarget) to check existence to avoid duplicates
         for goal in goals {
-            if !allSessions.contains(where: { $0.goal == goal && $0.day == day }) {
+            if !allSessionsForDay.contains(where: { $0.goal == goal && $0.day == day }) {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
                 modelContext.insert(session)
                 
@@ -1291,9 +1104,12 @@ struct ContentView: View {
             }
         }
         
-        // Save changes if there were any insertions or deletions
+        // Save without triggering animations — this is background data loading, not user interaction
         if modelContext.hasChanges {
-            if modelContext.safeSave(showingToast: $navigation.toastConfig) {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                modelContext.safeSave(showingToast: $navigation.toastConfig)
                 // Reload widgets when sessions are created or deleted
                 #if canImport(WidgetKit)
                 WidgetCenter.shared.reloadAllTimelines()
@@ -1534,7 +1350,7 @@ struct ContentView: View {
     // MARK: - HealthKit Integration
     
     private func syncHealthKitData(userInitiated: Bool = false) {
-        // Delegate to ViewModel
+        // Delegate to ViewModel — HealthKitSyncService handles its own transaction internally
         Task {
             await viewModel.syncHealthKitData(
                 for: goals,
@@ -1545,21 +1361,6 @@ struct ContentView: View {
             )
         }
     }
-    
-    /// Start observing HealthKit changes for real-time updates
-    private func startHealthKitObservers() {
-        // Delegate to ViewModel, passing callback to re-sync when data changes
-        viewModel.startHealthKitObservers(for: goals) { [self] in
-            self.syncHealthKitData()
-        }
-    }
-    
-    /// Stop all HealthKit observers
-    private func stopHealthKitObservers() {
-        // Delegate to ViewModel
-        viewModel.stopHealthKitObservers()
-    }
-    
     
     // MARK: - AI Planning
     
@@ -1572,7 +1373,7 @@ struct ContentView: View {
             return nil
         }
         
-        var calendar = Calendar.current
+        let calendar = Calendar.current
         var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
         dateComponents.hour = hours
         dateComponents.minute = minutes
@@ -1653,10 +1454,14 @@ struct ContentView: View {
             
             // Clear planning details at the start to give a "from scratch" appearance
             await MainActor.run {
-                for session in sessions {
-                    session.clearPlanningDetails()
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    for session in sessions {
+                        session.clearPlanningDetails()
+                    }
+                    modelContext.safeSave()
                 }
-                modelContext.safeSave()
             }
             
             // Use streaming to get real-time updates
@@ -1717,41 +1522,49 @@ struct ContentView: View {
                 
                 // Clear planning details for sessions NOT in the plan
                 await MainActor.run {
-                    let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
-                    for session in sessions {
-                        guard let goalID = session.goal?.id else { continue }
-                        if !plannedGoalIDs.contains(goalID) {
-                            session.clearPlanningDetails()
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
+                        for session in sessions {
+                            guard let goalID = session.goal?.id else { continue }
+                            if !plannedGoalIDs.contains(goalID) {
+                                session.clearPlanningDetails()
+                            }
                         }
+                        modelContext.safeSave()
                     }
-                    modelContext.safeSave()
                 }
             }
             
             // Ensure all active goals have sessions (even if not in the plan)
             await MainActor.run {
-                let allActiveGoals = goals.filter { $0.status == .active }
-                let existingSessionGoalIDs = Set(sessions.compactMap { $0.goal?.id })
-                
-                for goal in allActiveGoals {
-                    if !existingSessionGoalIDs.contains(goal.id) {
-                        // Create session for goal not in the plan
-                        let session = GoalSession(title: goal.title, goal: goal, day: day)
-                        session.status = .active
-                        modelContext.insert(session)
-                        
-                        // Create checklist item sessions for this goal session
-                        if let checklistItems = goal.checklistItems {
-                            for checklistItem in checklistItems {
-                                let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
-                                modelContext.insert(itemSession)
-                                session.checklist?.append(itemSession)
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    let allActiveGoals = goals.filter { $0.status == .active }
+                    let existingSessionGoalIDs = Set(sessions.compactMap { $0.goal?.id })
+                    
+                    for goal in allActiveGoals {
+                        if !existingSessionGoalIDs.contains(goal.id) {
+                            // Create session for goal not in the plan
+                            let session = GoalSession(title: goal.title, goal: goal, day: day)
+                            session.status = .active
+                            modelContext.insert(session)
+                            
+                            // Create checklist item sessions for this goal session
+                            if let checklistItems = goal.checklistItems {
+                                for checklistItem in checklistItems {
+                                    let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
+                                    modelContext.insert(itemSession)
+                                    session.checklist?.append(itemSession)
+                                }
                             }
                         }
                     }
+                    
+                    modelContext.safeSave()
                 }
-                
-                modelContext.safeSave()
             }
             
         } catch {
@@ -1805,10 +1618,8 @@ struct ContentView: View {
         
         // 1. Weekly Progress - check if behind for the day of week
         let dailyTarget = goal.weeklyTarget / 7
-        let weeklyTarget = goal.weeklyTarget
         let daysIntoWeek = currentWeekday // Sunday = 1, Saturday = 7
-        let expectedProgress = (weeklyTarget / 7) * TimeInterval(daysIntoWeek)
-        // This would need actual weekly data - for now use daily as proxy
+        // Use daily target as proxy for weekly progress check
         if session.elapsedTime < dailyTarget * 0.5 && daysIntoWeek >= 4 { // Less than 50% and past Wednesday
             reasons.append(.weeklyProgress)
         }
@@ -1857,9 +1668,6 @@ struct ContentView: View {
     /// Apply the generated plan by creating GoalSession objects
     @MainActor
     private func applyPlan(_ plan: DailyPlan) async {
-            // Get existing sessions to avoid duplicates during streaming
-            let existingSessionGoalIDs = Set(sessions.compactMap { $0.goal?.id })
-            
             // Sort planned sessions by start time to maintain stable order during streaming
             let sortedPlannedSessions = plan.sessions.sorted { session1, session2 in
                 // Parse time strings to compare
@@ -1875,7 +1683,6 @@ struct ContentView: View {
             for plannedSession in sortedPlannedSessions {
                 // Try to find the goal by UUID first
                 var goal: Goal?
-                let goalIDs = goals.map { $0.id }
                 if let goalID = UUID(uuidString: plannedSession.id) {
                     // UUID parsing succeeded - find by ID
                     goal = goals.first(where: { $0.id == goalID })
@@ -1941,8 +1748,12 @@ struct ContentView: View {
                 }
             }
             
-            // Save the new/updated sessions
-            modelContext.safeSave()
+            // Save the new/updated sessions without triggering animations
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            _ = withTransaction(transaction) {
+                modelContext.safeSave()
+            }
     }
     
     // MARK: - Deep Link Handling

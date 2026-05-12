@@ -99,6 +99,9 @@ struct ProgressSummaryCardWrapper: View {
             dailyProgress: session.progress,
             dailyElapsed: session.elapsedTime,
             dailyTarget: session.dailyTarget,
+            goalType: session.goal?.goalType ?? .time,
+            primaryMetricValue: session.primaryMetricValue,
+            primaryMetricTarget: session.primaryMetricTarget,
             shimmerOffset: $shimmerOffset,
             activeSessionDetails: timerManager.activeSession,
             session: session,
@@ -119,6 +122,9 @@ struct ProgressSummaryCard: View {
     let dailyProgress: Double
     let dailyElapsed: TimeInterval
     let dailyTarget: TimeInterval
+    let goalType: Goal.GoalType
+    let primaryMetricValue: Double
+    let primaryMetricTarget: Double
     
     @Binding var shimmerOffset: CGFloat
     var activeSessionDetails: ActiveSessionDetails?
@@ -138,8 +144,14 @@ struct ProgressSummaryCard: View {
     }
     
     private var currentProgress: Double {
-        guard dailyTarget > 0 else { return 0 }
-        return currentElapsed / dailyTarget
+        switch goalType {
+        case .time:
+            guard dailyTarget > 0 else { return 0 }
+            return currentElapsed / dailyTarget
+        case .count, .calories:
+            guard primaryMetricTarget > 0 else { return 0 }
+            return primaryMetricValue / primaryMetricTarget
+        }
     }
     
     @Environment(\.colorScheme) private var colorScheme
@@ -195,12 +207,29 @@ struct ProgressSummaryCard: View {
                             }
 
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(currentElapsed.formatted(style: .hmmss))
-                                    .foregroundStyle(textColor)
-                                    .contentTransition(.numericText())
-                                
-                                Text("/ \(dailyTarget.formatted(style: .hmmss))")
-                                    .foregroundStyle(textColor.opacity(0.7))
+                                switch goalType {
+                                case .time:
+                                    Text(currentElapsed.formatted(style: .hmmss))
+                                        .foregroundStyle(textColor)
+                                        .contentTransition(.numericText())
+                                    
+                                    Text("/ \(dailyTarget.formatted(style: .hmmss))")
+                                        .foregroundStyle(textColor.opacity(0.7))
+                                case .count:
+                                    Text("\(Int(primaryMetricValue).formatted())")
+                                        .foregroundStyle(textColor)
+                                        .contentTransition(.numericText())
+                                    
+                                    Text("/ \(Int(primaryMetricTarget).formatted()) steps")
+                                        .foregroundStyle(textColor.opacity(0.7))
+                                case .calories:
+                                    Text("\(Int(primaryMetricValue))")
+                                        .foregroundStyle(textColor)
+                                        .contentTransition(.numericText())
+                                    
+                                    Text("/ \(Int(primaryMetricTarget)) cal")
+                                        .foregroundStyle(textColor.opacity(0.7))
+                                }
                                 if currentProgress >= 1.0 {
                                     Image(systemName: "checkmark.circle.fill")
                                         .symbolRenderingMode(.hierarchical)

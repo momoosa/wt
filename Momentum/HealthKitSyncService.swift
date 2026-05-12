@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 import SwiftData
 import HealthKit
 import MomentumKit
@@ -25,6 +26,12 @@ struct HealthKitSyncResult {
 @MainActor
 class HealthKitSyncService {
     private let healthKitManager: HealthKitManaging
+    
+    /// Debounce interval for observer-triggered syncs (seconds)
+    private let observerDebounceInterval: TimeInterval = 5.0
+    
+    /// Pending debounce task for observer callbacks
+    private var observerDebounceTask: Task<Void, Never>?
 
     init(healthKitManager: HealthKitManaging) {
         self.healthKitManager = healthKitManager
@@ -65,31 +72,32 @@ class HealthKitSyncService {
         var totalDurationImported: TimeInterval = 0
         var syncErrors: [String] = []
 
-        // Fetch and allocate data for each goal (first-come-first-served)
+        // Phase 1: Fetch all HealthKit data first (async, no model mutations)
+        struct GoalSyncData {
+            let goal: Goal
+            let metric: HealthKitMetric
+            let mergedSamples: [HealthKitSample]
+            let duration: TimeInterval
+            let primaryMetricValue: Double?
+        }
+        
+        var fetchedData: [GoalSyncData] = []
+        
         for goal in healthKitGoals {
             guard let metric = goal.healthKitMetric else { continue }
 
             do {
-                // Fetch individual samples (for history display)
                 let samples = try await healthKitManager.fetchSamples(
                     for: metric,
                     from: day.startDate,
                     to: day.endDate
                 )
 
-                // Filter out samples created by this app to prevent double-counting
                 let externalSamples = samples.filter { !$0.isFromThisApp }
-
-                // Filter out samples already allocated to other goals
                 let availableSamples = externalSamples.filter { !allocatedSampleIDs.contains($0.id) }
-
-                // Merge samples to avoid double-counting
                 let mergedSamples = HealthKitSampleMerger.mergeSamples(availableSamples)
-
-                // Calculate total duration from merged samples
                 let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
 
-                // Update the corresponding session
                 AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue))")
                 AppLogger.healthKit.info("  - Found \(samples.count) samples total")
                 AppLogger.healthKit.info("  - Filtered out \(samples.count - externalSamples.count) samples from this app")
@@ -97,41 +105,61 @@ class HealthKitSyncService {
                 AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
                 AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
 
-                if let session = sessions.first(where: { $0.goal?.id == goal.id }) {
-                    AppLogger.healthKit.info("  - Found matching session for goal '\(goal.title)'")
-                    session.updateHealthKitTime(duration)
-
-                    // Sync primary metric value for count/calorie goals
-                    if goal.goalType == .count || goal.goalType == .calories {
-                        do {
-                            let value = try await healthKitManager.fetchTodayCount(for: metric)
-                            session.updatePrimaryMetricValue(value)
-                            AppLogger.healthKit.info("  - Synced primary metric value: \(value)")
-                        } catch {
-                            AppLogger.healthKit.error("  - Failed to sync primary metric: \(error)")
-                        }
-                    }
-
-                    // Mark these samples as allocated
-                    for sample in mergedSamples {
-                        allocatedSampleIDs.insert(sample.id)
-                    }
-
-                    // Track sync results
-                    if duration > 0 {
-                        syncedGoalsCount += 1
-                        totalDurationImported += duration
-                    }
-
-                    // Create or update historical sessions from HealthKit samples
-                    syncHistoricalSessions(from: mergedSamples, for: goal, in: session, day: day, modelContext: modelContext)
-                } else {
-                    AppLogger.healthKit.warning("  - No session found for goal '\(goal.title)' (ID: \(goal.id))")
+                // Mark samples as allocated for subsequent goals
+                for sample in mergedSamples {
+                    allocatedSampleIDs.insert(sample.id)
                 }
+
+                // Fetch primary metric value if needed (still async)
+                var primaryMetricValue: Double? = nil
+                if goal.goalType == .count || goal.goalType == .calories {
+                    do {
+                        primaryMetricValue = try await healthKitManager.fetchTodayCount(for: metric)
+                        AppLogger.healthKit.info("  - Fetched primary metric value: \(primaryMetricValue ?? 0)")
+                    } catch {
+                        AppLogger.healthKit.error("  - Failed to fetch primary metric: \(error)")
+                    }
+                }
+
+                fetchedData.append(GoalSyncData(
+                    goal: goal,
+                    metric: metric,
+                    mergedSamples: mergedSamples,
+                    duration: duration,
+                    primaryMetricValue: primaryMetricValue
+                ))
             } catch {
                 AppLogger.healthKit.error("Failed to fetch HealthKit data for \(goal.title): \(error)")
                 syncErrors.append(goal.title)
             }
+        }
+
+        // Phase 2: Apply all mutations in a single batch (no awaits, no intermediate re-renders)
+        var transaction = Transaction()
+        transaction.disablesAnimations = !userInitiated
+        withTransaction(transaction) {
+            for data in fetchedData {
+                if let session = sessions.first(where: { $0.goal?.id == data.goal.id }) {
+                    AppLogger.healthKit.info("  - Updating session for goal '\(data.goal.title)'")
+                    session.updateHealthKitTime(data.duration)
+
+                    if let value = data.primaryMetricValue {
+                        session.updatePrimaryMetricValue(value)
+                    }
+
+                    if data.duration > 0 {
+                        syncedGoalsCount += 1
+                        totalDurationImported += data.duration
+                    }
+
+                    syncHistoricalSessions(from: data.mergedSamples, for: data.goal, in: session, day: day, modelContext: modelContext)
+                } else {
+                    AppLogger.healthKit.warning("  - No session found for goal '\(data.goal.title)' (ID: \(data.goal.id))")
+                }
+            }
+            
+            // Single save for all mutations
+            modelContext.safeSave()
         }
 
         return HealthKitSyncResult(
@@ -196,7 +224,8 @@ class HealthKitSyncService {
         }
     }
 
-    /// Start observing HealthKit changes for real-time updates
+    /// Start observing HealthKit changes for real-time updates.
+    /// Observer callbacks are debounced to avoid redundant syncs from rapid HealthKit writes.
     func startHealthKitObservers(for goals: [Goal], onDataChange: @escaping () -> Void) -> [HKObserverQuery] {
         guard healthKitManager.isHealthKitAvailable else { return [] }
 
@@ -207,9 +236,10 @@ class HealthKitSyncService {
 
         for metric in uniqueMetrics {
             do {
-                let observer = try healthKitManager.observeMetric(metric) { _ in
-                    // When HealthKit data changes, trigger a re-sync
-                    onDataChange()
+                let observer = try healthKitManager.observeMetric(metric) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        self?.debouncedSync(onDataChange: onDataChange)
+                    }
                 }
                 observers.append(observer)
             } catch {
@@ -218,6 +248,17 @@ class HealthKitSyncService {
         }
 
         return observers
+    }
+    
+    /// Debounce observer-triggered syncs so rapid HealthKit writes
+    /// (e.g., during a workout) don't cause many back-to-back re-syncs.
+    private func debouncedSync(onDataChange: @escaping () -> Void) {
+        observerDebounceTask?.cancel()
+        observerDebounceTask = Task {
+            try? await Task.sleep(for: .seconds(observerDebounceInterval))
+            guard !Task.isCancelled else { return }
+            onDataChange()
+        }
     }
 
     /// Stop all HealthKit observers

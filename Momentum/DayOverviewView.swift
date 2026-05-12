@@ -318,65 +318,17 @@ struct DayOverviewView: View {
     private var progressSummaryCard: some View {
         let viewModel = progressViewModel
         return VStack(spacing: 20) {
-            // Large circular progress
-            ZStack {
-                Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: LayoutConstants.ProgressCircle.standardLineWidth)
-                    .frame(width: 120, height: 120)
-
-                Circle()
-                    .trim(from: 0, to: viewModel.dailyProgress)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.blue, .cyan],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: LayoutConstants.ProgressCircle.standardLineWidth, lineCap: .round)
-                    )
-                    .frame(width: 120, height: 120)
-                    .rotationEffect(.degrees(-90))
-                    .animation(AnimationPresets.slowSpring, value: viewModel.dailyProgress)
-
-                VStack(spacing: 4) {
-                    Text("\(Int(viewModel.dailyProgress * 100))%")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.primary)
-
-                    Text("Complete")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            GradientProgressRing(
+                progress: viewModel.dailyProgress,
+                gradientColors: [.blue, .cyan],
+                animated: true
+            )
 
             // Stats
             HStack(spacing: 30) {
-                VStack(spacing: 4) {
-                    Text("\(viewModel.totalDailyMinutes)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("Minutes")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(spacing: 4) {
-                    Text("\(viewModel.completedGoalsCount)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("Goals Done")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(spacing: 4) {
-                    Text("\(viewModel.totalActiveGoals)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("Total Goals")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                StatItem(value: "\(viewModel.totalDailyMinutes)", label: "Minutes")
+                StatItem(value: "\(viewModel.completedGoalsCount)", label: "Goals Done")
+                StatItem(value: "\(viewModel.totalActiveGoals)", label: "Total Goals")
             }
         }
         .frame(maxWidth: .infinity)
@@ -391,72 +343,20 @@ struct DayOverviewView: View {
         let completed = yesterdaySessions.filter { $0.hasMetDailyTarget }
         let skipped = yesterdaySessions.filter { $0.status == .skipped }
         let totalMinutes = Int(yesterdaySessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
+        let total = yesterdaySessions.filter { $0.status == .active && $0.dailyTarget > 0 }.count
+        let progress = total > 0 ? Double(completed.count) / Double(total) : 0.0
         
         return VStack(spacing: 20) {
-            // Large circular progress
-            ZStack {
-                Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: LayoutConstants.ProgressCircle.standardLineWidth)
-                    .frame(width: 120, height: 120)
-
-                let total = yesterdaySessions.filter { $0.status == .active && $0.dailyTarget > 0 }.count
-                let progress = total > 0 ? Double(completed.count) / Double(total) : 0.0
-                
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.green, .mint],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: LayoutConstants.ProgressCircle.standardLineWidth, lineCap: .round)
-                    )
-                    .frame(width: 120, height: 120)
-                    .rotationEffect(.degrees(-90))
-
-                VStack(spacing: 4) {
-                    Text("\(Int(progress * 100))%")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.primary)
-
-                    Text("Complete")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            GradientProgressRing(
+                progress: progress,
+                gradientColors: [.green, .mint]
+            )
 
             // Stats
             HStack(spacing: 30) {
-                VStack(spacing: 4) {
-                    Text("\(completed.count)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.green)
-                    Text("Completed")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(spacing: 4) {
-                    Text("\(skipped.count)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.orange)
-                    Text("Skipped")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(spacing: 4) {
-                    Text("\(totalMinutes)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.blue)
-                    Text("Minutes")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                StatItem(value: "\(completed.count)", label: "Completed", color: .green)
+                StatItem(value: "\(skipped.count)", label: "Skipped", color: .orange)
+                StatItem(value: "\(totalMinutes)", label: "Minutes", color: .blue)
             }
         }
         .frame(maxWidth: .infinity)
@@ -491,13 +391,15 @@ struct DayOverviewView: View {
         }
     }
 
-    private func formatTimeRange(startDate: Date, endDate: Date) -> String {
+    private static let timeRangeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
-        
-        let startString = formatter.string(from: startDate)
-        let endString = formatter.string(from: endDate)
-        
+        return formatter
+    }()
+    
+    private func formatTimeRange(startDate: Date, endDate: Date) -> String {
+        let startString = Self.timeRangeFormatter.string(from: startDate)
+        let endString = Self.timeRangeFormatter.string(from: endDate)
         return "\(startString) - \(endString)"
     }
 
@@ -626,5 +528,64 @@ private struct PlanSessionCard: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Reusable Components
+
+private struct GradientProgressRing: View {
+    let progress: Double
+    let gradientColors: [Color]
+    var size: CGFloat = 120
+    var animated: Bool = false
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.2), lineWidth: LayoutConstants.ProgressCircle.standardLineWidth)
+                .frame(width: size, height: size)
+            
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: LayoutConstants.ProgressCircle.standardLineWidth, lineCap: .round)
+                )
+                .frame(width: size, height: size)
+                .rotationEffect(.degrees(-90))
+                .animation(animated ? AnimationPresets.slowSpring : nil, value: progress)
+            
+            VStack(spacing: 4) {
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(.primary)
+                
+                Text("Complete")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct StatItem: View {
+    let value: String
+    let label: String
+    var color: Color? = nil
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(color ?? .primary)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }

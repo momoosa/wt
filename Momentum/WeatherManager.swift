@@ -77,22 +77,36 @@ class WeatherManager: NSObject, CLLocationManagerDelegate {
     }
     
     private func fetchWeather(for location: CLLocation) async {
-        isLoading = true
-        error = nil
+        await MainActor.run {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isLoading = true
+                error = nil
+            }
+        }
         
         do {
             let weather = try await weatherService.weather(for: location)
             await MainActor.run {
-                self.currentWeather = weather.currentWeather
-                self.currentLocation = location
-                self.lastUpdate = Date()
-                self.isLoading = false
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    self.currentWeather = weather.currentWeather
+                    self.currentLocation = location
+                    self.lastUpdate = Date()
+                    self.isLoading = false
+                }
                 print("✅ WeatherKit: Successfully fetched weather data")
             }
         } catch {
             await MainActor.run {
-                self.error = error
-                self.isLoading = false
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    self.error = error
+                    self.isLoading = false
+                }
                 
                 // Log detailed error information
                 print("❌ WeatherKit Error: \(error.localizedDescription)")
@@ -122,8 +136,12 @@ class WeatherManager: NSObject, CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        self.error = error
-        isLoading = false
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            self.error = error
+            isLoading = false
+        }
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {

@@ -146,12 +146,15 @@ struct SessionFilterService {
         validationCheck: (GoalSession) -> Bool,
         weatherManager: WeatherManager? = nil
     ) -> [GoalSession] {
-        // Filter out deleted/invalid sessions first
-        let validSessions = sessions.filter { (try? $0.persistentModelID) != nil }
-        let filtered = self.filter(validSessions, by: filter, validationCheck: validationCheck, weatherManager: weatherManager)
+        // self.filter() already validates persistentModelID, so no pre-filter needed
+        let filtered = self.filter(sessions, by: filter, validationCheck: validationCheck, weatherManager: weatherManager)
+        
+        // Exclude sessions that have significantly exceeded their daily target (>= 100% complete)
+        // These shouldn't be recommended — the user has already done enough for today
+        let incomplete = filtered.filter { !$0.hasMetDailyTarget }
         
         // During planning or if we have planned sessions, show top 3 with planning details as recommended
-        let plannedSessions = filtered
+        let plannedSessions = incomplete
             .filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
             .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
         
@@ -160,7 +163,7 @@ struct SessionFilterService {
         }
         
         // Fallback: try to get AI-generated recommendations from the daily plan
-        if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: filtered),
+        if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: incomplete),
            !aiRecommendations.isEmpty {
             // Use AI recommendations - filter to only show ones with recommendation reasons
             let recommendationsWithReasons = aiRecommendations.filter { !$0.recommendationReasons.isEmpty }
@@ -176,7 +179,7 @@ struct SessionFilterService {
         }
         
         // Fallback: Use scoring algorithm (soft refresh)
-        let scored = filtered.compactMap { session -> (GoalSession, Double)? in
+        let scored = incomplete.compactMap { session -> (GoalSession, Double)? in
             guard validationCheck(session), let goal = session.goal else { return nil }
             
             let score = planner.scoreSession(

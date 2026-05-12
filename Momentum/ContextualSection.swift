@@ -6,11 +6,25 @@
 //
 
 import Foundation
+import SwiftUI
 import MomentumKit
 
 /// Represents a contextual grouping of sessions with timing and constraint information
 struct ContextualSection: Identifiable {
-    let id = UUID()
+    /// Stable identity derived from section type so SwiftUI can diff sections across body evaluations
+    var id: String {
+        switch type {
+        case .recommendedNow: return "recommendedNow"
+        case .weatherWindow(let time, let condition, _): return "weather_\(time)_\(condition)"
+        case .timeWindow(let time, let reason, _): return "time_\(time)_\(reason)"
+        case .energyWindow(let time, let energyLevel): return "energy_\(time)_\(energyLevel)"
+        case .workingOffSchedule: return "offSchedule"
+        case .available: return "available"
+        case .later: return "later"
+        case .completed: return "completed"
+        case .inactive: return "inactive"
+        }
+    }
     let type: SectionType
     let sessions: [GoalSession]
     let explanation: String?
@@ -78,6 +92,17 @@ struct ContextualSection: Identifiable {
                 return true
             case .later, .completed, .inactive:
                 return false
+            }
+        }
+        
+        var iconColor: Color {
+            switch self {
+            case .recommendedNow: return .yellow
+            case .weatherWindow, .timeWindow, .energyWindow: return .blue
+            case .available: return .orange
+            case .workingOffSchedule: return .purple
+            case .completed: return .green
+            case .later, .inactive: return .gray
             }
         }
     }
@@ -369,10 +394,14 @@ extension ContextualSection {
         return sections
     }
     
-    private static func formatTimeWindow(_ date: Date) -> String {
+    private static let timeWindowFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
-        return formatter.string(from: date)
+        return formatter
+    }()
+    
+    private static func formatTimeWindow(_ date: Date) -> String {
+        timeWindowFormatter.string(from: date)
     }
     
     /// Generate contextual explanation for available goals section

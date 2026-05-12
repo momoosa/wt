@@ -175,11 +175,15 @@ struct ScreenTimeGoalConfigurationView: View {
     
     // MARK: - Helper Methods
     
-    private func formatHour(_ hour: Int) -> String {
+    private static let hourFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "ha"
+        return formatter
+    }()
+    
+    private func formatHour(_ hour: Int) -> String {
         let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date())!
-        return formatter.string(from: date)
+        return Self.hourFormatter.string(from: date)
     }
     
     private func toggleWeekday(_ weekday: Int) {
