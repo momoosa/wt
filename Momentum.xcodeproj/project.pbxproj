@@ -136,6 +136,13 @@
 		CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */; };
 		CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */; };
 		CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA6512F59786500661146 /* ContextualSection.swift */; };
+		CDF6E8FA2FB395A5008767D9 /* PlanningIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E8F92FB395A5008767D9 /* PlanningIntegration.swift */; };
+		CDF6E8FC2FB39F18008767D9 /* DailyProgressCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */; };
+		CDF6E8FE2FB39F18008767D9 /* ToolbarBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */; };
+		CDF6E9002FB39F1A008767D9 /* SetupMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E8FF2FB39F1A008767D9 /* SetupMethods.swift */; };
+		CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9012FB39F44008767D9 /* SessionManagement.swift */; };
+		CDF6E9042FB39F44008767D9 /* SessionInteractionHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9032FB39F44008767D9 /* SessionInteractionHandlers.swift */; };
+		CDF6E9062FB39F45008767D9 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9052FB39F45008767D9 /* DeepLinkHandler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -354,6 +361,13 @@
 		CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeektimeApp.swift; sourceTree = "<group>"; };
 		CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHandler.swift; sourceTree = "<group>"; };
 		CDEFA6512F59786500661146 /* ContextualSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualSection.swift; sourceTree = "<group>"; };
+		CDF6E8F92FB395A5008767D9 /* PlanningIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningIntegration.swift; sourceTree = "<group>"; };
+		CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressCardView.swift; sourceTree = "<group>"; };
+		CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarBuilder.swift; sourceTree = "<group>"; };
+		CDF6E8FF2FB39F1A008767D9 /* SetupMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupMethods.swift; sourceTree = "<group>"; };
+		CDF6E9012FB39F44008767D9 /* SessionManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagement.swift; sourceTree = "<group>"; };
+		CDF6E9032FB39F44008767D9 /* SessionInteractionHandlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInteractionHandlers.swift; sourceTree = "<group>"; };
+		CDF6E9052FB39F45008767D9 /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -538,6 +552,9 @@
 				CD6A0C1C2F883938008F5D93 /* NavigationState.swift */,
 				CD6A0C1E2F8839CD008F5D93 /* REFACTORING_GUIDE.md */,
 				CD6A0C202F88429F008F5D93 /* ContentViewModel.swift */,
+				CDF6E8F62FB39559008767D9 /* Integration */,
+				CDF6E8F72FB3955A008767D9 /* Components */,
+				CDF6E8F82FB3955A008767D9 /* Handlers */,
 			);
 			path = ContentView;
 			sourceTree = "<group>";
@@ -715,6 +732,34 @@
 				CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */,
 			);
 			path = Configuration;
+			sourceTree = "<group>";
+		};
+		CDF6E8F62FB39559008767D9 /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				CDF6E8F92FB395A5008767D9 /* PlanningIntegration.swift */,
+				CDF6E8FF2FB39F1A008767D9 /* SetupMethods.swift */,
+			);
+			path = Integration;
+			sourceTree = "<group>";
+		};
+		CDF6E8F72FB3955A008767D9 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */,
+				CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		CDF6E8F82FB3955A008767D9 /* Handlers */ = {
+			isa = PBXGroup;
+			children = (
+				CDF6E9012FB39F44008767D9 /* SessionManagement.swift */,
+				CDF6E9032FB39F44008767D9 /* SessionInteractionHandlers.swift */,
+				CDF6E9052FB39F45008767D9 /* DeepLinkHandler.swift */,
+			);
+			path = Handlers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1028,11 +1073,14 @@
 				CD6A0C1A2F883789008F5D93 /* ModelContextExtensions.swift in Sources */,
 				CD2A6FBB2F576B7800F5503A /* WeekdayConstants.swift in Sources */,
 				CD62581D2F783C5D008B9140 /* GoalEditorViewModel.swift in Sources */,
+				CDF6E8FA2FB395A5008767D9 /* PlanningIntegration.swift in Sources */,
 				CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */,
 				CD6A0C312F89999F008F5D93 /* SessionViewModel.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
 				CD2A6FC42F5778FC00F5503A /* ThemeColorHelper.swift in Sources */,
 				CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */,
+				CDF6E8FE2FB39F18008767D9 /* ToolbarBuilder.swift in Sources */,
+				CDF6E9062FB39F45008767D9 /* DeepLinkHandler.swift in Sources */,
 				CD1D0F652F84600100A36562 /* ColorPickerSheet.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
@@ -1051,6 +1099,7 @@
 				CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */,
 				CD0085B12F1B957900A555D6 /* SmartNotificationScheduler.swift in Sources */,
 				CD5ADA4C2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift in Sources */,
+				CDF6E8FC2FB39F18008767D9 /* DailyProgressCardView.swift in Sources */,
 				CD62581F2F783CF9008B9140 /* GoalEditorHelpers.swift in Sources */,
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CDBE14512F8514D600B7FCD6 /* TagSelectionSheet.swift in Sources */,
@@ -1074,6 +1123,7 @@
 				CD6A0C252F8994D8008F5D93 /* HealthKitManaging.swift in Sources */,
 				CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
+				CDF6E9002FB39F1A008767D9 /* SetupMethods.swift in Sources */,
 				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
@@ -1091,6 +1141,7 @@
 				CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */,
 				CD2A6FC72F57795400F5503A /* CommonModifiers.swift in Sources */,
 				CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */,
+				CDF6E9042FB39F44008767D9 /* SessionInteractionHandlers.swift in Sources */,
 				CD5ADA4E2F7BD25C000C0FD8 /* SecondaryMetricPickerSheet.swift in Sources */,
 				CD134DDC2F3FB404004BF35F /* ToastView.swift in Sources */,
 				CD11E0B12F3C71980040B032 /* ExpandableDayRow.swift in Sources */,
@@ -1106,6 +1157,7 @@
 				CD22C81C2F3BB8CA001F2406 /* PlanningViewModel.swift in Sources */,
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
+				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,

@@ -19,14 +19,14 @@ import WidgetKit
 struct ContentView: View {
     @Environment(GoalStore.self) var goalStore
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.modelContext) private var modelContext
-    @Query private var goals: [Goal]
-    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) private var _sessions: [GoalSession]
+    @Environment(\.modelContext) var modelContext
+    @Query var goals: [Goal]
+    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) var _sessions: [GoalSession]
     let day: Day
     @Namespace var animation
     
     // Filtered sessions for the current day only
-    private var sessions: [GoalSession] {
+    var sessions: [GoalSession] {
         _sessions.filter { $0.day?.id == day.id }
     }
 
@@ -34,38 +34,38 @@ struct ContentView: View {
     @State var viewModel: ContentViewModel
 
     // Navigation and UI state (from ViewModel when created)
-    @State private var navigation = NavigationState()
+    @State var navigation = NavigationState()
 
     // Timer manager for session tracking
-    @State private var timerManager: SessionTimerManager?
+    @State var timerManager: SessionTimerManager?
 
     // Planning
-    @State private var planningViewModel = PlanningViewModel()
+    @State var planningViewModel = PlanningViewModel()
 
     // Focus filter
-    @State private var focusFilterStore = FocusFilterStore.shared
+    @State var focusFilterStore = FocusFilterStore.shared
 
     // HealthKit (delegated to ViewModel)
-    @State private var healthKitManager = HealthKitManager()
-    @AppStorage("maxPlannedSessions") private var maxPlannedSessions: Int = 5
-    @AppStorage("unlimitedPlannedSessions") private var unlimitedPlannedSessions: Bool = false
-    @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
+    @State var healthKitManager = HealthKitManager()
+    @AppStorage("maxPlannedSessions") var maxPlannedSessions: Int = 5
+    @AppStorage("unlimitedPlannedSessions") var unlimitedPlannedSessions: Bool = false
+    @AppStorage("lastPlanGeneratedTimestamp") var lastPlanGeneratedTimestamp: Double = 0
 
     // Weather
-    @State private var weatherManager = WeatherManager.shared
+    @State var weatherManager = WeatherManager.shared
 
     // Calendar
-    @State private var nextCalendarEvent: EKEvent?
-    @State private var calendarEventStore = EKEventStore()
+    @State var nextCalendarEvent: EKEvent?
+    @State var calendarEventStore = EKEventStore()
     
     // Lifecycle guards to prevent redundant work
-    @State private var hasCompletedSetup = false
-    @State private var isRefreshingGoals = false
+    @State var hasCompletedSetup = false
+    @State var isRefreshingGoals = false
     
     // Progress Card Tile Visibility Settings
-    @AppStorage("showProgressTile") private var showProgressTile: Bool = true
-    @AppStorage("showWeatherTile") private var showWeatherTile: Bool = true
-    @AppStorage("showCalendarTile") private var showCalendarTile: Bool = true
+    @AppStorage("showProgressTile") var showProgressTile: Bool = true
+    @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
+    @AppStorage("showCalendarTile") var showCalendarTile: Bool = true
 
     // MARK: - Initialization
 
@@ -448,494 +448,12 @@ struct ContentView: View {
         .transition(.opacity)
     }
     
-    private var dailyProgressCard: some View {
-        let size = 80.0
-        let viewModel = progressViewModel
-        let hasVisibleTiles = showProgressTile || showWeatherTile || showCalendarTile
-        
-        return Group {
-            if hasVisibleTiles {
-                HStack(spacing: 12) {
-                    // Progress Ring
-                    if showProgressTile {
-                        CircularProgressView(progress: viewModel.dailyProgress, foregroundColor: .blue, backgroundColor: Color.blue.opacity(0.4))
-                            .overlay {
-                                VStack(spacing: 2) {
-                                    Text("\(Int(viewModel.dailyProgress * 100))%")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                    Text("done")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                            .matchedTransitionSource(id: "dayOverviewCard", in: animation)
-                            .onTapGesture {
-                                navigation.showDayOverview = true
-                            }
-                    }
-
-                    // Weather Card
-                    if showWeatherTile {
-                        if let weather = weatherManager.currentWeather {
-                            VStack(spacing: 6) {
-                                Image(systemName: weatherSymbol(for: weather.condition))
-                                    .font(.title)
-                                    .foregroundStyle(.blue)
-                                
-                                Text("\(Int(weather.temperature.value))°")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                        } else if weatherManager.isLoading {
-                            // Loading state
-                            VStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.regular)
-                                
-                                Text("Loading")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                        } else {
-                            // Error or no data state
-                            VStack(spacing: 6) {
-                                Image(systemName: weatherManager.error != nil ? "exclamationmark.triangle" : "cloud.slash")
-                                    .font(.title)
-                                    .foregroundStyle(.gray)
-                                
-                                Text(weatherManager.error != nil ? "Error" : "No Data")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                            .onTapGesture {
-                                weatherManager.forceRefreshWeather()
-                            }
-                        }
-                    }
-                    
-                    // Calendar Free Time Card
-                    if showCalendarTile {
-                        if nextCalendarEvent != nil {
-                            VStack(spacing: 6) {
-                                Image(systemName: "calendar")
-                                    .font(.title)
-                                    .foregroundStyle(.orange)
-                                
-                                Text(freeTimeText)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .multilineTextAlignment(.center)
-                                
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                        } else {
-                            VStack(spacing: 6) {
-                                Image(systemName: "calendar")
-                                    .font(.title)
-                                    .foregroundStyle(.green)
-                                                
-                                Text("Free")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                .padding()
-                .animation(.spring(), value: showProgressTile)
-                .animation(.spring(), value: showWeatherTile)
-                .animation(.spring(), value: showCalendarTile)
-            }
-        }
-    }
+    // MARK: - Daily Progress Card (see ContentView/Components/DailyProgressCardView.swift)
+    // MARK: - Weather & Calendar Helpers (see ContentView/Components/DailyProgressCardView.swift)
     
-    private var progressViewModel: DailyProgressViewModel {
-        DailyProgressViewModel(sessions: Array(sessions))
-    }
+    // MARK: - Toolbar (see ContentView/Components/ToolbarBuilder.swift)
     
-    // MARK: - Weather & Calendar Helpers
-    
-    private func weatherSymbol(for condition: WeatherKit.WeatherCondition) -> String {
-        switch condition {
-        case .clear, .mostlyClear:
-            return "sun.max.fill"
-        case .partlyCloudy:
-            return "cloud.sun.fill"
-        case .cloudy, .mostlyCloudy:
-            return "cloud.fill"
-        case .rain, .drizzle, .heavyRain:
-            return "cloud.rain.fill"
-        case .snow, .blizzard, .flurries, .heavySnow:
-            return "cloud.snow.fill"
-        case .sleet, .freezingDrizzle, .freezingRain:
-            return "cloud.sleet.fill"
-        case .strongStorms, .tropicalStorm, .hurricane:
-            return "cloud.bolt.rain.fill"
-        case .windy, .breezy:
-            return "wind"
-        case .haze, .smoky, .foggy:
-            return "cloud.fog.fill"
-        default:
-            return "cloud.fill"
-        }
-    }
-    
-    private var freeTimeText: String {
-        guard let event = nextCalendarEvent else { return "All day" }
-        
-        let now = Date()
-        let timeUntilEvent = event.startDate.timeIntervalSince(now)
-        
-        if timeUntilEvent < 0 {
-            // Event is happening now
-            let timeUntilEnd = event.endDate.timeIntervalSince(now)
-            if timeUntilEnd > 0 {
-                return "Busy now"
-            } else {
-                return "All day"
-            }
-        }
-        
-        // Calculate free time
-        let hours = Int(timeUntilEvent / 3600)
-        let minutes = Int((timeUntilEvent.truncatingRemainder(dividingBy: 3600)) / 60)
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else if minutes > 0 {
-            return "\(minutes)m"
-        } else {
-            return "< 1m"
-        }
-    }
-    
-    private func fetchNextCalendarEvent() {
-        // Request authorization on MainActor, then move the synchronous
-        // EventKit query off the main thread to avoid blocking UI.
-        Task {
-            do {
-                let granted = try await calendarEventStore.requestFullAccessToEvents()
-                guard granted else { return }
-                
-                let store = calendarEventStore
-                let event: EKEvent? = await Task.detached(priority: .utility) {
-                    let now = Date()
-                    let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
-                    
-                    let predicate = store.predicateForEvents(
-                        withStart: now,
-                        end: endOfDay,
-                        calendars: nil
-                    )
-                    
-                    return store.events(matching: predicate)
-                        .filter { !$0.isAllDay }
-                        .sorted { $0.startDate < $1.startDate }
-                        .first
-                }.value
-                
-                // Update state on MainActor without triggering animations
-                await MainActor.run {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        nextCalendarEvent = event
-                    }
-                }
-            } catch {
-                // Silently fail - calendar is optional
-                await MainActor.run {
-                    nextCalendarEvent = nil
-                }
-            }
-        }
-    }
-    
-    // MARK: - Toolbar
-    
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-#if os(iOS)
-        ToolbarItem(placement: .navigationBarTrailing) {
-            HStack {
-                Button {
-                    navigation.showAllGoals = true
-                } label: {
-                    Image(systemName: "target")
-                }
-                
-                #if DEBUG
-                
-
-                NavigationLink {
-                    ThemePreviewView()
-                        .modelContainer(previewOnlyContainer())
-                } label: {
-                    Text("Themes")
-                }
-                #endif
-            }
-        }
-        
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                navigation.showSettings = true
-            } label: {
-                Image(systemName: "gear")
-            }
-   
-        }
-#endif
-        
-    
-  
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button {
-                navigation.isSearching = true
-            } label: {
-                Label("Search", systemImage: "magnifyingglass")
-            }
-            .matchedTransitionSource(id: "searchButton", in: animation)
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button {
-                navigation.showDayOverview = true
-            } label: {
-                Label("Day Overview", systemImage: "calendar.badge.checkmark")
-            }
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button {
-                // Cache themes before showing sheet to avoid SwiftData faults
-                planningViewModel.cachedThemes = availableGoalThemes
-                navigation.showPlannerSheet = true
-            } label: {
-                if planningViewModel.isPlanning {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Label("Plan Day", systemImage: "sparkles")
-                }
-            }
-            .disabled(planningViewModel.isPlanning)
-            .matchedTransitionSource(id: "plannerButton", in: animation)
-        }
-        
-        
-        ToolbarItem(placement: .bottomBar) {
-            Spacer()
-        }
-        
-        if let timerManager,
-           let activeSession = timerManager.activeSession,
-           let session = sessions.first(where: { $0.id == activeSession.id }) {
-            
-            ToolbarItem(placement: .bottomBar) {
-                ActionView(session: session, details: activeSession) { event in
-                    handle(event: event)
-                }
-                .onTapGesture {
-                    navigation.showNowPlaying = true
-                }
-                .frame(minWidth: 140.0)
-            }
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Spacer()
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button(action: { navigation.showingGoalEditor = true }) {
-                Label("Add Item", systemImage: "plus")
-            }
-            .overlay {
-                Color.clear
-            }
-            .matchedTransitionSource(id: "info", in: animation)
-        }
-    }
-    
-    // MARK: - Setup Methods
-    
-    private func setupOnAppear() {
-        // Guard against re-running setup (e.g., if .task re-fires)
-        guard !hasCompletedSetup else { return }
-        hasCompletedSetup = true
-        
-        // Sync ViewModel's timerManager with ContentView's (ViewModel is injected from WeektimeApp)
-        viewModel.timerManager = timerManager
-
-        // Initialize timer manager if needed
-        if timerManager == nil {
-            let manager = SessionTimerManager(goalStore: goalStore, modelContext: modelContext)
-            
-            // Set up callback for external changes (e.g., widget stopping timer)
-            manager.onExternalChange = { [weak manager] in
-                // Note: SwiftData automatically tracks changes from other contexts
-                // We just need to reload the timer state to sync with UserDefaults
-                manager?.loadTimerState(sessions: sessions)
-            }
-            
-            timerManager = manager
-        }
-        
-        // Load saved timer states from UserDefaults
-        timerManager?.loadTimerState(sessions: sessions)
-        
-        // Update GoalStore for App Intents
-        goalStore.goals = goals
-        goalStore.sessions = sessions
-        
-        // Critical path: create missing sessions immediately so UI is populated
-        refreshGoals()
-        
-        // Defer non-critical work to separate tasks so it doesn't block initial render
-        Task {
-            // HealthKit sync runs async and updates state when done
-            syncHealthKitData()
-        }
-        
-        Task {
-            // Calendar events are supplementary UI
-            fetchNextCalendarEvent()
-        }
-        
-        Task {
-            // Auto-plan once per day on launch if we haven't already
-            await checkAndRunAutoPlan()
-        }
-
-        Task {
-            // Reschedule notifications for all goals with notifications enabled
-            await rescheduleGoalNotifications()
-        }
-        
-        // Initialize weather data asynchronously in background to avoid blocking launch
-        Task(priority: .background) {
-            weatherManager.refreshWeatherIfNeeded()
-        }
-    }
-    
-    /// Reschedule notifications for all goals with schedule notifications enabled
-    @MainActor
-    private func rescheduleGoalNotifications() async {
-        let notificationManager = GoalNotificationManager()
-        
-        // Get all active goals with schedule notifications enabled
-        let notificationGoals = goals.filter { $0.scheduleNotificationsEnabled && $0.hasSchedule && $0.status == .active }
-        
-        guard !notificationGoals.isEmpty else {
-            AppLogger.notifications.debug("No goals with notifications enabled")
-            return
-        }
-        
-        AppLogger.notifications.info("Rescheduling notifications for \(notificationGoals.count) goals...")
-        
-        do {
-            try await notificationManager.rescheduleAllGoals(goals: notificationGoals)
-        } catch {
-            AppLogger.notifications.error("Failed to reschedule notifications: \(error)")
-        }
-    }
-    
-    /// Check if we should auto-plan and run it if needed
-    private func checkAndRunAutoPlan() async {
-        AppLogger.planner.debug("Auto-plan check: hasAutoPlannedToday=\(planningViewModel.hasAutoPlannedToday), goals.count=\(goals.count)")
-        
-        // Skip if we've already auto-planned in this session (prevents duplicate runs)
-        guard !planningViewModel.hasAutoPlannedToday else {
-            AppLogger.planner.debug("Skipping: already planned in this session")
-            return
-        }
-        
-        // Mark as started immediately to prevent concurrent runs
-        planningViewModel.hasAutoPlannedToday = true
-        
-        // Skip if there are no goals
-        guard !goals.isEmpty else {
-            AppLogger.planner.debug("Skipping: no goals available")
-            planningViewModel.hasAutoPlannedToday = false // Reset so it can try again if goals are added
-            return
-        }
-        
-        // Check if less than 1 hour has passed since last plan generation
-        let currentTime = Date().timeIntervalSince1970
-        let timeSinceLastPlan = currentTime - lastPlanGeneratedTimestamp
-        let oneHourInSeconds: Double = 3600
-        
-        if lastPlanGeneratedTimestamp > 0 && timeSinceLastPlan < oneHourInSeconds {
-            let remainingMinutes = Int((oneHourInSeconds - timeSinceLastPlan) / 60)
-            AppLogger.planner.debug("Skipping: Plan generated \(Int(timeSinceLastPlan / 60)) minutes ago. Will regenerate in \(remainingMinutes) minutes")
-            planningViewModel.hasAutoPlannedToday = false // Reset so it can try again later
-            return
-        }
-        
-        AppLogger.planner.info("Starting auto-plan...")
-        
-        
-        await generateDailyPlan()
-    }
-    
-    /// Update recommendation reasons for existing planned sessions
-    private func updateExistingSessionReasons() async {
-        await MainActor.run {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                for session in sessions where session.plannedStartTime != nil {
-                    guard let goal = session.goal else { continue }
-                    let reasons = calculateRecommendationReasons(for: session, goal: goal)
-                    session.recommendationReasons = reasons
-                }
-                modelContext.safeSave(showingToast: $navigation.toastConfig)
-            }
-        }
-    }
-    
-    private func handleGoalsChange(old: [Goal], new: [Goal]) {
-        // Refresh sessions to match the updated goals
-        refreshGoals()
-        
-        // Only sync HealthKit if new HealthKit-enabled goals were added
-        let newHealthKitGoals = new.filter { newGoal in
-            newGoal.healthKitSyncEnabled &&
-            newGoal.healthKitMetric != nil &&
-            !old.contains(where: { $0.id == newGoal.id })
-        }
-        
-        if !newHealthKitGoals.isEmpty {
-            Task {
-                let newMetrics = newHealthKitGoals.compactMap { $0.healthKitMetric }
-                if !newMetrics.isEmpty {
-                    do {
-                        try await healthKitManager.requestAuthorization(for: newMetrics)
-                    } catch {
-                        AppLogger.healthKit.error("HealthKit authorization failed for new goals: \(error)")
-                    }
-                }
-                // Only sync for the newly added goals
-                syncHealthKitData()
-            }
-        }
-    }
+    // MARK: - Setup Methods (see ContentView/Integration/SetupMethods.swift)
     
     // MARK: - Sheet Views
     
@@ -1026,7 +544,7 @@ struct ContentView: View {
     
     // MARK: - Computed Properties
     
-    private var availableGoalThemes: [GoalTag] {
+    var availableGoalThemes: [GoalTag] {
         let activeGoals = goals.filter { $0.status == .active }
         var uniqueThemes: [GoalTag] = []
         var seenIDs: Set<String> = []
@@ -1043,11 +561,11 @@ struct ContentView: View {
         return uniqueThemes
     }
     
-    private var availableFilters: [Filter] {
+    var availableFilters: [Filter] {
         SessionFilterService.buildAvailableFilters(from: availableGoalThemes, sessions: sessions)
     }
     
-    private var sessionCountsForFilters: [FilterCount] {
+    var sessionCountsForFilters: [FilterCount] {
         availableFilters.map { filter in
             FilterCount(
                 filter: filter,
@@ -1058,7 +576,7 @@ struct ContentView: View {
 
     /// Sessions pre-filtered by the active Focus filter (if any).
     /// When no Focus filter is active this is identical to `sessions`.
-    private var focusFilteredSessions: [GoalSession] {
+    var focusFilteredSessions: [GoalSession] {
         let activeTags = focusFilterStore.activeFocusTagTitles
         guard !activeTags.isEmpty else { return Array(sessions) }
         return sessions.filter { session in
@@ -1069,146 +587,11 @@ struct ContentView: View {
 
 
     
-    private func refreshGoals() {
-        // Guard against re-entrant calls (e.g., refreshGoals modifying sessions triggers onChange which calls refreshGoals again)
-        guard !isRefreshingGoals else { return }
-        isRefreshingGoals = true
-        defer { isRefreshingGoals = false }
-        
-        // Fetch all sessions for today on-demand (avoids a persistent @Query that re-fires on every DB change)
-        let dayID = day.id
-        let descriptor = FetchDescriptor<GoalSession>()
-        let allSessionsForDay = (try? modelContext.fetch(descriptor))?.filter { $0.day?.id == dayID } ?? []
-        
-        // First, clean up any sessions whose goals have been deleted
-        let orphanedSessions = allSessionsForDay.filter { !isGoalValid($0) }
-        for session in orphanedSessions {
-            modelContext.delete(session)
-        }
-        
-        // Then create sessions for goals that don't have them
-        // Use allSessionsForDay (not filtered by dailyTarget) to check existence to avoid duplicates
-        for goal in goals {
-            if !allSessionsForDay.contains(where: { $0.goal == goal && $0.day == day }) {
-                let session = GoalSession(title: goal.title, goal: goal, day: day)
-                modelContext.insert(session)
-                
-                // Create checklist item sessions for this goal session
-                if let checklistItems = goal.checklistItems {
-                    for checklistItem in checklistItems {
-                        let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
-                        modelContext.insert(itemSession)
-                        session.checklist?.append(itemSession)
-                    }
-                }
-            }
-        }
-        
-        // Save without triggering animations — this is background data loading, not user interaction
-        if modelContext.hasChanges {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                modelContext.safeSave(showingToast: $navigation.toastConfig)
-                // Reload widgets when sessions are created or deleted
-                #if canImport(WidgetKit)
-                WidgetCenter.shared.reloadAllTimelines()
-                #endif
-            }
-        }
-    }
-
-    /// Sync checklist changes from a goal to its existing sessions
-    func syncChecklistToSessions(for goal: Goal) {
-        // Get all sessions for this goal
-        let goalSessions = sessions.filter { $0.goal == goal }
-
-        guard let goalChecklistItems = goal.checklistItems else {
-            // Goal has no checklist items - remove all checklist sessions
-            for session in goalSessions {
-                if let checklistSessions = session.checklist {
-                    for checklistSession in checklistSessions {
-                        modelContext.delete(checklistSession)
-                    }
-                    session.checklist?.removeAll()
-                }
-            }
-            return
-        }
-
-        // Sync checklist to each session
-        for session in goalSessions {
-            var sessionChecklist = session.checklist ?? []
-
-            // Get existing checklist item IDs in the session
-            let existingItemIDs = Set(sessionChecklist.compactMap { $0.checklistItem?.id })
-            let goalItemIDs = Set(goalChecklistItems.map { $0.id })
-
-            // Remove checklist sessions for items that no longer exist in goal
-            let itemsToRemove = sessionChecklist.filter { checklistSession in
-                guard let item = checklistSession.checklistItem else { return true }
-                return !goalItemIDs.contains(item.id)
-            }
-
-            for checklistSession in itemsToRemove {
-                modelContext.delete(checklistSession)
-                if let index = sessionChecklist.firstIndex(where: { $0.id == checklistSession.id }) {
-                    sessionChecklist.remove(at: index)
-                }
-            }
-
-            // Add new checklist sessions for items that don't exist in session yet
-            for checklistItem in goalChecklistItems {
-                if !existingItemIDs.contains(checklistItem.id) {
-                    let newChecklistSession = ChecklistItemSession(
-                        checklistItem: checklistItem,
-                        isCompleted: false,
-                        session: session
-                    )
-                    modelContext.insert(newChecklistSession)
-                    sessionChecklist.append(newChecklistSession)
-                }
-            }
-
-            // Update the session's checklist
-            session.checklist = sessionChecklist
-        }
-
-        // Save changes
-        if modelContext.hasChanges {
-            modelContext.safeSave(showingToast: $navigation.toastConfig)
-        }
-    }
-
-    func skip(session: GoalSession) {
-        // Delegate to ViewModel
-        viewModel.skip(session)
-    }
+    // MARK: - Session Management (see ContentView/Handlers/SessionManagement.swift)
     
-    /// Check if a session's goal is still valid (not deleted)
-    private func isGoalValid(_ session: GoalSession) -> Bool {
-        // Try to access the session and goal properties - if it throws or fails, they were deleted
-        // We need to catch both Swift errors and SwiftData faults
-        guard let _ = try? session.persistentModelID else {
-            return false
-        }
-        
-        do {
-            _ = session.status
-            guard let goal = session.goal else { return false }
-            _ = goal.id
-            _ = goal.title
-            _ = goal.status
-            return true
-        } catch {
-            return false
-        }
-    }
+    // MARK: - Scroll & Recommendations
     
-    // MARK: - Scroll to Section
-    
-    /// Scrolls to the section corresponding to the selected filter
-    private func scrollToFilterSection(_ filter: Filter) {
+    func scrollToFilterSection(_ filter: Filter) {
         guard let proxy = navigation.scrollProxy else { return }
         
         // Map filter to section type
@@ -1243,10 +626,7 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Recommendations
-    
-    /// Get recommended sessions for right now (top 3)
-    private func getRecommendedSessions() -> [GoalSession] {
+    func getRecommendedSessions() -> [GoalSession] {
         return SessionFilterService.getRecommendedSessions(
             from: focusFilteredSessions,
             filter: navigation.activeFilter,
@@ -1261,7 +641,7 @@ struct ContentView: View {
     // MARK: - Session Row
     
     @ViewBuilder
-    private func sessionRow(for session: GoalSession) -> some View {
+    func sessionRow(for session: GoalSession) -> some View {
         SessionRowView(
             session: session,
             day: day,
@@ -1276,81 +656,9 @@ struct ContentView: View {
     }
     
 
-    func handleTimerToggle(for session: GoalSession) {
-        guard let timerManager else { return }
-        
-        // Check if session is currently completed
-        let wasCompleted = session.hasMetDailyTarget
-        
-        // Toggle the timer
-        timerManager.toggleTimer(for: session, in: day)
-        
-        // If it was completed and we just started it, switch to Today filter and show toast
-        if wasCompleted && timerManager.activeSession?.id == session.id {
-            withAnimation {
-                navigation.activeFilter = .activeToday
-            }
-            
-            navigation.toastConfig = ToastConfig(
-                message: "Session resumed - moved to Today",
-                showUndo: false
-            )
-        }
-    }
-    
-    func handleStartTimeAdjustment(for session: GoalSession, adjustment: TimeInterval) {
-        guard let timerManager,
-              let activeSession = timerManager.activeSession,
-              activeSession.id == session.id else { return }
-        
-        // Adjust start time using the ActiveSessionDetails method
-        activeSession.adjustStartTime(by: adjustment)
-        
-        // Save to UserDefaults
-        if let defaults = UserDefaults(suiteName: "group.com.moosa.momentum.ios") {
-            defaults.set(activeSession.startDate.timeIntervalSince1970, forKey: "ActiveSessionStartDateV1")
-            defaults.synchronize()
-        }
-        
-        let minutes = Int(abs(adjustment) / 60)
-        let direction = adjustment > 0 ? "earlier" : "later"
-        navigation.toastConfig = ToastConfig(
-            message: "Adjusted start time: \(minutes)m \(direction)",
-            showUndo: false
-        )
-        
-        #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadAllTimelines()
-        #endif
-    }
-    
-    func handleDailyGoalAdjustment(for session: GoalSession, adjustment: TimeInterval) {
-        // Delegate to ViewModel
-        viewModel.adjustDailyTarget(for: session, by: adjustment)
-        
-        #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadAllTimelines()
-        #endif
-    }
-    
-    func handle(event: ActionView.Event) {
-        guard let timerManager else { return }
-        switch event {
-        case .stopTapped:
-            if let session = sessions.first(where: { $0.id == timerManager.activeSession?.id }) {
-                handleTimerToggle(for: session)
-            }
-        }
-    }
-    
-    func timerText(for session: GoalSession) -> String {
-        return timerManager?.timerText(for: session) ?? "00:00"
-    }
-    
     // MARK: - HealthKit Integration
-    
-    private func syncHealthKitData(userInitiated: Bool = false) {
-        // Delegate to ViewModel — HealthKitSyncService handles its own transaction internally
+
+    func syncHealthKitData(userInitiated: Bool = false) {
         Task {
             await viewModel.syncHealthKitData(
                 for: goals,
@@ -1361,422 +669,11 @@ struct ContentView: View {
             )
         }
     }
-    
-    // MARK: - AI Planning
-    
-    /// Parse a time string (e.g., "09:30") and combine it with a date to create a full Date object
-    private func parseTimeString(_ timeString: String, for date: Date) -> Date? {
-        let components = timeString.split(separator: ":")
-        guard components.count == 2,
-              let hours = Int(components[0]),
-              let minutes = Int(components[1]) else {
-            return nil
-        }
-        
-        let calendar = Calendar.current
-        var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-        dateComponents.hour = hours
-        dateComponents.minute = minutes
-        dateComponents.second = 0
-        
-        return calendar.date(from: dateComponents)
-    }
-    
-    /// Generate a daily plan and create GoalSession objects
-    private func generateDailyPlan() async {
-        await MainActor.run {
-            planningViewModel.isPlanning = true
-            planningViewModel.showPlanningComplete = false
-            // Clear previous revealed sessions
-            planningViewModel.revealedSessionIDs.removeAll()
-        }
-        defer { 
-            Task { @MainActor in
-                // Check if task was cancelled
-                guard !Task.isCancelled else {
-                    planningViewModel.isPlanning = false
-                    planningViewModel.planningTask = nil
-                    return
-                }
-                
-                // Show completion state immediately when planning finishes
-                planningViewModel.isPlanning = false
-                planningViewModel.planningTask = nil
-                
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    planningViewModel.showPlanningComplete = true
-                }
-                
-                // Keep completion state visible for 0.6 seconds
-                try? await Task.sleep(for: .seconds(0.6))
-                
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    planningViewModel.showPlanningComplete = false
-                }
-                
-                // Update timestamp to cache when plan was last generated
-                lastPlanGeneratedTimestamp = Date().timeIntervalSince1970
-                AppLogger.planner.debug("Updated plan generation timestamp")
-                
-                // Reload widgets to show updated sessions
-                #if canImport(WidgetKit)
-                WidgetCenter.shared.reloadAllTimelines()
-                #endif
-            }
-        }
-        
-        do {
-            // Generate the plan using active goals
-            var activeGoals = goals.filter { $0.status == .active }
-            
-            // Filter by selected themes if any are selected
-            if !planningViewModel.selectedThemes.isEmpty {
-                activeGoals = activeGoals.filter { goal in
-                    guard let primaryTag = goal.primaryTag else { return false }
-                    return planningViewModel.selectedThemes.contains(primaryTag.themeID)
-                }
-            }
-            
-            // Set max sessions in planner preferences
-            var preferences = planningViewModel.plannerPreferences
-            if !unlimitedPlannedSessions {
-                preferences.maxSessionsPerDay = maxPlannedSessions
-            } else {
-                preferences.maxSessionsPerDay = 100 // Effectively unlimited
-            }
-            
-            // Apply time-based limit (assuming ~30 minutes per session on average)
-            let timeBasedMaxSessions = planningViewModel.availableTimeMinutes / 30
-            preferences.maxSessionsPerDay = min(
-                preferences.maxSessionsPerDay,
-                max(1, timeBasedMaxSessions)
-            )
-            
-            // Clear planning details at the start to give a "from scratch" appearance
-            await MainActor.run {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    for session in sessions {
-                        session.clearPlanningDetails()
-                    }
-                    modelContext.safeSave()
-                }
-            }
-            
-            // Use streaming to get real-time updates
-            let stream = planningViewModel.planner.streamDailyPlan(
-                for: activeGoals,
-                goalSessions: sessions,
-                currentDate: day.startDate,
-                userPreferences: preferences
-            )
-            
-            var latestPlan: DailyPlan?
-            
-            for try await partialPlan in stream {
-                // Check if task was cancelled
-                guard !Task.isCancelled else {
-                    AppLogger.planner.debug("Planning cancelled by user")
-                    return
-                }
-                
-                // Convert partial plan to full plan if we have sessions
-                if let sessions = partialPlan.sessions {
-                    let fullyGeneratedSessions = sessions.compactMap { partialSession -> PlannedSession? in
-                        guard let id = partialSession.id,
-                              let goalTitle = partialSession.goalTitle,
-                              let recommendedStartTime = partialSession.recommendedStartTime,
-                              let suggestedDuration = partialSession.suggestedDuration,
-                              let priority = partialSession.priority,
-                              let reasoning = partialSession.reasoning else {
-                            return nil
-                        }
-                        
-                        return PlannedSession(
-                            id: id,
-                            goalTitle: goalTitle,
-                            recommendedStartTime: recommendedStartTime,
-                            suggestedDuration: suggestedDuration,
-                            priority: priority,
-                            reasoning: reasoning
-                        )
-                    }
-                    
-                    // Only update latestPlan - don't apply yet to avoid reordering during streaming
-                    if !fullyGeneratedSessions.isEmpty {
-                        let plan = DailyPlan(
-                            sessions: fullyGeneratedSessions,
-                            overallStrategy: partialPlan.overallStrategy ?? nil
-                        )
-                        latestPlan = plan
-                    }
-                }
-            }
-            
-            // Apply the final plan once after streaming completes
-            if let plan = latestPlan {
-                await applyPlan(plan)
-                await animatePlannedSessions(plan)
-
-                
-                // Clear planning details for sessions NOT in the plan
-                await MainActor.run {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        let plannedGoalIDs = Set(plan.sessions.compactMap { UUID(uuidString: $0.id) })
-                        for session in sessions {
-                            guard let goalID = session.goal?.id else { continue }
-                            if !plannedGoalIDs.contains(goalID) {
-                                session.clearPlanningDetails()
-                            }
-                        }
-                        modelContext.safeSave()
-                    }
-                }
-            }
-            
-            // Ensure all active goals have sessions (even if not in the plan)
-            await MainActor.run {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    let allActiveGoals = goals.filter { $0.status == .active }
-                    let existingSessionGoalIDs = Set(sessions.compactMap { $0.goal?.id })
-                    
-                    for goal in allActiveGoals {
-                        if !existingSessionGoalIDs.contains(goal.id) {
-                            // Create session for goal not in the plan
-                            let session = GoalSession(title: goal.title, goal: goal, day: day)
-                            session.status = .active
-                            modelContext.insert(session)
-                            
-                            // Create checklist item sessions for this goal session
-                            if let checklistItems = goal.checklistItems {
-                                for checklistItem in checklistItems {
-                                    let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
-                                    modelContext.insert(itemSession)
-                                    session.checklist?.append(itemSession)
-                                }
-                            }
-                        }
-                    }
-                    
-                    modelContext.safeSave()
-                }
-            }
-            
-        } catch {
-            AppLogger.planner.error("Planning failed: \(error)")
-            
-            // Show error alert
-            #if os(iOS)
-            let errorGenerator = UINotificationFeedbackGenerator()
-            errorGenerator.notificationOccurred(.error)
-            #endif
-        }
-    }
-    
-    /// Animate the reveal of planned sessions one by one
-    private func animatePlannedSessions(_ plan: DailyPlan) async {
-        // Provide haptic feedback for completion
-        #if os(iOS)
-        await MainActor.run {
-            let impact = UINotificationFeedbackGenerator()
-            impact.notificationOccurred(.success)
-        }
-        #endif
-    }
-    
-    /// Analyze historical sessions to find usage patterns for a goal
-    private func analyzeUsagePattern(for goal: Goal, session: GoalSession, currentHour: Int) -> Bool {
-        // Get historical sessions for this specific GoalSession
-        let historicalSessions = session.historicalSessions
-        
-        // Filter to sessions in the past 2 weeks
-        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-        let recentSessions = historicalSessions.filter { $0.startDate >= twoWeeksAgo }
-        
-        // Count how many times this goal was worked on in the current hour (+/- 1 hour window)
-        let sessionsInTimeWindow = recentSessions.filter { histSession in
-            let sessionHour = Calendar.current.component(.hour, from: histSession.startDate)
-            return abs(sessionHour - currentHour) <= 1
-        }
-        
-        // If this goal has been worked on 3+ times in this time window over the past 2 weeks, consider it a pattern
-        return sessionsInTimeWindow.count >= 3
-    }
-    
-    /// Calculate recommendation reasons for a session
-    private func calculateRecommendationReasons(for session: GoalSession, goal: Goal) -> [RecommendationReason] {
-        var reasons: [RecommendationReason] = []
-        
-        let calendar = Calendar.current
-        let currentHour = calendar.component(.hour, from: Date())
-        let currentWeekday = calendar.component(.weekday, from: Date())
-        
-        // 1. Weekly Progress - check if behind for the day of week
-        let dailyTarget = goal.weeklyTarget / 7
-        let daysIntoWeek = currentWeekday // Sunday = 1, Saturday = 7
-        // Use daily target as proxy for weekly progress check
-        if session.elapsedTime < dailyTarget * 0.5 && daysIntoWeek >= 4 { // Less than 50% and past Wednesday
-            reasons.append(.weeklyProgress)
-        }
-        
-        // 2. Quick Finish - less than 25% remaining
-        let remaining = dailyTarget - session.elapsedTime
-        if remaining > 0 && remaining < dailyTarget * 0.25 {
-            reasons.append(.quickFinish)
-        }
-        
-        // 3. Preferred Time - matches user's preferred time of day
-        let preferredTimes = goal.timesForWeekday(currentWeekday)
-        if !preferredTimes.isEmpty {
-            let matchesPreferred = preferredTimes.contains { timeOfDay in
-                switch timeOfDay {
-                case .morning: return currentHour >= 6 && currentHour < 10
-                case .midday: return currentHour >= 10 && currentHour < 14
-                case .afternoon: return currentHour >= 14 && currentHour < 18
-                case .evening: return currentHour >= 18 && currentHour < 22
-                case .night: return currentHour >= 22 || currentHour < 6
-                }
-            }
-            if matchesPreferred {
-                reasons.append(.preferredTime)
-            }
-        }
-        
-        // 4. Energy Level - morning/early afternoon are typically high energy
-        if (6...9).contains(currentHour) || (13...15).contains(currentHour) {
-            reasons.append(.energyLevel)
-        }
-        
-        // 5. Planned Theme - check if matches selected themes
-        if let primaryTag = goal.primaryTag, planningViewModel.selectedThemes.contains(primaryTag.themeID) {
-            reasons.append(.plannedTheme)
-        }
-        
-        // 6. Usual Time - based on historical usage patterns
-        if analyzeUsagePattern(for: goal, session: session, currentHour: currentHour) {
-            reasons.append(.usualTime)
-        }
-        
-        return reasons
-    }
-    
-    /// Apply the generated plan by creating GoalSession objects
-    @MainActor
-    private func applyPlan(_ plan: DailyPlan) async {
-            // Sort planned sessions by start time to maintain stable order during streaming
-            let sortedPlannedSessions = plan.sessions.sorted { session1, session2 in
-                // Parse time strings to compare
-                if let time1 = parseTimeString(session1.recommendedStartTime, for: day.startDate),
-                   let time2 = parseTimeString(session2.recommendedStartTime, for: day.startDate) {
-                    return time1 < time2
-                }
-                // Fallback to priority if times can't be parsed
-                return session1.priority < session2.priority
-            }
-            
-            // Create new GoalSession objects for each planned session
-            for plannedSession in sortedPlannedSessions {
-                // Try to find the goal by UUID first
-                var goal: Goal?
-                if let goalID = UUID(uuidString: plannedSession.id) {
-                    // UUID parsing succeeded - find by ID
-                    goal = goals.first(where: { $0.id == goalID })
-                }
-                
-                
-                // Fallback: if UUID parsing failed or goal not found, try matching by title
-                if goal == nil {
-                    goal = goals.first(where: { $0.title == plannedSession.goalTitle })
-                }
-                
-                guard let matchedGoal = goal else {
-                    AppLogger.planner.warning("Could not find goal for planned session: \(plannedSession.goalTitle) (ID: \(plannedSession.id))")
-                    continue
-                }
-                
-                // Check if a session already exists for this goal
-                if let existingSession = sessions.first(where: { $0.goal?.id == matchedGoal.id }) {
-                    // Update existing session's planning details
-                    // Convert time string (e.g., "09:30") to Date for today
-                    if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {
-                        let reasons = calculateRecommendationReasons(for: existingSession, goal: matchedGoal)
-                        existingSession.updatePlanningDetails(
-                            startTime: startTime,
-                            duration: plannedSession.suggestedDuration,
-                            priority: plannedSession.priority,
-                            reasoning: plannedSession.reasoning,
-                            reasons: reasons
-                        )
-                    }
-                    existingSession.status = .active
-                } else {
-                    // Create a new GoalSession only if one doesn't exist
-                    let session = GoalSession(title: matchedGoal.title, goal: matchedGoal, day: day)
-                    
-                    // Apply planning details
-                    // Convert time string (e.g., "09:30") to Date for today
-                    if let startTime = parseTimeString(plannedSession.recommendedStartTime, for: day.startDate) {
-                        let reasons = calculateRecommendationReasons(for: session, goal: matchedGoal)
-                        session.updatePlanningDetails(
-                            startTime: startTime,
-                            duration: plannedSession.suggestedDuration,
-                            priority: plannedSession.priority,
-                            reasoning: plannedSession.reasoning,
-                            reasons: reasons
-                        )
-                    }
-                    
-                    // Mark as active
-                    session.status = .active
-                    
-                    // Insert into model context
-                    modelContext.insert(session)
-                    
-                    // Create checklist item sessions for this goal session
-                    if let checklistItems = matchedGoal.checklistItems {
-                        for checklistItem in checklistItems {
-                            let itemSession = ChecklistItemSession(checklistItem: checklistItem, session: session)
-                            modelContext.insert(itemSession)
-                            session.checklist?.append(itemSession)
-                        }
-                    }
-                }
-            }
-            
-            // Save the new/updated sessions without triggering animations
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            _ = withTransaction(transaction) {
-                modelContext.safeSave()
-            }
-    }
-    
-    // MARK: - Deep Link Handling
-    
-    private func handleDeepLink(sessionID: String?) {
-        guard let sessionID = sessionID,
-              let uuid = UUID(uuidString: sessionID),
-              let session = sessions.first(where: { $0.id == uuid }) else {
-            AppLogger.app.warning("Session not found for ID: \(sessionID ?? "nil")")
-            return
-        }
-        
-        AppLogger.app.info("Found session to open: \(session.title)")
-        
-        // Open the session detail using selectedSession which triggers NavigationLink
-        navigation.selectedSession = session
-        
-    }
 }
 
 /// Creates an isolated in-memory ModelContainer for preview purposes only
 /// Returns a default container if initialization fails
-private func previewOnlyContainer() -> ModelContainer {
+func previewOnlyContainer() -> ModelContainer {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     
     do {
