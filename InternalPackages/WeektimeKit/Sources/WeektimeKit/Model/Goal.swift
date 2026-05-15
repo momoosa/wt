@@ -23,7 +23,8 @@ public final class Goal {
     @Relationship(deleteRule: .nullify)
     public var otherTags: [GoalTag]? = []
     
-    public var weeklyTarget: TimeInterval = 0 // Target duration in seconds for the week
+    /// Legacy: Use `unifiedWeeklyTarget` instead. Kept for backward compatibility with widgets/watch/migration.
+    public var weeklyTarget: TimeInterval = 0
     public var dailyMinimum: TimeInterval? // Optional minimum time required each day (for strict daily habits)
     
     // Notifications
@@ -36,7 +37,8 @@ public final class Goal {
     // HealthKit Integration
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
     public var healthKitSyncEnabled: Bool = false // Whether to sync time from HealthKit
-    public var primaryMetricDailyTarget: Double = 0 // Daily target for count/calorie goals (e.g., 10000 steps, 500 cal)
+    /// Legacy: Use `unifiedDailyTarget` instead. Kept for backward compatibility with editor/migration.
+    public var primaryMetricDailyTarget: Double = 0
     public var lastHealthKitSyncDate: Date? // Last time HealthKit data was synced
     
     // Screen Time Integration
@@ -58,6 +60,17 @@ public final class Goal {
     
     // Per-day target durations in seconds: weekday (1-7) → duration
     public var dailyTargets: [String: TimeInterval] = [:] // e.g., ["2": 900, "6": 1800] (15 min Monday, 30 min Friday)
+    
+    // MARK: - Unified Target System
+    
+    /// The unit for this goal's target (seconds, steps, kilocalories). Default is seconds for time-based goals.
+    private var targetUnitRawValue: String = "seconds"
+    
+    /// The canonical daily target value in the goal's native unit (e.g., 1800 seconds, 10000 steps, 500 kcal)
+    public var unifiedDailyTarget: Double = 0
+    
+    /// Per-weekday target overrides in the goal's native unit. Keys are weekday strings ("1"-"7").
+    public var perDayTargets: [String: Double] = [:]
     
     // Notes and Resources
     public var notes: String? // User's notes about the goal
@@ -120,12 +133,63 @@ public final class Goal {
         self.completionNotificationsEnabled = completionNotificationsEnabled
         self.healthKitMetricRawValue = healthKitMetric?.rawValue
         self.healthKitSyncEnabled = healthKitSyncEnabled
+        
+        // Populate unified target properties from legacy weeklyTarget
+        if weeklyTarget > 0 {
+            migrateToUnifiedTarget()
+        }
     }
     
 
 }
 
 public extension Goal {
+    /// Unified target unit for all goal types
+    enum TargetUnit: String, Codable, CaseIterable {
+        case seconds = "seconds"
+        case steps = "steps"
+        case kilocalories = "kilocalories"
+        
+        /// Whether this unit represents time (and thus uses the timer as its primary tracker)
+        public var isTimeBased: Bool { self == .seconds }
+        
+        /// Short label for display (e.g., "min", "steps", "cal")
+        public var label: String {
+            switch self {
+            case .seconds: return "min"
+            case .steps: return "steps"
+            case .kilocalories: return "cal"
+            }
+        }
+        
+        /// Human-readable display name
+        public var displayName: String {
+            switch self {
+            case .seconds: return "Time"
+            case .steps: return "Count"
+            case .kilocalories: return "Calories"
+            }
+        }
+        
+        /// Corresponding legacy GoalType
+        public var goalType: GoalType {
+            switch self {
+            case .seconds: return .time
+            case .steps: return .count
+            case .kilocalories: return .calories
+            }
+        }
+        
+        /// Create from legacy GoalType
+        public init(from goalType: GoalType) {
+            switch goalType {
+            case .time: self = .seconds
+            case .count: self = .steps
+            case .calories: self = .kilocalories
+            }
+        }
+    }
+    
     enum GoalType: String, Codable, CaseIterable {
         case time = "time"
         case count = "count"
@@ -217,6 +281,61 @@ public extension Goal {
             
             // Keep completionNotificationsEnabled in sync for backward compatibility
             completionNotificationsEnabled = newValue.contains(.notify)
+        }
+    }
+    
+    // MARK: - Unified Target Computed Properties
+    
+    /// The unit for this goal's target
+    var targetUnit: TargetUnit {
+        get { TargetUnit(rawValue: targetUnitRawValue) ?? .seconds }
+        set { targetUnitRawValue = newValue.rawValue }
+    }
+    
+    /// Get the unified daily target for a specific weekday, respecting per-day overrides
+    func unifiedTarget(for weekday: Int) -> Double {
+        if let perDayValue = perDayTargets[String(weekday)] {
+            return perDayValue
+        }
+        return unifiedDailyTarget
+    }
+    
+    /// Computed weekly target from the unified system: sum of per-day targets for scheduled days,
+    /// filling unscheduled days with the default daily target
+    var unifiedWeeklyTarget: Double {
+        if hasSchedule {
+            return scheduledWeekdays.reduce(0.0) { sum, weekday in
+                sum + unifiedTarget(for: weekday)
+            }
+        }
+        // No schedule means every day
+        return (1...7).reduce(0.0) { sum, weekday in
+            sum + unifiedTarget(for: weekday)
+        }
+    }
+    
+    /// Whether today is a scheduled day for this goal (checks the weekday in the dayTimeSchedule)
+    func isScheduledDay(_ weekday: Int) -> Bool {
+        guard hasSchedule else { return true }
+        return scheduledWeekdays.contains(weekday)
+    }
+    
+    /// Populate unified target fields from legacy properties.
+    /// Call once per goal during migration.
+    func migrateToUnifiedTarget() {
+        switch goalType {
+        case .time:
+            targetUnit = .seconds
+            unifiedDailyTarget = dailyTargetFromSchedule()
+            // Copy per-day targets (already in seconds)
+            perDayTargets = dailyTargets.mapValues { Double($0) }
+        case .count:
+            targetUnit = .steps
+            unifiedDailyTarget = primaryMetricDailyTarget
+            // No per-day targets for metric goals currently
+        case .calories:
+            targetUnit = .kilocalories
+            unifiedDailyTarget = primaryMetricDailyTarget
         }
     }
     

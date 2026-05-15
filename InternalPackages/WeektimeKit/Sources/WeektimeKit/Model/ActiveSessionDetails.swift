@@ -21,6 +21,8 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     public var currentTime: Date?
     public private(set) var timeText: String?
     public var dailyTarget: TimeInterval = 0 // Changed from optional to required for protocol
+    public var unifiedTargetValue: Double = 0 // Unified target in native unit
+    public var targetUnit: Goal.TargetUnit = .seconds // Unit of the target
     public var isPaused: Bool = false // Track if the session is currently paused
     public var onTargetReached: (() -> Void)? // Callback when target is reached
     public var onTick: (() -> Void)? // Callback on every timer tick

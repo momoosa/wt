@@ -65,6 +65,7 @@ class RemindersManager {
         let defaultDailyMinutes: TimeInterval = 30 * 60 // 30 minutes in seconds
         let defaultWeeklyTarget = defaultDailyMinutes * 7 // 3.5 hours total
         let goal = Goal(title: title, primaryTag: remindersTag, weeklyTarget: defaultWeeklyTarget)
+        goal.migrateToUnifiedTarget()
         
         // If the reminder has a due date, set up scheduling around it
         if let dueDate = reminder.dueDateComponents?.date {

@@ -202,11 +202,11 @@ struct GoalDetailView: View {
             
             // Stats Row
             HStack(spacing: 0) {
-                statItem(title: "Target", value: "\(Int(goal.weeklyTarget / 60))m")
+                statItem(title: "Target", value: "\(Int(goal.unifiedWeeklyTarget / 60))m")
                 Divider()
                 statItem(title: "Completed", value: "\(weeklyElapsedMinutes)m")
                 Divider()
-                statItem(title: "Remaining", value: "\(max(0, Int(goal.weeklyTarget / 60) - weeklyElapsedMinutes))m")
+                statItem(title: "Remaining", value: "\(max(0, Int(goal.unifiedWeeklyTarget / 60) - weeklyElapsedMinutes))m")
             }
             .frame(height: 60)
         }
@@ -231,8 +231,8 @@ struct GoalDetailView: View {
     // MARK: - Weekly Progress
     
     private var weeklyProgress: Double {
-        guard goal.weeklyTarget > 0 else { return 0 }
-        return min(1.0, Double(weeklyElapsedMinutes * 60) / goal.weeklyTarget)
+        guard goal.unifiedWeeklyTarget > 0 else { return 0 }
+        return min(1.0, Double(weeklyElapsedMinutes * 60) / goal.unifiedWeeklyTarget)
     }
     
     private var weeklyElapsedMinutes: Int {
@@ -292,7 +292,7 @@ struct GoalDetailView: View {
             }
             
             // Target line
-            RuleMark(y: .value("Target", goal.weeklyTarget / 60))
+            RuleMark(y: .value("Target", goal.unifiedWeeklyTarget / 60))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
                 .foregroundStyle(tintColor.opacity(0.5))
         }
@@ -497,14 +497,14 @@ struct GoalDetailView: View {
         HStack {
             Text("Daily Target")
             Spacer()
-            Text("\(Int(goal.weeklyTarget / 60 / 7))m")
+            Text("\(Int(goal.unifiedWeeklyTarget / 60 / 7))m")
                 .foregroundStyle(.secondary)
         }
         
         HStack {
             Text("Weekly Target")
             Spacer()
-            Text("\(Int(goal.weeklyTarget / 60))m")
+            Text("\(Int(goal.unifiedWeeklyTarget / 60))m")
                 .foregroundStyle(.secondary)
         }
         

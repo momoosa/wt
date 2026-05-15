@@ -45,7 +45,7 @@ struct WatchContentView: View {
         let todayComponents = calendar.dateComponents([.year, .month, .day], from: Date())
         
         return allSessions.filter { session in
-            guard session.dailyTarget > 0,
+            guard session.unifiedTargetValue > 0,
                   let dayStartDate = session.day?.startDate else {
                 return false
             }

@@ -47,7 +47,7 @@ class SessionViewModel {
         for session: GoalSession,
         by adjustment: TimeInterval
     ) -> Result<TimeInterval, SessionError> {
-        let newTarget = max(0, session.dailyTarget + adjustment)
+        let newTarget = max(0, session.unifiedTargetValue + adjustment)
         
         logger.info("Adjusting daily target for session by \(adjustment) seconds")
         
@@ -60,14 +60,16 @@ class SessionViewModel {
             }
         }
         
-        // Update session
+        // Update session (dual-write)
         session.dailyTarget = newTarget
+        session.unifiedTargetValue = newTarget
         
         // Update timerManager if this is the active session
         if let timerManager,
            let activeSession = timerManager.activeSession,
            activeSession.id == session.id {
             activeSession.dailyTarget = newTarget
+            activeSession.unifiedTargetValue = newTarget
         }
         
         // Save changes

@@ -38,6 +38,7 @@ class SessionRepository: SessionRepositoryProtocol {
     
     func updateGoal(_ goal: Goal, weeklyTarget: TimeInterval) -> Result<Void, SessionError> {
         goal.weeklyTarget = weeklyTarget
+        goal.migrateToUnifiedTarget()
         return save()
     }
 }

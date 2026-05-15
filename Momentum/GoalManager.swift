@@ -112,6 +112,11 @@ class GoalManager {
             healthKitSyncEnabled: goal.healthKitSyncEnabled
         )
         
+        // Copy unified target properties
+        newGoal.targetUnit = goal.targetUnit
+        newGoal.unifiedDailyTarget = goal.unifiedDailyTarget
+        newGoal.perDayTargets = goal.perDayTargets
+        
         // Copy schedule if exists
         if goal.hasSchedule {
             newGoal.dayTimeSchedule = goal.dayTimeSchedule

@@ -236,6 +236,7 @@ struct SettingsView: View {
             healthKitMetric: debugGoal.healthKitMetric,
             healthKitSyncEnabled: debugGoal.healthKitSyncEnabled
         )
+        goal.migrateToUnifiedTarget()
         withAnimation {
             modelContext.insert(goal)
         }

@@ -25,21 +25,21 @@ struct SessionFilterService {
             return sessions.filter { 
                 $0.goal?.status != .archived && 
                 $0.status != .skipped && 
-                ($0.dailyTarget > 0 || $0.isActiveGoal)
+                ($0.unifiedTargetValue > 0 || $0.isActiveGoal)
             }.count
         case .theme(let goalTheme):
             return sessions.filter {
                 $0.goal?.primaryTag?.themeID == goalTheme.themeID &&
                 $0.goal?.status != .archived &&
                 $0.status != .skipped &&
-                ($0.dailyTarget > 0 || $0.isActiveGoal)
+                ($0.unifiedTargetValue > 0 || $0.isActiveGoal)
             }.count
         case .completedToday:
-            return sessions.filter { $0.hasMetDailyTarget && ($0.dailyTarget > 0 || $0.isActiveGoal) }.count
+            return sessions.filter { $0.hasMetDailyTarget && ($0.unifiedTargetValue > 0 || $0.isActiveGoal) }.count
         case .inactive:
             // Only truly inactive goals: no schedule or no weekly target
             return sessions.filter { 
-                $0.dailyTarget == 0 && !$0.isActiveGoal
+                $0.unifiedTargetValue == 0 && !$0.isActiveGoal
             }.count
         }
     }
@@ -94,17 +94,17 @@ struct SessionFilterService {
                 // 1. Not archived or skipped
                 // 2. Has a daily target OR is an active goal with a schedule
                 // Note: Completed goals are now shown in their own section, not hidden
-                return !isArchived && !isSkipped && (session.dailyTarget > 0 || session.isActiveGoal)
+                return !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
             case .skippedSessions:
                 return isSkipped
             case .theme(let goalTheme):
                 // Same logic as activeToday for theme filters
-                return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && (session.dailyTarget > 0 || session.isActiveGoal)
+                return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
             case .completedToday:
-                return session.hasMetDailyTarget && (session.dailyTarget > 0 || session.isActiveGoal)
+                return session.hasMetDailyTarget && (session.unifiedTargetValue > 0 || session.isActiveGoal)
             case .inactive:
                 // Only truly inactive goals: no schedule or no weekly target
-                return session.dailyTarget == 0 && !session.isActiveGoal
+                return session.unifiedTargetValue == 0 && !session.isActiveGoal
             }
         }
         

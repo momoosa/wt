@@ -909,6 +909,21 @@ class GoalEditorViewModel {
             goal.dailyTargets[String(weekday)] = TimeInterval(minutes * 60)
         }
         
+        // ✅ Dual-write to unified target system
+        goal.targetUnit = Goal.TargetUnit(from: selectedGoalType)
+        switch selectedGoalType {
+        case .time:
+            let avgDailySeconds = activeDays.isEmpty ? 1800.0 : Double(calculatedWeeklyTarget * 60) / Double(activeDays.count)
+            goal.unifiedDailyTarget = avgDailySeconds
+            goal.perDayTargets.removeAll()
+            for (weekday, minutes) in dailyTargets {
+                goal.perDayTargets[String(weekday)] = Double(minutes * 60)
+            }
+        case .count, .calories:
+            goal.unifiedDailyTarget = primaryMetricTarget
+            goal.perDayTargets.removeAll()
+        }
+        
         // ✅ Save weather settings
         goal.weatherEnabled = weatherEnabled
         if weatherEnabled {

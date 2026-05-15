@@ -168,13 +168,14 @@ extension ContextualSection {
         if let allGoals = allGoals {
             let scheduledIDs = Set(sessions.map { $0.id })
             let availableGoals = allGoals.filter { goal in
-                // Not already scheduled for today (dailyTarget == 0 means not scheduled today)
+                // Not already in a scheduled section
                 !scheduledIDs.contains(goal.id) &&
-                goal.dailyTarget == 0 &&
+                // Not scheduled for today (no target for today)
+                goal.unifiedTargetValue == 0 &&
                 // Goal is active (not skipped or archived)
                 goal.status != .skipped &&
                 goal.goal?.status != .archived &&
-                // Goal has a schedule and weekly target (is a real goal, not just inactive)
+                // Goal has a schedule and target (is a real goal, not just inactive)
                 goal.isActiveGoal &&
                 // Not yet completed
                 !goal.hasMetDailyTarget
@@ -199,7 +200,7 @@ extension ContextualSection {
             
             // 6. Completed Today section (goals that have met their daily target)
             let completedGoals = allGoals.filter { goal in
-                goal.hasMetDailyTarget && goal.dailyTarget > 0
+                goal.hasMetDailyTarget && (goal.unifiedTargetValue > 0 || goal.isActiveGoal)
             }
             
             if !completedGoals.isEmpty {
@@ -213,7 +214,7 @@ extension ContextualSection {
             // 7. Inactive section (goals with no schedule for today and not active)
             let inactiveGoals = allGoals.filter { goal in
                 !scheduledIDs.contains(goal.id) &&
-                goal.dailyTarget == 0 &&
+                goal.unifiedTargetValue == 0 &&
                 !goal.isActiveGoal &&
                 goal.status != .skipped &&
                 goal.goal?.status != .archived
@@ -448,12 +449,17 @@ extension ContextualSection {
             var score: Double = 0
             
             // 1. Behind on weekly progress (high priority)
-            if let weeklyTarget = goal.goal?.weeklyTarget, weeklyTarget > 0 {
-                let progress = goal.elapsedTime / weeklyTarget
-                if progress < 0.5 {
-                    score += 10 // Behind schedule
-                } else if progress < 0.7 {
-                    score += 5 // Could use more work
+            if let goalModel = goal.goal {
+                let weeklyTarget = goalModel.unifiedWeeklyTarget
+                if weeklyTarget > 0 {
+                    // Use session's currentValue for metric goals, elapsedTime for time goals
+                    let sessionProgress = goalModel.targetUnit.isTimeBased ? goal.elapsedTime : goal.currentValue
+                    let progress = sessionProgress / weeklyTarget
+                    if progress < 0.5 {
+                        score += 10 // Behind schedule
+                    } else if progress < 0.7 {
+                        score += 5 // Could use more work
+                    }
                 }
             }
             

@@ -414,7 +414,6 @@ public class GoalSessionPlanner: ObservableObject {
         
         // 1. Progress-based scoring (0-40 points)
         // Goals that are furthest behind get higher scores
-        let dailyTarget = goal.weeklyTarget / 7
         let weeklyProgress = calculateWeeklyProgress(for: goal, sessions: sessions, currentDate: time)
         
         // Inverse progress: the lower the progress, the higher the score
@@ -447,13 +446,13 @@ public class GoalSessionPlanner: ObservableObject {
         switch preferences.focusMode {
         case .deepWork:
             // Favor goals with higher weekly targets (longer sessions)
-            let targetMinutes = goal.weeklyTarget / 60
+            let targetMinutes = goal.unifiedWeeklyTarget / 60
             score += min(20, targetMinutes / 50)
         case .balanced:
             score += 10 // Neutral bonus
         case .flexible:
             // Favor goals with lower targets (shorter sessions)
-            let targetMinutes = goal.weeklyTarget / 60
+            let targetMinutes = goal.unifiedWeeklyTarget / 60
             score += max(0, 20 - (targetMinutes / 50))
         }
         
@@ -520,9 +519,16 @@ public class GoalSessionPlanner: ObservableObject {
                 continue
             }
             
-            let dailyTarget = goal.weeklyTarget / 7
-            let remainingTime = max(0, dailyTarget - session.elapsedTime)
-            let suggestedMinutes = Int(remainingTime / 60)
+            let target = session.unifiedTargetValue
+            let remaining = max(0, target - session.currentValue)
+            let suggestedMinutes: Int
+            if session.targetUnit.isTimeBased {
+                suggestedMinutes = Int(remaining / 60)
+            } else {
+                // For metric goals, suggest a default session length
+                let progressRatio = target > 0 ? session.currentValue / target : 1.0
+                suggestedMinutes = progressRatio < 1.0 ? 30 : 15
+            }
             
             // Schedule 30 minutes from now (or immediately if < 30 min left in day)
             currentTime = calendar.date(byAdding: .minute, value: 30, to: currentTime) ?? currentTime
@@ -537,7 +543,7 @@ public class GoalSessionPlanner: ObservableObject {
                 recommendedStartTime: formattedTime,
                 suggestedDuration: max(suggestedMinutes, 5),
                 priority: 1,
-                reasoning: remainingTime > 0 ? "Complete remaining \(remainingTime.formatted(style: .components)) to reach daily target" : "Maintain momentum with this goal"
+                reasoning: remaining > 0 ? "Complete remaining progress to reach daily target" : "Maintain momentum with this goal"
             )
             sessions.append(plannedSession)
         }
@@ -594,21 +600,28 @@ public class GoalSessionPlanner: ObservableObject {
         var eligibleGoals: [(goal: Goal, priority: Double)] = []
         
         for goal in goals {
-            // Filter 1: Must have a valid session with dailyTarget > 0
+            // Filter 1: Must have a valid session with a target
             guard let session = goalSessions.first(where: { $0.goalID == goal.id.uuidString }),
-                  session.dailyTarget > 0 else {
+                  session.unifiedTargetValue > 0 else {
                 continue
             }
             
             // Filter 2: Skip if already completed today
-            let dailyTarget = goal.weeklyTarget / 7
-            if session.elapsedTime >= dailyTarget && dailyTarget > 0 {
+            let dailyTarget = session.unifiedTargetValue
+            if session.currentValue >= dailyTarget {
                 continue
             }
             
-            // Filter 3: Calculate remaining time needed
-            let remainingTime = max(0, dailyTarget - session.elapsedTime)
-            let remainingMinutes = Int(remainingTime / 60)
+            // Filter 3: Calculate remaining progress needed
+            let remainingValue = max(0, dailyTarget - session.currentValue)
+            let remainingMinutes: Int
+            if session.targetUnit.isTimeBased {
+                remainingMinutes = Int(remainingValue / 60)
+            } else {
+                // For metric goals, estimate remaining as proportion of a default session
+                let progressRatio = dailyTarget > 0 ? session.currentValue / dailyTarget : 1.0
+                remainingMinutes = Int(max(1, (1.0 - progressRatio) * 30))
+            }
             
             // Skip if remaining time is tiny (< 1 minute) - not worth planning
             if remainingMinutes < 1 {
@@ -640,15 +653,15 @@ public class GoalSessionPlanner: ObservableObject {
             var priorityScore: Double = 0
             
             // Factor 1: Progress deficit (further behind = higher priority)
-            let progressPercent = dailyTarget > 0 ? (session.elapsedTime / dailyTarget) : 0
+            let progressPercent = dailyTarget > 0 ? (session.currentValue / dailyTarget) : 0
             let deficit = max(0, 1.0 - progressPercent)
             priorityScore += deficit * 100 // 0-100 points
             
             // Factor 2: Weekly target urgency
-            let weeklyTarget = goal.weeklyTarget
-            if weeklyTarget > 0 {
+            let unifiedWeekly = goal.unifiedWeeklyTarget
+            if unifiedWeekly > 0 {
                 // Higher weekly targets = more important
-                let weeklyHours = weeklyTarget / 3600
+                let weeklyHours = unifiedWeekly / 3600
                 priorityScore += min(weeklyHours * 5, 50) // Up to 50 points
             }
             
@@ -696,10 +709,10 @@ public class GoalSessionPlanner: ObservableObject {
         for goal in goals {
             guard let session = goalSessions.first(where: { $0.goalID == goal.id.uuidString }) else { continue }
             
-            let dailyTarget = goal.weeklyTarget / 7
-            let remainingTime = max(0, dailyTarget - session.elapsedTime)
-            let remainingMinutes = Int(remainingTime / 60)
-            let progress = dailyTarget > 0 ? Int((session.elapsedTime / dailyTarget) * 100) : 0
+            let target = session.unifiedTargetValue
+            let remaining = max(0, target - session.currentValue)
+            let remainingMinutes = session.targetUnit.isTimeBased ? Int(remaining / 60) : Int((target > 0 ? (1.0 - session.currentValue / target) : 0) * 30)
+            let progress = target > 0 ? Int((session.currentValue / target) * 100) : 0
             
             // Simplified, concise context (50% less text)
             var context = """
@@ -747,11 +760,11 @@ public class GoalSessionPlanner: ObservableObject {
                 session.day?.startDate ?? .distantPast >= weekStart &&
                 session.day?.startDate ?? .distantPast < weekEnd
             }
-            .reduce(0.0) { $0 + $1.elapsedTime }
+            .reduce(0.0) { $0 + $1.currentValue }
         
         // Return progress as a percentage of weekly target
-        guard goal.weeklyTarget > 0 else { return 0.0 }
-        return (actualProgress / goal.weeklyTarget) * 100.0
+        guard goal.unifiedWeeklyTarget > 0 else { return 0.0 }
+        return (actualProgress / goal.unifiedWeeklyTarget) * 100.0
     }
 }
 

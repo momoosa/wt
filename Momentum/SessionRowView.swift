@@ -58,82 +58,52 @@ struct SessionRowView: View {
                             .foregroundStyle(isRecommended ? session.themeTextColor(for: colorScheme) : .primary)
                     
                     HStack {
-                        // Display based on goal type
-                        if let goal = session.goal {
-                            switch goal.goalType {
-                            case .time:
-                                // Time-based goal - show time
-                                if let activeSession = timerManager?.activeSession,
-                                   activeSession.id == session.id,
-                                   let timeText = activeSession.timeText {
-                                    Text(timeText)
-                                        .contentTransition(.numericText())
-                                        .fontWeight(.semibold)
-                                        .font(.footnote)
-                                    
-                                    if activeSession.hasMetDailyTarget {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .symbolRenderingMode(.hierarchical)
-                                            .foregroundStyle(.green)
-                                            .font(.footnote)
-                                            .accessibilityLabel("Goal completed")
-                                    }
-                                } else {
-                                    Text(session.formattedTime)
-                                        .fontWeight(.semibold)
-                                        .font(.footnote)
-                                    
-                                    if session.hasMetDailyTarget {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
-                                            .font(.footnote)
-                                            .accessibilityLabel("Goal completed")
-                                    }
-                                }
+                        if session.targetUnit.isTimeBased {
+                            // Time-based goal — show live timer or formatted time
+                            if let activeSession = timerManager?.activeSession,
+                               activeSession.id == session.id,
+                               let timeText = activeSession.timeText {
+                                Text(timeText)
+                                    .contentTransition(.numericText())
+                                    .fontWeight(.semibold)
+                                    .font(.footnote)
                                 
-                            case .count:
-                                // Count-based goal - show steps
-                                if let metric = goal.healthKitMetric {
-                                    let value = session.primaryMetricValue
-                                    let target = session.primaryMetricTarget
-
-                                    HStack(spacing: 4) {
-                                        Image(systemName: metric.symbolName)
-                                            .font(.footnote)
-                                        Text("\(Int(value))/\(Int(target))")
-                                            .fontWeight(.semibold)
-                                            .font(.footnote)
-                                    }
-
-                                    if value >= target {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
-                                            .font(.footnote)
-                                            .accessibilityLabel("Goal completed")
-                                    }
+                                if activeSession.hasMetDailyTarget {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .symbolRenderingMode(.hierarchical)
+                                        .foregroundStyle(.green)
+                                        .font(.footnote)
+                                        .accessibilityLabel("Goal completed")
                                 }
-
-                            case .calories:
-                                // Calorie-based goal - show calories
-                                if let metric = goal.healthKitMetric {
-                                    let value = session.primaryMetricValue
-                                    let target = session.primaryMetricTarget
-
-                                    HStack(spacing: 4) {
-                                        Image(systemName: metric.symbolName)
-                                            .font(.footnote)
-                                        Text("\(Int(value))/\(Int(target)) cal")
-                                            .fontWeight(.semibold)
-                                            .font(.footnote)
-                                    }
-
-                                    if value >= target {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(.green)
-                                            .font(.footnote)
-                                            .accessibilityLabel("Goal completed")
-                                    }
+                            } else {
+                                Text(session.formattedTime)
+                                    .fontWeight(.semibold)
+                                    .font(.footnote)
+                                
+                                if session.hasMetDailyTarget {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                        .font(.footnote)
+                                        .accessibilityLabel("Goal completed")
                                 }
+                            }
+                        } else {
+                            // Metric-based goal — show value/target with optional HealthKit icon
+                            HStack(spacing: 4) {
+                                if let metric = session.goal?.healthKitMetric {
+                                    Image(systemName: metric.symbolName)
+                                        .font(.footnote)
+                                }
+                                Text(session.formattedTime)
+                                    .fontWeight(.semibold)
+                                    .font(.footnote)
+                            }
+                            
+                            if session.hasMetDailyTarget {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .font(.footnote)
+                                    .accessibilityLabel("Goal completed")
                             }
                         }
                         

@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "D22F3F1E-50F9-4B9C-95AD-3ABAC39C5DA3",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Momentum.xcodeproj",
+        "identifier" : "CD75CC6B2E2FE5E700890F20",
+        "name" : "MomentumTests"
+      }
+    }
+  ],
+  "version" : 1
+}

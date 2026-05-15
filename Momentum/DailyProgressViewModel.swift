@@ -31,7 +31,7 @@ final class DailyProgressViewModel {
     var totalDailyMinutes: Int {
         Int(activeSessions.reduce(0.0) { sum, session in
             // Cap each session's contribution at its daily target
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.currentValue, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
     }
@@ -39,7 +39,7 @@ final class DailyProgressViewModel {
     /// Total daily target minutes across all active sessions
     var totalDailyTarget: Int {
         activeSessions.reduce(0) { total, session in
-            total + Int(session.dailyTarget / 60)
+            total + Int(session.unifiedTargetValue / 60)
         }
     }
     

@@ -223,7 +223,7 @@ public struct DeterministicRecommender {
         let weekProgress = elapsedTime / weekDuration
         
         // Expected progress at this point
-        let expectedProgress = goal.weeklyTarget * weekProgress
+        let expectedProgress = goal.unifiedWeeklyTarget * weekProgress
         
         // Calculate actual progress from sessions in the current week
         let actualProgress = sessions
@@ -232,13 +232,13 @@ public struct DeterministicRecommender {
                 session.day?.startDate ?? .distantPast >= weekStart &&
                 session.day?.startDate ?? .distantPast < weekEnd
             }
-            .reduce(0.0) { $0 + $1.elapsedTime }
+            .reduce(0.0) { $0 + $1.currentValue }
         
         let deficit = expectedProgress - actualProgress
         
         if deficit > 0 {
             // Behind schedule - scale score based on deficit
-            let deficitPercentage = min(1.0, deficit / goal.weeklyTarget)
+            let deficitPercentage = min(1.0, deficit / goal.unifiedWeeklyTarget)
             let score = deficitPercentage * weights.weeklyProgress
             
             if deficitPercentage > 0.3 {

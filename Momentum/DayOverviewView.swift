@@ -62,7 +62,7 @@ struct DayOverviewView: View {
         sessions.filter { session in
             session.status == .active && 
             session.plannedPriority != nil &&
-            session.dailyTarget > 0 &&
+            session.unifiedTargetValue > 0 &&
             !removedSessionIDs.contains(session.id.uuidString)
         }
     }
@@ -76,7 +76,7 @@ struct DayOverviewView: View {
     }
     
     private var totalPlannedMinutes: Int {
-        Int(orderedRecommendedSessions.reduce(0.0) { $0 + $1.dailyTarget } / 60)
+        Int(orderedRecommendedSessions.reduce(0.0) { $0 + $1.unifiedTargetValue } / 60)
     }
     
     // MARK: - Yesterday Helpers
@@ -102,7 +102,7 @@ struct DayOverviewView: View {
         var insights: [String] = []
         
         let completed = yesterdaySessions.filter { $0.hasMetDailyTarget }
-        let total = yesterdaySessions.filter { $0.status == .active && $0.dailyTarget > 0 }
+        let total = yesterdaySessions.filter { $0.status == .active && $0.unifiedTargetValue > 0 }
         
         guard !total.isEmpty else { return insights }
         
@@ -345,7 +345,7 @@ struct DayOverviewView: View {
         let completed = yesterdaySessions.filter { $0.hasMetDailyTarget }
         let skipped = yesterdaySessions.filter { $0.status == .skipped }
         let totalMinutes = Int(yesterdaySessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
-        let total = yesterdaySessions.filter { $0.status == .active && $0.dailyTarget > 0 }.count
+        let total = yesterdaySessions.filter { $0.status == .active && $0.unifiedTargetValue > 0 }.count
         let progress = total > 0 ? Double(completed.count) / Double(total) : 0.0
         
         return VStack(spacing: 20) {
@@ -437,7 +437,7 @@ private struct PlanSessionCard: View {
                         Text(session.goal?.title ?? "Unknown")
                             .font(.headline)
                         
-                        Text("\(Int(session.dailyTarget / 60)) min")
+                        Text("\(Int(session.unifiedTargetValue / 60)) min")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

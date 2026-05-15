@@ -120,6 +120,7 @@ struct FilterTests {
         // Create an inactive session (no daily target)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         session.dailyTarget = 0
+        session.unifiedTargetValue = 0
         
         let tags: [GoalTag] = []
         let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: [session])

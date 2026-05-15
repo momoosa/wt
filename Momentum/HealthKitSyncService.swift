@@ -112,7 +112,7 @@ class HealthKitSyncService {
 
                 // Fetch primary metric value if needed (still async)
                 var primaryMetricValue: Double? = nil
-                if goal.goalType == .count || goal.goalType == .calories {
+                if !goal.targetUnit.isTimeBased {
                     do {
                         primaryMetricValue = try await healthKitManager.fetchTodayCount(for: metric)
                         AppLogger.healthKit.info("  - Fetched primary metric value: \(primaryMetricValue ?? 0)")

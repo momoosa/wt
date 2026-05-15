@@ -268,7 +268,7 @@ struct ConsolidatedTodayView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(goal.weeklyTarget.formatted())
+                    Text(goal.unifiedWeeklyTarget.formatted())
                         .font(.subheadline)
                         .fontWeight(.medium)
                     Text("per week")
@@ -609,7 +609,7 @@ struct ConsolidatedTodayView: View {
     }
     
     private var totalWeeklyTargetHours: String {
-        let totalSeconds = activeGoals.reduce(0.0) { $0 + $1.weeklyTarget }
+        let totalSeconds = activeGoals.reduce(0.0) { $0 + $1.unifiedWeeklyTarget }
         let hours = totalSeconds / 3600
         return String(format: "%.1f", hours)
     }

@@ -70,12 +70,10 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
 // MARK: - Active Goal Helpers
 
 extension GoalSession {
-    /// Check if this session represents an active goal (has schedule and a target — time-based or metric-based)
+    /// Check if this session represents an active goal (has schedule and a target)
     public var isActiveGoal: Bool {
         guard let goal = goal else { return false }
-        let hasTimeTarget = (goal.weeklyTarget ?? 0) > 0
-        let hasMetricTarget = goal.primaryMetricDailyTarget > 0
-        return goal.hasSchedule && (hasTimeTarget || hasMetricTarget)
+        return goal.hasSchedule && (goal.unifiedDailyTarget > 0 || !goal.perDayTargets.isEmpty)
     }
 }
 
@@ -158,10 +156,10 @@ public final class GoalSession: SessionProgressProvider {
     /// Time tracked from HealthKit for this session (if enabled)
     public private(set) var healthKitTime: TimeInterval = 0
     
-    /// Primary metric value for count/calorie-based goals (e.g., steps, calories)
+    /// Legacy: Use `currentValue` instead. Kept for backward compatibility with migration.
     public var primaryMetricValue: Double = 0
     
-    /// Target value for the primary metric (cached from goal at creation time)
+    /// Legacy: Use `unifiedTargetValue` instead. Kept for backward compatibility with migration.
     public var primaryMetricTarget: Double = 0
     
     // MARK: - AI Planning Properties
@@ -184,9 +182,25 @@ public final class GoalSession: SessionProgressProvider {
     /// Whether this session is pinned to appear in widgets
     public var pinnedInWidget: Bool = false
     
-    /// Cached daily target to avoid accessing deleted goal
-    /// This is set when the session is created and doesn't change
+    /// Legacy: Use `unifiedTargetValue` instead. Kept for backward compatibility with widgets/watch/timer.
     public var dailyTarget: TimeInterval = 0
+    
+    // MARK: - Unified Target System
+    
+    /// The target unit for this session, cached from the goal at creation time
+    private var targetUnitRawValue: String = "seconds"
+    
+    /// The target value for this session in the goal's native unit (cached from goal)
+    public var unifiedTargetValue: Double = 0
+    
+    /// Current progress value in the goal's native unit.
+    /// For time goals: synced from elapsedTime. For metric goals: synced from HealthKit.
+    public var currentValue: Double = 0
+    
+    /// The target unit for this session
+    public var targetUnit: Goal.TargetUnit {
+        Goal.TargetUnit(rawValue: targetUnitRawValue) ?? .seconds
+    }
     
     /// Whether this session has been manually marked as complete for the day
     public var markedComplete: Bool = false
@@ -230,61 +244,43 @@ public final class GoalSession: SessionProgressProvider {
     }
     
     /// Progress as a value from 0.0 onwards (can exceed 1.0 when over target)
-    /// Overrides the default SessionProgressProvider implementation to handle count/calorie goals
     public var progress: Double {
-        guard let goal = goal else {
-            // Fallback to time-based progress if goal is nil
-            guard dailyTarget > 0 else { return 0 }
-            return elapsedTime / dailyTarget
+        guard unifiedTargetValue > 0 else { return 0 }
+        // For time-based goals, currentValue may not be synced yet for older sessions,
+        // so fall back to elapsedTime
+        if targetUnit.isTimeBased {
+            let value = currentValue > 0 ? currentValue : elapsedTime
+            return value / unifiedTargetValue
         }
-        
-        switch goal.goalType {
-        case .time:
-            guard dailyTarget > 0 else { return 0 }
-            return elapsedTime / dailyTarget
-        case .count, .calories:
-            guard primaryMetricTarget > 0 else { return 0 }
-            return primaryMetricValue / primaryMetricTarget
-        }
+        return currentValue / unifiedTargetValue
     }
     
     /// Whether the daily target has been met (either by time or manual completion)
     public var hasMetDailyTarget: Bool {
-        // If manually marked complete, always return true
-        if markedComplete {
-            return true
+        if markedComplete { return true }
+        guard unifiedTargetValue > 0 else { return false }
+        if targetUnit.isTimeBased {
+            let value = currentValue > 0 ? currentValue : elapsedTime
+            return value >= unifiedTargetValue
         }
-        
-        // Check based on goal type
-        guard let goal = goal else {
-            // Fallback to time-based check if goal is nil
-            return elapsedTime >= dailyTarget
-        }
-        
-        switch goal.goalType {
-        case .time:
-            return elapsedTime >= dailyTarget
-        case .count, .calories:
-            return primaryMetricValue >= primaryMetricTarget
-        }
+        return currentValue >= unifiedTargetValue
     }
     
     public var formattedTime: String {
-        guard let goal = goal else {
-            return elapsedTime.formattedProgress(target: dailyTarget)
+        if targetUnit.isTimeBased {
+            let value = currentValue > 0 ? currentValue : elapsedTime
+            return value.formattedProgress(target: unifiedTargetValue > 0 ? unifiedTargetValue : dailyTarget)
         }
         
-        switch goal.goalType {
-        case .time:
-            return elapsedTime.formattedProgress(target: dailyTarget)
-        case .count:
-            let currentValue = Int(primaryMetricValue)
-            let targetValue = Int(primaryMetricTarget)
-            return "\(currentValue.formatted())/\(targetValue.formatted())"
-        case .calories:
-            let currentValue = Int(primaryMetricValue)
-            let targetValue = Int(primaryMetricTarget)
-            return "\(currentValue) cal/\(targetValue) cal"
+        let current = Int(currentValue)
+        let target = Int(unifiedTargetValue)
+        switch targetUnit {
+        case .kilocalories:
+            return "\(current) cal/\(target) cal"
+        case .steps:
+            return "\(current.formatted())/\(target.formatted())"
+        case .seconds:
+            return elapsedTime.formattedProgress(target: unifiedTargetValue)
         }
     }
     
@@ -327,6 +323,15 @@ public final class GoalSession: SessionProgressProvider {
             self.dailyTarget = goal.dailyTarget(for: weekday)
         }
         
+        // Unified target system: dual-write alongside legacy properties
+        self.targetUnitRawValue = goal.targetUnit.rawValue
+        if goal.isScheduledDay(weekday) {
+            self.unifiedTargetValue = goal.unifiedTarget(for: weekday)
+        } else {
+            self.unifiedTargetValue = 0
+        }
+        self.currentValue = 0
+        
         self.intervalLists = goal.intervalLists?.map({ interval in
             IntervalListSession(list: interval)
         }) ?? []
@@ -343,11 +348,19 @@ public extension GoalSession {
     /// Update the HealthKit time for this session
     func updateHealthKitTime(_ time: TimeInterval) {
         healthKitTime = time
+        // For time-based goals, sync currentValue from elapsed time
+        if targetUnit.isTimeBased {
+            syncCurrentValueFromElapsedTime()
+        }
     }
     
     /// Update the primary metric value (for count/calorie-based goals)
     func updatePrimaryMetricValue(_ value: Double) {
         primaryMetricValue = value
+        // Sync to unified system
+        if !targetUnit.isTimeBased {
+            currentValue = value
+        }
     }
     
     /// Update planning details from AI planner
@@ -374,11 +387,52 @@ public extension GoalSession {
         self.recommendationReasons = []
     }
     
+    /// Populate unified target fields from legacy properties.
+    /// Call once per session during migration.
+    func migrateToUnifiedTarget() {
+        guard let goal = goal else { return }
+        targetUnitRawValue = goal.targetUnit.rawValue
+        
+        switch goal.goalType {
+        case .time:
+            unifiedTargetValue = dailyTarget
+            currentValue = elapsedTime
+        case .count, .calories:
+            unifiedTargetValue = primaryMetricTarget
+            currentValue = primaryMetricValue
+        }
+    }
+    
+    /// Sync currentValue from elapsedTime (for time-based goals only)
+    func syncCurrentValueFromElapsedTime() {
+        guard targetUnit.isTimeBased else { return }
+        currentValue = elapsedTime
+    }
+    
+    /// Update the unified target value from the goal's current schedule
+    func updateUnifiedTarget() {
+        guard let goal = goal, let day = day else {
+            unifiedTargetValue = 0
+            return
+        }
+        
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: day.startDate)
+        targetUnitRawValue = goal.targetUnit.rawValue
+        
+        if goal.isScheduledDay(weekday) {
+            unifiedTargetValue = goal.unifiedTarget(for: weekday)
+        } else {
+            unifiedTargetValue = 0
+        }
+    }
+    
     /// Update the cached daily target from the goal's current schedule
     /// Call this when the goal's schedule changes
     func updateDailyTarget() {
         guard let goal = goal, let day = day else {
             self.dailyTarget = 0
+            self.unifiedTargetValue = 0
             return
         }
         
@@ -398,6 +452,17 @@ public extension GoalSession {
         } else {
             // No schedule means all days are active
             self.dailyTarget = goal.dailyTarget(for: weekday)
+        }
+        
+        // Also update primary metric target for count/calorie goals
+        self.primaryMetricTarget = goal.primaryMetricDailyTarget
+        
+        // Dual-write to unified target system
+        self.targetUnitRawValue = goal.targetUnit.rawValue
+        if goal.isScheduledDay(weekday) {
+            self.unifiedTargetValue = goal.unifiedTarget(for: weekday)
+        } else {
+            self.unifiedTargetValue = 0
         }
     }
 }

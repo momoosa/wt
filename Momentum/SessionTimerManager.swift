@@ -398,6 +398,8 @@ public final class SessionTimerManager {
             // Callback when target is reached
             self.onTargetReached(for: session)
         }
+        newActiveSession.unifiedTargetValue = session.unifiedTargetValue
+        newActiveSession.targetUnit = session.targetUnit
         
         activeSession = newActiveSession
         
@@ -614,6 +616,8 @@ public final class SessionTimerManager {
             // Callback when target is reached
             self.onTargetReached(for: session)
         }
+        newActiveSession.unifiedTargetValue = session.unifiedTargetValue
+        newActiveSession.targetUnit = session.targetUnit
         
         activeSession = newActiveSession
         saveTimerState()
@@ -801,6 +805,8 @@ public final class SessionTimerManager {
         ) {
             self.onTargetReached(for: session)
         }
+        restoredSession.unifiedTargetValue = session.unifiedTargetValue
+        restoredSession.targetUnit = session.targetUnit
         
         activeSession = restoredSession
         

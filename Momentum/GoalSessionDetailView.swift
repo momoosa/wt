@@ -125,7 +125,7 @@ struct GoalSessionDetailView: View {
         
         // If no schedule or all days scheduled, divide evenly
         let hasSchedule = goal.hasSchedule && scheduledDaysCount > 0
-        let defaultDailyGoal = (goal.weeklyTarget / 60.0) / 7.0
+        let defaultDailyGoal = (goal.unifiedWeeklyTarget / 60.0) / 7.0
         
         var progressData: [DailyProgress] = []
         
@@ -143,7 +143,7 @@ struct GoalSessionDetailView: View {
                     let times = goal.timesForWeekday(weekdayNum)
                     if !times.isEmpty && scheduledDaysCount > 0 {
                         // This day is scheduled, allocate portion of weekly target
-                        dailyGoal = (goal.weeklyTarget / 60.0) / Double(scheduledDaysCount)
+                        dailyGoal = (goal.unifiedWeeklyTarget / 60.0) / Double(scheduledDaysCount)
                     } else {
                         // Not scheduled, no goal
                         dailyGoal = 0
@@ -191,7 +191,7 @@ struct GoalSessionDetailView: View {
     }
     
     private var dailyTargetMinutes: Double {
-        return (session.dailyTarget / 60.0)
+        return (session.unifiedTargetValue / 60.0)
     }
     
     private var dailyProgressData: [HourlyProgress] {
@@ -467,7 +467,7 @@ struct GoalSessionDetailView: View {
     
     // Weekly progress calculation
     var weeklyProgress: Double {
-        let target = session.goal?.weeklyTarget ?? 0
+        let target = session.goal?.unifiedWeeklyTarget ?? 0
         guard target > 0 else { return 0 }
         return weeklyElapsedTime / target
     }

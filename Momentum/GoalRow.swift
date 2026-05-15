@@ -74,7 +74,7 @@ struct GoalRow: View {
                 
                 HStack(spacing: 8) {
                     HStack(spacing: 4) {
-                        Text("\(weeklyElapsedMinutes)/\(Int(goal.weeklyTarget / 60))")
+                        Text("\(weeklyElapsedMinutes)/\(Int(goal.unifiedWeeklyTarget / 60))")
                  
                         Text("min this week")
                             .foregroundStyle(.secondary)
@@ -210,7 +210,7 @@ struct SevenDayBarChart: View {
     }
     
     private var dailyTarget: TimeInterval {
-        goal.weeklyTarget / 7
+        goal.unifiedWeeklyTarget / 7
     }
     
     private var maxValue: TimeInterval {

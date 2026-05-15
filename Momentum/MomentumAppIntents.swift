@@ -290,7 +290,7 @@ struct CheckGoalProgressIntent: AppIntent {
         }
         
         let weeklyMinutes = Int(totalTime / 60)
-        let targetMinutes = Int(selectedGoal.weeklyTarget / 60)
+        let targetMinutes = Int(selectedGoal.unifiedWeeklyTarget / 60)
         let percentage = targetMinutes > 0 ? Int((Double(weeklyMinutes) / Double(targetMinutes)) * 100) : 0
         
         let dialogText = "\(goal.title): \(weeklyMinutes) of \(targetMinutes) minutes this week (\(percentage)%)"
@@ -395,9 +395,9 @@ struct GoalSummary: Codable {
         
         let sessions = try? context.fetch(descriptor)
         if let session = sessions?.first(where: { $0.goalID == goal.id.uuidString && $0.day?.id == todayID }) {
-            let dailyTarget = session.dailyTarget
-            let elapsed = session.elapsedTime + session.healthKitTime
-            self.progress = dailyTarget > 0 ? Double(elapsed / dailyTarget) : 0.0
+            let target = session.unifiedTargetValue
+            let current = session.currentValue
+            self.progress = target > 0 ? current / target : 0.0
         } else {
             self.progress = 0
         }

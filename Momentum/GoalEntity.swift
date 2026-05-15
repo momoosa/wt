@@ -18,7 +18,7 @@ struct GoalEntity: AppEntity {
     var id: String
     var title: String
     var iconName: String?
-    var weeklyTarget: TimeInterval
+    var unifiedWeeklyTarget: Double
     var isActive: Bool
     
     var displayRepresentation: DisplayRepresentation {
@@ -34,7 +34,7 @@ struct GoalEntity: AppEntity {
         self.id = goal.id.uuidString
         self.title = goal.title
         self.iconName = goal.iconName
-        self.weeklyTarget = goal.weeklyTarget
+        self.unifiedWeeklyTarget = goal.unifiedWeeklyTarget
         self.isActive = goal.status == .active
     }
 }

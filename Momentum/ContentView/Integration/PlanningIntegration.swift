@@ -270,15 +270,16 @@ extension ContentView {
         let currentWeekday = calendar.component(.weekday, from: Date())
         
         // 1. Weekly Progress - check if behind for the day of week
-        let dailyTarget = goal.weeklyTarget / 7
+        let dailyTarget = session.unifiedTargetValue
+        let currentProgress = session.currentValue
         let daysIntoWeek = currentWeekday // Sunday = 1, Saturday = 7
         // Use daily target as proxy for weekly progress check
-        if session.elapsedTime < dailyTarget * 0.5 && daysIntoWeek >= 4 { // Less than 50% and past Wednesday
+        if currentProgress < dailyTarget * 0.5 && daysIntoWeek >= 4 { // Less than 50% and past Wednesday
             reasons.append(.weeklyProgress)
         }
         
         // 2. Quick Finish - less than 25% remaining
-        let remaining = dailyTarget - session.elapsedTime
+        let remaining = dailyTarget - currentProgress
         if remaining > 0 && remaining < dailyTarget * 0.25 {
             reasons.append(.quickFinish)
         }
