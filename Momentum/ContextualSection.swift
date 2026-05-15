@@ -238,6 +238,7 @@ extension ContextualSection {
     ) -> [GoalSession] {
         let calendar = Calendar.current
         let oneDayAgo = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
+        let todayWeekday = calendar.component(.weekday, from: currentDate)
         
         return sessions.filter { session in
             guard let goal = session.goal else { return false }
@@ -245,10 +246,11 @@ extension ContextualSection {
             // Check if goal has a schedule
             guard goal.hasSchedule else { return false }
             
-            // Check if NOT scheduled for today using dailyTarget (most reliable indicator)
-            // dailyTarget == 0 means not scheduled for today
-            guard session.dailyTarget == 0 else { 
-                return false 
+            // Check if today is NOT in the goal's scheduled weekdays
+            // This is more reliable than checking dailyTarget == 0, which is always 0
+            // for count/calorie goals regardless of schedule
+            guard !goal.scheduledWeekdays.contains(todayWeekday) else {
+                return false
             }
             
             // Now check if it meets any of the "working off-schedule" criteria:

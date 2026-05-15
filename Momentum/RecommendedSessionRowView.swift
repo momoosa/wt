@@ -9,9 +9,6 @@ struct RecommendedSessionRowView: View {
     let animation: Namespace.ID
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
-    let onSkip: (GoalSession) -> Void
-    let onSyncHealthKit: (() -> Void)?
-    let isSyncingHealthKit: Bool
     
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("useGradientOutline") private var useGradientOutline: Bool = false
@@ -29,9 +26,6 @@ struct RecommendedSessionRowView: View {
                 animation: animation,
                 selectedSession: $selectedSession,
                 sessionToLogManually: $sessionToLogManually,
-                onSkip: onSkip,
-                onSyncHealthKit: onSyncHealthKit,
-                isSyncingHealthKit: isSyncingHealthKit,
                 isRecommended: true,
                 useGradientAccents: useOutline
             )

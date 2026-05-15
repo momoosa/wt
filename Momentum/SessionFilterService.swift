@@ -35,7 +35,7 @@ struct SessionFilterService {
                 ($0.dailyTarget > 0 || $0.isActiveGoal)
             }.count
         case .completedToday:
-            return sessions.filter { $0.hasMetDailyTarget && $0.dailyTarget > 0 }.count
+            return sessions.filter { $0.hasMetDailyTarget && ($0.dailyTarget > 0 || $0.isActiveGoal) }.count
         case .inactive:
             // Only truly inactive goals: no schedule or no weekly target
             return sessions.filter { 
@@ -55,7 +55,7 @@ struct SessionFilterService {
         _ sessions: [GoalSession],
         by filter: ContentView.Filter,
         validationCheck: (GoalSession) -> Bool,
-        weatherManager: WeatherManager? = nil
+        weatherManager: (any WeatherProviding)? = nil
     ) -> [GoalSession] {
         let filtered = sessions.filter { session in
             // Check if not deleted first, before accessing any properties
@@ -101,7 +101,7 @@ struct SessionFilterService {
                 // Same logic as activeToday for theme filters
                 return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && (session.dailyTarget > 0 || session.isActiveGoal)
             case .completedToday:
-                return session.hasMetDailyTarget && session.dailyTarget > 0
+                return session.hasMetDailyTarget && (session.dailyTarget > 0 || session.isActiveGoal)
             case .inactive:
                 // Only truly inactive goals: no schedule or no weekly target
                 return session.dailyTarget == 0 && !session.isActiveGoal
@@ -144,7 +144,7 @@ struct SessionFilterService {
         planner: GoalSessionPlanner,
         preferences: PlannerPreferences,
         validationCheck: (GoalSession) -> Bool,
-        weatherManager: WeatherManager? = nil
+        weatherManager: (any WeatherProviding)? = nil
     ) -> [GoalSession] {
         // self.filter() already validates persistentModelID, so no pre-filter needed
         let filtered = self.filter(sessions, by: filter, validationCheck: validationCheck, weatherManager: weatherManager)
@@ -252,7 +252,7 @@ struct SessionFilterService {
     ///   - goal: The goal to check
     ///   - weatherManager: Weather manager with current conditions
     /// - Returns: True if weather requirements are met or not enabled
-    static func meetsWeatherRequirements(_ goal: Goal, weatherManager: WeatherManager) -> Bool {
+    static func meetsWeatherRequirements(_ goal: Goal, weatherManager: any WeatherProviding) -> Bool {
         // If weather triggers aren't enabled, always show the goal
         guard goal.weatherEnabled || goal.primaryTag?.isSmart == true else {
             return true

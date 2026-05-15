@@ -3,7 +3,7 @@
     {
       "id": "outdoors",
       "title": "Outdoors",
-      "colorThemeId": "green",
+      "colorThemeId": "lime",
       "icon": "tree.fill",
       "triggers": {
         "requires": {
@@ -389,7 +389,7 @@
       "id": "productivity",
       "name": "Productivity",
       "icon": "checkmark.circle.fill",
-      "color": "green",
+      "color": "lime",
       "suggestedTags": ["focus_time"],
       "suggestions": [
         {

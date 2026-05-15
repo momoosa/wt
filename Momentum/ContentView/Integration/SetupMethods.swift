@@ -47,31 +47,32 @@ extension ContentView {
         // Critical path: create missing sessions immediately so UI is populated
         refreshGoals()
         
-        // Defer non-critical work to separate tasks so it doesn't block initial render
-        Task {
+        // Defer non-critical work to separate tasks so it doesn't block initial render.
+        // Tasks are tracked for cancellation on view disappear.
+        backgroundTasks.append(Task {
             // HealthKit sync runs async and updates state when done
             syncHealthKitData()
-        }
-        
-        Task {
+        })
+
+        backgroundTasks.append(Task {
             // Calendar events are supplementary UI
             fetchNextCalendarEvent()
-        }
-        
-        Task {
+        })
+
+        backgroundTasks.append(Task {
             // Auto-plan once per day on launch if we haven't already
             await checkAndRunAutoPlan()
-        }
+        })
 
-        Task {
+        backgroundTasks.append(Task {
             // Reschedule notifications for all goals with notifications enabled
             await rescheduleGoalNotifications()
-        }
+        })
         
         // Initialize weather data asynchronously in background to avoid blocking launch
-        Task(priority: .background) {
+        backgroundTasks.append(Task(priority: .background) {
             weatherManager.refreshWeatherIfNeeded()
-        }
+        })
     }
     
     /// Reschedule notifications for all goals with schedule notifications enabled
@@ -162,7 +163,7 @@ extension ContentView {
         }
         
         if !newHealthKitGoals.isEmpty {
-            Task {
+            backgroundTasks.append(Task {
                 let newMetrics = newHealthKitGoals.compactMap { $0.healthKitMetric }
                 if !newMetrics.isEmpty {
                     do {
@@ -173,7 +174,7 @@ extension ContentView {
                 }
                 // Only sync for the newly added goals
                 syncHealthKitData()
-            }
+            })
         }
     }
 }

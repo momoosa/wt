@@ -11,9 +11,23 @@ import CoreLocation
 import SwiftUI
 import MomentumKit
 
+/// Protocol for weather data access — enables mocking for tests
+protocol WeatherProviding: AnyObject {
+    var currentWeather: CurrentWeather? { get }
+    var isLoading: Bool { get }
+    var error: Error? { get }
+    var weatherDisplayString: String { get }
+    
+    func refreshWeatherIfNeeded()
+    func forceRefreshWeather()
+    func matchesAnyCondition(_ conditions: [MomentumKit.WeatherCondition]) -> Bool
+    func temperatureAbove(_ minimum: Double) -> Bool
+    func temperatureBelow(_ maximum: Double) -> Bool
+}
+
 /// Manages weather data fetching and caching using WeatherKit
 @Observable
-class WeatherManager: NSObject, CLLocationManagerDelegate {
+class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
     static let shared = WeatherManager()
     
     private let weatherService = WeatherService.shared

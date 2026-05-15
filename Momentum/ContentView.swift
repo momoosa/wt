@@ -21,13 +21,18 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) var modelContext
     @Query var goals: [Goal]
-    @Query(filter: #Predicate<GoalSession> { $0.dailyTarget > 0 }) var _sessions: [GoalSession]
+    @Query var _sessions: [GoalSession]
     let day: Day
     @Namespace var animation
     
-    // Filtered sessions for the current day only
+    // Filtered sessions for the current day only, deduplicated by goal
     var sessions: [GoalSession] {
-        _sessions.filter { $0.day?.id == day.id }
+        var seen = Set<String>()
+        return _sessions.filter { session in
+            guard session.day?.id == day.id else { return false }
+            let key = session.goal?.id.uuidString ?? session.id.uuidString
+            return seen.insert(key).inserted
+        }
     }
 
     // View Model (business logic) - injected from WeektimeApp
@@ -62,10 +67,16 @@ struct ContentView: View {
     @State var hasCompletedSetup = false
     @State var isRefreshingGoals = false
     
+    // Background task tracking for cancellation on disappear
+    @State var backgroundTasks: [Task<Void, Never>] = []
+    
     // Progress Card Tile Visibility Settings
     @AppStorage("showProgressTile") var showProgressTile: Bool = true
     @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
     @AppStorage("showCalendarTile") var showCalendarTile: Bool = true
+    
+    // Shared session actions for child views (eliminates callback prop drilling)
+    @State var sessionActions = SessionActions()
 
     // MARK: - Initialization
 
@@ -76,6 +87,7 @@ struct ContentView: View {
 
     var body: some View {
         mainListView
+            .environment(\.sessionActions, sessionActions)
             .overlay {
                 VStack(spacing: 0) {
                     if focusFilterStore.isFocusFilterActive {
@@ -111,10 +123,23 @@ struct ContentView: View {
                 toolbarContent
             }
             .task {
+                // Configure shared session actions for child views
+                sessionActions.onSkip = { [self] session in skip(session: session) }
+                sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
+                sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
                 setupOnAppear()
+            }
+            .onChange(of: viewModel.isSyncingHealthKit) { _, newValue in
+                sessionActions.isSyncingHealthKit = newValue
             }
             .onDisappear {
                 timerManager?.activeSession?.stopUITimer()
+                // Cancel background tasks that may still be running
+                for task in backgroundTasks {
+                    task.cancel()
+                }
+                backgroundTasks.removeAll()
+                planningViewModel.planningTask?.cancel()
             }
             .onChange(of: goals) { old, new in
                 handleGoalsChange(old: old, new: new)
@@ -227,9 +252,6 @@ struct ContentView: View {
             selectedSession: $navigation.selectedSession,
             sessionToLogManually: $navigation.sessionToLogManually,
             searchText: $navigation.searchText,
-            onSkip: skip,
-            onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-            isSyncingHealthKit: viewModel.isSyncingHealthKit,
             isGoalValid: isGoalValid
         )
     }
@@ -356,10 +378,7 @@ struct ContentView: View {
                         timerManager: timerManager,
                         animation: animation,
                         selectedSession: $navigation.selectedSession,
-                        sessionToLogManually: $navigation.sessionToLogManually,
-                        onSkip: skip,
-                        onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-                        isSyncingHealthKit: viewModel.isSyncingHealthKit
+                        sessionToLogManually: $navigation.sessionToLogManually
                     )
                 }
                 .listSectionSpacing(.compact)
@@ -537,10 +556,7 @@ struct ContentView: View {
             animation: animation,
             timerManager: timerManager,
             selectedSession: $navigation.selectedSession,
-            sessionToLogManually: $navigation.sessionToLogManually,
-            onSkip: skip,
-            onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-            isSyncingHealthKit: viewModel.isSyncingHealthKit
+            sessionToLogManually: $navigation.sessionToLogManually
         )
     }
     
@@ -656,10 +672,7 @@ struct ContentView: View {
             timerManager: timerManager,
             animation: animation,
             selectedSession: $navigation.selectedSession,
-            sessionToLogManually: $navigation.sessionToLogManually,
-            onSkip: skip,
-            onSyncHealthKit: { syncHealthKitData(userInitiated: true) },
-            isSyncingHealthKit: viewModel.isSyncingHealthKit
+            sessionToLogManually: $navigation.sessionToLogManually
         )
     }
     

@@ -143,6 +143,7 @@
 		CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9012FB39F44008767D9 /* SessionManagement.swift */; };
 		CDF6E9042FB39F44008767D9 /* SessionInteractionHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9032FB39F44008767D9 /* SessionInteractionHandlers.swift */; };
 		CDF6E9062FB39F45008767D9 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9052FB39F45008767D9 /* DeepLinkHandler.swift */; };
+		CDF6E9082FB3A506008767D9 /* SessionActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E9072FB3A506008767D9 /* SessionActions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -368,6 +369,7 @@
 		CDF6E9012FB39F44008767D9 /* SessionManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagement.swift; sourceTree = "<group>"; };
 		CDF6E9032FB39F44008767D9 /* SessionInteractionHandlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionInteractionHandlers.swift; sourceTree = "<group>"; };
 		CDF6E9052FB39F45008767D9 /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
+		CDF6E9072FB3A506008767D9 /* SessionActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionActions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -505,6 +507,7 @@
 			isa = PBXGroup;
 			children = (
 				CD2A6FB62F576B5F00F5503A /* HapticFeedbackManager.swift */,
+				CDF6E9072FB3A506008767D9 /* SessionActions.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -1067,6 +1070,7 @@
 				CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */,
 				CD6A0C332F899C97008F5D93 /* HealthKitViewModel.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
+				CDF6E9082FB3A506008767D9 /* SessionActions.swift in Sources */,
 				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,

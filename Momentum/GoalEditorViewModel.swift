@@ -30,9 +30,14 @@ class GoalEditorViewModel {
     var durationInMinutes: Int = 30
     var dailyMinimumMinutes: Int?
     var hasDailyMinimum: Bool = false
-    var currentStage: EditorStage = .name
+    var currentStage: EditorStage = .name {
+        didSet {
+            print("§  \(currentStage)")
+        }
+    }
     var result: GoalEditorSuggestionsResult.PartiallyGenerated?
     private var errorMessage: String?
+    private var generationTask: Task<Void, Never>?
     var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
     // MARK: - Template & Suggestions
     
@@ -700,12 +705,16 @@ class GoalEditorViewModel {
     func handleButtonTap(allTags: [GoalTag]) {
         switch currentStage {
         case .name:
+            // Cancel any in-flight suggestion generation to prevent stale result updates
+            generationTask?.cancel()
+            generationTask = nil
+            
             if let template = selectedTemplate {
                 // Prefill from template and go to duration without AI
                 applyTemplate(template, allTags: allTags)
                 currentStage = .duration
             } else {
-                // New goal: go to duration immediately, then start generating suggestions in background
+                // New goal: go to duration immediately
                 currentStage = .duration
             }
         case .duration:
@@ -718,8 +727,9 @@ class GoalEditorViewModel {
     
     func generateChecklist(for input: String) {
         errorMessage = nil
+        generationTask?.cancel()
 
-        Task {
+        generationTask = Task {
             do {
                 let response = try await generateTasksWithLLM(prompt: input)
                 
@@ -758,7 +768,7 @@ class GoalEditorViewModel {
         }
         
         for try await partialResponse in stream {
-            // Handle each partial response here
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 self.result = partialResponse.content
             }

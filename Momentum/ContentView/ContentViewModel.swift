@@ -56,7 +56,7 @@ class ContentViewModel {
     var healthKitManager: HealthKitManaging
 
     /// Weather manager
-    var weatherManager: WeatherManager
+    var weatherManager: any WeatherProviding
 
     // MARK: - Initialization
 
@@ -69,7 +69,7 @@ class ContentViewModel {
         planningViewModel: PlanningViewModel,
         focusFilterStore: FocusFilterStore,
         healthKitManager: HealthKitManaging,
-        weatherManager: WeatherManager
+        weatherManager: any WeatherProviding
     ) {
         self.navigation = navigation
         self.sessionViewModel = sessionViewModel

@@ -17,9 +17,8 @@ struct DayOverviewView: View {
     let timerManager: SessionTimerManager?
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
-    let onSkip: (GoalSession) -> Void
-    let onSyncHealthKit: (() -> Void)?
-    let isSyncingHealthKit: Bool
+    
+    @Environment(\.sessionActions) private var sessionActions
     
     @State private var selectedTab: DayTab = .today
     @State private var yesterdaySessions: [GoalSession] = []
@@ -272,9 +271,6 @@ struct DayOverviewView: View {
                             timerManager: timerManager,
                             selectedSession: $selectedSession,
                             sessionToLogManually: $sessionToLogManually,
-                            onSkip: onSkip,
-                            onSyncHealthKit: onSyncHealthKit,
-                            isSyncingHealthKit: isSyncingHealthKit,
                             onRemove: {
                                 withAnimation {
                                     _ = removedSessionIDs.insert(session.id.uuidString)
@@ -317,7 +313,7 @@ struct DayOverviewView: View {
             }
         }
         .refreshable {
-            onSyncHealthKit?()
+            sessionActions.onSyncHealthKit?()
         }
     }
 
@@ -418,12 +414,10 @@ private struct PlanSessionCard: View {
     let timerManager: SessionTimerManager?
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
-    let onSkip: (GoalSession) -> Void
-    let onSyncHealthKit: (() -> Void)?
-    let isSyncingHealthKit: Bool
     let onRemove: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.sessionActions) private var sessionActions
     @State private var showingReason = false
     
     private var themeColor: Color {
@@ -523,7 +517,7 @@ private struct PlanSessionCard: View {
                 
                 Button {
                     HapticFeedbackManager.trigger(.light)
-                    onSkip(session)
+                    sessionActions.onSkip(session)
                 } label: {
                     Text("Skip")
                         .font(.subheadline)

@@ -63,7 +63,6 @@ public let themePresets: [ThemePreset] = [
     ThemePreset(id: "red", title: "Red", light: Color(hex: "#FFCCCC"), dark: Color(hex: "#8B0000"), neon: Color(hex: "#FF4C4C"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "crimson", title: "Crimson", light: Color(hex: "#FFE4E1"), dark: Color(hex: "#DC143C"), neon: Color(hex: "#FF1744"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "cherry", title: "Cherry", light: Color(hex: "#FFC1CC"), dark: Color(hex: "#990000"), neon: Color(hex: "#FF0033"), foregroundLight: .black, foregroundDark: .black),
-    ThemePreset(id: "ruby", title: "Ruby", light: Color(hex: "#FFD6D6"), dark: Color(hex: "#9B111E"), neon: Color(hex: "#E0115F"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "coral", title: "Coral", light: Color(hex: "#F7C6B6"), dark: Color(hex: "#FF6F61"), neon: Color(hex: "#FF7F50"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "salmon", title: "Salmon", light: Color(hex: "#FFE5E0"), dark: Color(hex: "#FA8072"), neon: Color(hex: "#FF8C8C"), foregroundLight: .black, foregroundDark: .black),
     
@@ -80,7 +79,6 @@ public let themePresets: [ThemePreset] = [
     ThemePreset(id: "yellow_dc", title: "Yellow (DC)", light: Color(hex: "F6DFAF"), dark: Color(hex: "C88B2F"), neon: Color(hex: "FFD966"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "sunshine", title: "Sunshine", light: Color(hex: "#FFF9B1"), dark: Color(hex: "#FFD700"), neon: Color(hex: "#FFEA00"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "lemon", title: "Lemon", light: Color(hex: "#FFFACD"), dark: Color(hex: "#FFF44F"), neon: Color(hex: "#FFFF66"), foregroundLight: .black, foregroundDark: .black),
-    ThemePreset(id: "gold", title: "Gold", light: Color(hex: "#FFF8DC"), dark: Color(hex: "#B8860B"), neon: Color(hex: "#FFD700"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "mustard", title: "Mustard", light: Color(hex: "#FFEDCC"), dark: Color(hex: "#FFDB58"), neon: Color(hex: "#FFDB00"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "bee", title: "Bzz bzz", light: Color(hex: "EAC04A"), dark: Color(hex: "F8D677"), neon: Color(hex: "FFE899"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "straw", title: "Straw", light: Color(hex: "D5D887"), dark: Color(hex: "B3B665"), neon: Color(hex: "E8E899"), foregroundLight: .black, foregroundDark: .black),
@@ -90,8 +88,7 @@ public let themePresets: [ThemePreset] = [
     ThemePreset(id: "cream", title: "Cream", light: Color(hex: "#FFFDD0"), dark: Color(hex: "#C8B560"), neon: Color(hex: "#FFF5CC"), foregroundLight: .black, foregroundDark: .black),
 
     // 🟢 GREEN
-    ThemePreset(id: "lime", title: "Lime", light: Color(hex: "#D9FFB3"), dark: Color(hex: "#6B8E23"), neon: Color(hex: "#BFFF00"), foregroundLight: .black, foregroundDark: .black),
-    ThemePreset(id: "green", title: "Green", light: Color(hex: "#D8EFD5"), dark: Color(hex: "#228B22"), neon: Color(hex: "#39FF14"), foregroundLight: .black, foregroundDark: .black),
+    ThemePreset(id: "lime", title: "Lime", light: Color(hex: "#BEE992"), dark: Color(hex: "#9BDF6E"), neon: Color(hex: "#BEE992"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "emerald", title: "Emerald", light: Color(hex: "#D5F5E3"), dark: Color(hex: "#50C878"), neon: Color(hex: "#00FF7F"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "forest", title: "Forest", light: Color(hex: "#D5ECD5"), dark: Color(hex: "#228B22"), neon: Color(hex: "#32CD32"), foregroundLight: .black, foregroundDark: .black),
     ThemePreset(id: "forest_dc", title: "Forest (DC)", light: Color(hex: "97BC62"), dark: Color(hex: "2C5F2D"), neon: Color(hex: "7FD282"), foregroundLight: .black, foregroundDark: .black),

@@ -33,6 +33,20 @@ extension ContentView {
             modelContext.delete(session)
         }
         
+        // Clean up duplicate sessions (same goal, same day) — keep the one with the most progress
+        var sessionsByGoal: [UUID: [GoalSession]] = [:]
+        for session in allSessionsForDay {
+            guard let goalID = session.goal?.id else { continue }
+            sessionsByGoal[goalID, default: []].append(session)
+        }
+        for (_, duplicates) in sessionsByGoal where duplicates.count > 1 {
+            // Keep the session with the highest logged time; delete the rest
+            let sorted = duplicates.sorted { (a: GoalSession, b: GoalSession) in a.elapsedTime > b.elapsedTime }
+            for session in sorted.dropFirst() {
+                modelContext.delete(session)
+            }
+        }
+        
         // Then create sessions for goals that don't have them
         // Use allSessionsForDay (not filtered by dailyTarget) to check existence to avoid duplicates
         for goal in goals {

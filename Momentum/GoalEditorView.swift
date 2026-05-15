@@ -125,6 +125,7 @@ struct GoalEditorView: View {
                 viewModel: viewModel,
                 scrollProxy: $scrollProxy
             )
+            .animation(.spring(), value: viewModel.result)
         }
         
         if viewModel.currentStage == .duration {
@@ -178,7 +179,6 @@ struct GoalEditorView: View {
             List {
                 listContent
             }
-            .animation(.spring(), value: viewModel.result)
             .animation(AnimationPresets.smoothSpring, value: viewModel.currentStage)
                     
             .overlay(alignment: .bottom) {

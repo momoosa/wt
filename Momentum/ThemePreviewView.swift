@@ -255,9 +255,6 @@ struct ThemeDetailView: View {
                                     animation: animation,
                                     selectedSession: $selectedSession,
                                     sessionToLogManually: $sessionToLogManually,
-                                    onSkip: { _ in },
-                                    onSyncHealthKit: nil,
-                                    isSyncingHealthKit: false
                                 )
                                 .background(
                                     session.themePreset.gradient
@@ -279,9 +276,6 @@ struct ThemeDetailView: View {
                                     animation: animation,
                                     selectedSession: $selectedSession,
                                     sessionToLogManually: $sessionToLogManually,
-                                    onSkip: { _ in },
-                                    onSyncHealthKit: nil,
-                                    isSyncingHealthKit: false
                                 )
                                 .background(
                                     RoundedRectangle(cornerRadius: 25, style: .continuous)
@@ -308,9 +302,7 @@ struct ThemeDetailView: View {
                                     animation: animation,
                                     selectedSession: $selectedSession,
                                     sessionToLogManually: $sessionToLogManually,
-                                    onSkip: { _ in },
-                                    onSyncHealthKit: nil,
-                                    isSyncingHealthKit: false
+
                                 )
                                 .background(
                                     session.themePreset.gradient
@@ -332,9 +324,7 @@ struct ThemeDetailView: View {
                                     animation: animation,
                                     selectedSession: $selectedSession,
                                     sessionToLogManually: $sessionToLogManually,
-                                    onSkip: { _ in },
-                                    onSyncHealthKit: nil,
-                                    isSyncingHealthKit: false
+
                                 )
                                 .background(
                                     RoundedRectangle(cornerRadius: 25, style: .continuous)
@@ -373,9 +363,6 @@ struct ThemeDetailView: View {
                                     animation: animation,
                                     selectedSession: $selectedSession,
                                     sessionToLogManually: $sessionToLogManually,
-                                    onSkip: { _ in },
-                                    onSyncHealthKit: nil,
-                                    isSyncingHealthKit: false,
                                     isRecommended: false,
                                     useGradientAccents: false
                                 )
@@ -394,9 +381,6 @@ struct ThemeDetailView: View {
                                     animation: animation,
                                     selectedSession: $selectedSession,
                                     sessionToLogManually: $sessionToLogManually,
-                                    onSkip: { _ in },
-                                    onSyncHealthKit: nil,
-                                    isSyncingHealthKit: false,
                                     isRecommended: false,
                                     useGradientAccents: false
                                 )
@@ -661,10 +645,7 @@ struct ComponentGroupedView: View {
                         timerManager: timer,
                         animation: animation,
                         selectedSession: $selectedSession,
-                        sessionToLogManually: $sessionToLogManually,
-                        onSkip: { _ in },
-                        onSyncHealthKit: nil,
-                        isSyncingHealthKit: false
+                        sessionToLogManually: $sessionToLogManually
                     )
                     .background(
                         session.themePreset.gradient
@@ -685,10 +666,7 @@ struct ComponentGroupedView: View {
                         timerManager: timer,
                         animation: animation,
                         selectedSession: $selectedSession,
-                        sessionToLogManually: $sessionToLogManually,
-                        onSkip: { _ in },
-                        onSyncHealthKit: nil,
-                        isSyncingHealthKit: false
+                        sessionToLogManually: $sessionToLogManually
                     )
                     .background(
                         session.themePreset.gradient
@@ -711,9 +689,6 @@ struct ComponentGroupedView: View {
                             animation: animation,
                             selectedSession: $selectedSession,
                             sessionToLogManually: $sessionToLogManually,
-                            onSkip: { _ in },
-                            onSyncHealthKit: nil,
-                            isSyncingHealthKit: false,
                             isRecommended: false,
                             useGradientAccents: false
                         )
@@ -737,9 +712,6 @@ struct ComponentGroupedView: View {
                             animation: animation,
                             selectedSession: $selectedSession,
                             sessionToLogManually: $sessionToLogManually,
-                            onSkip: { _ in },
-                            onSyncHealthKit: nil,
-                            isSyncingHealthKit: false,
                             isRecommended: false,
                             useGradientAccents: false
                         )

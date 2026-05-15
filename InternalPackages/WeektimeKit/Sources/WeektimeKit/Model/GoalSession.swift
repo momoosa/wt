@@ -70,10 +70,12 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
 // MARK: - Active Goal Helpers
 
 extension GoalSession {
-    /// Check if this session represents an active goal (has schedule and weekly target)
+    /// Check if this session represents an active goal (has schedule and a target — time-based or metric-based)
     public var isActiveGoal: Bool {
         guard let goal = goal else { return false }
-        return goal.hasSchedule && (goal.weeklyTarget ?? 0) > 0
+        let hasTimeTarget = (goal.weeklyTarget ?? 0) > 0
+        let hasMetricTarget = goal.primaryMetricDailyTarget > 0
+        return goal.hasSchedule && (hasTimeTarget || hasMetricTarget)
     }
 }
 

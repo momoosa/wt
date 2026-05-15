@@ -23,9 +23,6 @@ struct SearchSheet: View {
     @Binding var sessionToLogManually: GoalSession?
     @Binding var searchText: String
     
-    let onSkip: (GoalSession) -> Void
-    let onSyncHealthKit: (() -> Void)?
-    let isSyncingHealthKit: Bool
     let isGoalValid: (GoalSession) -> Bool
     
     var body: some View {
@@ -105,10 +102,7 @@ struct SearchSheet: View {
             timerManager: timerManager,
             animation: animation,
             selectedSession: $selectedSession,
-            sessionToLogManually: $sessionToLogManually,
-            onSkip: onSkip,
-            onSyncHealthKit: onSyncHealthKit,
-            isSyncingHealthKit: isSyncingHealthKit
+            sessionToLogManually: $sessionToLogManually
         )
     }
 }

@@ -9,14 +9,12 @@ struct SessionRowView: View {
     let animation: Namespace.ID
     @Binding var selectedSession: GoalSession?
     @Binding var sessionToLogManually: GoalSession?
-    let onSkip: (GoalSession) -> Void
-    let onSyncHealthKit: (() -> Void)?
-    let isSyncingHealthKit: Bool
     var isRecommended: Bool = false
     var useGradientAccents: Bool = false
     
     @Environment(GoalStore.self) private var goalStore
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.sessionActions) private var sessionActions
     
     private var tintColor: Color {
         session.themeDark
@@ -175,16 +173,16 @@ struct SessionRowView: View {
                     } else {
                         // Read-only HealthKit metric: Show sync button
                         Button {
-                            onSyncHealthKit?()
+                            sessionActions.onSyncHealthKit?()
                         } label: {
                             Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                                 .font(.title2)
-                                .rotationEffect(.degrees(isSyncingHealthKit ? 360 : 0))
-                                .animation(isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isSyncingHealthKit)
+                                .rotationEffect(.degrees(sessionActions.isSyncingHealthKit ? 360 : 0))
+                                .animation(sessionActions.isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: sessionActions.isSyncingHealthKit)
                         }
-                        .accessibilityLabel(isSyncingHealthKit ? "Syncing health data" : "Sync health data")
+                        .accessibilityLabel(sessionActions.isSyncingHealthKit ? "Syncing health data" : "Sync health data")
                         .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
-                        .disabled(isSyncingHealthKit)
+                        .disabled(sessionActions.isSyncingHealthKit)
                     }
                 } else {
                     // Regular goal: Show standard play/stop button (live tracking)
@@ -222,7 +220,7 @@ struct SessionRowView: View {
         .swipeActions {
             Button {
                 HapticFeedbackManager.trigger(.medium)
-                onSkip(session)
+                sessionActions.onSkip(session)
             } label: {
                 Label {
                     Text(session.status == .skipped ? "Reactivate" : "Skip")
