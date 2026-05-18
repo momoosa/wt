@@ -127,26 +127,34 @@ class UITestDataSeeder {
     // MARK: - Sample Goal Factories
     
     private func createReadingGoal() -> Goal {
-        let goal = Goal(title: "Reading", weeklyTarget: 3600 * 7) // 7 hours per week
+        let goal = Goal(title: "Reading")
         goal.iconName = "book.fill"
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 // 1 hour per day
         return goal
     }
     
     private func createExerciseGoal() -> Goal {
-        let goal = Goal(title: "Exercise", weeklyTarget: 3600 * 5) // 5 hours per week
+        let goal = Goal(title: "Exercise")
         goal.iconName = "figure.run"
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 * 5 / 7 // ~43 min per day
         return goal
     }
     
     private func createMeditationGoal() -> Goal {
-        let goal = Goal(title: "Meditation", weeklyTarget: 1800 * 7) // 30 min per day
+        let goal = Goal(title: "Meditation")
         goal.iconName = "sparkles"
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1800 // 30 min per day
         return goal
     }
     
     private func createCodingGoal() -> Goal {
-        let goal = Goal(title: "Coding Practice", weeklyTarget: 7200 * 5) // 2 hours per weekday
+        let goal = Goal(title: "Coding Practice")
         goal.iconName = "chevron.left.forwardslash.chevron.right"
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 7200 // 2 hours per day
         return goal
     }
     
@@ -215,10 +223,14 @@ class UITestDataSeeder {
             modelContext.insert(learningTag)
             
             // Create goals with tags
-            let runningGoal = Goal(title: "Running", weeklyTarget: 3600 * 3)
+            let runningGoal = Goal(title: "Running")
             runningGoal.primaryTag = fitnessTag
+            runningGoal.targetUnit = .seconds
+            runningGoal.unifiedDailyTarget = 3600 * 3 / 7
             
-            let studyGoal = Goal(title: "Study", weeklyTarget: 7200 * 5)
+            let studyGoal = Goal(title: "Study")
+            studyGoal.targetUnit = .seconds
+            studyGoal.unifiedDailyTarget = 7200
             studyGoal.primaryTag = learningTag
             
             modelContext.insert(runningGoal)

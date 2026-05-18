@@ -221,7 +221,7 @@ struct Provider: AppIntentTimelineProvider {
                     isPinned: session.pinnedInWidget,
                     timerStartDate: timerStart,
                     elapsedTime: elapsed,
-                    dailyTarget: session.dailyTarget
+                    dailyTarget: session.unifiedTargetValue
                 )
             }
         

@@ -17,7 +17,9 @@ struct DailyProgressTests {
     // MARK: - Test Helpers
     
     private func createGoal(title: String, status: Goal.Status = .active) -> Goal {
-        let goal = Goal(title: title, weeklyTarget: 3600)
+        let goal = Goal(title: title)
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         goal.status = status
         return goal
     }
@@ -35,7 +37,7 @@ struct DailyProgressTests {
         let day = Day(start: start, end: end, calendar: calendar)
         
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = dailyTarget
+        session.unifiedTargetValue = dailyTarget
         session.status = status
         
         // Create a historical session to represent the elapsed time
@@ -86,12 +88,12 @@ struct DailyProgressTests {
         
         // Calculate capped total minutes: min(51, 19) + min(15, 15) + min(7, 30) = 19 + 15 + 7 = 41
         let cappedMinutes = Int(sessions.reduce(0.0) { sum, session in
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.elapsedTime, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
         
         // Total target: 19 + 15 + 30 = 64 minutes
-        let totalTarget = sessions.reduce(0) { $0 + Int($1.dailyTarget / 60) }
+        let totalTarget = sessions.reduce(0) { $0 + Int($1.unifiedTargetValue / 60) }
         
         #expect(cappedMinutes == 41)
         #expect(totalTarget == 64)
@@ -124,7 +126,7 @@ struct DailyProgressTests {
         
         // Capped: min(51, 19) + min(15, 15) = 19 + 15 = 34
         let cappedMinutes = Int(sessions.reduce(0.0) { sum, session in
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.elapsedTime, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
         
@@ -132,7 +134,7 @@ struct DailyProgressTests {
         let uncappedMinutes = Int(sessions.reduce(0.0) { $0 + $1.elapsedTime } / 60)
         
         // Total target: 19 + 15 = 34
-        let totalTarget = sessions.reduce(0) { $0 + Int($1.dailyTarget / 60) }
+        let totalTarget = sessions.reduce(0) { $0 + Int($1.unifiedTargetValue / 60) }
         
         #expect(cappedMinutes == 34)
         #expect(uncappedMinutes == 66)
@@ -161,7 +163,7 @@ struct DailyProgressTests {
         
         // All under target, so capped = uncapped
         let cappedMinutes = Int(sessions.reduce(0.0) { sum, session in
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.elapsedTime, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
         
@@ -198,12 +200,12 @@ struct DailyProgressTests {
         let filteredSessions = sessions.filter { $0.status != .skipped }
         
         let cappedMinutes = Int(filteredSessions.reduce(0.0) { sum, session in
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.elapsedTime, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
         
         let totalTarget = filteredSessions.reduce(0) { total, session in
-            total + Int(session.dailyTarget / 60)
+            total + Int(session.unifiedTargetValue / 60)
         }
         
         // Should only count active session
@@ -234,12 +236,12 @@ struct DailyProgressTests {
         let filteredSessions = sessions.filter { $0.goal?.status != .archived }
         
         let cappedMinutes = Int(filteredSessions.reduce(0.0) { sum, session in
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.elapsedTime, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
         
         let totalTarget = filteredSessions.reduce(0) { total, session in
-            total + Int(session.dailyTarget / 60)
+            total + Int(session.unifiedTargetValue / 60)
         }
         
         // Should only count active goal's session
@@ -256,7 +258,7 @@ struct DailyProgressTests {
         let totalTarget = sessions.reduce(0) { total, session in
             guard session.status != .skipped else { return total }
             guard session.goal?.status != .archived else { return total }
-            return total + Int(session.dailyTarget / 60)
+            return total + Int(session.unifiedTargetValue / 60)
         }
         
         #expect(totalTarget == 0)
@@ -279,7 +281,7 @@ struct DailyProgressTests {
         let totalTarget = sessions.reduce(0) { total, session in
             guard session.status != .skipped else { return total }
             guard session.goal?.status != .archived else { return total }
-            return total + Int(session.dailyTarget / 60)
+            return total + Int(session.unifiedTargetValue / 60)
         }
         
         #expect(totalTarget == 0)
@@ -297,11 +299,11 @@ struct DailyProgressTests {
         let sessions = [session1, session2]
         
         let cappedMinutes = Int(sessions.reduce(0.0) { sum, session in
-            let cappedTime = min(session.elapsedTime, session.dailyTarget)
+            let cappedTime = min(session.elapsedTime, session.unifiedTargetValue)
             return sum + cappedTime
         } / 60)
         
-        let totalTarget = sessions.reduce(0) { $0 + Int($1.dailyTarget / 60) }
+        let totalTarget = sessions.reduce(0) { $0 + Int($1.unifiedTargetValue / 60) }
         
         #expect(cappedMinutes == 50)
         #expect(totalTarget == 50)

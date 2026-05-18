@@ -111,7 +111,7 @@ public class ScreenTimeManager {
         let activityName = DeviceActivityName("goal_\(goal.id.uuidString)")
         
         // Get daily target duration
-        let targetDuration = goal.dailyTargetFromSchedule()
+        let targetDuration = goal.unifiedDailyTarget
         
         // Create schedule (monitor from midnight to midnight)
         var startComponents = DateComponents()

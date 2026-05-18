@@ -125,9 +125,9 @@ struct GoalWeatherRankingTests {
         )
         
         // Create goals
-        let runGoal = Goal(title: "Run", primaryTag: morningRunTag, weeklyTarget: 3600)
-        let gymGoal = Goal(title: "Gym", primaryTag: gymTag, weeklyTarget: 3600)
-        let yogaGoal = Goal(title: "Yoga", primaryTag: yogaTag, weeklyTarget: 3600)
+        let runGoal = Goal(title: "Run", primaryTag: morningRunTag)
+        let gymGoal = Goal(title: "Gym", primaryTag: gymTag)
+        let yogaGoal = Goal(title: "Yoga", primaryTag: yogaTag)
         
         let goals = [runGoal, gymGoal, yogaGoal]
         
@@ -175,9 +175,9 @@ struct GoalWeatherRankingTests {
             timeOfDayPreferences: [.morning, .afternoon, .evening]
         )
         
-        let morningGoal = Goal(title: "Morning Workout", primaryTag: morningTag, weeklyTarget: 3600)
-        let eveningGoal = Goal(title: "Evening Reading", primaryTag: eveningTag, weeklyTarget: 3600)
-        let flexibleGoal = Goal(title: "Meditation", primaryTag: flexibleTag, weeklyTarget: 3600)
+        let morningGoal = Goal(title: "Morning Workout", primaryTag: morningTag)
+        let eveningGoal = Goal(title: "Evening Reading", primaryTag: eveningTag)
+        let flexibleGoal = Goal(title: "Meditation", primaryTag: flexibleTag)
         
         // Test in morning context
         let morningScoreMorning = morningGoal.primaryTag?.contextMatchScore(timeOfDay: .morning) ?? 0
@@ -233,9 +233,9 @@ struct GoalWeatherRankingTests {
             locationTypes: [.home]
         )
         
-        let skiingGoal = Goal(title: "Skiing", primaryTag: skiingTag, weeklyTarget: 3600)
-        let runningGoal = Goal(title: "Running", primaryTag: runningTag, weeklyTarget: 3600)
-        let yogaGoal = Goal(title: "Yoga", primaryTag: yogaTag, weeklyTarget: 3600)
+        let skiingGoal = Goal(title: "Skiing", primaryTag: skiingTag)
+        let runningGoal = Goal(title: "Running", primaryTag: runningTag)
+        let yogaGoal = Goal(title: "Yoga", primaryTag: yogaTag)
         
         let goals = [skiingGoal, runningGoal, yogaGoal]
         

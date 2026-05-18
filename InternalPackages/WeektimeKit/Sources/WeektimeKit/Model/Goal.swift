@@ -15,7 +15,8 @@ public final class Goal {
     public var title: String = ""
     public var iconName: String? // SF Symbol name for the goal icon
     private var statusRawValue: String = "active"
-    private var goalTypeRawValue: String = "time" // "time", "count", or "calories"
+    /// Legacy: kept as stored property for SwiftData schema compatibility. Use `targetUnit` instead.
+    private var goalTypeRawValue: String = "time"
     
     @Relationship(deleteRule: .nullify)
     public var primaryTag: GoalTag? // Optional tag that provides both theme and smart triggers
@@ -23,8 +24,6 @@ public final class Goal {
     @Relationship(deleteRule: .nullify)
     public var otherTags: [GoalTag]? = []
     
-    /// Legacy: Use `unifiedWeeklyTarget` instead. Kept for backward compatibility with widgets/watch/migration.
-    public var weeklyTarget: TimeInterval = 0
     public var dailyMinimum: TimeInterval? // Optional minimum time required each day (for strict daily habits)
     
     // Notifications
@@ -37,8 +36,6 @@ public final class Goal {
     // HealthKit Integration
     public var healthKitMetricRawValue: String? // Stores the HealthKitMetric raw value
     public var healthKitSyncEnabled: Bool = false // Whether to sync time from HealthKit
-    /// Legacy: Use `unifiedDailyTarget` instead. Kept for backward compatibility with editor/migration.
-    public var primaryMetricDailyTarget: Double = 0
     public var lastHealthKitSyncDate: Date? // Last time HealthKit data was synced
     
     // Screen Time Integration
@@ -57,9 +54,6 @@ public final class Goal {
     
     // Detailed day-time schedule: weekday (1-7) → times of day
     public var dayTimeSchedule: [String: [String]] = [:] // e.g., ["2": ["morning", "afternoon"], "6": ["evening"]]
-    
-    // Per-day target durations in seconds: weekday (1-7) → duration
-    public var dailyTargets: [String: TimeInterval] = [:] // e.g., ["2": 900, "6": 1800] (15 min Monday, 30 min Friday)
     
     // MARK: - Unified Target System
     
@@ -97,47 +91,16 @@ public final class Goal {
         set { statusRawValue = newValue.rawValue }
     }
     
-    // Computed property for goal type with smart migration
-    public var goalType: GoalType {
-        get { 
-            // If goal type is explicitly set, use it
-            if let explicitType = GoalType(rawValue: goalTypeRawValue), goalTypeRawValue != "time" {
-                return explicitType
-            }
-            
-            // Migration: Infer goal type from HealthKit metric for existing goals
-            if let metric = healthKitMetric {
-                switch metric {
-                case .stepCount:
-                    return .count
-                case .activeEnergyBurned:
-                    return .calories
-                default:
-                    return .time
-                }
-            }
-            
-            return .time
-        }
-        set { goalTypeRawValue = newValue.rawValue }
-    }
-
-    public init(title: String, primaryTag: GoalTag? = nil, otherTags: [GoalTag] = [], weeklyTarget: TimeInterval = 0, scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
+    public init(title: String, primaryTag: GoalTag? = nil, otherTags: [GoalTag] = [], scheduleNotificationsEnabled: Bool = false, completionNotificationsEnabled: Bool = false, healthKitMetric: HealthKitMetric? = nil, healthKitSyncEnabled: Bool = false) {
         self.id = UUID()
         self.title = title
         self.status = .active
         self.primaryTag = primaryTag
         self.otherTags = otherTags
-        self.weeklyTarget = weeklyTarget
         self.scheduleNotificationsEnabled = scheduleNotificationsEnabled
         self.completionNotificationsEnabled = completionNotificationsEnabled
         self.healthKitMetricRawValue = healthKitMetric?.rawValue
         self.healthKitSyncEnabled = healthKitSyncEnabled
-        
-        // Populate unified target properties from legacy weeklyTarget
-        if weeklyTarget > 0 {
-            migrateToUnifiedTarget()
-        }
     }
     
 
@@ -171,45 +134,6 @@ public extension Goal {
             }
         }
         
-        /// Corresponding legacy GoalType
-        public var goalType: GoalType {
-            switch self {
-            case .seconds: return .time
-            case .steps: return .count
-            case .kilocalories: return .calories
-            }
-        }
-        
-        /// Create from legacy GoalType
-        public init(from goalType: GoalType) {
-            switch goalType {
-            case .time: self = .seconds
-            case .count: self = .steps
-            case .calories: self = .kilocalories
-            }
-        }
-    }
-    
-    enum GoalType: String, Codable, CaseIterable {
-        case time = "time"
-        case count = "count"
-        case calories = "calories"
-        
-        public var displayName: String {
-            switch self {
-            case .time: return "Time"
-            case .count: return "Count"
-            case .calories: return "Calories"
-            }
-        }
-        
-        public var unitLabel: String {
-            switch self {
-            case .time: return "min"
-            case .count: return "steps"
-            case .calories: return "cal"
-            }
-        }
     }
     
     enum Status: String, Codable {
@@ -320,24 +244,6 @@ public extension Goal {
         return scheduledWeekdays.contains(weekday)
     }
     
-    /// Populate unified target fields from legacy properties.
-    /// Call once per goal during migration.
-    func migrateToUnifiedTarget() {
-        switch goalType {
-        case .time:
-            targetUnit = .seconds
-            unifiedDailyTarget = dailyTargetFromSchedule()
-            // Copy per-day targets (already in seconds)
-            perDayTargets = dailyTargets.mapValues { Double($0) }
-        case .count:
-            targetUnit = .steps
-            unifiedDailyTarget = primaryMetricDailyTarget
-            // No per-day targets for metric goals currently
-        case .calories:
-            targetUnit = .kilocalories
-            unifiedDailyTarget = primaryMetricDailyTarget
-        }
-    }
     
     // MARK: - Day-Time Schedule Convenience Methods
     
@@ -390,38 +296,6 @@ public extension Goal {
         return summaries.joined(separator: "\n")
     }
     
-    /// Calculate daily target based on schedule
-    /// If a schedule exists, divides weekly target by number of scheduled days
-    /// Otherwise, divides by 7 (every day)
-    func dailyTargetFromSchedule() -> TimeInterval {
-        // If dailyMinimum is set, use that
-        if let dailyMinimum = dailyMinimum {
-            return dailyMinimum
-        }
-        
-        // If there's a schedule, divide by scheduled days
-        if hasSchedule {
-            let scheduledDaysCount = scheduledWeekdays.count
-            guard scheduledDaysCount > 0 else {
-                return weeklyTarget / 7
-            }
-            return weeklyTarget / TimeInterval(scheduledDaysCount)
-        }
-        
-        // Default: divide by 7
-        return weeklyTarget / 7
-    }
-    
-    /// Get the daily target for a specific weekday, respecting per-day targets if set
-    func dailyTarget(for weekday: Int) -> TimeInterval {
-        // First check if there's a custom target for this specific day
-        if let customTarget = dailyTargets[String(weekday)] {
-            return customTarget
-        }
-        
-        // Fall back to the default calculation
-        return dailyTargetFromSchedule()
-    }
 }
 
 public extension Goal {

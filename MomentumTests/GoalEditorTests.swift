@@ -33,13 +33,14 @@ struct GoalEditorTests {
     private func createTestGoal(
         context: ModelContext,
         title: String = "Test Goal",
-        themeID: String = "blue",
-        weeklyTarget: TimeInterval = 3600
+        themeID: String = "blue"
     ) -> Goal {
         let tag = GoalTag(title: "Test Tag", themeID: themeID)
         context.insert(tag)
         
-        let goal = Goal(title: title, primaryTag: tag, weeklyTarget: weeklyTarget)
+        let goal = Goal(title: title, primaryTag: tag)
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         context.insert(goal)
         try? context.save()
         return goal

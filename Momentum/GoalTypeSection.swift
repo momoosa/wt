@@ -5,7 +5,7 @@ import MomentumKit
 /// Pure presentational component - receives bindings from parent
 struct GoalTypeSection: View {
     // Bindings to parent state
-    @Binding var selectedType: Goal.GoalType
+    @Binding var selectedType: Goal.TargetUnit
     @Binding var primaryMetricTarget: Double
     
     // Computed/derived values from parent
@@ -15,12 +15,12 @@ struct GoalTypeSection: View {
     let targetSuggestions: [Int]
     
     // Callback for type changes
-    let onTypeChange: (Goal.GoalType) -> Void
+    let onTypeChange: (Goal.TargetUnit) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("Goal Type", selection: $selectedType) {
-                ForEach(Goal.GoalType.allCases, id: \.self) { type in
+                ForEach(Goal.TargetUnit.allCases, id: \.self) { type in
                     Text(type.displayName).tag(type)
                 }
             }
@@ -34,14 +34,14 @@ struct GoalTypeSection: View {
             // Animated target field that morphs between weekly and daily
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(selectedType == .time ? "Weekly Target" : "Daily Target")
+                    Text(selectedType.isTimeBased ? "Weekly Target" : "Daily Target")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .animation(.none, value: selectedType)
                     Spacer()
                     
                     HStack(spacing: 4) {
-                        if selectedType == .time {
+                        if selectedType.isTimeBased {
                             Text("\(calculatedWeeklyTarget)")
                                 .foregroundStyle(activeThemeColor)
                                 .font(.subheadline)
@@ -59,7 +59,7 @@ struct GoalTypeSection: View {
                                 .id("daily-value-\(selectedType.rawValue)")
                         }
                         
-                        Text(selectedType == .time ? "min" : goalTypeUnit)
+                        Text(selectedType.isTimeBased ? "min" : goalTypeUnit)
                             .foregroundStyle(activeThemeColor)
                             .font(.subheadline)
                             .fontWeight(.semibold)
@@ -69,7 +69,7 @@ struct GoalTypeSection: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectedType)
                 
                 // Quick suggestion buttons (only for count/calorie)
-                if selectedType != .time {
+                if !selectedType.isTimeBased {
                     HStack(spacing: 8) {
                         Text("Common:")
                             .font(.caption)

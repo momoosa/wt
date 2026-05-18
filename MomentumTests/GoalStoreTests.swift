@@ -22,7 +22,9 @@ struct GoalStoreTests {
     }
     
     private func createTestGoal(context: ModelContext, title: String = "Test Goal", weeklyTarget: TimeInterval = 3600) -> Goal {
-        let goal = Goal(title: title, weeklyTarget: weeklyTarget)
+        let goal = Goal(title: title)
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = weeklyTarget / 7.0
         context.insert(goal)
         try? context.save()
         return goal
@@ -57,7 +59,9 @@ struct GoalStoreTests {
         let context = ModelContext(container)
         
         // Create goal and day in the same context
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         context.insert(goal)
         
         let startDate = Date.now.startOfDay() ?? Date.now
@@ -85,7 +89,9 @@ struct GoalStoreTests {
         let context = ModelContext(container)
         
         // Create goal in the same context
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         context.insert(goal)
         
         let calendar = Calendar.current
@@ -113,7 +119,9 @@ struct GoalStoreTests {
         let context = ModelContext(container)
         
         // Create goal in the same context
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         context.insert(goal)
         
         let calendar = Calendar.current
@@ -445,7 +453,7 @@ struct GoalStoreTests {
         
         // Create session without inserting into context - this will fail as expected
         // since GoalSession requires a goal and day
-        let goal2 = Goal(title: "Detached Goal", weeklyTarget: 3600)
+        let goal2 = Goal(title: "Detached Goal")
         let day2 = Day(start: Date.now.startOfDay() ?? .now, end: Date.now.endOfDay() ?? .now)
         let session = GoalSession(title: "Detached Session", goal: goal2, day: day2)
         
@@ -489,7 +497,9 @@ struct GoalStoreTests {
         let context = ModelContext(container)
         
         // Create goal and day in the same context
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         context.insert(goal)
         
         let startDate = Date.now.startOfDay() ?? Date.now

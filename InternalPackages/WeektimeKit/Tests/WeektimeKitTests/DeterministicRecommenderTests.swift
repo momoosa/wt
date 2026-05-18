@@ -42,7 +42,10 @@ struct DeterministicRecommenderTests {
         
         // Create 5 goals
         let goals = (1...5).map { i in
-            Goal(title: "Goal \(i)", weeklyTarget: 3600)
+            let goal = Goal(title: "Goal \(i)")
+            goal.targetUnit = .seconds
+            goal.unifiedDailyTarget = 3600 / 7.0
+            return goal
         }
         
         let context = createContext()
@@ -55,12 +58,18 @@ struct DeterministicRecommenderTests {
     func recommenderOnlyReturnsActiveGoals() {
         let recommender = DeterministicRecommender()
         
-        let activeGoal = Goal(title: "Active", weeklyTarget: 3600)
+        let activeGoal = Goal(title: "Active")
+        activeGoal.targetUnit = .seconds
+        activeGoal.unifiedDailyTarget = 3600 / 7.0
         
-        let archivedGoal = Goal(title: "Archived", weeklyTarget: 3600)
+        let archivedGoal = Goal(title: "Archived")
+        archivedGoal.targetUnit = .seconds
+        archivedGoal.unifiedDailyTarget = 3600 / 7.0
         archivedGoal.status = .archived
         
-        let suggestionGoal = Goal(title: "Suggestion", weeklyTarget: 3600)
+        let suggestionGoal = Goal(title: "Suggestion")
+        suggestionGoal.targetUnit = .seconds
+        suggestionGoal.unifiedDailyTarget = 3600 / 7.0
         suggestionGoal.status = .suggestion
         
         let context = createContext()
@@ -95,15 +104,17 @@ struct DeterministicRecommenderTests {
         
         let outdoorGoal = Goal(
             title: "Running",
-            primaryTag: outdoorTag,
-            weeklyTarget: 3600
+            primaryTag: outdoorTag
         )
+        outdoorGoal.targetUnit = .seconds
+        outdoorGoal.unifiedDailyTarget = 3600 / 7.0
         
         let indoorGoal = Goal(
             title: "Reading",
-            primaryTag: indoorTag,
-            weeklyTarget: 3600
+            primaryTag: indoorTag
         )
+        indoorGoal.targetUnit = .seconds
+        indoorGoal.unifiedDailyTarget = 3600 / 7.0
         
         // Test on sunny day
         let sunnyContext = createContext(weather: .clear, temperature: 20.0)
@@ -129,9 +140,10 @@ struct DeterministicRecommenderTests {
         
         let neutralGoal = Goal(
             title: "Meditation",
-            primaryTag: neutralTag,
-            weeklyTarget: 3600
+            primaryTag: neutralTag
         )
+        neutralGoal.targetUnit = .seconds
+        neutralGoal.unifiedDailyTarget = 3600 / 7.0
         
         let context = createContext(weather: .clear, temperature: 20.0)
         let recommendations = recommender.recommend(
@@ -158,9 +170,10 @@ struct DeterministicRecommenderTests {
         
         let outdoorGoal = Goal(
             title: "Running",
-            primaryTag: outdoorTag,
-            weeklyTarget: 3600
+            primaryTag: outdoorTag
         )
+        outdoorGoal.targetUnit = .seconds
+        outdoorGoal.unifiedDailyTarget = 3600 / 7.0
         
         // Test on rainy day with wrong temperature
         let rainyContext = createContext(weather: .rainy, temperature: 5.0)
@@ -194,9 +207,10 @@ struct DeterministicRecommenderTests {
 
         let morningGoal = Goal(
             title: "Morning Workout",
-            primaryTag: morningTag,
-            weeklyTarget: 3600
+            primaryTag: morningTag
         )
+        morningGoal.targetUnit = .seconds
+        morningGoal.unifiedDailyTarget = 3600 / 7.0
         // Set schedule for all weekdays with morning preference
         for weekday in 1...7 {
             morningGoal.setTimes([.morning], forWeekday: weekday)
@@ -204,9 +218,10 @@ struct DeterministicRecommenderTests {
 
         let eveningGoal = Goal(
             title: "Evening Reading",
-            primaryTag: eveningTag,
-            weeklyTarget: 3600
+            primaryTag: eveningTag
         )
+        eveningGoal.targetUnit = .seconds
+        eveningGoal.unifiedDailyTarget = 3600 / 7.0
         // Set schedule for all weekdays with evening preference
         for weekday in 1...7 {
             eveningGoal.setTimes([.evening], forWeekday: weekday)
@@ -256,17 +271,23 @@ struct DeterministicRecommenderTests {
             timeOfDayPreferences: [.evening]
         )
         
-        let perfectGoal = Goal(title: "Perfect Run", primaryTag: perfectTag, weeklyTarget: 3600)
+        let perfectGoal = Goal(title: "Perfect Run", primaryTag: perfectTag)
+        perfectGoal.targetUnit = .seconds
+        perfectGoal.unifiedDailyTarget = 3600 / 7.0
         for weekday in 1...7 {
             perfectGoal.setTimes([.morning], forWeekday: weekday)
         }
 
-        let partialGoal = Goal(title: "Morning Task", primaryTag: partialTag, weeklyTarget: 3600)
+        let partialGoal = Goal(title: "Morning Task", primaryTag: partialTag)
+        partialGoal.targetUnit = .seconds
+        partialGoal.unifiedDailyTarget = 3600 / 7.0
         for weekday in 1...7 {
             partialGoal.setTimes([.morning], forWeekday: weekday)
         }
 
-        let noMatchGoal = Goal(title: "Evening Reading", primaryTag: noMatchTag, weeklyTarget: 3600)
+        let noMatchGoal = Goal(title: "Evening Reading", primaryTag: noMatchTag)
+        noMatchGoal.targetUnit = .seconds
+        noMatchGoal.unifiedDailyTarget = 3600 / 7.0
         for weekday in 1...7 {
             noMatchGoal.setTimes([.evening], forWeekday: weekday)
         }
@@ -315,8 +336,12 @@ struct DeterministicRecommenderTests {
             weatherConditions: [.clear]
         )
         
-        let flexibleGoal = Goal(title: "Flexible Activity", primaryTag: flexibleTag, weeklyTarget: 3600)
-        let strictGoal = Goal(title: "Strict Activity", primaryTag: strictTag, weeklyTarget: 3600)
+        let flexibleGoal = Goal(title: "Flexible Activity", primaryTag: flexibleTag)
+        flexibleGoal.targetUnit = .seconds
+        flexibleGoal.unifiedDailyTarget = 3600 / 7.0
+        let strictGoal = Goal(title: "Strict Activity", primaryTag: strictTag)
+        strictGoal.targetUnit = .seconds
+        strictGoal.unifiedDailyTarget = 3600 / 7.0
         
         // Test with clear weather - both should match
         let clearContext = createContext(weather: .clear)
@@ -367,12 +392,17 @@ struct DeterministicRecommenderTests {
             themeID: "test"
         )
         
-        let outdoorGoal = Goal(title: "Running", primaryTag: outdoorTag, weeklyTarget: 3600)
-        let neutralGoal = Goal(title: "Task", primaryTag: neutralTag, weeklyTarget: 3600)
+        let outdoorGoal = Goal(title: "Running", primaryTag: outdoorTag)
+        outdoorGoal.targetUnit = .seconds
+        outdoorGoal.unifiedDailyTarget = 3600 / 7.0
+        let neutralGoal = Goal(title: "Task", primaryTag: neutralTag)
+        neutralGoal.targetUnit = .seconds
+        neutralGoal.unifiedDailyTarget = 3600 / 7.0
         
         let context = createContext(weather: .clear)
         let recommendations = weatherHeavyRecommender.recommend(
             goals: [outdoorGoal, neutralGoal],
+            sessions: [],
             context: context,
             limit: 2
         )
@@ -395,9 +425,10 @@ struct DeterministicRecommenderTests {
         
         let weekendGoal = Goal(
             title: "Hiking",
-            primaryTag: weekendTag,
-            weeklyTarget: 7200 // 2 hours
+            primaryTag: weekendTag
         )
+        weekendGoal.targetUnit = .seconds
+        weekendGoal.unifiedDailyTarget = 7200.0 / 2.0 // 2 hours over 2 weekend days
         // Schedule only for Saturday (7) and Sunday (1)
         weekendGoal.setTimes([.morning, .afternoon], forWeekday: 7) // Saturday
         weekendGoal.setTimes([.morning, .afternoon], forWeekday: 1) // Sunday
@@ -450,17 +481,19 @@ struct DeterministicRecommenderTests {
         
         let weekendGoal = Goal(
             title: "Hiking",
-            primaryTag: weekendTag,
-            weeklyTarget: 7200
+            primaryTag: weekendTag
         )
+        weekendGoal.targetUnit = .seconds
+        weekendGoal.unifiedDailyTarget = 7200.0 / 2.0
         weekendGoal.setTimes([.morning], forWeekday: 7) // Saturday
         weekendGoal.setTimes([.morning], forWeekday: 1) // Sunday
         
         let weekdayGoal = Goal(
             title: "Work Task",
-            primaryTag: createTestTag(title: "Work"),
-            weeklyTarget: 3600
+            primaryTag: createTestTag(title: "Work")
         )
+        weekdayGoal.targetUnit = .seconds
+        weekdayGoal.unifiedDailyTarget = 3600.0 / 7.0
         weekdayGoal.setTimes([.morning], forWeekday: 4) // Wednesday
         
         let calendar = Calendar.current
@@ -505,9 +538,10 @@ struct DeterministicRecommenderTests {
         
         let morningGoal = Goal(
             title: "Morning Routine",
-            primaryTag: morningTag,
-            weeklyTarget: 3600
+            primaryTag: morningTag
         )
+        morningGoal.targetUnit = .seconds
+        morningGoal.unifiedDailyTarget = 3600.0 / 7.0
         morningGoal.setTimes([.morning], forWeekday: 2) // Monday
         
         let calendar = Calendar.current
@@ -558,9 +592,10 @@ struct DeterministicRecommenderTests {
         
         let workoutGoal = Goal(
             title: "Gym",
-            primaryTag: workoutTag,
-            weeklyTarget: 10800 // 3 hours
+            primaryTag: workoutTag
         )
+        workoutGoal.targetUnit = .seconds
+        workoutGoal.unifiedDailyTarget = 10800.0 / 3.0 // 3 hours over 3 scheduled days
         // Schedule Mon, Wed, Fri
         workoutGoal.setTimes([.morning], forWeekday: 2) // Monday
         workoutGoal.setTimes([.morning], forWeekday: 4) // Wednesday
@@ -612,9 +647,10 @@ struct DeterministicRecommenderTests {
         
         let flexibleGoal = Goal(
             title: "Reading",
-            primaryTag: flexibleTag,
-            weeklyTarget: 3600
+            primaryTag: flexibleTag
         )
+        flexibleGoal.targetUnit = .seconds
+        flexibleGoal.unifiedDailyTarget = 3600.0 / 7.0
         // No schedule set - can be done anytime
         
         let availability: [Int: TimeInterval] = [

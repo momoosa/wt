@@ -242,13 +242,17 @@ struct HealthKitPrivacyInfoView: View {
 #Preview("Settings View") {
     NavigationStack {
         let theme = GoalTag(title: "Health", themeID: themePresets.first!.id)
-        let goal = Goal(
-            title: "Exercise",
-            primaryTag: theme,
-            weeklyTarget: 210 * 60,
-            healthKitMetric: .appleExerciseTime,
-            healthKitSyncEnabled: true
-        )
+        let goal = {
+            let g = Goal(
+                title: "Exercise",
+                primaryTag: theme,
+                healthKitMetric: .appleExerciseTime,
+                healthKitSyncEnabled: true
+            )
+            g.targetUnit = .seconds
+            g.unifiedDailyTarget = 30 * 60
+            return g
+        }()
         
         GoalHealthKitSettingsView(goal: goal)
     }

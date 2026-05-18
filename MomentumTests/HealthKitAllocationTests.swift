@@ -22,11 +22,11 @@ struct HealthKitAllocationTests {
         // samples should be allocated to the first goal processed
         
         // Create two goals with the same metric
-        let goal1 = Goal(title: "Meditation", weeklyTarget: 3600)
+        let goal1 = Goal(title: "Meditation")
         goal1.healthKitMetric = .mindfulMinutes
         goal1.healthKitSyncEnabled = true
         
-        let goal2 = Goal(title: "Journaling", weeklyTarget: 3600)
+        let goal2 = Goal(title: "Journaling")
         goal2.healthKitMetric = .mindfulMinutes
         goal2.healthKitSyncEnabled = true
         
@@ -97,10 +97,10 @@ struct HealthKitAllocationTests {
     
     @Test("Different metrics don't conflict in allocation")
     func differentMetricsDontConflictInAllocation() {
-        let goal1 = Goal(title: "Meditation", weeklyTarget: 3600)
+        let goal1 = Goal(title: "Meditation")
         goal1.healthKitMetric = .mindfulMinutes
         
-        let goal2 = Goal(title: "Workout", weeklyTarget: 3600)
+        let goal2 = Goal(title: "Workout")
         goal2.healthKitMetric = .workoutTime
         
         // Different metrics should not conflict
@@ -160,7 +160,7 @@ struct HealthKitAllocationTests {
     
     @Test("Goal can enable HealthKit sync")
     func goalCanEnableHealthKitSync() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         goal.healthKitSyncEnabled = true
         goal.healthKitMetric = .mindfulMinutes
         
@@ -170,7 +170,7 @@ struct HealthKitAllocationTests {
     
     @Test("Goal with HealthKit disabled does not sync")
     func goalWithHealthKitDisabledDoesNotSync() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         goal.healthKitSyncEnabled = false
         goal.healthKitMetric = .mindfulMinutes
         
@@ -180,15 +180,15 @@ struct HealthKitAllocationTests {
     
     @Test("Goal requires both sync enabled and metric set")
     func goalRequiresBothSyncEnabledAndMetricSet() {
-        let goal1 = Goal(title: "Goal 1", weeklyTarget: 3600)
+        let goal1 = Goal(title: "Goal 1")
         goal1.healthKitSyncEnabled = true
         goal1.healthKitMetric = nil
         
-        let goal2 = Goal(title: "Goal 2", weeklyTarget: 3600)
+        let goal2 = Goal(title: "Goal 2")
         goal2.healthKitSyncEnabled = false
         goal2.healthKitMetric = .mindfulMinutes
         
-        let goal3 = Goal(title: "Goal 3", weeklyTarget: 3600)
+        let goal3 = Goal(title: "Goal 3")
         goal3.healthKitSyncEnabled = true
         goal3.healthKitMetric = .mindfulMinutes
         

@@ -32,12 +32,14 @@ struct FilterTests {
     func completedFilterShowsWhenCompletedSessionsExist() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         // Create a completed session
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.dailyTarget = 1800 // 30 minutes
+        session.unifiedTargetValue = 1800 // 30 minutes
         session.markedComplete = true // Mark as completed
         
         let tags: [GoalTag] = []
@@ -53,12 +55,14 @@ struct FilterTests {
     func completedFilterHiddenWhenNoCompletedSessions() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         // Create an incomplete session
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.dailyTarget = 1800 // 30 minutes
+        session.unifiedTargetValue = 1800 // 30 minutes
         session.markedComplete = false // Not completed
         
         let tags: [GoalTag] = []
@@ -74,7 +78,9 @@ struct FilterTests {
     func skippedFilterShowsWhenSkippedSessionsExist() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         // Create a skipped session
@@ -94,7 +100,9 @@ struct FilterTests {
     func skippedFilterHiddenWhenNoSkippedSessions() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         // Create an active session
@@ -114,12 +122,13 @@ struct FilterTests {
     func inactiveFilterShowsWhenInactiveSessionsExist() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         // Create an inactive session (no daily target)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.dailyTarget = 0
         session.unifiedTargetValue = 0
         
         let tags: [GoalTag] = []
@@ -137,7 +146,9 @@ struct FilterTests {
     func activeTodayCountsActiveSessions() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         let session1 = GoalSession(title: "Session 1", goal: goal, day: day)
@@ -155,7 +166,9 @@ struct FilterTests {
     func completedTodayCountsCompletedSessions() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         let completed1 = GoalSession(title: "Completed 1", goal: goal, day: day)
@@ -176,7 +189,9 @@ struct FilterTests {
     func skippedSessionsCountsSkippedSessions() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
         
         let skipped1 = GoalSession(title: "Skipped 1", goal: goal, day: day)

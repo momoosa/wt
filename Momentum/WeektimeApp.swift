@@ -171,26 +171,6 @@ struct MomentumApp: App {
                 let days = try context.fetch(dayDescriptor)
                 AppLogger.data.debug("iOS Data Counts: Goals=\(goals.count), Sessions=\(sessions.count), Days=\(days.count)")
                 
-                // One-time migration: populate unified target fields for existing data
-                var migratedGoals = 0
-                var migratedSessions = 0
-                for goal in goals {
-                    if goal.unifiedDailyTarget == 0 && (goal.weeklyTarget > 0 || goal.primaryMetricDailyTarget > 0) {
-                        goal.migrateToUnifiedTarget()
-                        migratedGoals += 1
-                    }
-                }
-                for session in sessions {
-                    if session.unifiedTargetValue == 0 && (session.dailyTarget > 0 || session.primaryMetricTarget > 0) {
-                        session.migrateToUnifiedTarget()
-                        migratedSessions += 1
-                    }
-                }
-                if migratedGoals > 0 || migratedSessions > 0 {
-                    try context.save()
-                    AppLogger.data.info("Unified target migration: \(migratedGoals) goals, \(migratedSessions) sessions")
-                }
-                
                 #if targetEnvironment(simulator)
                 AppLogger.data.info("iOS: Running in simulator. Note that Watch simulator uses a separate App Group container.")
                 AppLogger.data.info("iOS: Data will be shared correctly on real devices (paired iPhone + Apple Watch).")

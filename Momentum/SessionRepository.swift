@@ -13,7 +13,7 @@ import MomentumKit
 protocol SessionRepositoryProtocol {
     func save() -> Result<Void, SessionError>
     func updateSession(_ session: GoalSession, status: GoalSession.Status) -> Result<Void, SessionError>
-    func updateGoal(_ goal: Goal, weeklyTarget: TimeInterval) -> Result<Void, SessionError>
+    func updateGoal(_ goal: Goal, dailyTarget: Double) -> Result<Void, SessionError>
 }
 
 /// Repository for managing session data operations
@@ -36,9 +36,8 @@ class SessionRepository: SessionRepositoryProtocol {
         return save()
     }
     
-    func updateGoal(_ goal: Goal, weeklyTarget: TimeInterval) -> Result<Void, SessionError> {
-        goal.weeklyTarget = weeklyTarget
-        goal.migrateToUnifiedTarget()
+    func updateGoal(_ goal: Goal, dailyTarget: Double) -> Result<Void, SessionError> {
+        goal.unifiedDailyTarget = dailyTarget
         return save()
     }
 }

@@ -20,14 +20,16 @@ struct GoalModelTests {
 
         #expect(goal.title == "Read Books")
         #expect(goal.status == .active)
-        #expect(goal.weeklyTarget == 0)
+        #expect(goal.unifiedWeeklyTarget == 0)
     }
 
-    @Test("Goal initializes with weekly target")
-    func goalInitializesWithWeeklyTarget() {
-        let goal = Goal(title: "Exercise", weeklyTarget: 3600)
+    @Test("Goal configures daily target and computes weekly target")
+    func goalConfiguresDailyTargetAndComputesWeeklyTarget() {
+        let goal = Goal(title: "Exercise")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
 
-        #expect(goal.weeklyTarget == 3600)
+        #expect(goal.unifiedWeeklyTarget == 3600.0 / 7.0 * 7)
     }
 
     @Test("Goal generates unique ID")
@@ -172,26 +174,32 @@ struct GoalModelTests {
 
     // MARK: - Daily Target Calculation Tests
 
-    @Test("Goal dailyTargetFromSchedule divides by 7 with no schedule")
-    func goalDailyTargetFromScheduleDividesBy7WithNoSchedule() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+    @Test("Goal unifiedDailyTarget stores and retrieves value correctly")
+    func goalUnifiedDailyTargetStoresAndRetrievesValueCorrectly() {
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
 
-        let dailyTarget = goal.dailyTargetFromSchedule()
-        #expect(dailyTarget == 3600)
+        #expect(goal.unifiedDailyTarget == 3600)
+        #expect(goal.unifiedWeeklyTarget == 3600 * 7)
     }
 
-    @Test("Goal dailyTargetFromSchedule uses dailyMinimum if set")
-    func goalDailyTargetFromScheduleUsesDailyMinimumIfSet() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+    @Test("Goal unifiedDailyTarget can be set independently of dailyMinimum")
+    func goalUnifiedDailyTargetCanBeSetIndependentlyOfDailyMinimum() {
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1800
         goal.dailyMinimum = 1800
 
-        let dailyTarget = goal.dailyTargetFromSchedule()
-        #expect(dailyTarget == 1800)
+        #expect(goal.unifiedDailyTarget == 1800)
+        #expect(goal.dailyMinimum == 1800)
     }
 
-    @Test("Goal dailyTargetFromSchedule divides by scheduled days")
-    func goalDailyTargetFromScheduleDividesByScheduledDays() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 5)
+    @Test("Goal unifiedTarget returns per-day target when set")
+    func goalUnifiedTargetReturnsPerDayTargetWhenSet() {
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
 
         goal.setTimes([.morning], forWeekday: 2) // Monday
         goal.setTimes([.morning], forWeekday: 3) // Tuesday
@@ -199,18 +207,22 @@ struct GoalModelTests {
         goal.setTimes([.morning], forWeekday: 5) // Thursday
         goal.setTimes([.morning], forWeekday: 6) // Friday
 
-        let dailyTarget = goal.dailyTargetFromSchedule()
-        #expect(dailyTarget == 3600) // 5 hours / 5 days = 1 hour per day
+        // Per-day override for Monday
+        goal.perDayTargets["2"] = 1800
+
+        #expect(goal.unifiedTarget(for: 2) == 1800) // Monday uses per-day override
+        #expect(goal.unifiedTarget(for: 3) == 3600) // Tuesday falls back to unifiedDailyTarget
     }
 
-    @Test("Goal dailyTargetFromSchedule handles single scheduled day")
-    func goalDailyTargetFromScheduleHandlesSingleScheduledDay() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+    @Test("Goal unifiedTarget returns unifiedDailyTarget when no per-day override")
+    func goalUnifiedTargetReturnsUnifiedDailyTargetWhenNoPerDayOverride() {
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
 
         goal.setTimes([.morning], forWeekday: 1)
 
-        let dailyTarget = goal.dailyTargetFromSchedule()
-        #expect(dailyTarget == 3600)
+        #expect(goal.unifiedTarget(for: 1) == 3600)
     }
 
     // MARK: - HealthKit Integration Tests
@@ -251,7 +263,6 @@ struct GoalModelTests {
     func goalNotificationSettingsDefaultToFalse() {
         let goal = Goal(title: "Test Goal")
 
-        #expect(goal.notificationsEnabled == false)
         #expect(goal.scheduleNotificationsEnabled == false)
         #expect(goal.completionNotificationsEnabled == false)
     }
@@ -260,11 +271,9 @@ struct GoalModelTests {
     func goalNotificationSettingsCanBeEnabled() {
         let goal = Goal(title: "Test Goal")
 
-        goal.notificationsEnabled = true
         goal.scheduleNotificationsEnabled = true
         goal.completionNotificationsEnabled = true
 
-        #expect(goal.notificationsEnabled == true)
         #expect(goal.scheduleNotificationsEnabled == true)
         #expect(goal.completionNotificationsEnabled == true)
     }
@@ -390,21 +399,23 @@ struct GoalModelTests {
 
     // MARK: - Edge Cases Tests
 
-    @Test("Goal handles zero weekly target")
-    func goalHandlesZeroWeeklyTarget() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 0)
+    @Test("Goal handles zero unified daily target")
+    func goalHandlesZeroUnifiedDailyTarget() {
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 0
 
-        let dailyTarget = goal.dailyTargetFromSchedule()
-        #expect(dailyTarget == 0)
+        #expect(goal.unifiedDailyTarget == 0)
     }
 
-    @Test("Goal handles very large weekly target")
-    func goalHandlesVeryLargeWeeklyTarget() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 100) // 100 hours
+    @Test("Goal handles very large unified daily target")
+    func goalHandlesVeryLargeUnifiedDailyTarget() {
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 * 100 / 7.0 // ~100 hours/week equivalent
 
-        let dailyTarget = goal.dailyTargetFromSchedule()
-        #expect(dailyTarget > 0)
-        #expect(dailyTarget == 3600 * 100 / 7)
+        #expect(goal.unifiedDailyTarget > 0)
+        #expect(goal.unifiedDailyTarget == 3600 * 100 / 7.0)
     }
 
     @Test("Goal can schedule all days of week")

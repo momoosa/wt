@@ -35,9 +35,9 @@ struct ScheduleSection: View {
             }
             .padding(.vertical, 4)
         } header: {
-            Text(viewModel.selectedGoalType == .time ? "Weekly Goal" : "Goal & Schedule")
+            Text(viewModel.selectedGoalType.isTimeBased ? "Weekly Goal" : "Goal & Schedule")
         } footer: {
-            if viewModel.selectedGoalType != .time {
+            if !viewModel.selectedGoalType.isTimeBased {
                 Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(viewModel.primaryMetricTarget)) \(viewModel.goalTypeUnit) applies to all selected days.")
             }
         }

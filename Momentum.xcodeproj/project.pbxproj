@@ -310,6 +310,7 @@
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
+		CD99B76D2FB7815300D9E37D /* MomentumTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MomentumTests.xctestplan; sourceTree = "<group>"; };
 		CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestDataSeeder.swift; sourceTree = "<group>"; };
 		CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncStatusView.swift; sourceTree = "<group>"; };
 		CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncToast.swift; sourceTree = "<group>"; };
@@ -565,6 +566,7 @@
 		CD75CC522E2FE5E600890F20 = {
 			isa = PBXGroup;
 			children = (
+				CD99B76D2FB7815300D9E37D /* MomentumTests.xctestplan */,
 				CD07E1422F6DCA1B00D751D9 /* Momentum.xctestplan */,
 				CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */,
 				CD06684D2E34B5D90063AC1F /* InternalPackages */,

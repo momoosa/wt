@@ -126,7 +126,7 @@ struct GoalEditorViewModelTests {
     @Test("calculatedWeeklyTarget sums daily targets for time-based goals")
     func testCalculatedWeeklyTargetTimeGoals() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .time
+        viewModel.selectedGoalType = .seconds
         viewModel.activeDays = Set([2, 4, 6]) // Mon, Wed, Fri
         viewModel.dailyTargets = [2: 30, 4: 45, 6: 60]
         
@@ -137,7 +137,7 @@ struct GoalEditorViewModelTests {
     @Test("calculatedWeeklyTarget multiplies daily target by active days for count goals")
     func testCalculatedWeeklyTargetCountGoals() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .count
+        viewModel.selectedGoalType = .steps
         viewModel.primaryMetricTarget = 10000
         viewModel.activeDays = Set(2...6) // 5 days
         
@@ -460,7 +460,7 @@ struct GoalEditorViewModelTests {
     @Test("goalTypeUnit returns correct unit for time")
     func testGoalTypeUnitTime() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .time
+        viewModel.selectedGoalType = .seconds
         
         #expect(viewModel.goalTypeUnit == "min")
     }
@@ -468,7 +468,7 @@ struct GoalEditorViewModelTests {
     @Test("goalTypeUnit returns correct unit for count")
     func testGoalTypeUnitCount() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .count
+        viewModel.selectedGoalType = .steps
         
         #expect(viewModel.goalTypeUnit == "steps")
     }
@@ -476,7 +476,7 @@ struct GoalEditorViewModelTests {
     @Test("goalTypeUnit returns correct unit for calories")
     func testGoalTypeUnitCalories() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .calories
+        viewModel.selectedGoalType = .kilocalories
         
         #expect(viewModel.goalTypeUnit == "cal")
     }
@@ -484,7 +484,7 @@ struct GoalEditorViewModelTests {
     @Test("handleGoalTypeChange to count sets defaults")
     func testHandleGoalTypeChangeToCount() {
         let viewModel = createTestViewModel()
-        viewModel.handleGoalTypeChange(.count)
+        viewModel.handleGoalTypeChange(.steps)
         
         #expect(viewModel.selectedHealthKitMetric == .stepCount)
         #expect(viewModel.healthKitSyncEnabled == true)
@@ -494,7 +494,7 @@ struct GoalEditorViewModelTests {
     @Test("handleGoalTypeChange to calories sets defaults")
     func testHandleGoalTypeChangeToCalories() {
         let viewModel = createTestViewModel()
-        viewModel.handleGoalTypeChange(.calories)
+        viewModel.handleGoalTypeChange(.kilocalories)
         
         #expect(viewModel.selectedHealthKitMetric == .activeEnergyBurned)
         #expect(viewModel.healthKitSyncEnabled == true)
@@ -507,7 +507,7 @@ struct GoalEditorViewModelTests {
         viewModel.selectedHealthKitMetric = .stepCount
         viewModel.healthKitSyncEnabled = true
         
-        viewModel.handleGoalTypeChange(.time)
+        viewModel.handleGoalTypeChange(.seconds)
         
         #expect(viewModel.selectedHealthKitMetric == nil)
         #expect(viewModel.healthKitSyncEnabled == false)
@@ -518,7 +518,7 @@ struct GoalEditorViewModelTests {
     @Test("validatePrimaryMetricTarget clamps count goals to minimum")
     func testValidatePrimaryMetricTargetCountMinimum() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .count
+        viewModel.selectedGoalType = .steps
         viewModel.primaryMetricTarget = 50
         
         viewModel.validatePrimaryMetricTarget()
@@ -530,7 +530,7 @@ struct GoalEditorViewModelTests {
     @Test("validatePrimaryMetricTarget clamps count goals to maximum")
     func testValidatePrimaryMetricTargetCountMaximum() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .count
+        viewModel.selectedGoalType = .steps
         viewModel.primaryMetricTarget = 150000
         
         viewModel.validatePrimaryMetricTarget()
@@ -542,7 +542,7 @@ struct GoalEditorViewModelTests {
     @Test("validatePrimaryMetricTarget clamps calorie goals to minimum")
     func testValidatePrimaryMetricTargetCaloriesMinimum() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .calories
+        viewModel.selectedGoalType = .kilocalories
         viewModel.primaryMetricTarget = 25
         
         viewModel.validatePrimaryMetricTarget()
@@ -554,7 +554,7 @@ struct GoalEditorViewModelTests {
     @Test("validatePrimaryMetricTarget clamps calorie goals to maximum")
     func testValidatePrimaryMetricTargetCaloriesMaximum() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .calories
+        viewModel.selectedGoalType = .kilocalories
         viewModel.primaryMetricTarget = 15000
         
         viewModel.validatePrimaryMetricTarget()
@@ -566,7 +566,7 @@ struct GoalEditorViewModelTests {
     @Test("validatePrimaryMetricTarget accepts valid count values")
     func testValidatePrimaryMetricTargetCountValid() {
         let viewModel = createTestViewModel()
-        viewModel.selectedGoalType = .count
+        viewModel.selectedGoalType = .steps
         viewModel.primaryMetricTarget = 8000
         
         viewModel.validatePrimaryMetricTarget()

@@ -26,7 +26,9 @@ struct GoalSessionPlannerTests {
         
         // Create simple test data without needing full model context
         for i in 1...5 {
-            let goal = Goal(title: "Goal \(i)", weeklyTarget: 3600)
+            let goal = Goal(title: "Goal \(i)")
+            goal.targetUnit = .seconds
+            goal.unifiedDailyTarget = 3600 / 7.0
             goals.append(goal)
         }
         
@@ -60,10 +62,14 @@ struct GoalSessionPlannerTests {
         let morningDate = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!
         let currentWeekday = calendar.component(.weekday, from: morningDate)
         
-        let morningGoal = Goal(title: "Morning Goal", weeklyTarget: 3600)
+        let morningGoal = Goal(title: "Morning Goal")
+        morningGoal.targetUnit = .seconds
+        morningGoal.unifiedDailyTarget = 3600 / 7.0
         morningGoal.setTimes([.morning], forWeekday: currentWeekday)
         
-        let eveningGoal = Goal(title: "Evening Goal", weeklyTarget: 3600)
+        let eveningGoal = Goal(title: "Evening Goal")
+        eveningGoal.targetUnit = .seconds
+        eveningGoal.unifiedDailyTarget = 3600 / 7.0
         eveningGoal.setTimes([.evening], forWeekday: currentWeekday)
         
         let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
@@ -92,8 +98,12 @@ struct GoalSessionPlannerTests {
         let today = Date.now
         let currentWeekday = calendar.component(.weekday, from: today)
         
-        let goal1 = Goal(title: "Flexible Goal", weeklyTarget: 3600)
-        let goal2 = Goal(title: "Scheduled Goal", weeklyTarget: 3600)
+        let goal1 = Goal(title: "Flexible Goal")
+        goal1.targetUnit = .seconds
+        goal1.unifiedDailyTarget = 3600.0 / 7.0
+        let goal2 = Goal(title: "Scheduled Goal")
+        goal2.targetUnit = .seconds
+        goal2.unifiedDailyTarget = 3600.0 / 7.0
         goal2.setTimes([.morning], forWeekday: currentWeekday)
         
         let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
@@ -134,7 +144,9 @@ struct GoalSessionPlannerTests {
     func testGenerateDailyPlanSimplePlan() async throws {
         let planner = GoalSessionPlanner()
         
-        let goal = Goal(title: "Single Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Single Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
         
@@ -152,7 +164,9 @@ struct GoalSessionPlannerTests {
     func testGenerateDailyPlanCaching() async throws {
         let planner = GoalSessionPlanner()
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         let day = Day(start: Date.now.startOfDay() ?? Date.now, end: Date.now.endOfDay() ?? Date.now)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
         
@@ -205,7 +219,9 @@ struct GoalSessionPlannerTests {
         let container = try makeTestContainer()
         let context = ModelContext(container)
         
-        let goal = Goal(title: "Test", weeklyTarget: 3600)
+        let goal = Goal(title: "Test")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         let day = Day(start: Date.now.startOfDay() ?? .now, end: Date.now.endOfDay() ?? .now)
         context.insert(goal)
         context.insert(day)
@@ -224,7 +240,9 @@ struct GoalSessionPlannerTests {
         let container = try makeTestContainer()
         let context = ModelContext(container)
         
-        let goal = Goal(title: "Test", weeklyTarget: 3600)
+        let goal = Goal(title: "Test")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
         let day = Day(start: Date.now.startOfDay() ?? .now, end: Date.now.endOfDay() ?? .now)
         context.insert(goal)
         context.insert(day)
@@ -257,8 +275,12 @@ struct GoalSessionPlannerTests {
         let container = try makeTestContainer()
         let context = ModelContext(container)
         
-        let goal1 = Goal(title: "Goal 1", weeklyTarget: 3600)
-        let goal2 = Goal(title: "Goal 2", weeklyTarget: 3600)
+        let goal1 = Goal(title: "Goal 1")
+        goal1.targetUnit = .seconds
+        goal1.unifiedDailyTarget = 3600.0 / 7.0
+        let goal2 = Goal(title: "Goal 2")
+        goal2.targetUnit = .seconds
+        goal2.unifiedDailyTarget = 3600.0 / 7.0
         let day = Day(start: Date.now.startOfDay() ?? .now, end: Date.now.endOfDay() ?? .now)
         
         context.insert(goal1)

@@ -232,11 +232,12 @@ struct SettingsView: View {
         let goal = Goal(
             title: debugGoal.title,
             primaryTag: theme,
-            weeklyTarget: TimeInterval(debugGoal.weeklyTargetMinutes * 60),
             healthKitMetric: debugGoal.healthKitMetric,
             healthKitSyncEnabled: debugGoal.healthKitSyncEnabled
         )
-        goal.migrateToUnifiedTarget()
+        // Set unified target: convert weekly minutes to daily seconds
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = Double(debugGoal.weeklyTargetMinutes * 60) / 7.0
         withAnimation {
             modelContext.insert(goal)
         }

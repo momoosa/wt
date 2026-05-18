@@ -16,7 +16,10 @@ struct SessionDeduplicationTests {
     // MARK: - Test Helpers
     
     private func createGoal(title: String) -> Goal {
-        Goal(title: title, weeklyTarget: 3600)
+        let goal = Goal(title: title)
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600.0 / 7.0
+        return goal
     }
     
     private func createHistoricalSession(
@@ -45,7 +48,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         // Create three 10-minute sessions with no overlap
         let baseDate = Date()
@@ -76,7 +79,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         let baseDate = Date()
         
@@ -110,7 +113,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         let baseDate = Date()
         
@@ -146,7 +149,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         let baseDate = Date()
         
@@ -181,7 +184,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 60 * 60
+        session.unifiedTargetValue = 60 * 60
         
         let baseDate = Date()
         
@@ -225,7 +228,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 90 * 60
+        session.unifiedTargetValue = 90 * 60
         
         let baseDate = Date()
         
@@ -268,7 +271,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         let baseDate = Date()
         
@@ -300,7 +303,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         let baseDate = Date()
         
@@ -333,7 +336,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         day.historicalSessions = []
         session.day = day
@@ -351,7 +354,7 @@ struct SessionDeduplicationTests {
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         let day = Day(start: start, end: end, calendar: calendar)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = 30 * 60
+        session.unifiedTargetValue = 30 * 60
         
         let baseDate = Date()
         let historicalSession = createHistoricalSession(start: baseDate, duration: 15 * 60)

@@ -90,7 +90,7 @@ class GoalEditorViewModel {
     
     // MARK: - Goal Types & Metrics
     
-    var selectedGoalType: Goal.GoalType = .time
+    var selectedGoalType: Goal.TargetUnit = .seconds
     var primaryMetricTarget: Double = 0
     var dailyTargets: [Int: Int] = [:]
     
@@ -290,7 +290,7 @@ class GoalEditorViewModel {
     
     func loadGoalData(from goal: Goal) {
         userInput = goal.title
-        durationInMinutes = Int(goal.weeklyTarget / 60) // Convert weekly seconds to minutes (legacy)
+        durationInMinutes = goal.targetUnit.isTimeBased ? Int(goal.unifiedWeeklyTarget / 60) : 0
         
         // Load daily minimum (this is now the primary daily target)
         if let dailyMin = goal.dailyMinimum {
@@ -309,7 +309,7 @@ class GoalEditorViewModel {
             if !times.isEmpty {
                 activeDays.insert(weekday)
                 // Check if there's a custom daily target for this day
-                if let customTarget = goal.dailyTargets[String(weekday)] {
+                if let customTarget = goal.perDayTargets[String(weekday)], goal.targetUnit.isTimeBased {
                     dailyTargets[weekday] = Int(customTarget / 60) // Convert seconds to minutes
                 } else {
                     // Fall back to dailyMinimum or default
@@ -329,21 +329,21 @@ class GoalEditorViewModel {
         scheduleNotificationsEnabled = goal.scheduleNotificationsEnabled
         completionNotificationsEnabled = goal.completionNotificationsEnabled
         selectedCompletionBehaviors = goal.completionBehaviors
-        selectedGoalType = goal.goalType
+        selectedGoalType = goal.targetUnit
         selectedHealthKitMetric = goal.healthKitMetric
         healthKitSyncEnabled = goal.healthKitSyncEnabled
 
         // Load or set default primary metric target
-        if goal.primaryMetricDailyTarget > 0 {
-            primaryMetricTarget = goal.primaryMetricDailyTarget
+        if !goal.targetUnit.isTimeBased && goal.unifiedDailyTarget > 0 {
+            primaryMetricTarget = goal.unifiedDailyTarget
         } else {
             // Set defaults based on goal type for migrated goals
-            switch goal.goalType {
-            case .time:
+            switch goal.targetUnit {
+            case .seconds:
                 primaryMetricTarget = 0
-            case .count:
+            case .steps:
                 primaryMetricTarget = 10000 // Default: 10,000 steps
-            case .calories:
+            case .kilocalories:
                 primaryMetricTarget = 500 // Default: 500 calories
             }
         }
@@ -393,31 +393,27 @@ class GoalEditorViewModel {
     // MARK: - Goal Type Helpers
     
     var goalTypeUnit: String {
-        switch selectedGoalType {
-        case .time: return "min"
-        case .count: return "steps"
-        case .calories: return "cal"
-        }
+        selectedGoalType.label
     }
     
     /// Suggested target values based on goal type
     var targetSuggestions: [Int] {
         switch selectedGoalType {
-        case .time:
+        case .seconds:
             return []
-        case .count:
+        case .steps:
             return [5000, 7500, 10000, 12500]
-        case .calories:
+        case .kilocalories:
             return [200, 300, 500, 750]
         }
     }
     
     var calculatedWeeklyTarget: Int {
         switch selectedGoalType {
-        case .time:
+        case .seconds:
             // Sum the actual daily targets for time-based goals
             return dailyTargets.values.reduce(0, +)
-        case .count, .calories:
+        case .steps, .kilocalories:
             return Int(primaryMetricTarget * Double(activeDays.count))
         }
     }
@@ -425,12 +421,12 @@ class GoalEditorViewModel {
     func validatePrimaryMetricTarget() {
         guard primaryMetricTarget > 0 else {
             switch selectedGoalType {
-            case .time: primaryMetricTarget = 0
-            case .count:
+            case .seconds: primaryMetricTarget = 0
+            case .steps:
                 primaryMetricTarget = 100
                 validationMessage = "Target set to minimum: 100 steps"
                 showingValidationAlert = true
-            case .calories:
+            case .kilocalories:
                 primaryMetricTarget = 50
                 validationMessage = "Target set to minimum: 50 calories"
                 showingValidationAlert = true
@@ -439,8 +435,8 @@ class GoalEditorViewModel {
         }
 
         switch selectedGoalType {
-        case .time: break
-        case .count:
+        case .seconds: break
+        case .steps:
             if primaryMetricTarget > 100000 {
                 primaryMetricTarget = 100000
                 validationMessage = "Target adjusted to maximum: 100,000 steps"
@@ -450,7 +446,7 @@ class GoalEditorViewModel {
                 validationMessage = "Target adjusted to minimum: 100 steps"
                 showingValidationAlert = true
             }
-        case .calories:
+        case .kilocalories:
             if primaryMetricTarget > 10000 {
                 primaryMetricTarget = 10000
                 validationMessage = "Target adjusted to maximum: 10,000 calories"
@@ -463,16 +459,16 @@ class GoalEditorViewModel {
         }
     }
     
-    func handleGoalTypeChange(_ newType: Goal.GoalType) {
+    func handleGoalTypeChange(_ newType: Goal.TargetUnit) {
         switch newType {
-        case .time:
+        case .seconds:
             selectedHealthKitMetric = nil
             healthKitSyncEnabled = false
-        case .count:
+        case .steps:
             selectedHealthKitMetric = .stepCount
             healthKitSyncEnabled = true
             primaryMetricTarget = 10000
-        case .calories:
+        case .kilocalories:
             selectedHealthKitMetric = .activeEnergyBurned
             healthKitSyncEnabled = true
             primaryMetricTarget = 500
@@ -544,11 +540,14 @@ class GoalEditorViewModel {
         }
 
         // Set goal type if specified in template
-        if let goalTypeString = template.goalType,
-           let goalType = Goal.GoalType(rawValue: goalTypeString) {
-            selectedGoalType = goalType
+        if let goalTypeString = template.goalType {
+            switch goalTypeString {
+            case "count": selectedGoalType = .steps
+            case "calories": selectedGoalType = .kilocalories
+            default: selectedGoalType = .seconds
+            }
         } else {
-            selectedGoalType = .time
+            selectedGoalType = .seconds
         }
 
         // Set primary metric target if specified
@@ -560,7 +559,7 @@ class GoalEditorViewModel {
         print("   Title: \(template.title)")
         print("   Duration: \(template.duration) min")
         print("   Daily Minutes: \(dailyMinutes) min per day")
-        print("   Goal Type: \(selectedGoalType.rawValue)")
+        print("   Goal Type: \(selectedGoalType)")
         print("   Primary Target: \(primaryMetricTarget)")
         print("   Theme: \(template.theme)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
@@ -831,18 +830,12 @@ class GoalEditorViewModel {
             goal = existingGoal
             goal.title = userInput
             goal.primaryTag = finalGoalTag
-            goal.weeklyTarget = TimeInterval(calculatedWeeklyTarget * 60) // Weekly minutes to seconds
-            // Calculate average daily target from per-day targets
-            let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
-            goal.dailyMinimum = TimeInterval(avgDailyTarget * 60) // Average daily target in seconds
             goal.iconName = selectedIcon
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = completionNotificationsEnabled
             goal.completionBehaviors = selectedCompletionBehaviors
-            goal.goalType = selectedGoalType
             goal.healthKitMetric = selectedHealthKitMetric
             goal.healthKitSyncEnabled = healthKitSyncEnabled
-            goal.primaryMetricDailyTarget = primaryMetricTarget
             goal.notes = goalNotes.isEmpty ? nil : goalNotes
             goal.link = goalLink.isEmpty ? nil : goalLink
             
@@ -850,44 +843,20 @@ class GoalEditorViewModel {
             goal.dayTimeSchedule.removeAll()
         } else {
             // Create new goal
-            if let selectedSuggestion = selectedSuggestion, let title = selectedSuggestion.title {
-                goal = Goal(
-                    title: title,
-                    primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
-                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
-                    completionNotificationsEnabled: completionNotificationsEnabled,
-                    healthKitMetric: selectedHealthKitMetric,
-                    healthKitSyncEnabled: healthKitSyncEnabled
-                )
-                goal.iconName = selectedIcon
-                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
-                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
-                goal.completionBehaviors = selectedCompletionBehaviors
-                goal.goalType = selectedGoalType
-                goal.primaryMetricDailyTarget = primaryMetricTarget
-                goal.notes = goalNotes.isEmpty ? nil : goalNotes
-                goal.link = goalLink.isEmpty ? nil : goalLink
-            } else {
-                goal = Goal(
-                    title: userInput,
-                    primaryTag: finalGoalTag,
-                    weeklyTarget: TimeInterval(calculatedWeeklyTarget * 60), // Weekly minutes to seconds
-                    scheduleNotificationsEnabled: scheduleNotificationsEnabled,
-                    completionNotificationsEnabled: completionNotificationsEnabled,
-                    healthKitMetric: selectedHealthKitMetric,
-                    healthKitSyncEnabled: healthKitSyncEnabled
-                )
-                goal.iconName = selectedIcon
-                let avgDailyTarget = activeDays.isEmpty ? 30 : (calculatedWeeklyTarget / activeDays.count)
-                goal.dailyMinimum = TimeInterval(avgDailyTarget * 60)
-                goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
-                goal.completionBehaviors = selectedCompletionBehaviors
-                goal.goalType = selectedGoalType
-                goal.primaryMetricDailyTarget = primaryMetricTarget
-                goal.notes = goalNotes.isEmpty ? nil : goalNotes
-                goal.link = goalLink.isEmpty ? nil : goalLink
-            }
+            let title = selectedSuggestion?.title ?? userInput
+            goal = Goal(
+                title: title,
+                primaryTag: finalGoalTag,
+                scheduleNotificationsEnabled: scheduleNotificationsEnabled,
+                completionNotificationsEnabled: completionNotificationsEnabled,
+                healthKitMetric: selectedHealthKitMetric,
+                healthKitSyncEnabled: healthKitSyncEnabled
+            )
+            goal.iconName = selectedIcon
+            goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
+            goal.completionBehaviors = selectedCompletionBehaviors
+            goal.notes = goalNotes.isEmpty ? nil : goalNotes
+            goal.link = goalLink.isEmpty ? nil : goalLink
         }
         
         // ✅ Save the day-time schedule using the convenience method
@@ -903,23 +872,17 @@ class GoalEditorViewModel {
             }
         }
         
-        // ✅ Save per-day targets
-        goal.dailyTargets.removeAll()
-        for (weekday, minutes) in dailyTargets {
-            goal.dailyTargets[String(weekday)] = TimeInterval(minutes * 60)
-        }
-        
-        // ✅ Dual-write to unified target system
-        goal.targetUnit = Goal.TargetUnit(from: selectedGoalType)
+        // ✅ Save unified target system
+        goal.targetUnit = selectedGoalType
         switch selectedGoalType {
-        case .time:
+        case .seconds:
             let avgDailySeconds = activeDays.isEmpty ? 1800.0 : Double(calculatedWeeklyTarget * 60) / Double(activeDays.count)
             goal.unifiedDailyTarget = avgDailySeconds
             goal.perDayTargets.removeAll()
             for (weekday, minutes) in dailyTargets {
                 goal.perDayTargets[String(weekday)] = Double(minutes * 60)
             }
-        case .count, .calories:
+        case .steps, .kilocalories:
             goal.unifiedDailyTarget = primaryMetricTarget
             goal.perDayTargets.removeAll()
         }

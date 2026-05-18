@@ -545,7 +545,7 @@ extension ToggleTimerIntent {
             sessionID: sessionID,
             dayID: dayID,
             goalTitle: session.title,
-            dailyTarget: session.dailyTarget,
+            dailyTarget: session.unifiedTargetValue,
             themeLight: "#\(theme.light.toHex() ?? "007AFF")",
             themeDark: "#\(theme.dark.toHex() ?? "0051D5")",
             themeNeon: "#\(theme.neon.toHex() ?? "00D4FF")"

@@ -55,7 +55,9 @@ struct SessionTimerManagerTests {
     }
     
     func createTestGoal(title: String, weeklyTarget: TimeInterval = 3600, context: ModelContext) -> Goal {
-        let goal = Goal(title: title, weeklyTarget: weeklyTarget)
+        let goal = Goal(title: title)
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = weeklyTarget / 7.0
         context.insert(goal)
         return goal
     }
@@ -71,7 +73,7 @@ struct SessionTimerManagerTests {
     
     func createTestSession(goal: Goal, day: Day, context: ModelContext) -> GoalSession {
         let session = GoalSession(title: goal.title, goal: goal, day: day)
-        session.dailyTarget = goal.weeklyTarget / 7
+        session.unifiedTargetValue = goal.unifiedWeeklyTarget / 7
         context.insert(session)
         try? context.save()
         return session

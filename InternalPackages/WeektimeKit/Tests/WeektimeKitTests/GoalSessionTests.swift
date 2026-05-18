@@ -18,7 +18,9 @@ struct GoalSessionTests {
     func goalSessionInitializesWithTitleGoalAndDay() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -57,12 +59,14 @@ struct GoalSessionTests {
     func goalSessionCachesDailyTargetAtCreation() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
 
-        #expect(session.dailyTarget == 3600) // 7 hours / 7 days = 1 hour
+        #expect(session.unifiedTargetValue == 3600) // 1 hour per day
     }
 
     @Test("GoalSession initializes with active status")
@@ -160,7 +164,9 @@ struct GoalSessionTests {
     func goalSessionHasMetDailyTargetIsFalseWhenTargetNotMet() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -172,7 +178,9 @@ struct GoalSessionTests {
     func goalSessionHasMetDailyTargetIsTrueWhenElapsedTimeMeetsTarget() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -194,7 +202,9 @@ struct GoalSessionTests {
     func goalSessionHasMetDailyTargetIsTrueWhenManuallyMarkedComplete() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -208,7 +218,9 @@ struct GoalSessionTests {
     func goalSessionFormattedTimeShowsElapsedAndTarget() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -388,27 +400,31 @@ struct GoalSessionTests {
     func goalSessionCanUpdateDailyTargetFromGoal() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
 
-        #expect(session.dailyTarget == 3600)
+        #expect(session.unifiedTargetValue == 3600)
 
-        // Change goal's weekly target
-        goal.weeklyTarget = 7200 * 7 // 2 hours per day
+        // Change goal's daily target to 2 hours per day
+        goal.unifiedDailyTarget = 7200
 
         // Update session's daily target
         session.updateDailyTarget()
 
-        #expect(session.dailyTarget == 7200)
+        #expect(session.unifiedTargetValue == 7200)
     }
 
     @Test("GoalSession updateDailyTarget handles nil goal")
     func goalSessionUpdateDailyTargetHandlesNilGoal() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -419,7 +435,7 @@ struct GoalSessionTests {
         // Should not crash
         session.updateDailyTarget()
 
-        #expect(session.dailyTarget == 0)
+        #expect(session.unifiedTargetValue == 0)
     }
 
     // MARK: - Recommendation Reasons Tests
@@ -453,15 +469,17 @@ struct GoalSessionTests {
     func goalSessionConformsToSessionProgressProvider() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
 
-        // Should have elapsedTime and dailyTarget properties
+        // Should have currentValue and unifiedTargetValue properties
         let provider: SessionProgressProvider = session
-        #expect(provider.elapsedTime >= 0)
-        #expect(provider.dailyTarget >= 0)
+        #expect(provider.currentValue >= 0)
+        #expect(provider.unifiedTargetValue >= 0)
     }
 
     // MARK: - Edge Cases Tests
@@ -470,12 +488,14 @@ struct GoalSessionTests {
     func goalSessionHandlesZeroDailyTarget() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 0)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 0
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
 
-        #expect(session.dailyTarget == 0)
+        #expect(session.unifiedTargetValue == 0)
         #expect(session.hasMetDailyTarget == false)
     }
 
@@ -483,7 +503,9 @@ struct GoalSessionTests {
     func goalSessionMarkedCompleteOverridesElapsedTimeCheck() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
@@ -499,12 +521,14 @@ struct GoalSessionTests {
     func goalSessionHandlesVeryLargeDailyTargets() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 100) // 100 hours
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 * 100 / 7.0 // ~100 hours/week equivalent
         let day = Day(start: date, end: date, calendar: calendar)
 
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
 
-        #expect(session.dailyTarget > 0)
+        #expect(session.unifiedTargetValue > 0)
         #expect(session.hasMetDailyTarget == false)
     }
     
@@ -519,7 +543,9 @@ struct GoalSessionTests {
         components.weekday = 1 // Sunday
         let sunday = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTime)!
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7) // 7 hours per week
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 // 1 hour per day
         // Schedule only Monday-Friday (weekdays 2-6)
         goal.dayTimeSchedule = [
             "2": [TimeOfDay.morning.rawValue],
@@ -532,8 +558,8 @@ struct GoalSessionTests {
         let day = Day(start: sunday, end: sunday, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
-        // Sunday is not scheduled, so daily target should be 0
-        #expect(session.dailyTarget == 0)
+        // Sunday is not scheduled, so unified target should be 0
+        #expect(session.unifiedTargetValue == 0)
     }
     
     @Test("GoalSession daily target is correct on scheduled days")
@@ -545,7 +571,9 @@ struct GoalSessionTests {
         components.weekday = 2 // Monday
         let monday = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTime)!
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 5) // 5 hours per week
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 // 1 hour per day
         // Schedule only Monday-Friday (weekdays 2-6)
         goal.dayTimeSchedule = [
             "2": [TimeOfDay.morning.rawValue],
@@ -558,25 +586,25 @@ struct GoalSessionTests {
         let day = Day(start: monday, end: monday, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
-        // Monday is scheduled, and there are 5 scheduled days total
-        // 5 hours / 5 days = 1 hour per day = 3600 seconds
-        #expect(session.dailyTarget == 3600)
+        // Monday is scheduled, unified target should be 3600 (the daily target)
+        #expect(session.unifiedTargetValue == 3600)
     }
     
-    @Test("GoalSession daily target uses all 7 days when no schedule is set")
-    func goalSessionDailyTargetUsesAll7DaysWhenNoScheduleIsSet() {
+    @Test("GoalSession daily target uses unified daily target when no schedule is set")
+    func goalSessionDailyTargetUsesUnifiedDailyTargetWhenNoScheduleIsSet() {
         let calendar = Calendar.current
         let date = Date()
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 7) // 7 hours per week
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 // 1 hour per day
         // No schedule set (hasSchedule will be false)
         
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
-        // No schedule means all 7 days are active
-        // 7 hours / 7 days = 1 hour per day = 3600 seconds
-        #expect(session.dailyTarget == 3600)
+        // No schedule means all days are active, unified target = unifiedDailyTarget
+        #expect(session.unifiedTargetValue == 3600)
     }
     
     @Test("GoalSession updateDailyTarget respects scheduled days")
@@ -588,14 +616,16 @@ struct GoalSessionTests {
         components.weekday = 7 // Saturday
         let saturday = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .nextTime)!
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600 * 5) // 5 hours per week
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 // 1 hour per day
         // Initially no schedule
         
         let day = Day(start: saturday, end: saturday, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
-        // Should initially divide by 7 (no schedule)
-        let initialTarget = session.dailyTarget
+        // Should initially use unifiedDailyTarget (no schedule)
+        let initialTarget = session.unifiedTargetValue
         #expect(initialTarget > 0)
         
         // Now add a schedule that excludes Saturday (weekday 7)
@@ -610,7 +640,7 @@ struct GoalSessionTests {
         // Update the session's daily target
         session.updateDailyTarget()
         
-        // Saturday is not in the schedule, so daily target should be 0
-        #expect(session.dailyTarget == 0)
+        // Saturday is not in the schedule, so unified target should be 0
+        #expect(session.unifiedTargetValue == 0)
     }
 }

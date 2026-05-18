@@ -133,8 +133,7 @@ struct ThemeDetailView: View {
         // Create a mock goal
         let goal = Goal(
             title: "Sample Goal - \(theme.title)",
-            primaryTag: tag,
-            weeklyTarget: 2.5 * 3600 // 2.5 hours
+            primaryTag: tag
         )
         
         // Don't insert into context - keep as transient objects
@@ -163,8 +162,7 @@ struct ThemeDetailView: View {
         
         let goal = Goal(
             title: "Sample Goal - \(theme.title)",
-            primaryTag: tag,
-            weeklyTarget: 2.5 * 3600
+            primaryTag: tag
         )
         
         let session = GoalSession(
@@ -596,7 +594,7 @@ struct ComponentGroupedView: View {
     private func createMockSession(for theme: ThemePreset) -> GoalSession {
         let themeObj = theme
         let tag = GoalTag(title: theme.title, themeID: themeObj.id)
-        let goal = Goal(title: "Sample Goal - \(theme.title)", primaryTag: tag, weeklyTarget: 2.5 * 3600)
+        let goal = Goal(title: "Sample Goal - \(theme.title)", primaryTag: tag)
         let session = GoalSession(title: goal.title, goal: goal, day: day)
         session.recommendationReasons = [RecommendationReason.userPriority, RecommendationReason.weather]
         return session

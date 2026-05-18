@@ -100,7 +100,7 @@ struct WeekStoreTests {
         let day2 = Day(start: startDate, end: endDate)
         
         // Create a goal for the sessions
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         context.insert(goal)
         
         let session1 = GoalSession(title: "Session 1", goal: goal, day: day1)
@@ -185,7 +185,7 @@ struct WeekStoreTests {
         let day2 = Day(start: startDate, end: endDate)
         let day3 = Day(start: startDate, end: endDate)
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         context.insert(goal)
         
         let session1 = GoalSession(title: "Session 1", goal: goal, day: day1)
@@ -256,7 +256,7 @@ struct WeekStoreTests {
         let day1 = Day(start: startDate, end: endDate)
         let day2 = Day(start: startDate, end: endDate)
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         context.insert(goal)
         
         // Create one session that appears in both days (simulating a conflict)

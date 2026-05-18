@@ -106,7 +106,6 @@ class GoalManager {
         let newGoal = Goal(
             title: "\(goal.title) (Copy)",
             primaryTag: goal.primaryTag,
-            weeklyTarget: goal.weeklyTarget,
             scheduleNotificationsEnabled: goal.scheduleNotificationsEnabled,
             healthKitMetric: goal.healthKitMetric,
             healthKitSyncEnabled: goal.healthKitSyncEnabled

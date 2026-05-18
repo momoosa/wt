@@ -61,9 +61,15 @@ struct DayTransitionTests {
         let weekStore = WeekStore(modelContext: context)
         
         // Create some active goals
-        let goal1 = Goal(title: "Exercise", weeklyTarget: 3600)
-        let goal2 = Goal(title: "Reading", weeklyTarget: 3600)
-        let goal3 = Goal(title: "Coding", weeklyTarget: 7200)
+        let goal1 = Goal(title: "Exercise")
+        goal1.targetUnit = .seconds
+        goal1.unifiedDailyTarget = 3600 / 7.0
+        let goal2 = Goal(title: "Reading")
+        goal2.targetUnit = .seconds
+        goal2.unifiedDailyTarget = 3600 / 7.0
+        let goal3 = Goal(title: "Coding")
+        goal3.targetUnit = .seconds
+        goal3.unifiedDailyTarget = 7200 / 7.0
         
         context.insert(goal1)
         context.insert(goal2)
@@ -96,8 +102,12 @@ struct DayTransitionTests {
         let weekStore = WeekStore(modelContext: context)
         
         // Create active and archived goals
-        let activeGoal = Goal(title: "Active Goal", weeklyTarget: 3600)
-        let archivedGoal = Goal(title: "Archived Goal", weeklyTarget: 3600)
+        let activeGoal = Goal(title: "Active Goal")
+        activeGoal.targetUnit = .seconds
+        activeGoal.unifiedDailyTarget = 3600 / 7.0
+        let archivedGoal = Goal(title: "Archived Goal")
+        archivedGoal.targetUnit = .seconds
+        archivedGoal.unifiedDailyTarget = 3600 / 7.0
         archivedGoal.status = .archived
         
         context.insert(activeGoal)
@@ -126,7 +136,9 @@ struct DayTransitionTests {
         let weekStore = WeekStore(modelContext: context)
         
         // Create a goal
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         context.insert(goal)
         try context.save()
         
@@ -153,7 +165,9 @@ struct DayTransitionTests {
         let context = ModelContext(container)
         
         // Create goals
-        let goal = Goal(title: "Daily Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Daily Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         context.insert(goal)
         try context.save()
         
@@ -211,7 +225,9 @@ struct DayTransitionTests {
         let container = try makeTestContainer()
         let context = ModelContext(container)
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
         context.insert(goal)
         
         // Create two days
@@ -288,7 +304,9 @@ struct DayTransitionTests {
         
         // Create 5 goals
         for i in 1...5 {
-            let goal = Goal(title: "Goal \(i)", weeklyTarget: TimeInterval(i * 3600))
+            let goal = Goal(title: "Goal \(i)")
+            goal.targetUnit = .seconds
+            goal.unifiedDailyTarget = TimeInterval(i * 3600) / 7.0
             context.insert(goal)
         }
         try context.save()

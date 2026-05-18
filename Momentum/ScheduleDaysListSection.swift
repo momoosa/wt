@@ -21,7 +21,7 @@ struct ScheduleDaysListSection: View {
                     selectedTimes: viewModel.dayTimePreferences[weekday] ?? [],
                     themeColor: activeThemeColor,
                     isExpanded: expandedDay == weekday,
-                    showMinutes: viewModel.selectedGoalType == .time,
+                    showMinutes: viewModel.selectedGoalType.isTimeBased,
                     focusedField: $focusedField,
                     onToggleDay: { viewModel.toggleActiveDay(weekday) },
                     onUpdateMinutes: { viewModel.updateDailyTarget(for: weekday, minutes: $0) },

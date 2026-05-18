@@ -10,22 +10,12 @@ import Foundation
 // MARK: - Session Progress Provider Protocol
 
 public protocol SessionProgressProvider {
-    var elapsedTime: TimeInterval { get }
-    var dailyTarget: TimeInterval { get }
-    
-    // Unified target system
     var currentValue: Double { get }
     var unifiedTargetValue: Double { get }
     var targetUnit: Goal.TargetUnit { get }
 }
 
-// Default implementations that fall back to time-based behavior
-// for conformers that haven't adopted the unified system yet
 public extension SessionProgressProvider {
-    var currentValue: Double { elapsedTime }
-    var unifiedTargetValue: Double { dailyTarget }
-    var targetUnit: Goal.TargetUnit { .seconds }
-    
     /// Progress as a value from 0.0 onwards (can exceed 1.0 when over target)
     var progress: Double {
         guard unifiedTargetValue > 0 else { return 0 }
@@ -41,11 +31,6 @@ public extension SessionProgressProvider {
     /// Remaining value to reach the daily target (in native units)
     var remainingValue: Double {
         max(unifiedTargetValue - currentValue, 0)
-    }
-
-    /// Remaining time (backwards compatibility alias for time-based goals)
-    var remainingTime: TimeInterval {
-        max(dailyTarget - elapsedTime, 0)
     }
 
     /// Progress as a percentage string (e.g., "75%")

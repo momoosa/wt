@@ -53,15 +53,14 @@ class SessionViewModel {
         
         // Update goal if needed
         if let goal = session.goal {
-            let updateResult = repository.updateGoal(goal, weeklyTarget: newTarget * 7)
+            let updateResult = repository.updateGoal(goal, dailyTarget: newTarget)
             if case .failure(let error) = updateResult {
-                logger.error("Failed to update goal weekly target: \(error)")
+                logger.error("Failed to update goal daily target: \(error)")
                 return .failure(error)
             }
         }
         
-        // Update session (dual-write)
-        session.dailyTarget = newTarget
+        // Update session target
         session.unifiedTargetValue = newTarget
         
         // Update timerManager if this is the active session

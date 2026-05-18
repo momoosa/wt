@@ -17,7 +17,7 @@ struct ChecklistTests {
     
     @Test("ChecklistItem initializes with title and goal")
     func checklistItemInitializesWithTitleAndGoal() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let item = ChecklistItem(title: "Complete report", goal: goal)
         
         #expect(item.title == "Complete report")
@@ -26,7 +26,7 @@ struct ChecklistTests {
     
     @Test("ChecklistItem generates unique ID")
     func checklistItemGeneratesUniqueID() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let item1 = ChecklistItem(title: "Item 1", goal: goal)
         let item2 = ChecklistItem(title: "Item 2", goal: goal)
         
@@ -35,7 +35,7 @@ struct ChecklistTests {
     
     @Test("Goal can have multiple checklist items")
     func goalCanHaveMultipleChecklistItems() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         
         let item1 = ChecklistItem(title: "Item 1", goal: goal)
         let item2 = ChecklistItem(title: "Item 2", goal: goal)
@@ -52,7 +52,7 @@ struct ChecklistTests {
     func checklistItemSessionInitializesWithItemAndSession() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         let checklistItem = ChecklistItem(title: "Test Item", goal: goal)
@@ -72,7 +72,7 @@ struct ChecklistTests {
     func checklistItemSessionCanBeMarkedAsCompleted() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         let checklistItem = ChecklistItem(title: "Test Item", goal: goal)
@@ -94,7 +94,7 @@ struct ChecklistTests {
     func checklistItemSessionCanBeToggled() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         let checklistItem = ChecklistItem(title: "Test Item", goal: goal)
@@ -118,7 +118,7 @@ struct ChecklistTests {
     func goalSessionCanHaveChecklistItemSessions() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
@@ -137,7 +137,7 @@ struct ChecklistTests {
     func checklistCompletionCountCanBeCalculated() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
@@ -166,7 +166,7 @@ struct ChecklistTests {
         let today = Date()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
         
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let item = ChecklistItem(title: "Test Item", goal: goal)
         goal.checklistItems = [item]
         
@@ -191,7 +191,7 @@ struct ChecklistTests {
     func emptyChecklistHasZeroCompletion() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
@@ -208,7 +208,7 @@ struct ChecklistTests {
     func fullyCompletedChecklistShowsAllItemsDone() {
         let calendar = Calendar.current
         let date = Date()
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let day = Day(start: date, end: date, calendar: calendar)
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         
@@ -229,7 +229,7 @@ struct ChecklistTests {
     
     @Test("ChecklistItem title can be empty")
     func checklistItemTitleCanBeEmpty() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let item = ChecklistItem(title: "", goal: goal)
         
         #expect(item.title == "")
@@ -237,7 +237,7 @@ struct ChecklistTests {
     
     @Test("ChecklistItem title can contain special characters")
     func checklistItemTitleCanContainSpecialCharacters() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let item = ChecklistItem(title: "Review code ✅ & deploy 🚀", goal: goal)
         
         #expect(item.title == "Review code ✅ & deploy 🚀")
@@ -245,7 +245,7 @@ struct ChecklistTests {
     
     @Test("ChecklistItem title can be very long")
     func checklistItemTitleCanBeVeryLong() {
-        let goal = Goal(title: "Test Goal", weeklyTarget: 3600)
+        let goal = Goal(title: "Test Goal")
         let longTitle = String(repeating: "Very long title ", count: 20)
         let item = ChecklistItem(title: longTitle, goal: goal)
         

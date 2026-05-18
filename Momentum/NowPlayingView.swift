@@ -313,7 +313,7 @@ struct SessionAdjustmentsSheet: View {
 #Preview {
     
     let theme = GoalTag(title: "Wellness", themeID: "purple")
-    let goal = Goal(title: "Meditation", primaryTag: theme, weeklyTarget: 3600)
+    let goal = Goal(title: "Meditation", primaryTag: theme)
     let day = Day(start: Date(), end: Date())
     let session = GoalSession(title: "Meditation", goal: goal, day: day)
     let details = ActiveSessionDetails(id: session.id, startDate: Date().addingTimeInterval(-600), elapsedTime: 600, dailyTarget: 1200)

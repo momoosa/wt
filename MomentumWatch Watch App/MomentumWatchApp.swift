@@ -84,7 +84,9 @@ struct MomentumWatch_Watch_AppApp: App {
                     context.insert(sampleTag)
                     
                     // Create a sample goal
-                    let sampleGoal = Goal(title: "Sample Goal", primaryTag: sampleTag, weeklyTarget: 3600)
+                    let sampleGoal = Goal(title: "Sample Goal", primaryTag: sampleTag)
+                    sampleGoal.targetUnit = .seconds
+                    sampleGoal.unifiedDailyTarget = 3600.0 / 7.0
                     context.insert(sampleGoal)
                     
                     // Create a sample session

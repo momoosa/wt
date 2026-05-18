@@ -20,9 +20,12 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     public private(set) var elapsedTime: TimeInterval = 0
     public var currentTime: Date?
     public private(set) var timeText: String?
-    public var dailyTarget: TimeInterval = 0 // Changed from optional to required for protocol
+    public var dailyTarget: TimeInterval = 0 // Timer UI's own target (not GoalSession's stored property)
     public var unifiedTargetValue: Double = 0 // Unified target in native unit
     public var targetUnit: Goal.TargetUnit = .seconds // Unit of the target
+    
+    /// Protocol conformance: currentValue is the elapsed time for the active session
+    public var currentValue: Double { elapsedTime }
     public var isPaused: Bool = false // Track if the session is currently paused
     public var onTargetReached: (() -> Void)? // Callback when target is reached
     public var onTick: (() -> Void)? // Callback on every timer tick

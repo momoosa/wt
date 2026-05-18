@@ -12,40 +12,58 @@ import Foundation
 @Suite("Goal Scheduling Logic")
 struct GoalScheduleTests {
     
-    // MARK: - dailyTargetFromSchedule Tests
+    // MARK: - Unified Daily Target Tests
     
-    @Test("Daily target uses dailyMinimum when set")
-    func dailyTargetUsesDailyMinimum() {
-        let goal = Goal(title: "Test", weeklyTarget: 3600) // 1 hour weekly
-        goal.dailyMinimum = 1800 // 30 minutes daily minimum
+    @Test("Unified daily target can be set and read back")
+    func unifiedDailyTargetRoundTrips() {
+        let goal = Goal(title: "Test")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1800 // 30 minutes
         
-        #expect(goal.dailyTargetFromSchedule() == 1800)
+        #expect(goal.unifiedDailyTarget == 1800)
     }
     
-    @Test("Daily target divides by scheduled days when schedule exists")
-    func dailyTargetDividesByScheduledDays() {
-        let goal = Goal(title: "Test", weeklyTarget: 7200) // 2 hours weekly
-        // Schedule for Monday and Wednesday (2 days)
+    @Test("Unified target returns daily target for scheduled days")
+    func unifiedTargetReturnsDefaultForScheduledDays() {
+        let goal = Goal(title: "Test")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 // 1 hour per day
+        // Schedule for Monday and Wednesday
         goal.setTimes([.morning], forWeekday: 2) // Monday
         goal.setTimes([.evening], forWeekday: 4) // Wednesday
         
-        let expected = 7200.0 / 2.0 // 1 hour per scheduled day
-        #expect(goal.dailyTargetFromSchedule() == expected)
+        #expect(goal.unifiedTarget(for: 2) == 3600)
+        #expect(goal.unifiedTarget(for: 4) == 3600)
     }
     
-    @Test("Daily target divides by 7 when no schedule")
-    func dailyTargetDefaultsToSevenDays() {
-        let goal = Goal(title: "Test", weeklyTarget: 7000)
+    @Test("Unified target returns daily target when no schedule is set")
+    func unifiedTargetReturnsDefaultWithNoSchedule() {
+        let goal = Goal(title: "Test")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1000
         
-        let expected = 7000.0 / 7.0
-        #expect(goal.dailyTargetFromSchedule() == expected)
+        // All weekdays should return the same unified daily target
+        for weekday in 1...7 {
+            #expect(goal.unifiedTarget(for: weekday) == 1000)
+        }
     }
     
-    @Test("Daily target handles zero weekly target")
-    func dailyTargetHandlesZeroWeekly() {
-        let goal = Goal(title: "Test", weeklyTarget: 0)
+    @Test("Unified daily target defaults to zero")
+    func unifiedDailyTargetDefaultsToZero() {
+        let goal = Goal(title: "Test")
         
-        #expect(goal.dailyTargetFromSchedule() == 0)
+        #expect(goal.unifiedDailyTarget == 0)
+    }
+    
+    @Test("Per-day target overrides unified daily target for specific weekday")
+    func perDayTargetOverridesDefault() {
+        let goal = Goal(title: "Test")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1800 // 30 minutes default
+        goal.perDayTargets["2"] = 3600 // Monday override: 1 hour
+        
+        #expect(goal.unifiedTarget(for: 2) == 3600) // Monday uses override
+        #expect(goal.unifiedTarget(for: 3) == 1800) // Tuesday uses default
     }
     
     // MARK: - isScheduled Tests

@@ -156,11 +156,6 @@ public final class GoalSession: SessionProgressProvider {
     /// Time tracked from HealthKit for this session (if enabled)
     public private(set) var healthKitTime: TimeInterval = 0
     
-    /// Legacy: Use `currentValue` instead. Kept for backward compatibility with migration.
-    public var primaryMetricValue: Double = 0
-    
-    /// Legacy: Use `unifiedTargetValue` instead. Kept for backward compatibility with migration.
-    public var primaryMetricTarget: Double = 0
     
     // MARK: - AI Planning Properties
     
@@ -181,9 +176,6 @@ public final class GoalSession: SessionProgressProvider {
     
     /// Whether this session is pinned to appear in widgets
     public var pinnedInWidget: Bool = false
-    
-    /// Legacy: Use `unifiedTargetValue` instead. Kept for backward compatibility with widgets/watch/timer.
-    public var dailyTarget: TimeInterval = 0
     
     // MARK: - Unified Target System
     
@@ -269,7 +261,7 @@ public final class GoalSession: SessionProgressProvider {
     public var formattedTime: String {
         if targetUnit.isTimeBased {
             let value = currentValue > 0 ? currentValue : elapsedTime
-            return value.formattedProgress(target: unifiedTargetValue > 0 ? unifiedTargetValue : dailyTarget)
+            return value.formattedProgress(target: unifiedTargetValue)
         }
         
         let current = Int(currentValue)
@@ -302,28 +294,9 @@ public final class GoalSession: SessionProgressProvider {
         // Cache goal properties at creation time to avoid accessing goal after deletion
         self.goalID = goal.id.uuidString
         
-        // Cache primary metric target for count/calorie goals
-        self.primaryMetricTarget = goal.primaryMetricDailyTarget
-        
-        // Calculate daily target only if today is a scheduled day
+        // Set unified target from goal's schedule
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: day.startDate)
-        
-        if goal.hasSchedule {
-            let scheduledWeekdays = goal.scheduledWeekdays
-            
-            if scheduledWeekdays.contains(weekday) {
-                self.dailyTarget = goal.dailyTarget(for: weekday)
-            } else {
-                // Not a scheduled day, so no target
-                self.dailyTarget = 0
-            }
-        } else {
-            // No schedule means all days are active
-            self.dailyTarget = goal.dailyTarget(for: weekday)
-        }
-        
-        // Unified target system: dual-write alongside legacy properties
         self.targetUnitRawValue = goal.targetUnit.rawValue
         if goal.isScheduledDay(weekday) {
             self.unifiedTargetValue = goal.unifiedTarget(for: weekday)
@@ -356,8 +329,6 @@ public extension GoalSession {
     
     /// Update the primary metric value (for count/calorie-based goals)
     func updatePrimaryMetricValue(_ value: Double) {
-        primaryMetricValue = value
-        // Sync to unified system
         if !targetUnit.isTimeBased {
             currentValue = value
         }
@@ -387,22 +358,6 @@ public extension GoalSession {
         self.recommendationReasons = []
     }
     
-    /// Populate unified target fields from legacy properties.
-    /// Call once per session during migration.
-    func migrateToUnifiedTarget() {
-        guard let goal = goal else { return }
-        targetUnitRawValue = goal.targetUnit.rawValue
-        
-        switch goal.goalType {
-        case .time:
-            unifiedTargetValue = dailyTarget
-            currentValue = elapsedTime
-        case .count, .calories:
-            unifiedTargetValue = primaryMetricTarget
-            currentValue = primaryMetricValue
-        }
-    }
-    
     /// Sync currentValue from elapsedTime (for time-based goals only)
     func syncCurrentValueFromElapsedTime() {
         guard targetUnit.isTimeBased else { return }
@@ -427,38 +382,18 @@ public extension GoalSession {
         }
     }
     
-    /// Update the cached daily target from the goal's current schedule
+    /// Update the cached target from the goal's current schedule
     /// Call this when the goal's schedule changes
     func updateDailyTarget() {
         guard let goal = goal, let day = day else {
-            self.dailyTarget = 0
             self.unifiedTargetValue = 0
             return
         }
         
-        // Calculate daily target only if today is a scheduled day
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: day.startDate)
-        
-        if goal.hasSchedule {
-            let scheduledWeekdays = goal.scheduledWeekdays
-            
-            if scheduledWeekdays.contains(weekday) {
-                self.dailyTarget = goal.dailyTarget(for: weekday)
-            } else {
-                // Not a scheduled day, so no target
-                self.dailyTarget = 0
-            }
-        } else {
-            // No schedule means all days are active
-            self.dailyTarget = goal.dailyTarget(for: weekday)
-        }
-        
-        // Also update primary metric target for count/calorie goals
-        self.primaryMetricTarget = goal.primaryMetricDailyTarget
-        
-        // Dual-write to unified target system
         self.targetUnitRawValue = goal.targetUnit.rawValue
+        
         if goal.isScheduledDay(weekday) {
             self.unifiedTargetValue = goal.unifiedTarget(for: weekday)
         } else {

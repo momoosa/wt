@@ -393,7 +393,7 @@ public final class SessionTimerManager {
             id: session.id,
             startDate: startDate,
             elapsedTime: elapsedTime,
-            dailyTarget: session.dailyTarget
+            dailyTarget: session.unifiedTargetValue
         ) {
             // Callback when target is reached
             self.onTargetReached(for: session)
@@ -587,7 +587,7 @@ public final class SessionTimerManager {
                 elapsedTime: session.elapsedTime,
                 startDate: activeSession.startDate,
                 goalTitle: session.title,
-                dailyTarget: session.dailyTarget
+                dailyTarget: session.unifiedTargetValue
             )
         }
         #endif
@@ -611,7 +611,7 @@ public final class SessionTimerManager {
             id: session.id,
             startDate: .now,
             elapsedTime: session.elapsedTime,
-            dailyTarget: session.dailyTarget
+            dailyTarget: session.unifiedTargetValue
         ) {
             // Callback when target is reached
             self.onTargetReached(for: session)
@@ -801,7 +801,7 @@ public final class SessionTimerManager {
             id: uuid,
             startDate: startDate,
             elapsedTime: elapsed,
-            dailyTarget: session.dailyTarget
+            dailyTarget: session.unifiedTargetValue
         ) {
             self.onTargetReached(for: session)
         }
@@ -886,7 +886,7 @@ public final class SessionTimerManager {
             sessionID: session.id.uuidString,
             dayID: session.day?.id ?? "",
             goalTitle: session.title,
-            dailyTarget: session.dailyTarget,
+            dailyTarget: session.unifiedTargetValue,
             themeLight: theme.light.toHex(),
             themeDark: theme.dark.toHex(),
             themeNeon: theme.neon.toHex()
