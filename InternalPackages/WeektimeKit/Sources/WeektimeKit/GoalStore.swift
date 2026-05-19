@@ -53,8 +53,8 @@ public final class GoalStore {
             if let session = sessions.first(where: { 
                 $0.goal?.id == goal.id && $0.day?.id == dayID
             }) {
+                // elapsedTime incorporates both manual sessions and healthKitTime
                 totalTime += session.elapsedTime
-                totalTime += session.healthKitTime
             }
         }
         

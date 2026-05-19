@@ -309,6 +309,94 @@ public final class HealthKitManager {
         healthStore.stop(query)
     }
     
+    // MARK: - External-Only Queries (excluding app's own samples)
+    
+    /// Build a predicate that excludes samples written by this app
+    private func externalSamplesPredicate(from startDate: Date, to endDate: Date) -> NSPredicate {
+        let timePredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let appSource = HKSource.default()
+        let fromApp = HKQuery.predicateForObjects(from: Set([appSource]))
+        let notFromApp = NSCompoundPredicate(notPredicateWithSubpredicate: fromApp)
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [timePredicate, notFromApp])
+    }
+    
+    /// Fetch aggregate duration for a metric, excluding samples written by this app.
+    /// Uses HKStatisticsQuery for aggregatable quantity metrics, falls back to sample-based
+    /// fetching for category/workout types.
+    public func fetchExternalDuration(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> TimeInterval {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        let predicate = externalSamplesPredicate(from: startDate, to: endDate)
+        
+        // For aggregatable quantity types, use HKStatisticsQuery
+        if metric.isAggregatable, let quantityType = metric.quantityType {
+            return try await withCheckedThrowingContinuation { continuation in
+                let query = HKStatisticsQuery(
+                    quantityType: quantityType,
+                    quantitySamplePredicate: predicate,
+                    options: .cumulativeSum
+                ) { _, result, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    
+                    guard let result = result,
+                          let sum = result.sumQuantity() else {
+                        continuation.resume(returning: 0)
+                        return
+                    }
+                    
+                    let duration = sum.doubleValue(for: metric.unit) * 60 // Convert minutes to seconds
+                    continuation.resume(returning: duration)
+                }
+                
+                healthStore.execute(query)
+            }
+        }
+        
+        // For non-aggregatable types, fetch individual samples and sum
+        let samples = try await fetchExternalSamples(for: metric, from: startDate, to: endDate)
+        return samples.reduce(0.0) { $0 + $1.duration }
+    }
+    
+    /// Fetch individual samples for a metric, excluding samples written by this app.
+    /// Uses source-based predicates at the HealthKit query level.
+    public func fetchExternalSamples(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> [HealthKitSample] {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        let predicate = externalSamplesPredicate(from: startDate, to: endDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        
+        // Handle workout-based metrics
+        switch metric {
+        case .weightLiftingTime:
+            return try await fetchWorkoutSamples(workoutType: .traditionalStrengthTraining, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        case .ellipticalTime:
+            return try await fetchWorkoutSamples(workoutType: .elliptical, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        case .rowingTime:
+            return try await fetchWorkoutSamples(workoutType: .rowing, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        default:
+            break
+        }
+        
+        // Handle quantity types
+        if let quantityType = metric.quantityType {
+            return try await fetchQuantitySamples(quantityType: quantityType, metric: metric, predicate: predicate, sortDescriptor: sortDescriptor)
+        }
+        
+        // Handle category types
+        if let categoryType = metric.categoryType {
+            return try await fetchCategorySamples(categoryType: categoryType, predicate: predicate, sortDescriptor: sortDescriptor)
+        }
+        
+        throw HealthKitError.invalidMetric
+    }
+    
     /// Fetch individual samples for a metric (for displaying in history)
     public func fetchSamples(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> [HealthKitSample] {
         guard isHealthKitAvailable else {

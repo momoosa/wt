@@ -139,6 +139,17 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         }
     }
     
+    /// Whether this metric can use HKStatisticsQuery for aggregate totals
+    /// (quantity types that don't require special workout dispatch)
+    public var isAggregatable: Bool {
+        switch self {
+        case .appleExerciseTime, .appleStandTime, .appleMoveTime, .timeInDaylight, .stepCount, .activeEnergyBurned:
+            return true
+        default:
+            return false // category, workout, and workoutTime (special dispatch)
+        }
+    }
+    
     /// Description of what this metric tracks
     public var description: String {
         switch self {

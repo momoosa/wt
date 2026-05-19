@@ -284,8 +284,8 @@ struct CheckGoalProgressIntent: AppIntent {
             
             let sessions = try? context.fetch(sessionDescriptor)
             if let session = sessions?.first(where: { $0.goalID == selectedGoal.id.uuidString && $0.day?.id == dayID }) {
+                // elapsedTime incorporates both manual sessions and healthKitTime
                 totalTime += session.elapsedTime
-                totalTime += session.healthKitTime
             }
         }
         

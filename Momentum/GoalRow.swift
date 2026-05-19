@@ -49,17 +49,8 @@ struct GoalRow: View {
         for day in allDays {
             if let sessions = day.sessions,
                let session = sessions.first(where: { $0.goal?.id == goal.id }) {
-                // Add manual elapsed time
+                // elapsedTime incorporates both manual sessions and healthKitTime
                 totalTime += session.elapsedTime
-                
-                // Add HealthKit time
-                totalTime += session.healthKitTime
-                
-                // Add manual historical sessions
-                let historicalSessions = session.historicalSessions
-                let manualHistoricalTime = historicalSessions.filter { $0.healthKitType == nil }
-                    .reduce(0.0) { $0 + $1.duration }
-                totalTime += manualHistoricalTime
             }
         }
         
@@ -184,23 +175,8 @@ struct SevenDayBarChart: View {
             // Find the session for this goal
             let session = daysByID[dayID]?.sessions?.first(where: { $0.goal?.id == goal.id })
             
-            // Calculate total progress from manual tracking + HealthKit + historical sessions
-            var totalProgress: TimeInterval = 0
-            
-            // Add manual elapsed time
-            totalProgress += session?.elapsedTime ?? 0
-            
-            // Add HealthKit time (already deduplicated in session.healthKitTime)
-            totalProgress += session?.healthKitTime ?? 0
-            
-            // Add historical sessions for this goal (manual logs, not HealthKit as those are already in healthKitTime)
-            // Only count manual historical sessions to avoid double-counting HealthKit data
-            if let session = session {
-                let historicalSessions = session.historicalSessions
-                let manualHistoricalTime = historicalSessions.filter { $0.healthKitType == nil } // Only manual entries
-                    .reduce(0.0) { $0 + $1.duration }
-                totalProgress += manualHistoricalTime
-            }
+            // elapsedTime incorporates both manual sessions and healthKitTime
+            let totalProgress: TimeInterval = session?.elapsedTime ?? 0
             
             // Get weekday initial (M, T, W, etc.)
             let weekdaySymbol = calendar.veryShortStandaloneWeekdaySymbols[calendar.component(.weekday, from: date) - 1]

@@ -200,39 +200,46 @@ public final class GoalSession: SessionProgressProvider {
     /// Total elapsed time including both manual tracking and HealthKit data
     /// Deduplicates overlapping sessions to avoid double-counting time
     public var elapsedTime: TimeInterval {
-        // historicalSessions already includes both manual sessions and HealthKit sessions
-        // (HealthKit sessions have healthKitType != nil)
-        
-        // Sort sessions by start date for efficient merging
         let sortedSessions = historicalSessions.sorted { $0.startDate < $1.startDate }
+        let hasHKSessions = sortedSessions.contains { $0.healthKitType != nil }
         
-        // Merge overlapping time intervals
-        var mergedIntervals: [(start: Date, end: Date)] = []
+        if !hasHKSessions && healthKitTime > 0 {
+            // Aggregate path: no individual HK sessions, use healthKitTime directly
+            // Manual sessions still need interval merging for deduplication
+            let manualIntervals = sortedSessions.map { (start: $0.startDate, end: $0.endDate) }
+            let manualTime = mergedDuration(from: manualIntervals)
+            return healthKitTime + manualTime
+        }
         
-        for session in sortedSessions {
-            if mergedIntervals.isEmpty {
-                mergedIntervals.append((session.startDate, session.endDate))
+        // Standard path: merge all historical sessions (manual + HK)
+        let intervals = sortedSessions.map { (start: $0.startDate, end: $0.endDate) }
+        return mergedDuration(from: intervals)
+    }
+    
+    /// Calculate total duration from a list of time intervals, merging overlaps
+    private func mergedDuration(from intervals: [(start: Date, end: Date)]) -> TimeInterval {
+        guard !intervals.isEmpty else { return 0 }
+        
+        var merged: [(start: Date, end: Date)] = []
+        
+        for interval in intervals {
+            if merged.isEmpty {
+                merged.append(interval)
             } else {
-                let lastIndex = mergedIntervals.count - 1
-                let last = mergedIntervals[lastIndex]
+                let lastIndex = merged.count - 1
+                let last = merged[lastIndex]
                 
-                // Check if current session overlaps with the last merged interval
-                if session.startDate <= last.end {
-                    // Overlapping - extend the last interval if needed
-                    mergedIntervals[lastIndex].end = max(last.end, session.endDate)
+                if interval.start <= last.end {
+                    merged[lastIndex].end = max(last.end, interval.end)
                 } else {
-                    // Non-overlapping - add as new interval
-                    mergedIntervals.append((session.startDate, session.endDate))
+                    merged.append(interval)
                 }
             }
         }
         
-        // Calculate total time from merged intervals
-        let totalTime = mergedIntervals.reduce(0.0) { sum, interval in
+        return merged.reduce(0.0) { sum, interval in
             sum + interval.end.timeIntervalSince(interval.start)
         }
-        
-        return totalTime
     }
     
     /// Progress as a value from 0.0 onwards (can exceed 1.0 when over target)

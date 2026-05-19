@@ -76,58 +76,87 @@ class HealthKitSyncService {
         struct GoalSyncData {
             let goal: Goal
             let metric: HealthKitMetric
-            let mergedSamples: [HealthKitSample]
+            let mergedSamples: [HealthKitSample] // empty for aggregate fast path
             let duration: TimeInterval
             let primaryMetricValue: Double?
+            let usedAggregatePath: Bool
         }
         
         var fetchedData: [GoalSyncData] = []
+        
+        // Determine which metrics are shared across multiple goals
+        let metricGoalCounts = Dictionary(grouping: healthKitGoals, by: { $0.healthKitMetric })
+            .mapValues { $0.count }
         
         for goal in healthKitGoals {
             guard let metric = goal.healthKitMetric else { continue }
 
             do {
-                let samples = try await healthKitManager.fetchSamples(
-                    for: metric,
-                    from: day.startDate,
-                    to: day.endDate
-                )
-
-                let externalSamples = samples.filter { !$0.isFromThisApp }
-                let availableSamples = externalSamples.filter { !allocatedSampleIDs.contains($0.id) }
-                let mergedSamples = HealthKitSampleMerger.mergeSamples(availableSamples)
-                let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
-
-                AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue))")
-                AppLogger.healthKit.info("  - Found \(samples.count) samples total")
-                AppLogger.healthKit.info("  - Filtered out \(samples.count - externalSamples.count) samples from this app")
-                AppLogger.healthKit.info("  - \(availableSamples.count) external samples available after allocation")
-                AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
-                AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
-
-                // Mark samples as allocated for subsequent goals
-                for sample in mergedSamples {
-                    allocatedSampleIDs.insert(sample.id)
-                }
-
-                // Fetch primary metric value if needed (still async)
-                var primaryMetricValue: Double? = nil
-                if !goal.targetUnit.isTimeBased {
-                    do {
-                        primaryMetricValue = try await healthKitManager.fetchTodayCount(for: metric)
-                        AppLogger.healthKit.info("  - Fetched primary metric value: \(primaryMetricValue ?? 0)")
-                    } catch {
-                        AppLogger.healthKit.error("  - Failed to fetch primary metric: \(error)")
+                // Fast path: aggregatable metric used by only one goal
+                let canUseAggregate = metric.isAggregatable && (metricGoalCounts[metric] ?? 0) <= 1
+                
+                if canUseAggregate {
+                    // Use HKStatisticsQuery for a single aggregate number
+                    let duration = goal.targetUnit.isTimeBased
+                        ? try await healthKitManager.fetchExternalDuration(for: metric, from: day.startDate, to: day.endDate)
+                        : 0 // Non-time metrics (steps, calories) don't need duration
+                    
+                    // Fetch primary metric value if needed
+                    var primaryMetricValue: Double? = nil
+                    if !goal.targetUnit.isTimeBased {
+                        primaryMetricValue = try? await healthKitManager.fetchTodayCount(for: metric)
                     }
-                }
+                    
+                    AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue)) [aggregate path]")
+                    AppLogger.healthKit.info("  - Duration: \(duration.formatted()) seconds")
+                    
+                    fetchedData.append(GoalSyncData(
+                        goal: goal,
+                        metric: metric,
+                        mergedSamples: [],
+                        duration: duration,
+                        primaryMetricValue: primaryMetricValue,
+                        usedAggregatePath: true
+                    ))
+                } else {
+                    // Slow path: fetch individual samples with source exclusion at query level
+                    let samples = try await healthKitManager.fetchExternalSamples(
+                        for: metric,
+                        from: day.startDate,
+                        to: day.endDate
+                    )
 
-                fetchedData.append(GoalSyncData(
-                    goal: goal,
-                    metric: metric,
-                    mergedSamples: mergedSamples,
-                    duration: duration,
-                    primaryMetricValue: primaryMetricValue
-                ))
+                    let availableSamples = samples.filter { !allocatedSampleIDs.contains($0.id) }
+                    let mergedSamples = HealthKitSampleMerger.mergeSamples(availableSamples)
+                    let duration = mergedSamples.reduce(0.0) { $0 + $1.duration }
+
+                    AppLogger.healthKit.info("Syncing HealthKit data for goal '\(goal.title)' (metric: \(metric.rawValue)) [sample path]")
+                    AppLogger.healthKit.info("  - Found \(samples.count) external samples")
+                    AppLogger.healthKit.info("  - \(availableSamples.count) available after allocation")
+                    AppLogger.healthKit.info("  - Merged to \(mergedSamples.count) samples")
+                    AppLogger.healthKit.info("  - Total duration: \(duration.formatted()) seconds")
+
+                    // Mark samples as allocated for subsequent goals
+                    for sample in mergedSamples {
+                        allocatedSampleIDs.insert(sample.id)
+                    }
+
+                    // Fetch primary metric value if needed
+                    var primaryMetricValue: Double? = nil
+                    if !goal.targetUnit.isTimeBased {
+                        primaryMetricValue = try? await healthKitManager.fetchTodayCount(for: metric)
+                        AppLogger.healthKit.info("  - Fetched primary metric value: \(primaryMetricValue ?? 0)")
+                    }
+
+                    fetchedData.append(GoalSyncData(
+                        goal: goal,
+                        metric: metric,
+                        mergedSamples: mergedSamples,
+                        duration: duration,
+                        primaryMetricValue: primaryMetricValue,
+                        usedAggregatePath: false
+                    ))
+                }
             } catch {
                 AppLogger.healthKit.error("Failed to fetch HealthKit data for \(goal.title): \(error)")
                 syncErrors.append(goal.title)
@@ -152,7 +181,10 @@ class HealthKitSyncService {
                         totalDurationImported += data.duration
                     }
 
-                    syncHistoricalSessions(from: data.mergedSamples, for: data.goal, in: session, day: day, modelContext: modelContext)
+                    // Only create individual HistoricalSession records for sample-path goals
+                    if !data.usedAggregatePath {
+                        syncHistoricalSessions(from: data.mergedSamples, for: data.goal, in: session, day: day, modelContext: modelContext)
+                    }
                 } else {
                     AppLogger.healthKit.warning("  - No session found for goal '\(data.goal.title)' (ID: \(data.goal.id))")
                 }

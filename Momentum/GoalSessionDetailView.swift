@@ -758,6 +758,18 @@ struct GoalSessionDetailView: View {
     private var historySection: some View {
             // History section remains as-is
             Section {
+                // Show aggregate HealthKit summary when no individual HK sessions exist
+                if session.healthKitTime > 0 && !session.historicalSessions.contains(where: { $0.healthKitType != nil }) {
+                    HStack {
+                        Image(systemName: session.goal?.healthKitMetric?.symbolName ?? "heart.fill")
+                            .foregroundStyle(.red)
+                        Text(session.goal?.healthKitMetric?.displayName ?? "HealthKit")
+                        Spacer()
+                        Text(Duration.seconds(session.healthKitTime).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated)))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
                 if !session.historicalSessions.isEmpty {
                     ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
                         HStack {
@@ -793,7 +805,7 @@ struct GoalSessionDetailView: View {
                             }
                         }
                     }
-                } else {
+                } else if session.healthKitTime == 0 {
                     ContentUnavailableView {
                         Text("No progress for this goal today.")
                     } description: { } actions: {

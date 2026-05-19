@@ -249,12 +249,8 @@ struct GoalDetailView: View {
             
             if let day = allDays.first(where: { $0.id == dayID }),
                let session = day.sessions?.first(where: { $0.goal?.id == goal.id }) {
+                // elapsedTime incorporates both manual sessions and healthKitTime
                 total += session.elapsedTime
-                total += session.healthKitTime
-                
-                let manualHistorical = session.historicalSessions.filter { $0.healthKitType == nil }
-                    .reduce(0.0) { $0 + $1.duration }
-                total += manualHistorical
             }
         }
         
@@ -330,12 +326,8 @@ struct GoalDetailView: View {
                 
                 if let day = allDays.first(where: { $0.id == dayID }),
                    let session = day.sessions?.first(where: { $0.goal?.id == goal.id }) {
+                    // elapsedTime incorporates both manual sessions and healthKitTime
                     weekTotal += session.elapsedTime
-                    weekTotal += session.healthKitTime
-                    
-                    let manualHistorical = session.historicalSessions.filter { $0.healthKitType == nil }
-                        .reduce(0.0) { $0 + $1.duration }
-                    weekTotal += manualHistorical
                 }
             }
             

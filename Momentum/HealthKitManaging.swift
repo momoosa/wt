@@ -42,6 +42,12 @@ protocol HealthKitManaging {
     /// Fetch individual samples for a metric within a date range
     func fetchSamples(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> [HealthKitSample]
 
+    /// Fetch aggregate duration for a metric, excluding samples written by this app
+    func fetchExternalDuration(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> TimeInterval
+
+    /// Fetch individual samples for a metric, excluding samples written by this app
+    func fetchExternalSamples(for metric: HealthKitMetric, from startDate: Date, to endDate: Date) async throws -> [HealthKitSample]
+
     /// Write a session to HealthKit
     func writeSession(metric: HealthKitMetric, startDate: Date, endDate: Date) async throws -> String
 }
