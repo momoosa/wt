@@ -149,8 +149,26 @@ public final class GoalSession: SessionProgressProvider {
     
     @Relationship(deleteRule: .cascade)
     public var intervalLists: [IntervalListSession]? = []
+    @Transient private var _cachedHistoricalSessions: [HistoricalSession]?
+    @Transient private var _historicalSessionsCacheKey: Int = -1
+    
     public var historicalSessions: [HistoricalSession] {
-        day?.historicalSessions?.filter({ $0.goalIDs.contains(goalID)}) ?? []
+        let allSessions = day?.historicalSessions
+        let currentKey = allSessions?.count ?? -1
+        if let cached = _cachedHistoricalSessions, currentKey == _historicalSessionsCacheKey {
+            return cached
+        }
+        let result = allSessions?.filter({ $0.goalIDs.contains(goalID) }) ?? []
+        _cachedHistoricalSessions = result
+        _historicalSessionsCacheKey = currentKey
+        return result
+    }
+    
+    /// Clears the cached historicalSessions so the next access recomputes from the Day's data.
+    /// Call after mutating HistoricalSession goalIDs or after HealthKit sync.
+    public func invalidateHistoricalSessionsCache() {
+        _cachedHistoricalSessions = nil
+        _historicalSessionsCacheKey = -1
     }
     
     /// Time tracked from HealthKit for this session (if enabled)

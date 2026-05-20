@@ -61,22 +61,20 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     public func startUITimer() {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { _ in
-            withAnimation {
-                self.tickCount += 1
-                self.timeText = self.timerText()
-                self.currentTime = Date()
-                
-                // Check if target was just reached
-                if !self.hasNotifiedTargetReached && self.dailyTarget > 0 {
-                    if self.hasMetDailyTarget {
-                        self.hasNotifiedTargetReached = true
-                        self.onTargetReached?()
-                    }
+            self.tickCount += 1
+            self.timeText = self.timerText()
+            self.currentTime = Date()
+            
+            // Check if target was just reached
+            if !self.hasNotifiedTargetReached && self.dailyTarget > 0 {
+                if self.hasMetDailyTarget {
+                    self.hasNotifiedTargetReached = true
+                    self.onTargetReached?()
                 }
-                
-                // Call tick callback for external updates (e.g., Live Activity)
-                self.onTick?()
             }
+            
+            // Call tick callback for external updates (e.g., Live Activity)
+            self.onTick?()
         }
     }
     

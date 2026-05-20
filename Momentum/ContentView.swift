@@ -23,6 +23,7 @@ struct ContentView: View {
     @Query var goals: [Goal]
     @Query var _sessions: [GoalSession]
     let day: Day
+    private let dayID: String
     @Namespace var animation
     
     // Filtered sessions for the current day only, deduplicated by goal
@@ -82,6 +83,11 @@ struct ContentView: View {
 
     init(day: Day, viewModel: ContentViewModel) {
         self.day = day
+        self.dayID = day.id
+        let dayID = day.id
+        self.__sessions = Query(filter: #Predicate<GoalSession> { session in
+            session.day?.id == dayID
+        })
         self._viewModel = State(initialValue: viewModel)
     }
 
