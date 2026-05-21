@@ -20,7 +20,8 @@ let package = Package(
             name: "MomentumKit",
             path: "Sources/MomentumKit",
             resources: [
-                .process("Themes.json")
+                .process("Themes.json"),
+                .process("Model/GoalSuggestions.json")
             ]
         ),
         .testTarget(

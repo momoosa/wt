@@ -13,7 +13,6 @@
 		CD0085952F1ADBB300A555D6 /* Info-HealthKit.plist in Resources */ = {isa = PBXBuildFile; fileRef = CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */; };
 		CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */; };
 		CD00859B2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */; };
-		CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A02F1B817700A555D6 /* GoalSuggestions.json */; };
 		CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */; };
 		CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */ = {isa = PBXBuildFile; fileRef = CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */; };
 		CD0085A92F1B94A200A555D6 /* GoalSessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */; };
@@ -222,7 +221,6 @@
 		CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-HealthKit.plist"; sourceTree = "<group>"; };
 		CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitInfoRow.swift; sourceTree = "<group>"; };
 		CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalHealthKitSettingsView.swift; sourceTree = "<group>"; };
-		CD0085A02F1B817700A555D6 /* GoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = GoalSuggestions.json; sourceTree = "<group>"; };
 		CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSuggestionsModel.swift; sourceTree = "<group>"; };
 		CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ResourcesGoalSuggestions.json; sourceTree = "<group>"; };
 		CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSessionPlanner.swift; sourceTree = "<group>"; };
@@ -656,7 +654,6 @@
 				CD0085942F1ADBB300A555D6 /* Info-HealthKit.plist */,
 				CD0085962F1ADBC800A555D6 /* HealthKitInfoRow.swift */,
 				CD00859A2F1ADC1200A555D6 /* GoalHealthKitSettingsView.swift */,
-				CD0085A02F1B817700A555D6 /* GoalSuggestions.json */,
 				CD0085A22F1B818500A555D6 /* GoalSuggestionsModel.swift */,
 				CD0085A42F1B852900A555D6 /* ResourcesGoalSuggestions.json */,
 				CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */,
@@ -1018,7 +1015,6 @@
 				CD0085A52F1B852900A555D6 /* ResourcesGoalSuggestions.json in Resources */,
 				CD6A0C1F2F8839CD008F5D93 /* REFACTORING_GUIDE.md in Resources */,
 				CD713B192F200C15003F901D /* ANIMATION_AND_LIMITS.md in Resources */,
-				CD0085A12F1B817700A555D6 /* GoalSuggestions.json in Resources */,
 				CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

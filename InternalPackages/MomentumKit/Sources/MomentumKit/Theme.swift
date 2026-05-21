@@ -185,6 +185,11 @@ public func resolveThemePreset(for themeID: String) -> ThemePreset {
     return themePresets[0]
 }
 
+// MARK: - Bundle Access
+
+/// Public accessor for MomentumKit's resource bundle
+public let momentumKitBundle: Bundle = Bundle.module
+
 // MARK: - Theme Loading
 
 public let themePresets: [ThemePreset] = loadThemePresets()

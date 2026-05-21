@@ -157,6 +157,26 @@
       "suggestedTags": ["energizing"],
       "suggestions": [
         {
+          "id": "move_goal",
+          "title": "Move Goal",
+          "subtitle": "Close your Apple Watch move ring",
+          "duration": 30,
+          "context": "Exercise",
+          "healthKitMetric": "apple_move_time",
+          "icon": "flame.fill",
+          "suggestedTags": ["energizing"]
+        },
+        {
+          "id": "exercise_minutes",
+          "title": "Exercise Minutes",
+          "subtitle": "Close your Apple Watch exercise ring",
+          "duration": 30,
+          "context": "Exercise",
+          "healthKitMetric": "apple_exercise_time",
+          "icon": "heart.circle.fill",
+          "suggestedTags": ["energizing"]
+        },
+        {
           "id": "run",
           "title": "Run",
           "subtitle": "Cardiovascular exercise",

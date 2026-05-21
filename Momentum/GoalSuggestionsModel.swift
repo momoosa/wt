@@ -79,8 +79,8 @@ class GoalSuggestionsLoader {
             return cached
         }
         
-        // Load from bundle
-        guard let url = Bundle.main.url(forResource: "GoalSuggestions", withExtension: "json") else {
+        // Load from MomentumKit bundle
+        guard let url = momentumKitBundle.url(forResource: "GoalSuggestions", withExtension: "json") else {
             AppLogger.app.error("Could not find GoalSuggestions.json")
             return GoalSuggestionsData(categories: [])
         }
