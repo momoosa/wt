@@ -281,19 +281,19 @@ extension WeatherManager {
         
         switch condition {
         case .clear:
-            return ["sunshine", "yellow", "lemon", "coral", "sky_blue"]
+            return ["palette_11", "palette_08", "palette_12", "palette_17"]
         case .partlyCloudy:
-            return ["sky_blue", "cyan", "mint", "seafoam"]
+            return ["palette_17", "palette_03", "palette_10"]
         case .cloudy:
-            return ["grey_blue", "silver0", "slate", "beige"]
+            return ["palette_18", "palette_20"]
         case .rainy:
-            return ["teal", "cyan", "grey_blue", "slate", "beige"]
+            return ["palette_03", "palette_18", "palette_20"]
         case .snowy:
-            return ["cyan", "sky_blue", "silver0", "mint_blue"]
+            return ["palette_03", "palette_17", "palette_18"]
         case .stormy:
-            return ["grey_blue", "navy", "charcoal", "indigo"]
+            return ["palette_18", "palette_16"]
         case .foggy:
-            return ["silver0", "beige", "taupe", "sage"]
+            return ["palette_18", "palette_20", "palette_19"]
         }
     }
     

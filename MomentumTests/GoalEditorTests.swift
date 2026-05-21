@@ -33,7 +33,7 @@ struct GoalEditorTests {
     private func createTestGoal(
         context: ModelContext,
         title: String = "Test Goal",
-        themeID: String = "blue"
+        themeID: String = "palette_17"
     ) -> Goal {
         let tag = GoalTag(title: "Test Tag", themeID: themeID)
         context.insert(tag)
@@ -53,7 +53,7 @@ struct GoalEditorTests {
         let helper = GoalEditorThemeHelper()
         let theme = helper.matchTheme(named: "Fitness")
         
-        #expect(theme.id == "red")
+        #expect(theme.id == "palette_01")
     }
     
     @Test("matchTheme returns correct theme for wellness category")
@@ -61,7 +61,7 @@ struct GoalEditorTests {
         let helper = GoalEditorThemeHelper()
         let theme = helper.matchTheme(named: "Wellness")
         
-        #expect(theme.id == "purple")
+        #expect(theme.id == "palette_05")
     }
     
     @Test("matchTheme returns correct theme for learning category")
@@ -69,7 +69,7 @@ struct GoalEditorTests {
         let helper = GoalEditorThemeHelper()
         let theme = helper.matchTheme(named: "Learning")
         
-        #expect(theme.id == "blue")
+        #expect(theme.id == "palette_02")
     }
     
     @Test("matchTheme handles case insensitive input")
@@ -79,9 +79,9 @@ struct GoalEditorTests {
         let theme2 = helper.matchTheme(named: "fitness")
         let theme3 = helper.matchTheme(named: "FiTnEsS")
         
-        #expect(theme1.id == "red")
-        #expect(theme2.id == "red")
-        #expect(theme3.id == "red")
+        #expect(theme1.id == "palette_01")
+        #expect(theme2.id == "palette_01")
+        #expect(theme3.id == "palette_01")
     }
     
     @Test("matchTheme handles whitespace")
@@ -89,7 +89,7 @@ struct GoalEditorTests {
         let helper = GoalEditorThemeHelper()
         let theme = helper.matchTheme(named: "  Fitness  ")
         
-        #expect(theme.id == "red")
+        #expect(theme.id == "palette_01")
     }
     
     @Test("matchTheme returns default for unknown theme")
@@ -97,7 +97,7 @@ struct GoalEditorTests {
         let helper = GoalEditorThemeHelper()
         let theme = helper.matchTheme(named: "UnknownCategory123")
         
-        // Should return a valid theme (fallback to first theme which is "red")
+        // Should return a valid theme (fallback to first theme)
         #expect(theme.id == themePresets[0].id)
     }
     
@@ -105,9 +105,9 @@ struct GoalEditorTests {
     func testMatchThemePartialMatch() {
         let helper = GoalEditorThemeHelper()
         
-        // Should match "exercise" keyword to fitness/red
+        // Should match "exercise" keyword to fitness
         let theme = helper.matchTheme(named: "exercise")
-        #expect(theme.id == "red")
+        #expect(theme.id == "palette_01")
     }
     
     // MARK: - Find Unused Theme Tests
@@ -118,16 +118,16 @@ struct GoalEditorTests {
         let context = ModelContext(container)
         
         // Create goals with some themes
-        _ = createTestGoal(context: context, themeID: "red")
-        _ = createTestGoal(context: context, themeID: "blue")
+        _ = createTestGoal(context: context, themeID: "palette_01")
+        _ = createTestGoal(context: context, themeID: "palette_17")
         
         let helper = GoalEditorThemeHelper()
         let allGoals = try context.fetch(FetchDescriptor<Goal>())
         let unusedTheme = helper.findUnusedTheme(excluding: allGoals.filter { $0.status == .active })
         
-        // Should not return red or blue
-        #expect(unusedTheme.id != "red")
-        #expect(unusedTheme.id != "blue")
+        // Should not return palette_01 or palette_17
+        #expect(unusedTheme.id != "palette_01")
+        #expect(unusedTheme.id != "palette_17")
     }
     
     @Test("findUnusedTheme returns random when all themes used")
@@ -153,12 +153,12 @@ struct GoalEditorTests {
         let container = try makeTestContainer()
         let context = ModelContext(container)
         
-        // Create an archived goal with red theme
-        let archivedGoal = createTestGoal(context: context, themeID: "red")
+        // Create an archived goal with palette_01 theme
+        let archivedGoal = createTestGoal(context: context, themeID: "palette_01")
         archivedGoal.status = .archived
         
-        // Create an active goal with blue theme
-        _ = createTestGoal(context: context, themeID: "blue")
+        // Create an active goal with palette_17 theme
+        _ = createTestGoal(context: context, themeID: "palette_17")
         
         try context.save()
         
@@ -168,7 +168,7 @@ struct GoalEditorTests {
         
         // Red should be available since the goal using it is archived
         // (We filter by .active in the excluding parameter)
-        #expect(unusedTheme.id != "blue")
+        #expect(unusedTheme.id != "palette_17")
     }
     
     // MARK: - Goal Validation Tests

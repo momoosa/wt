@@ -14,32 +14,8 @@ struct ColorPickerSheet: View {
     @Binding var selectedColorPreset: ThemePreset?
     let onSelect: (ThemePreset) -> Void
     
-    // Rainbow-sorted color order
     private var sortedPresets: [ThemePreset] {
-        let order = [
-            // Red family
-            "red", "cherry", "crimson", "ruby", "coral", "salmon", "hot_pink", "rose",
-            // Orange family
-            "orange", "burnt_orange", "tangerine", "peach", "amber", "apricot",
-            // Yellow family
-            "yellow", "sunshine", "lemon", "gold", "mustard", "beige", "cream",
-            // Green family
-            "green", "emerald", "mint", "seafoam", "lime", "olive", "sage", "forest",
-            // Blue family
-            "blue", "navy", "sky_blue", "azure", "cyan", "teal", "turquoise", "mint_blue", "steel", "grey_blue", "cobalt",
-            // Purple/Violet family
-            "purple", "indigo", "violet", "lilac", "grape", "plum", "mauve", "lavender", "orchid", "magenta",
-            // Pink family
-            "pink0", "bubblegum", "fuchsia",
-            // Brown/Neutral family
-            "chocolate", "coffee", "taupe",
-            // Gray family
-            "silver0", "charcoal", "slate"
-        ]
-        
-        return order.compactMap { id in
-            themePresets.first(where: { $0.id == id })
-        }
+        themePresets
     }
     
     var body: some View {

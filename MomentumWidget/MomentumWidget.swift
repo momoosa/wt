@@ -605,7 +605,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themePresets.first(where: { $0.id == "blue" })!,
+            theme: resolveThemePreset(for: "palette_17"),
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
@@ -621,7 +621,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themePresets.first(where: { $0.id == "red" })!,
+            theme: resolveThemePreset(for: "palette_01"),
             progress: 0.75,
             formattedTime: "20m / 25m",
             hasMetTarget: false,
@@ -637,7 +637,7 @@ struct MomentumWidget: Widget {
 //        RecommendedSession(
 //            id: UUID(),
 //            title: "Meditation",
-//            theme: themePresets.first(where: { $0.id == "purple" })!,
+//            theme: resolveThemePreset(for: "palette_16"),
 //            progress: 1.0,
 //            formattedTime: "10m / 10m",
 //            hasMetTarget: true,
@@ -660,7 +660,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themePresets.first(where: { $0.id == "blue" })!,
+            theme: resolveThemePreset(for: "palette_17"),
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
@@ -676,7 +676,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themePresets.first(where: { $0.id == "red" })!,
+            theme: resolveThemePreset(for: "palette_01"),
             progress: 0.75,
             formattedTime: "20m / 25m",
             hasMetTarget: false,
@@ -692,7 +692,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Meditation",
-            theme: themePresets.first(where: { $0.id == "purple" })!,
+            theme: resolveThemePreset(for: "palette_16"),
             progress: 1.0,
             formattedTime: "10m / 10m",
             hasMetTarget: true,
@@ -714,7 +714,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Reading",
-            theme: themePresets.first(where: { $0.id == "blue" })!,
+            theme: resolveThemePreset(for: "palette_17"),
             progress: 0.5,
             formattedTime: "15m / 30m",
             hasMetTarget: false,
@@ -730,7 +730,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Exercise",
-            theme: themePresets.first(where: { $0.id == "red" })!,
+            theme: resolveThemePreset(for: "palette_01"),
             progress: 0.75,
             formattedTime: "20m / 25m",
             hasMetTarget: false,
@@ -746,7 +746,7 @@ struct MomentumWidget: Widget {
         RecommendedSession(
             id: UUID(),
             title: "Meditation",
-            theme: themePresets.first(where: { $0.id == "purple" })!,
+            theme: resolveThemePreset(for: "palette_16"),
             progress: 1.0,
             formattedTime: "10m / 10m",
             hasMetTarget: true,

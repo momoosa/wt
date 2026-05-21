@@ -22,9 +22,9 @@ public final class GoalTag {
     @Relationship(deleteRule: .nullify, inverse: \Goal.otherTags)
     public var goalsAsOther: [Goal]? = []
     
-    // Computed property to get the theme presMet
+    // Computed property to get the theme preset (handles legacy theme IDs)
     public var theme: ThemePreset {
-        themePresets.first(where: { $0.id == themeID }) ?? themePresets[0]
+        resolveThemePreset(for: themeID)
     }
     
     // Alias for backward compatibility
@@ -240,7 +240,7 @@ public extension GoalTag {
             // Outdoor Running/Walking
             GoalTag(
                 title: "Outdoor Cardio",
-                themeID: "red",
+                themeID: "palette_01",
                 weatherConditions: [.clear, .partlyCloudy],
                 temperatureRange: 10...28,
                 timeOfDayPreferences: [.morning, .afternoon],
@@ -251,7 +251,7 @@ public extension GoalTag {
             // Gym Workouts
             GoalTag(
                 title: "Gym Session",
-                themeID: "red",
+                themeID: "palette_01",
                 timeOfDayPreferences: [.morning, .afternoon, .evening],
                 locationTypes: [.gym]
             ),
@@ -259,7 +259,7 @@ public extension GoalTag {
             // Home Workouts
             GoalTag(
                 title: "Home Fitness",
-                themeID: "orange",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.morning, .evening],
                 locationTypes: [.home]
             ),
@@ -267,7 +267,7 @@ public extension GoalTag {
             // Yoga & Stretching
             GoalTag(
                 title: "Yoga & Stretch",
-                themeID: "mint",
+                themeID: "palette_10",
                 timeOfDayPreferences: [.morning, .evening],
                 locationTypes: [.home, .outdoor]
             ),
@@ -275,7 +275,7 @@ public extension GoalTag {
             // Outdoor Activities
             GoalTag(
                 title: "Outdoors",
-                themeID: "green",
+                themeID: "palette_19",
                 weatherConditions: [.clear, .partlyCloudy],
                 temperatureRange: 10...30,
                 locationTypes: [.outdoor],
@@ -287,7 +287,7 @@ public extension GoalTag {
             // Morning Meditation
             GoalTag(
                 title: "Morning Meditation",
-                themeID: "purple",
+                themeID: "palette_16",
                 timeOfDayPreferences: [.morning],
                 locationTypes: [.home]
             ),
@@ -295,7 +295,7 @@ public extension GoalTag {
             // Evening Meditation
             GoalTag(
                 title: "Evening Calm",
-                themeID: "purple",
+                themeID: "palette_16",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
@@ -303,14 +303,14 @@ public extension GoalTag {
             // Mindfulness Practice
             GoalTag(
                 title: "Mindfulness",
-                themeID: "lilac",
+                themeID: "palette_05",
                 locationTypes: [.home, .outdoor]
             ),
             
             // Breathing Exercises
             GoalTag(
                 title: "Breathwork",
-                themeID: "cyan",
+                themeID: "palette_03",
                 locationTypes: [.anywhere]
             ),
             
@@ -319,7 +319,7 @@ public extension GoalTag {
             // Creative Work
             GoalTag(
                 title: "Creative Time",
-                themeID: "pink0",
+                themeID: "palette_07",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.home, .office]
             ),
@@ -327,7 +327,7 @@ public extension GoalTag {
             // Music Practice
             GoalTag(
                 title: "Music Practice",
-                themeID: "plum",
+                themeID: "palette_15",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.home]
             ),
@@ -335,7 +335,7 @@ public extension GoalTag {
             // Art & Drawing
             GoalTag(
                 title: "Art & Drawing",
-                themeID: "coral",
+                themeID: "palette_12",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.home],
                 requiresDaylight: true
@@ -344,7 +344,7 @@ public extension GoalTag {
             // Writing
             GoalTag(
                 title: "Writing",
-                themeID: "beige",
+                themeID: "palette_20",
                 timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.home, .office]
             ),
@@ -352,7 +352,7 @@ public extension GoalTag {
             // Photography
             GoalTag(
                 title: "Photography",
-                themeID: "gold",
+                themeID: "palette_04",
                 weatherConditions: [.clear, .partlyCloudy],
                 locationTypes: [.outdoor],
                 requiresDaylight: true
@@ -363,7 +363,7 @@ public extension GoalTag {
             // Reading
             GoalTag(
                 title: "Reading",
-                themeID: "blue",
+                themeID: "palette_17",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
@@ -371,7 +371,7 @@ public extension GoalTag {
             // Language Learning
             GoalTag(
                 title: "Language Learning",
-                themeID: "sky_blue",
+                themeID: "palette_17",
                 timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.home, .commute]
             ),
@@ -379,7 +379,7 @@ public extension GoalTag {
             // Study & Focus
             GoalTag(
                 title: "Study Time",
-                themeID: "grey_blue",
+                themeID: "palette_18",
                 timeOfDayPreferences: [.morning, .midday, .afternoon],
                 locationTypes: [.home, .office]
             ),
@@ -387,7 +387,7 @@ public extension GoalTag {
             // Online Courses
             GoalTag(
                 title: "Online Learning",
-                themeID: "teal",
+                themeID: "palette_03",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.home]
             ),
@@ -397,7 +397,7 @@ public extension GoalTag {
             // Deep Work
             GoalTag(
                 title: "Deep Work",
-                themeID: "blue",
+                themeID: "palette_17",
                 timeOfDayPreferences: [.morning, .midday],
                 locationTypes: [.home, .office]
             ),
@@ -405,7 +405,7 @@ public extension GoalTag {
             // Quick Tasks
             GoalTag(
                 title: "Quick Tasks",
-                themeID: "cyan",
+                themeID: "palette_03",
                 timeOfDayPreferences: [.midday, .afternoon],
                 locationTypes: [.home, .office]
             ),
@@ -413,7 +413,7 @@ public extension GoalTag {
             // Planning & Organization
             GoalTag(
                 title: "Planning",
-                themeID: "mint_blue",
+                themeID: "palette_03",
                 timeOfDayPreferences: [.morning, .evening],
                 locationTypes: [.home, .office]
             ),
@@ -421,7 +421,7 @@ public extension GoalTag {
             // Email & Communication
             GoalTag(
                 title: "Communication",
-                themeID: "silver0",
+                themeID: "palette_18",
                 timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.office, .home]
             ),
@@ -431,7 +431,7 @@ public extension GoalTag {
             // Cooking
             GoalTag(
                 title: "Cooking",
-                themeID: "orange",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.home]
             ),
@@ -439,7 +439,7 @@ public extension GoalTag {
             // Cleaning & Organizing
             GoalTag(
                 title: "Cleaning",
-                themeID: "mint",
+                themeID: "palette_10",
                 timeOfDayPreferences: [.morning, .midday],
                 locationTypes: [.home]
             ),
@@ -447,7 +447,7 @@ public extension GoalTag {
             // Gardening
             GoalTag(
                 title: "Gardening",
-                themeID: "lime",
+                themeID: "palette_06",
                 weatherConditions: [.clear, .partlyCloudy],
                 timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.outdoor],
@@ -457,7 +457,7 @@ public extension GoalTag {
             // DIY Projects
             GoalTag(
                 title: "DIY Projects",
-                themeID: "burnt_orange",
+                themeID: "palette_09",
                 timeOfDayPreferences: [.afternoon],
                 locationTypes: [.home],
                 requiresDaylight: true
@@ -468,7 +468,7 @@ public extension GoalTag {
             // Family Time
             GoalTag(
                 title: "Family Time",
-                themeID: "hot_pink",
+                themeID: "palette_14",
                 timeOfDayPreferences: [.evening],
                 locationTypes: [.home]
             ),
@@ -476,7 +476,7 @@ public extension GoalTag {
             // Social Activities
             GoalTag(
                 title: "Social",
-                themeID: "pink0",
+                themeID: "palette_07",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.anywhere]
             ),
@@ -484,7 +484,7 @@ public extension GoalTag {
             // Phone Calls
             GoalTag(
                 title: "Calls & Catchup",
-                themeID: "peach",
+                themeID: "palette_11",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.anywhere]
             ),
@@ -494,21 +494,21 @@ public extension GoalTag {
             // Early Morning Routine
             GoalTag(
                 title: "Early Morning",
-                themeID: "sunshine",
+                themeID: "palette_11",
                 timeOfDayPreferences: [.morning]
             ),
             
             // Midday Break
             GoalTag(
                 title: "Lunch Break",
-                themeID: "yellow",
+                themeID: "palette_11",
                 timeOfDayPreferences: [.midday]
             ),
             
             // Evening Wind Down
             GoalTag(
                 title: "Evening Wind Down",
-                themeID: "mauve",
+                themeID: "palette_15",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
@@ -516,7 +516,7 @@ public extension GoalTag {
             // Weekend Activities
             GoalTag(
                 title: "Weekend Special",
-                themeID: "tangerine",
+                themeID: "palette_09",
                 timeOfDayPreferences: [.morning, .midday, .afternoon]
             ),
             
@@ -525,7 +525,7 @@ public extension GoalTag {
             // Rainy Day Activities
             GoalTag(
                 title: "Cozy Indoor",
-                themeID: "beige",
+                themeID: "palette_20",
                 weatherConditions: [.rainy, .snowy, .cloudy],
                 locationTypes: [.home]
             ),
@@ -533,7 +533,7 @@ public extension GoalTag {
             // Sunny Day Activities
             GoalTag(
                 title: "Sunny Day",
-                themeID: "lemon",
+                themeID: "palette_11",
                 weatherConditions: [.clear],
                 locationTypes: [.outdoor],
                 requiresDaylight: true
@@ -542,7 +542,7 @@ public extension GoalTag {
             // Cold Weather Activities
             GoalTag(
                 title: "Winter Activity",
-                themeID: "cyan",
+                themeID: "palette_03",
                 weatherConditions: [.snowy],
                 temperatureRange: -10...10
             ),
@@ -550,7 +550,7 @@ public extension GoalTag {
             // Warm Weather Activities
             GoalTag(
                 title: "Summer Activity",
-                themeID: "coral",
+                themeID: "palette_12",
                 weatherConditions: [.clear, .partlyCloudy],
                 temperatureRange: 20...35
             ),
@@ -560,14 +560,14 @@ public extension GoalTag {
             // High Energy
             GoalTag(
                 title: "Energizing",
-                themeID: "orange",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.morning, .midday]
             ),
             
             // Low Energy / Relaxing
             GoalTag(
                 title: "Low Key",
-                themeID: "seafoam",
+                themeID: "palette_10",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
@@ -577,7 +577,7 @@ public extension GoalTag {
             // Morning Pages
             GoalTag(
                 title: "Morning Journal",
-                themeID: "lemon",
+                themeID: "palette_11",
                 timeOfDayPreferences: [.morning],
                 locationTypes: [.home]
             ),
@@ -585,7 +585,7 @@ public extension GoalTag {
             // Evening Reflection
             GoalTag(
                 title: "Evening Reflection",
-                themeID: "grape",
+                themeID: "palette_16",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
@@ -593,7 +593,7 @@ public extension GoalTag {
             // Gratitude Practice
             GoalTag(
                 title: "Gratitude",
-                themeID: "pink0",
+                themeID: "palette_07",
                 timeOfDayPreferences: [.evening],
                 locationTypes: [.home]
             ),
@@ -603,7 +603,7 @@ public extension GoalTag {
             // Commute Time
             GoalTag(
                 title: "Commute Activity",
-                themeID: "grey_blue",
+                themeID: "palette_18",
                 timeOfDayPreferences: [.morning, .evening],
                 locationTypes: [.commute]
             ),
@@ -611,14 +611,14 @@ public extension GoalTag {
             // Podcast Listening
             GoalTag(
                 title: "Podcast Time",
-                themeID: "teal",
+                themeID: "palette_03",
                 locationTypes: [.commute, .home]
             ),
             
             // Audiobook
             GoalTag(
                 title: "Audiobook",
-                themeID: "blue",
+                themeID: "palette_17",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home, .commute]
             ),
@@ -628,7 +628,7 @@ public extension GoalTag {
             // Skincare Routine
             GoalTag(
                 title: "Skincare",
-                themeID: "seafoam",
+                themeID: "palette_10",
                 timeOfDayPreferences: [.morning, .night],
                 locationTypes: [.home]
             ),
@@ -636,7 +636,7 @@ public extension GoalTag {
             // Bath & Relaxation
             GoalTag(
                 title: "Self-Care",
-                themeID: "lilac",
+                themeID: "palette_05",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
@@ -644,7 +644,7 @@ public extension GoalTag {
             // Nap Time
             GoalTag(
                 title: "Power Nap",
-                themeID: "mauve",
+                themeID: "palette_15",
                 timeOfDayPreferences: [.midday, .afternoon],
                 locationTypes: [.home]
             )

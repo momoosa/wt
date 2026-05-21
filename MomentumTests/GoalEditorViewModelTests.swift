@@ -25,7 +25,7 @@ struct GoalEditorViewModelTests {
             id: "test-category",
             name: "Fitness",
             icon: "figure.run",
-            color: "blue",
+            color: "palette_17",
             suggestions: [
                 GoalTemplateSuggestion(
                     id: "test-1",
@@ -33,7 +33,7 @@ struct GoalEditorViewModelTests {
                     subtitle: "Daily mindfulness practice",
                     duration: 30,
                     dailyGoal: true,
-                    theme: "blue",
+                    theme: "palette_17",
                     healthKitMetric: nil,
                     icon: "brain.head.profile",
                     goalType: "time",
@@ -45,7 +45,7 @@ struct GoalEditorViewModelTests {
                     subtitle: "Cardio workout",
                     duration: 45,
                     dailyGoal: false,
-                    theme: "green",
+                    theme: "palette_19",
                     healthKitMetric: nil,
                     icon: "figure.run",
                     goalType: "time",
@@ -251,7 +251,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "blue",
+            theme: "palette_17",
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -270,7 +270,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "blue",
+            theme: "palette_17",
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -291,7 +291,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "blue",
+            theme: "palette_17",
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -312,7 +312,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "blue",
+            theme: "palette_17",
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -331,7 +331,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "blue",
+            theme: "palette_17",
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -427,7 +427,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Cardio workout",
             duration: 30,
             dailyGoal: false,
-            theme: "green",
+            theme: "palette_19",
             healthKitMetric: nil,
             icon: "figure.run",
             goalType: "time",
@@ -632,8 +632,8 @@ struct GoalEditorViewModelTests {
     @Test("removeGoalTheme removes theme from selectedTags")
     func testRemoveGoalTheme() {
         let viewModel = createTestViewModel()
-        let theme1 = GoalTag(title: "Fitness", themeID: "blue")
-        let theme2 = GoalTag(title: "Work", themeID: "green")
+        let theme1 = GoalTag(title: "Fitness", themeID: "palette_17")
+        let theme2 = GoalTag(title: "Work", themeID: "palette_19")
         viewModel.selectedTags = [theme1, theme2]
         
         viewModel.removeGoalTheme(theme1)
@@ -645,8 +645,8 @@ struct GoalEditorViewModelTests {
     @Test("removeGoalTheme updates selectedGoalTheme if it was removed")
     func testRemoveGoalThemeUpdatesSelected() {
         let viewModel = createTestViewModel()
-        let theme1 = GoalTag(title: "Fitness", themeID: "blue")
-        let theme2 = GoalTag(title: "Work", themeID: "green")
+        let theme1 = GoalTag(title: "Fitness", themeID: "palette_17")
+        let theme2 = GoalTag(title: "Work", themeID: "palette_19")
         viewModel.selectedTags = [theme1, theme2]
         viewModel.selectedGoalTheme = theme1
         
@@ -658,8 +658,8 @@ struct GoalEditorViewModelTests {
     @Test("removeGoalTheme does not affect selectedGoalTheme if different")
     func testRemoveGoalThemeKeepsSelected() {
         let viewModel = createTestViewModel()
-        let theme1 = GoalTag(title: "Fitness", themeID: "blue")
-        let theme2 = GoalTag(title: "Work", themeID: "green")
+        let theme1 = GoalTag(title: "Fitness", themeID: "palette_17")
+        let theme2 = GoalTag(title: "Work", themeID: "palette_19")
         viewModel.selectedTags = [theme1, theme2]
         viewModel.selectedGoalTheme = theme2
         

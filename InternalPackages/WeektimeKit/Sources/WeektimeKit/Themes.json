@@ -1,0 +1,914 @@
+[
+  {
+    "id": "red",
+    "title": "Red",
+    "darkColors": [
+      "#ff4c4c",
+      "#c52626",
+      "#8b0000"
+    ],
+    "lightColors": [
+      "#ffcccc",
+      "#ffa6a6",
+      "#ff7f7f"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f0000"
+  },
+  {
+    "id": "palette_08",
+    "title": "Sunset",
+    "darkColors": [
+      "#ffaa8f",
+      "#ff5da0",
+      "#a85dff"
+    ],
+    "lightColors": [
+      "#ff9d8e",
+      "#ed7a9c",
+      "#c580dd"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3a1230"
+  },
+  {
+    "id": "palette_12",
+    "title": "Coral",
+    "darkColors": [
+      "#ffb294",
+      "#ff8268",
+      "#e55e47"
+    ],
+    "lightColors": [
+      "#ffcaa8",
+      "#ffa88a",
+      "#f58772"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a1f1a"
+  },
+  {
+    "id": "palette_01",
+    "title": "Focus",
+    "darkColors": [
+      "#ffb07c",
+      "#ff6f3d",
+      "#e03058"
+    ],
+    "lightColors": [
+      "#ffc79a",
+      "#ff9d8e",
+      "#ed7a9c"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a1f23"
+  },
+  {
+    "id": "orange",
+    "title": "Orange",
+    "darkColors": [
+      "#ff6a00",
+      "#ff7b00",
+      "#ff8c00"
+    ],
+    "lightColors": [
+      "#ffdab9",
+      "#ffb882",
+      "#ff974a"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f2300"
+  },
+  {
+    "id": "burnt_orange",
+    "title": "Burnt Orange",
+    "darkColors": [
+      "#ff6a00",
+      "#ff5700",
+      "#ff4500"
+    ],
+    "lightColors": [
+      "#ffdab3",
+      "#ffb87d",
+      "#ff9748"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f1100"
+  },
+  {
+    "id": "chocolate",
+    "title": "Chocolate",
+    "darkColors": [
+      "#cd853f",
+      "#a4621f",
+      "#7b3f00"
+    ],
+    "lightColors": [
+      "#e8d5cc",
+      "#e0bda2",
+      "#d8a577"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f2000"
+  },
+  {
+    "id": "peach",
+    "title": "Peach",
+    "darkColors": [
+      "#ffcc99",
+      "#ffb27f",
+      "#ff9966"
+    ],
+    "lightColors": [
+      "#ffdab3",
+      "#ffd6ab",
+      "#ffd2a3"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f2315"
+  },
+  {
+    "id": "marmalade",
+    "title": "Marmalade",
+    "darkColors": [
+      "#ffa633",
+      "#dc7d19",
+      "#ba5500"
+    ],
+    "lightColors": [
+      "#fe8c00",
+      "#fe940f",
+      "#ff9c1f"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f1d00"
+  },
+  {
+    "id": "palette_04",
+    "title": "Creative",
+    "darkColors": [
+      "#ffd988",
+      "#ffc23d",
+      "#ff6a3d"
+    ],
+    "lightColors": [
+      "#ffdc8a",
+      "#ffb47c",
+      "#f08b97"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a2a0e"
+  },
+  {
+    "id": "palette_09",
+    "title": "Streak",
+    "darkColors": [
+      "#ffd988",
+      "#ff9a2d",
+      "#ff4a3d"
+    ],
+    "lightColors": [
+      "#ffe0a8",
+      "#ffb347",
+      "#ff7a3d"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a2200"
+  },
+  {
+    "id": "palette_11",
+    "title": "Sunrise",
+    "darkColors": [
+      "#ffd988",
+      "#ffb047",
+      "#ff7a2d"
+    ],
+    "lightColors": [
+      "#ffe7a8",
+      "#ffc773",
+      "#ff9d5c"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a2a0e"
+  },
+  {
+    "id": "palette_20",
+    "title": "Sand",
+    "darkColors": [
+      "#f0d078",
+      "#dab060",
+      "#b58940"
+    ],
+    "lightColors": [
+      "#f5e2bd",
+      "#e6cb95",
+      "#c9a875"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a3a0e"
+  },
+  {
+    "id": "amber",
+    "title": "Amber",
+    "darkColors": [
+      "#ffbf00",
+      "#ff9e00",
+      "#ff7e00"
+    ],
+    "lightColors": [
+      "#ffedcc",
+      "#ffdf8f",
+      "#ffd152"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f1f00"
+  },
+  {
+    "id": "bee",
+    "title": "Bzz bzz",
+    "darkColors": [
+      "#ffe899",
+      "#fbdf88",
+      "#f8d677"
+    ],
+    "lightColors": [
+      "#eac04a",
+      "#f0cc62",
+      "#f7d879"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f361b"
+  },
+  {
+    "id": "yellow",
+    "title": "Yellow",
+    "darkColors": [
+      "#ffff33",
+      "#ecd229",
+      "#daa520"
+    ],
+    "lightColors": [
+      "#fffacd",
+      "#fffc9f",
+      "#fffd71"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f2e03"
+  },
+  {
+    "id": "lemon",
+    "title": "Lemon",
+    "darkColors": [
+      "#ffff66",
+      "#fff95a",
+      "#fff44f"
+    ],
+    "lightColors": [
+      "#fffacd",
+      "#fffcae",
+      "#fffd8f"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f3c0f"
+  },
+  {
+    "id": "straw",
+    "title": "Straw",
+    "darkColors": [
+      "#e8e899",
+      "#cdcf7f",
+      "#b3b665"
+    ],
+    "lightColors": [
+      "#d5d887",
+      "#dbdd8c",
+      "#e0e292"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3e3f20"
+  },
+  {
+    "id": "olive",
+    "title": "Olive",
+    "darkColors": [
+      "#b5cc18",
+      "#9aa60c",
+      "#808000"
+    ],
+    "lightColors": [
+      "#e8f5e3",
+      "#d9e9a6",
+      "#c9dc69"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f3f00"
+  },
+  {
+    "id": "fresh",
+    "title": "Fresh",
+    "darkColors": [
+      "#c8e6a0",
+      "#6d9b7c",
+      "#135058"
+    ],
+    "lightColors": [
+      "#f1f2b5",
+      "#e5eeaf",
+      "#d8eba8"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#08393f"
+  },
+  {
+    "id": "palette_06",
+    "title": "Chores",
+    "darkColors": [
+      "#c9f0a0",
+      "#9fe03d",
+      "#3de0a0"
+    ],
+    "lightColors": [
+      "#cfe8ae",
+      "#b0daa8",
+      "#93d2bb"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#22401f"
+  },
+  {
+    "id": "palette_19",
+    "title": "Forest",
+    "darkColors": [
+      "#95d080",
+      "#5dad5d",
+      "#2e8554"
+    ],
+    "lightColors": [
+      "#b5d8a8",
+      "#82b580",
+      "#5c8f62"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#1a3a1f"
+  },
+  {
+    "id": "forest",
+    "title": "Forest",
+    "darkColors": [
+      "#32cd32",
+      "#2aac2a",
+      "#228b22"
+    ],
+    "lightColors": [
+      "#d5ecd5",
+      "#a4e3a4",
+      "#73d973"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#0a3f0a"
+  },
+  {
+    "id": "emerald",
+    "title": "Emerald",
+    "darkColors": [
+      "#00ff7f",
+      "#28e37b",
+      "#50c878"
+    ],
+    "lightColors": [
+      "#d5f5e3",
+      "#95f8c5",
+      "#55fba7"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#153f23"
+  },
+  {
+    "id": "palette_10",
+    "title": "Done",
+    "darkColors": [
+      "#8af0bd",
+      "#3de090",
+      "#1f9a6e"
+    ],
+    "lightColors": [
+      "#c2f0d4",
+      "#7ad9a8",
+      "#2a9d6e"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#0e3a25"
+  },
+  {
+    "id": "mint_blue",
+    "title": "Mint Blue",
+    "darkColors": [
+      "#7fffd4",
+      "#6fceba",
+      "#5f9ea0"
+    ],
+    "lightColors": [
+      "#bfffea",
+      "#acffe3",
+      "#99ffdd"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#233e3f"
+  },
+  {
+    "id": "mint",
+    "title": "Mint",
+    "darkColors": [
+      "#00ffc6",
+      "#00bfa3",
+      "#008080"
+    ],
+    "lightColors": [
+      "#aaf0d1",
+      "#77f4ce",
+      "#44f9ca"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#003f3f"
+  },
+  {
+    "id": "palette_03",
+    "title": "Movement",
+    "darkColors": [
+      "#8af0dd",
+      "#3de0c2",
+      "#3da0ff"
+    ],
+    "lightColors": [
+      "#a8efc9",
+      "#8fdfd0",
+      "#82c7de"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#16402f"
+  },
+  {
+    "id": "mint_dc",
+    "title": "Mint (DC)",
+    "darkColors": [
+      "#7fd6c8",
+      "#499390",
+      "#135058"
+    ],
+    "lightColors": [
+      "#c2ebe2",
+      "#aee5da",
+      "#9aded2"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#08393f"
+  },
+  {
+    "id": "cyan",
+    "title": "Cyan",
+    "darkColors": [
+      "#00ffff",
+      "#00c5c5",
+      "#008b8b"
+    ],
+    "lightColors": [
+      "#b2ffff",
+      "#7dffff",
+      "#47ffff"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#003f3f"
+  },
+  {
+    "id": "seaFoam_dc",
+    "title": "Seafoam (DC)",
+    "darkColors": [
+      "#66bdd6",
+      "#3e8dab",
+      "#165e81"
+    ],
+    "lightColors": [
+      "#c4dfe6",
+      "#a8d5e1",
+      "#8ccbdc"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#052c3f"
+  },
+  {
+    "id": "blue",
+    "title": "Blue",
+    "darkColors": [
+      "#00bfff",
+      "#0079b2",
+      "#003366"
+    ],
+    "lightColors": [
+      "#bfefff",
+      "#86e1ff",
+      "#4cd2ff"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#001f3f"
+  },
+  {
+    "id": "palette_17",
+    "title": "Ocean",
+    "darkColors": [
+      "#75cdff",
+      "#3d9dde",
+      "#1f6fbe"
+    ],
+    "lightColors": [
+      "#a8dcff",
+      "#6fb3e8",
+      "#3d7fb8"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#0a2a4a"
+  },
+  {
+    "id": "palette_18",
+    "title": "Glacier",
+    "darkColors": [
+      "#bad0e8",
+      "#7da5cc",
+      "#4a78a8"
+    ],
+    "lightColors": [
+      "#dce6f2",
+      "#b8c8de",
+      "#8fa8c8"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#1a2a4a"
+  },
+  {
+    "id": "navyAndRed",
+    "title": "Navy & Red",
+    "darkColors": [
+      "#4d7cb8",
+      "#265486",
+      "#002c54"
+    ],
+    "lightColors": [
+      "#c5001a",
+      "#a12549",
+      "#7d4a79"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#00213f"
+  },
+  {
+    "id": "palette_05",
+    "title": "Mindfulness",
+    "darkColors": [
+      "#b5d2ff",
+      "#7ab7ff",
+      "#bd7aff"
+    ],
+    "lightColors": [
+      "#b6d6ff",
+      "#acbbf5",
+      "#baa0eb"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#1a2a52"
+  },
+  {
+    "id": "navy",
+    "title": "Navy",
+    "darkColors": [
+      "#4169e1",
+      "#2034b0",
+      "#000080"
+    ],
+    "lightColors": [
+      "#d6e5f5",
+      "#a9c0ef",
+      "#7d9be9"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#00003f"
+  },
+  {
+    "id": "blueAndPastelPink",
+    "title": "Blue & Pastel Pink",
+    "darkColors": [
+      "#94a5e8",
+      "#6170b3",
+      "#2f3c7e"
+    ],
+    "lightColors": [
+      "#fbeaeb",
+      "#dcd5ea",
+      "#bdc1e9"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#131b3f"
+  },
+  {
+    "id": "palette_16",
+    "title": "Cosmic",
+    "darkColors": [
+      "#948cff",
+      "#5d5ddd",
+      "#3d2d9f"
+    ],
+    "lightColors": [
+      "#a29cff",
+      "#7575e0",
+      "#5a4fb8"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#1a1a4a"
+  },
+  {
+    "id": "palette_02",
+    "title": "Learning",
+    "darkColors": [
+      "#b7a2ff",
+      "#8f7aff",
+      "#4a8fff"
+    ],
+    "lightColors": [
+      "#ccb6ff",
+      "#9d9cf5",
+      "#84a6f0"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#231a52"
+  },
+  {
+    "id": "grape",
+    "title": "Grape",
+    "darkColors": [
+      "#9966ff",
+      "#7b52e9",
+      "#5d3fd3"
+    ],
+    "lightColors": [
+      "#e0bbe4",
+      "#cba2ec",
+      "#b588f4"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#180e3f"
+  },
+  {
+    "id": "indigo",
+    "title": "Indigo",
+    "darkColors": [
+      "#8b00ff",
+      "#6b00c0",
+      "#4b0082"
+    ],
+    "lightColors": [
+      "#e0d5f0",
+      "#c695f4",
+      "#ad55f9"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#24003f"
+  },
+  {
+    "id": "violet",
+    "title": "Violet",
+    "darkColors": [
+      "#bf00ff",
+      "#a500ff",
+      "#8b00ff"
+    ],
+    "lightColors": [
+      "#e8d5ff",
+      "#dc95ff",
+      "#cf55ff"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#22003f"
+  },
+  {
+    "id": "magenta",
+    "title": "Magenta",
+    "darkColors": [
+      "#ff66ff",
+      "#ff33ff",
+      "#ff00ff"
+    ],
+    "lightColors": [
+      "#ffe6ff",
+      "#ffc0ff",
+      "#ff99ff"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f003f"
+  },
+  {
+    "id": "plum",
+    "title": "Plum",
+    "darkColors": [
+      "#da70d6",
+      "#b738d4",
+      "#9400d3"
+    ],
+    "lightColors": [
+      "#dda0dd",
+      "#dc92db",
+      "#db83d9"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#2c003f"
+  },
+  {
+    "id": "palette_15",
+    "title": "Berry",
+    "darkColors": [
+      "#dd75d0",
+      "#b855c3",
+      "#7a3d9c"
+    ],
+    "lightColors": [
+      "#e5a3d8",
+      "#c982c4",
+      "#8e5ba8"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#2a0a3a"
+  },
+  {
+    "id": "palette_07",
+    "title": "Side project",
+    "darkColors": [
+      "#ffa8e0",
+      "#ff5dc4",
+      "#b83dee"
+    ],
+    "lightColors": [
+      "#ffb6d2",
+      "#ee93c7",
+      "#c580dd"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#42143a"
+  },
+  {
+    "id": "palette_14",
+    "title": "Bubblegum",
+    "darkColors": [
+      "#ffa0dc",
+      "#ff5dc9",
+      "#dd3dbe"
+    ],
+    "lightColors": [
+      "#ffc9e8",
+      "#ff93d6",
+      "#e66bcf"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a103a"
+  },
+  {
+    "id": "hot_pink",
+    "title": "Hot Pink",
+    "darkColors": [
+      "#ff69b4",
+      "#e33f9c",
+      "#c71585"
+    ],
+    "lightColors": [
+      "#ffb6c1",
+      "#ff9fbd",
+      "#ff88b9"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f0128"
+  },
+  {
+    "id": "crimson",
+    "title": "Crimson",
+    "darkColors": [
+      "#ff1744",
+      "#ed1540",
+      "#dc143c"
+    ],
+    "lightColors": [
+      "#ffe4e1",
+      "#ffa6b2",
+      "#ff6983"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f000c"
+  },
+  {
+    "id": "palette_13",
+    "title": "Cherry",
+    "darkColors": [
+      "#ff8aa0",
+      "#ff4d75",
+      "#d62b5f"
+    ],
+    "lightColors": [
+      "#ffb5c2",
+      "#ff8aa0",
+      "#e55c7e"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#4a0a1f"
+  },
+  {
+    "id": "frappe",
+    "title": "Frappe",
+    "darkColors": [
+      "#e8b88b",
+      "#976c52",
+      "#46211a"
+    ],
+    "lightColors": [
+      "#f1d3b2",
+      "#eecba6",
+      "#ecc39b"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f1a13"
+  },
+  {
+    "id": "charcoal",
+    "title": "Charcoal",
+    "darkColors": [
+      "#708090",
+      "#53626f",
+      "#36454f"
+    ],
+    "lightColors": [
+      "#e0e0e0",
+      "#bec3c8",
+      "#9da6b0"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#29363f"
+  },
+  {
+    "id": "beige",
+    "title": "Beige",
+    "darkColors": [
+      "#e0d5b7",
+      "#b5a486",
+      "#8b7355"
+    ],
+    "lightColors": [
+      "#f5f5dc",
+      "#efebd1",
+      "#e8e2c6"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3f3324"
+  },
+  {
+    "id": "stone",
+    "title": "Stone",
+    "darkColors": [
+      "#b5c2cc",
+      "#a1b0bb",
+      "#8e9eab"
+    ],
+    "lightColors": [
+      "#eef2f3",
+      "#dde4e7",
+      "#ccd5dc"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#333a3f"
+  },
+  {
+    "id": "sage",
+    "title": "Sage",
+    "darkColors": [
+      "#b2d3a8",
+      "#9cc08d",
+      "#87ae73"
+    ],
+    "lightColors": [
+      "#dde5d5",
+      "#d0e0c8",
+      "#c3daba"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#303f27"
+  },
+  {
+    "id": "lilac_dc",
+    "title": "Lilac (DC)",
+    "darkColors": [
+      "#b8a3db",
+      "#c5b4e0",
+      "#d3c5e5"
+    ],
+    "lightColors": [
+      "#735da5",
+      "#8872b5",
+      "#9c87c5"
+    ],
+    "darkForegroundColor": "#ffffff",
+    "lightForegroundColor": "#3a353f"
+  }
+]

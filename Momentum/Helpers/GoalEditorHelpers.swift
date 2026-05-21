@@ -16,14 +16,14 @@ struct GoalEditorThemeHelper {
         let normalizedThemeName = themeName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         let themeMapping: [String: String] = [
-            "fitness": "red",
-            "wellness": "purple",
-            "learning": "blue",
-            "creative": "orange",
-            "home": "green",
-            "recreation": "yellow",
-            "productivity": "teal",
-            "social": "hot_pink"
+            "fitness": "palette_01",
+            "wellness": "palette_05",
+            "learning": "palette_02",
+            "creative": "palette_04",
+            "home": "palette_06",
+            "recreation": "palette_11",
+            "productivity": "palette_03",
+            "social": "palette_07"
         ]
         
         if let presetId = themeMapping[normalizedThemeName] {
@@ -45,22 +45,22 @@ struct GoalEditorThemeHelper {
         }
         
         let themeKeywords: [String: String] = [
-            "exercise": "red",
-            "workout": "red",
-            "run": "red",
-            "gym": "red",
-            "meditate": "purple",
-            "yoga": "purple",
-            "mindful": "purple",
-            "read": "blue",
-            "study": "blue",
-            "learn": "blue",
-            "paint": "orange",
-            "draw": "orange",
-            "music": "orange",
-            "cook": "green",
-            "garden": "green",
-            "clean": "green"
+            "exercise": "palette_01",
+            "workout": "palette_01",
+            "run": "palette_01",
+            "gym": "palette_01",
+            "meditate": "palette_05",
+            "yoga": "palette_05",
+            "mindful": "palette_05",
+            "read": "palette_02",
+            "study": "palette_02",
+            "learn": "palette_02",
+            "paint": "palette_04",
+            "draw": "palette_04",
+            "music": "palette_04",
+            "cook": "palette_06",
+            "garden": "palette_06",
+            "clean": "palette_06"
         ]
         
         for (keyword, themeId) in themeKeywords {

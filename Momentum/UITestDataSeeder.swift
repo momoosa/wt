@@ -207,7 +207,7 @@ class UITestDataSeeder {
             // Create tags
             let fitnessTag = GoalTag(
                 title: "Fitness",
-                themeID: "red",
+                themeID: "palette_01",
                 weatherConditions: [.clear, .partlyCloudy],
                 temperatureRange: 10...30,
                 timeOfDayPreferences: [.morning, .afternoon]
@@ -215,7 +215,7 @@ class UITestDataSeeder {
             
             let learningTag = GoalTag(
                 title: "Learning",
-                themeID: "blue",
+                themeID: "palette_17",
                 timeOfDayPreferences: [.evening, .night]
             )
             

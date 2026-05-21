@@ -80,7 +80,7 @@ struct MomentumWatch_Watch_AppApp: App {
                     context.insert(today)
                     
                     // Create a sample tag
-                    let sampleTag = GoalTag(title: "Work", themeID: "blue")
+                    let sampleTag = GoalTag(title: "Work", themeID: "palette_17")
                     context.insert(sampleTag)
                     
                     // Create a sample goal

@@ -312,7 +312,7 @@ struct SessionAdjustmentsSheet: View {
 
 #Preview {
     
-    let theme = GoalTag(title: "Wellness", themeID: "purple")
+    let theme = GoalTag(title: "Wellness", themeID: "palette_16")
     let goal = Goal(title: "Meditation", primaryTag: theme)
     let day = Day(start: Date(), end: Date())
     let session = GoalSession(title: "Meditation", goal: goal, day: day)
