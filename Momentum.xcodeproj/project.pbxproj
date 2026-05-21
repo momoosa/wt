@@ -133,7 +133,6 @@
 		CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2E2EE9FA1000C1C411 /* GoalSuggestion.swift */; };
 		CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */; };
 		CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA312EE9FA1000C1C411 /* Item.swift */; };
-		CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */; };
 		CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */; };
 		CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA6512F59786500661146 /* ContextualSection.swift */; };
 		CDF6E8FA2FB395A5008767D9 /* PlanningIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDF6E8F92FB395A5008767D9 /* PlanningIntegration.swift */; };
@@ -230,7 +229,6 @@
 		CD0085AA2F1B94D100A555D6 /* DailyPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPlannerView.swift; sourceTree = "<group>"; };
 		CD0085AC2F1B951100A555D6 /* PlannerIntegrationExamples.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerIntegrationExamples.swift; sourceTree = "<group>"; };
 		CD0085B02F1B957900A555D6 /* SmartNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartNotificationScheduler.swift; sourceTree = "<group>"; };
-		CD06684E2E34B5FC0063AC1F /* WeektimeKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WeektimeKit; sourceTree = "<group>"; };
 		CD0799902F65A9B9001B9C33 /* DailyProgressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressViewModel.swift; sourceTree = "<group>"; };
 		CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMetricsBrowserView.swift; sourceTree = "<group>"; };
 		CD07C4CF2F5C8E7C001EFE97 /* GoalEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEntity.swift; sourceTree = "<group>"; };
@@ -345,6 +343,7 @@
 		CDCE069F2F84416200034FD3 /* COMPOSITION_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMPOSITION_REFACTORING.md; sourceTree = "<group>"; };
 		CDCE06A02F8441A300034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
 		CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
+		CDD6D19F2FBF685500133F88 /* MomentumKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = MomentumKit; sourceTree = "<group>"; };
 		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
 		CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePreviewView.swift; sourceTree = "<group>"; };
 		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
@@ -360,7 +359,6 @@
 		CDEBAA2F2EE9FA1000C1C411 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListView.swift; sourceTree = "<group>"; };
 		CDEBAA312EE9FA1000C1C411 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
-		CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeektimeApp.swift; sourceTree = "<group>"; };
 		CDEBAA452EE9FA3300C1C411 /* PermissionsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsHandler.swift; sourceTree = "<group>"; };
 		CDEFA6512F59786500661146 /* ContextualSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualSection.swift; sourceTree = "<group>"; };
 		CDF6E8F92FB395A5008767D9 /* PlanningIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningIntegration.swift; sourceTree = "<group>"; };
@@ -427,6 +425,11 @@
 			path = "MomentumWatch Watch AppUITests";
 			sourceTree = "<group>";
 		};
+		CDD6D1A22FBF689600133F88 /* Main */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Main;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -490,7 +493,7 @@
 		CD06684D2E34B5D90063AC1F /* InternalPackages */ = {
 			isa = PBXGroup;
 			children = (
-				CD06684E2E34B5FC0063AC1F /* WeektimeKit */,
+				CDD6D19F2FBF685500133F88 /* MomentumKit */,
 			);
 			path = InternalPackages;
 			sourceTree = "<group>";
@@ -608,6 +611,7 @@
 		CDEBAA342EE9FA1000C1C411 /* Momentum */ = {
 			isa = PBXGroup;
 			children = (
+				CDD6D1A22FBF689600133F88 /* Main */,
 				CD5601642EEB2FC4001D0BB0 /* Screentime */,
 				CDEBAA442EE9FA2400C1C411 /* Configuration */,
 				CDEBAA252EE9FA1000C1C411 /* ActionView.swift */,
@@ -644,7 +648,6 @@
 				CDEBAA302EE9FA1000C1C411 /* IntervalListView.swift */,
 				CD39BD4D2F2F677200F7265A /* Momentum.entitlements */,
 				CDEBAA312EE9FA1000C1C411 /* Item.swift */,
-				CDEBAA332EE9FA1000C1C411 /* WeektimeApp.swift */,
 				CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */,
 				CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */,
 				CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */,
@@ -808,6 +811,9 @@
 			dependencies = (
 				CD39BD3F2F2F633A00F7265A /* PBXTargetDependency */,
 				CDBC06872F56C95400D87642 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CDD6D1A22FBF689600133F88 /* Main */,
 			);
 			name = Momentum;
 			packageProductDependencies = (
@@ -1183,7 +1189,6 @@
 				CD6A0C352F899CE4008F5D93 /* CalendarViewModel.swift in Sources */,
 				CD1D0F692F84603400A36562 /* IconCategory.swift in Sources */,
 				CDEBAA412EE9FA1000C1C411 /* Item.swift in Sources */,
-				CDEBAA422EE9FA1000C1C411 /* WeektimeApp.swift in Sources */,
 				CD1D0F672F84600D00A36562 /* IconPickerSheet.swift in Sources */,
 				CD2A6FB92F576B6B00F5503A /* LayoutConstants.swift in Sources */,
 				CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */,
