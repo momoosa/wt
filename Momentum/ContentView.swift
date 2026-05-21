@@ -71,6 +71,9 @@ struct ContentView: View {
     // Background task tracking for cancellation on disappear
     @State var backgroundTasks: [Task<Void, Never>] = []
     
+    // Goal editor view model - held in @State to survive parent re-renders
+    @State private var goalEditorViewModel: GoalEditorViewModel?
+    
     // Progress Card Tile Visibility Settings
     @AppStorage("showProgressTile") var showProgressTile: Bool = true
     @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
@@ -179,8 +182,20 @@ struct ContentView: View {
             }
 
         
-            .sheet(isPresented: $navigation.showingGoalEditor) {
-                goalEditorSheet
+            .sheet(isPresented: $navigation.showingGoalEditor, onDismiss: {
+                goalEditorViewModel = nil
+            }) {
+                if let vm = goalEditorViewModel {
+                    GoalEditorView(viewModel: vm)
+                        .navigationTransition(
+                            .zoom(sourceID: "info", in: animation)
+                        )
+                }
+            }
+            .onChange(of: navigation.showingGoalEditor) { _, show in
+                if show {
+                    goalEditorViewModel = GoalEditorViewModel()
+                }
             }
             .sheet(isPresented: $navigation.showAllGoals) {
                 allGoalsSheet
@@ -517,12 +532,7 @@ struct ContentView: View {
         }
     }
     
-    private var goalEditorSheet: some View {
-        GoalEditorView(viewModel: GoalEditorViewModel())
-            .navigationTransition(
-                .zoom(sourceID: "info", in: animation)
-            )
-    }
+    
     
     private var allGoalsSheet: some View {
         AllGoalsView(goals: goals)

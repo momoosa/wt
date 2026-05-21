@@ -20,6 +20,7 @@ struct GoalSessionDetailView: View {
     let historicalSessionLimit = 3
     @State var isShowingEditScreen = false
     @State private var isShowingIntervalsEditor = false
+    @State private var editGoalViewModel: GoalEditorViewModel?
     // Interval playback state
     @State private var activeIntervalID: String? = nil
     @State private var intervalStartDate: Date? = nil
@@ -1005,7 +1006,10 @@ struct GoalSessionDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    isShowingEditScreen.toggle()
+                    if let goal = session.goal {
+                        editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+                        isShowingEditScreen = true
+                    }
                 } label: {
                     Image(systemName: "pencil.circle.fill")
                         .symbolRenderingMode(.hierarchical)
@@ -1032,11 +1036,14 @@ struct GoalSessionDetailView: View {
                 IntervalsEditorView(list: list, goalSession: session)
             }
         }
-        .sheet(isPresented: $isShowingEditScreen) {
-            if let goal = session.goal {
-                GoalEditorView(viewModel: GoalEditorViewModel(existingGoal: goal))
+        .sheet(isPresented: $isShowingEditScreen, onDismiss: {
+            editGoalViewModel = nil
+        }) {
+            if let vm = editGoalViewModel {
+                GoalEditorView(viewModel: vm)
             }
         }
+        
         .sheet(item: $editingHistoricalSession, content: { session in
             HistoricalSessionEditorView(session: session)
         })
