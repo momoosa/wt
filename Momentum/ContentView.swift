@@ -377,35 +377,29 @@ struct ContentView: View {
     @ViewBuilder
     private func contextualSectionView(section: ContextualSection) -> some View {
         if case .recommendedNow = section.type {
-            // Recommended Now section with featured card style
+            // Recommended Now section with TOP PICKS header
             Section {
             } header: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(section.type.iconColor)
-                        }
-                        Text(section.type.title)
-                            .font(.headline)
-                    }
-                    
-                    if let explanation = section.explanation {
-                        Text(explanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                HStack {
+                    Text("TOP PICKS")
+                        .font(.subheadline.weight(.bold))
+                        .tracking(1)
+                    Spacer()
+                    Text("\(section.sessions.count) matches")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .id(section.type)
             .listSectionSpacing(.compact)
             
             // Individual featured cards
-            ForEach(section.sessions) { session in
+            ForEach(Array(section.sessions.enumerated()), id: \.element.id) { index, session in
                 Section {
                     RecommendedSessionRowView(
                         session: session,
                         day: day,
+                        index: index + 1,
                         timerManager: timerManager,
                         animation: animation,
                         selectedSession: $navigation.selectedSession,
@@ -581,6 +575,7 @@ struct ContentView: View {
             goals: goals,
             animation: animation,
             timerManager: timerManager,
+            healthKitManager: healthKitManager,
             selectedSession: $navigation.selectedSession,
             sessionToLogManually: $navigation.sessionToLogManually
         )

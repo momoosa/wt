@@ -152,9 +152,9 @@ extension ContextualSection {
         let groupedByConstraints = groupByConstraints(regularSessions, currentDate: currentDate)
         sections.append(contentsOf: groupedByConstraints)
         
-        // 4. Later section (everything else)
+        // 4. Later section (everything else, excluding completed goals)
         let constraintSectionIDs = Set(groupedByConstraints.flatMap { $0.sessions.map { $0.id } })
-        let laterSessions = regularSessions.filter { !constraintSectionIDs.contains($0.id) }
+        let laterSessions = regularSessions.filter { !constraintSectionIDs.contains($0.id) && !$0.hasMetDailyTarget }
         
         if !laterSessions.isEmpty {
             sections.append(ContextualSection(

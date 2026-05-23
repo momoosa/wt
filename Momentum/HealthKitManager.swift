@@ -658,6 +658,77 @@ public final class HealthKitManager {
             self.healthStore.execute(query)
         }
     }
+    // MARK: - Hourly Statistics
+    
+    /// Represents a single hourly bucket of HealthKit data
+    public struct HourlyStatistic: Identifiable {
+        public let id = UUID()
+        public let hour: Int
+        public let value: Double
+        public let metric: HealthKitMetric
+    }
+    
+    /// Fetch hourly breakdown of a metric for a given day using HKStatisticsCollectionQuery.
+    /// Returns an array of HourlyStatistic with one entry per hour that has data.
+    public func fetchHourlyStatistics(for metric: HealthKitMetric, on date: Date) async throws -> [HourlyStatistic] {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.notAvailable
+        }
+        
+        guard let quantityType = metric.quantityType else {
+            throw HealthKitError.invalidMetric
+        }
+        
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
+            throw HealthKitError.invalidDateRange
+        }
+        
+        let hourInterval = DateComponents(hour: 1)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: quantityType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum,
+                anchorDate: startOfDay,
+                intervalComponents: hourInterval
+            )
+            
+            query.initialResultsHandler = { _, results, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                
+                guard let results = results else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                
+                var hourlyData: [HourlyStatistic] = []
+                
+                results.enumerateStatistics(from: startOfDay, to: endOfDay) { statistics, _ in
+                    let hour = calendar.component(.hour, from: statistics.startDate)
+                    let value = statistics.sumQuantity()?.doubleValue(for: metric.unit) ?? 0
+                    
+                    if value > 0 {
+                        hourlyData.append(HourlyStatistic(
+                            hour: hour,
+                            value: value,
+                            metric: metric
+                        ))
+                    }
+                }
+                
+                continuation.resume(returning: hourlyData)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
 }
 
 // MARK: - Models

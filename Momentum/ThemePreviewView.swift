@@ -369,6 +369,7 @@ struct ThemeDetailView: View {
                                 RecommendedSessionRowView(
                                     session: session,
                                     day: day,
+                                    index: 1,
                                     timerManager: timer,
                                     animation: animation,
                                     selectedSession: $selectedSession,
@@ -390,6 +391,7 @@ struct ThemeDetailView: View {
                                 RecommendedSessionRowView(
                                     session: session,
                                     day: day,
+                                    index: 1,
                                     timerManager: timer,
                                     animation: animation,
                                     selectedSession: $selectedSession,
@@ -416,6 +418,7 @@ struct ThemeDetailView: View {
                                 RecommendedSessionRowView(
                                     session: session,
                                     day: day,
+                                    index: 1,
                                     timerManager: timer,
                                     animation: animation,
                                     selectedSession: $selectedSession,
@@ -438,6 +441,7 @@ struct ThemeDetailView: View {
                                 RecommendedSessionRowView(
                                     session: session,
                                     day: day,
+                                    index: 1,
                                     timerManager: timer,
                                     animation: animation,
                                     selectedSession: $selectedSession,
@@ -761,6 +765,7 @@ struct ComponentGroupedView: View {
                     RecommendedSessionRowView(
                         session: session,
                         day: day,
+                        index: 1,
                         timerManager: timer,
                         animation: animation,
                         selectedSession: $selectedSession,
@@ -782,6 +787,7 @@ struct ComponentGroupedView: View {
                     RecommendedSessionRowView(
                         session: session,
                         day: day,
+                        index: 1,
                         timerManager: timer,
                         animation: animation,
                         selectedSession: $selectedSession,
