@@ -16,7 +16,7 @@ struct GoalEditorThemeHelper {
         let normalizedThemeName = themeName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Direct ID match (e.g. "palette_06", "red", "mint")
-        if let idMatch = themePresets.first(where: { $0.id == normalizedThemeName }) {
+        if let idMatch = ThemeStore.presets.first(where: { $0.id == normalizedThemeName }) {
             return idMatch
         }
         
@@ -32,20 +32,20 @@ struct GoalEditorThemeHelper {
         ]
         
         if let presetId = themeMapping[normalizedThemeName] {
-            if let match = themePresets.first(where: { $0.id == presetId }) {
+            if let match = ThemeStore.presets.first(where: { $0.id == presetId }) {
                 return match
             }
         }
         
-        if let exactMatch = themePresets.first(where: { $0.title.lowercased() == normalizedThemeName }) {
+        if let exactMatch = ThemeStore.presets.first(where: { $0.title.lowercased() == normalizedThemeName }) {
             return exactMatch
         }
         
-        if let partialMatch = themePresets.first(where: { $0.title.lowercased().contains(normalizedThemeName) }) {
+        if let partialMatch = ThemeStore.presets.first(where: { $0.title.lowercased().contains(normalizedThemeName) }) {
             return partialMatch
         }
         
-        if let reverseMatch = themePresets.first(where: { normalizedThemeName.contains($0.title.lowercased()) }) {
+        if let reverseMatch = ThemeStore.presets.first(where: { normalizedThemeName.contains($0.title.lowercased()) }) {
             return reverseMatch
         }
         
@@ -70,23 +70,23 @@ struct GoalEditorThemeHelper {
         
         for (keyword, themeId) in themeKeywords {
             if normalizedThemeName.contains(keyword) {
-                if let match = themePresets.first(where: { $0.id == themeId }) {
+                if let match = ThemeStore.presets.first(where: { $0.id == themeId }) {
                     return match
                 }
             }
         }
         
-        return defaultThemePreset
+        return ThemeStore.defaultPreset
     }
     
     func findUnusedTheme(excluding goals: [Goal]) -> ThemePreset {
         let usedThemeIDs = Set(goals.filter { $0.status == .active }.compactMap { $0.primaryTag?.themeID })
         
-        if let unusedPreset = themePresets.first(where: { !usedThemeIDs.contains($0.id) }) {
+        if let unusedPreset = ThemeStore.presets.first(where: { !usedThemeIDs.contains($0.id) }) {
             return unusedPreset
         }
         
-        return (themePresets.randomElement() ?? defaultThemePreset)
+        return (ThemeStore.presets.randomElement() ?? ThemeStore.defaultPreset)
     }
 }
 

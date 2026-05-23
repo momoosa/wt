@@ -332,7 +332,7 @@ extension WeatherManager {
     func themeForCurrentWeather() -> ThemePreset? {
         let themes = suggestedThemes()
         guard let firstTheme = themes.first else { return nil }
-        return themePresets.first { $0.id == firstTheme }
+        return ThemeStore.presets.first { $0.id == firstTheme }
     }
 }
 

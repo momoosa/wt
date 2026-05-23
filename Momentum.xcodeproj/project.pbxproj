@@ -92,6 +92,8 @@
 		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
 		CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7578E32F5AD039003D7CFE /* WeatherManager.swift */; };
+		CD8845772FC1B8A20046F456 /* BottomCapsuleBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */; };
+		CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */; };
 		CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */; };
@@ -300,6 +302,8 @@
 		CD75CC5B2E2FE5E600890F20 /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomCapsuleBar.swift; sourceTree = "<group>"; };
+		CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedCapsuleOverlay.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
 		CD99B76D2FB7815300D9E37D /* MomentumTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MomentumTests.xctestplan; sourceTree = "<group>"; };
@@ -747,6 +751,8 @@
 			children = (
 				CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */,
 				CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */,
+				CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */,
+				CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1119,6 +1125,7 @@
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
+				CD8845772FC1B8A20046F456 /* BottomCapsuleBar.swift in Sources */,
 				CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */,
 				CD6A0C252F8994D8008F5D93 /* HealthKitManaging.swift in Sources */,
 				CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */,
@@ -1160,6 +1167,7 @@
 				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
+				CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */,
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,

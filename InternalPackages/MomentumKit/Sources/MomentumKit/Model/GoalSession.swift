@@ -82,29 +82,10 @@ extension GoalSession {
 import SwiftUI
 
 extension GoalSession {
-    /// Get the goal's theme preset, or default preset if no theme is set
+    /// Get the goal's theme preset, or default preset if no theme is set.
+    /// Access adaptive colors directly via `session.theme.gradient(for:)`, etc.
     public var theme: ThemePreset {
-        goal?.primaryTag?.theme ?? defaultThemePreset
-    }
-    
-    /// Adaptive gradient for the given color scheme
-    public func themeGradient(for scheme: ColorScheme) -> LinearGradient {
-        theme.gradient(for: scheme)
-    }
-    
-    /// Color palette for the given color scheme
-    public func themeColors(for scheme: ColorScheme) -> [Color] {
-        theme.colors(for: scheme)
-    }
-    
-    /// Primary accent color for the given color scheme
-    public func themeColor(for colorScheme: ColorScheme) -> Color {
-        theme.color(for: colorScheme)
-    }
-    
-    /// Foreground/text color for the given color scheme
-    public func themeTextColor(for colorScheme: ColorScheme) -> Color {
-        theme.foregroundColor(for: colorScheme)
+        goal?.primaryTag?.theme ?? ThemeStore.defaultPreset
     }
 }
 

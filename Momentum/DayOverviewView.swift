@@ -421,7 +421,7 @@ private struct PlanSessionCard: View {
     @State private var showingReason = false
     
     private var themeColor: Color {
-        session.themeColor(for: colorScheme)
+        session.theme.color(for: colorScheme)
     }
     
     var body: some View {

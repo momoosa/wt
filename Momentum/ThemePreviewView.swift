@@ -14,7 +14,7 @@ struct ThemePreviewView: View {
     @State private var groupByComponent: Bool = false
     
     private var selectedTheme: ThemePreset {
-        themePresets[selectedThemeIndex]
+        ThemeStore.presets[selectedThemeIndex]
     }
     
     // Create a transient day for preview purposes only
@@ -27,7 +27,7 @@ struct ThemePreviewView: View {
     var body: some View {
         NavigationSplitView {
             // Theme list
-            List(Array(themePresets.enumerated()), id: \.offset) { index, theme in
+            List(Array(ThemeStore.presets.enumerated()), id: \.offset) { index, theme in
                 Button {
                     selectedThemeIndex = index
                 } label: {
@@ -743,7 +743,7 @@ struct ComponentGroupedView: View {
             }
             
             // Create mock sessions for all themes
-            mockSessions = themePresets.map { theme in
+            mockSessions = ThemeStore.presets.map { theme in
                 (theme: theme, session: createMockSession(for: theme))
             }
         }

@@ -34,7 +34,7 @@ struct ActionView: View {
             Button {
                 eventHandler(.stopTapped)
             } label: {
-                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.themeColor(for: colorScheme), font: .title2, gaugeScale: 0.5)
+                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.5)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolRenderingMode(.hierarchical)
                     .font(.title2)

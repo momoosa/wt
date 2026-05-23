@@ -24,7 +24,7 @@ public final class GoalTag {
     
     // Computed property to get the theme preset (handles legacy theme IDs)
     public var theme: ThemePreset {
-        resolveThemePreset(for: themeID)
+        ThemeStore.resolve(for: themeID)
     }
     
 

@@ -43,7 +43,7 @@ struct GoalDetailView: View {
     }
     
     private var themePreset: ThemePreset {
-        goal.primaryTag?.theme ?? defaultThemePreset
+        goal.primaryTag?.theme ?? ThemeStore.defaultPreset
     }
     
     private var chartGradient: LinearGradient {
@@ -365,7 +365,7 @@ struct GoalDetailView: View {
             (5, "T"), (6, "F"), (7, "S"), (1, "S")
         ]
         let times = Array(TimeOfDay.allCases)
-        let theme = goal.primaryTag?.theme ?? defaultThemePreset
+        let theme = goal.primaryTag?.theme ?? ThemeStore.defaultPreset
         
         return VStack(spacing: 4) {
             // Header row

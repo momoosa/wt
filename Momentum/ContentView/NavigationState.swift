@@ -32,6 +32,7 @@ class NavigationState {
     var scrollProxy: ScrollViewProxy?
     var expandedSections: Set<ContextualSection.SectionType> = [.recommendedNow, .later]
     var activeFilter: ContentView.Filter = .activeToday
+    var showExpandedCapsule = false
     
     // MARK: - Toast
     var toastConfig: ToastConfig?
@@ -44,6 +45,7 @@ class NavigationState {
         showNowPlaying = false
         showDayOverview = false
         showingGoalEditor = false
+        showExpandedCapsule = false
     }
     
     func openSession(_ session: GoalSession) {

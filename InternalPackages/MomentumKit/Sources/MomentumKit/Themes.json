@@ -292,7 +292,7 @@
   },
   {
     "id": "palette_19",
-    "title": "Forest",
+    "title": "Forest Green",
     "darkColors": [
       "#95d080",
       "#5dad5d",
@@ -443,7 +443,7 @@
         "#00EFFF",
         "#00D4FF"
     ],
-    "darkForegroundColor": "#000",
+    "darkForegroundColor": "#000000",
     "lightForegroundColor": "#002c54"
   },
   {
@@ -619,7 +619,7 @@
         "#FF53C9",
         "#FF52E4"
     ],
-    "darkForegroundColor": "#000",
+    "darkForegroundColor": "#000000",
     "lightForegroundColor": "#ffffff"
   },
   {
@@ -835,7 +835,7 @@
     "title": "B&W",
     "darkColors": [
         "#ffffff",
-        "#fefefef"
+        "#fefefe"
     ],
     "lightColors": [
         "#000000",

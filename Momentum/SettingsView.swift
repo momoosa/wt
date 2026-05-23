@@ -332,14 +332,14 @@ enum DebugGoals: String, CaseIterable, Identifiable {
     
     var theme: ThemePreset {
         switch self {
-        case .reading: return resolveThemePreset(for: "palette_17")
-        case .exercise: return resolveThemePreset(for: "palette_01")
-        case .meditation: return resolveThemePreset(for: "palette_16")
-        case .coding: return resolveThemePreset(for: "palette_19")
-        case .music: return resolveThemePreset(for: "palette_04")
-        case .cooking: return resolveThemePreset(for: "palette_04")
-        case .learning: return resolveThemePreset(for: "palette_16")
-        case .writing: return resolveThemePreset(for: "palette_03")
+        case .reading: return ThemeStore.resolve(for: "palette_17")
+        case .exercise: return ThemeStore.resolve(for: "palette_01")
+        case .meditation: return ThemeStore.resolve(for: "palette_16")
+        case .coding: return ThemeStore.resolve(for: "palette_19")
+        case .music: return ThemeStore.resolve(for: "palette_04")
+        case .cooking: return ThemeStore.resolve(for: "palette_04")
+        case .learning: return ThemeStore.resolve(for: "palette_16")
+        case .writing: return ThemeStore.resolve(for: "palette_03")
         }
     }
     

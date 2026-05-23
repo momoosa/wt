@@ -18,7 +18,7 @@ import WidgetKit
 
 struct ContentView: View {
     @Environment(GoalStore.self) var goalStore
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) var modelContext
     @Query var goals: [Goal]
     @Query var _sessions: [GoalSession]
@@ -125,8 +125,16 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .overlay(alignment: .bottom) {
+                if navigation.showExpandedCapsule {
+                    expandedCapsuleOverlay
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: navigation.showExpandedCapsule)
             .sheet(isPresented: $navigation.isSearching) {
                 searchSheet
+                    .navigationTransition(.zoom(sourceID: "searchButton", in: animation))
             }
             .toolbar {
                 toolbarContent
@@ -179,6 +187,7 @@ struct ContentView: View {
 #endif
             .sheet(isPresented: $navigation.showPlannerSheet) {
                 plannerSheet
+                    .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
             }
 
         
@@ -202,12 +211,14 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $navigation.showNowPlaying) {
                 nowPlayingView
+                    .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
             }
             .sheet(isPresented: $navigation.showSettings) {
                 settingsSheet
             }
             .sheet(isPresented: $navigation.showDayOverview) {
                 dayOverviewSheet
+                    .navigationTransition(.zoom(sourceID: "dayOverviewButton", in: animation))
             }
             .sheet(item: $navigation.sessionToLogManually) { session in
                 manualLogSheet(for: session)
@@ -253,7 +264,7 @@ struct ContentView: View {
                             )
                         }
                     )
-                    .tint(session.themeColor(for: colorScheme))
+                    .tint(session.theme.color(for: colorScheme))
                     .environment(goalStore)
                 }
             }
@@ -315,13 +326,6 @@ struct ContentView: View {
                     .frame(height: LayoutConstants.Heights.smallSpacer)
             }
 
-            Section {
-                dailyProgressCard
-            }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listSectionSpacing(.compact)
-
             if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
                 // Always show all sessions in contextual sections
                 let recommendedSessions = getRecommendedSessions()
@@ -358,6 +362,12 @@ struct ContentView: View {
             .refreshable {
                 syncHealthKitData(userInitiated: true)
                 refreshGoals()
+            }
+            .safeAreaInset(edge: .bottom) {
+                if !navigation.showExpandedCapsule {
+                    bottomCapsuleBar
+                        .transition(.move(edge: .bottom))
+                }
             }
         }
     }

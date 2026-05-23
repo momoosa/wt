@@ -18,6 +18,11 @@ extension ContentView {
 #if os(iOS)
         ToolbarItem(placement: .navigationBarTrailing) {
             HStack {
+                Button(action: { navigation.showingGoalEditor = true }) {
+                    Image(systemName: "plus")
+                }
+                .matchedTransitionSource(id: "info", in: animation)
+                
                 Button {
                     navigation.showAllGoals = true
                 } label: {
@@ -25,8 +30,6 @@ extension ContentView {
                 }
                 
                 #if DEBUG
-                
-
                 NavigationLink {
                     ThemePreviewView()
                         .modelContainer(previewOnlyContainer())
@@ -50,72 +53,6 @@ extension ContentView {
     
   
         
-        ToolbarItem(placement: .bottomBar) {
-            Button {
-                navigation.isSearching = true
-            } label: {
-                Label("Search", systemImage: "magnifyingglass")
-            }
-            .matchedTransitionSource(id: "searchButton", in: animation)
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button {
-                navigation.showDayOverview = true
-            } label: {
-                Label("Day Overview", systemImage: "calendar.badge.checkmark")
-            }
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button {
-                // Cache themes before showing sheet to avoid SwiftData faults
-                planningViewModel.cachedThemes = availableGoalThemes
-                navigation.showPlannerSheet = true
-            } label: {
-                if planningViewModel.isPlanning {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Label("Plan Day", systemImage: "sparkles")
-                }
-            }
-            .disabled(planningViewModel.isPlanning)
-            .matchedTransitionSource(id: "plannerButton", in: animation)
-        }
-        
-        
-        ToolbarItem(placement: .bottomBar) {
-            Spacer()
-        }
-        
-        if let timerManager,
-           let activeSession = timerManager.activeSession,
-           let session = sessions.first(where: { $0.id == activeSession.id }) {
-            
-            ToolbarItem(placement: .bottomBar) {
-                ActionView(session: session, details: activeSession) { event in
-                    handle(event: event)
-                }
-                .onTapGesture {
-                    navigation.showNowPlaying = true
-                }
-                .frame(minWidth: 140.0)
-            }
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Spacer()
-        }
-        
-        ToolbarItem(placement: .bottomBar) {
-            Button(action: { navigation.showingGoalEditor = true }) {
-                Label("Add Item", systemImage: "plus")
-            }
-            .overlay {
-                Color.clear
-            }
-            .matchedTransitionSource(id: "info", in: animation)
-        }
+        // Bottom bar items removed — replaced by BottomCapsuleBar
     }
 }

@@ -26,7 +26,7 @@ struct GoalCategory: Codable, Identifiable {
     let suggestions: [GoalTemplateSuggestion]
     
     var themePreset: ThemePreset {
-        themePresets.first(where: { $0.id == color }) ?? defaultThemePreset
+        ThemeStore.presets.first(where: { $0.id == color }) ?? ThemeStore.defaultPreset
     }
     
     func colorValue(for scheme: ColorScheme) -> Color {
@@ -62,7 +62,7 @@ class GoalSuggestionsLoader {
         }
         
         // Load from MomentumKit bundle
-        guard let url = momentumKitBundle.url(forResource: "GoalSuggestions", withExtension: "json") else {
+        guard let url = ThemeStore.bundle.url(forResource: "GoalSuggestions", withExtension: "json") else {
             AppLogger.app.error("Could not find GoalSuggestions.json")
             return GoalSuggestionsData(categories: [])
         }

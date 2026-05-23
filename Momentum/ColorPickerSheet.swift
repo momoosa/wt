@@ -15,7 +15,7 @@ struct ColorPickerSheet: View {
     let onSelect: (ThemePreset) -> Void
     
     private var sortedPresets: [ThemePreset] {
-        themePresets
+        ThemeStore.presets
     }
     
     var body: some View {

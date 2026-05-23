@@ -98,7 +98,7 @@ struct GoalEditorTests {
         let theme = helper.matchTheme(named: "UnknownCategory123")
         
         // Should return a valid theme (fallback to first theme)
-        #expect(theme.id == defaultThemePreset.id)
+        #expect(theme.id == ThemeStore.defaultPreset.id)
     }
     
     @Test("matchTheme handles partial matches")
@@ -136,7 +136,7 @@ struct GoalEditorTests {
         let context = ModelContext(container)
         
         // Create goals with all possible themes
-        for preset in themePresets {
+        for preset in ThemeStore.presets {
             _ = createTestGoal(context: context, themeID: preset.id)
         }
         
@@ -145,7 +145,7 @@ struct GoalEditorTests {
         let theme = helper.findUnusedTheme(excluding: allGoals.filter { $0.status == .active })
         
         // Should return a valid theme even when all are used
-        #expect(themePresets.contains(where: { $0.id == theme.id }))
+        #expect(ThemeStore.presets.contains(where: { $0.id == theme.id }))
     }
     
     @Test("findUnusedTheme ignores archived goals")

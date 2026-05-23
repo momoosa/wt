@@ -15,7 +15,7 @@ struct ChecklistRow: View {
     @State private var showingNotes = false
     
     var body: some View {
-        let color = item.session?.theme.color(for: colorScheme) ?? defaultThemePreset.color(for: colorScheme)
+        let color = item.session?.theme.color(for: colorScheme) ?? ThemeStore.defaultPreset.color(for: colorScheme)
         
         return VStack(alignment: .leading, spacing: 4) {
             HStack {

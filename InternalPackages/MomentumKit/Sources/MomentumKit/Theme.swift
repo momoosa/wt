@@ -46,7 +46,10 @@ public struct ThemePreset: Sendable {
         )
     }
     
-    /// Primary accent color — brightest in dark mode, deepest in light mode
+    /// Primary accent color — uses `darkColors` in both schemes because those
+    /// hues are more vibrant/saturated and work well as accent tints, while
+    /// `lightColors` are pastel tones designed for gradient backgrounds.
+    /// In dark mode returns the brightest (first); in light mode the deepest (last).
     public func color(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
@@ -69,89 +72,98 @@ public struct ThemePreset: Sendable {
 
 
 
-// MARK: - Legacy Theme ID Migration
+// MARK: - ThemeStore
 
-/// Maps removed theme IDs to surviving preset IDs.
-/// Only contains IDs that no longer exist in Themes.json.
-/// `resolveThemePreset` tries direct ID match first, then falls back here.
-public let legacyThemeIDMap: [String: String] = [
-    // Removed reds/warm
-    "salmon": "palette_12", "coral": "palette_12",
-    // Removed orange
-    "apricot": "palette_04",
-    // Removed yellow
-    "yellow": "palette_04", "yellow_dc": "palette_04", "sunshine": "palette_04",
-    "lemon": "palette_04", "mustard": "palette_04", "palette_11": "palette_04",
-    "yellowSalmon": "palette_01", "beach": "palette_12", "cream": "palette_20",
-    // Removed green
-    "lime": "palette_06", "forest_dc": "palette_19",
-    "mint_dc": "palette_10", "seafoam": "palette_10",
-    // Removed blue/cyan/teal
-    "cyan": "palette_03", "turquoise": "palette_03", "teal": "palette_03",
-    "teal_dc": "palette_03", "gb": "palette_03",
-    "sky_blue": "palette_17", "azure": "palette_17",
-    "blue_dc": "palette_17", "babyBlueAndWhite": "palette_18",
-    "cobalt": "palette_17", "navy": "palette_17", "steel": "palette_18",
-    "grey_blue": "palette_18", "blellow": "palette_17",
-    // Removed purple
-    "violet": "palette_16", "purple": "palette_16",
-    "purple_dc": "palette_16", "ap": "palette_15",
-    "lilac": "palette_05",
-    "lavender": "palette_05", "mauve": "palette_15", "orchid": "palette_15",
-    // Removed pink
-    "pink0": "palette_07", "bubblegum": "palette_14",
-    "fuchsia": "palette_14", "rose": "palette_13",
-    // Removed brown/neutral
-    "coffee": "palette_20", "taupe": "palette_20",
-    // Removed gray
-    "silver0": "palette_18", "slate": "palette_18",
-    // Other removed
-    "tangerine": "palette_09", "gold": "palette_04", "green": "palette_19",
-    "ruby": "palette_13", "cherry": "palette_13",
-]
-
-/// Resolves a theme ID (old or new) to a ThemePreset.
-/// Falls back to `defaultThemePreset` if not found.
-public func resolveThemePreset(for themeID: String) -> ThemePreset {
-    if let preset = themePresets.first(where: { $0.id == themeID }) {
-        return preset
-    }
-    if let newID = legacyThemeIDMap[themeID],
-       let preset = themePresets.first(where: { $0.id == newID }) {
-        return preset
-    }
-    return defaultThemePreset
-}
-
-// MARK: - Bundle Access
-
-/// Public accessor for MomentumKit's resource bundle
-public let momentumKitBundle: Bundle = Bundle.module
-
-// MARK: - Theme Loading
-
-public let themePresets: [ThemePreset] = loadThemePresets()
-
-/// Default fallback theme when no theme is assigned
-public var defaultThemePreset: ThemePreset { themePresets[0] }
-
-private func loadThemePresets() -> [ThemePreset] {
-    guard let url = Bundle.module.url(forResource: "Themes", withExtension: "json"),
-          let data = try? Data(contentsOf: url),
-          let dtos = try? JSONDecoder().decode([ThemePresetDTO].self, from: data) else {
-        assertionFailure("Failed to load Themes.json from bundle")
-        return []
+/// Central namespace for theme loading, lookup, and resolution.
+public enum ThemeStore {
+    
+    /// All available theme presets loaded from Themes.json.
+    public static let presets: [ThemePreset] = loadPresets()
+    
+    /// Default fallback theme when no theme is assigned.
+    public static var defaultPreset: ThemePreset { presets[0] }
+    
+    /// Public accessor for MomentumKit's resource bundle.
+    public static let bundle: Bundle = Bundle.module
+    
+    /// Maps removed theme IDs to surviving preset IDs.
+    /// Only contains IDs that no longer exist in Themes.json.
+    public static let legacyIDMap: [String: String] = [
+        // Removed reds/warm
+        "salmon": "palette_12", "coral": "palette_12",
+        // Removed orange
+        "apricot": "palette_04",
+        // Removed yellow
+        "yellow": "palette_04", "yellow_dc": "palette_04", "sunshine": "palette_04",
+        "lemon": "palette_04", "mustard": "palette_04", "palette_11": "palette_04",
+        "yellowSalmon": "palette_01", "beach": "palette_12", "cream": "palette_20",
+        // Removed green
+        "lime": "palette_06", "forest_dc": "palette_19",
+        "mint_dc": "palette_10", "seafoam": "palette_10",
+        // Removed blue/cyan/teal
+        "cyan": "palette_03", "turquoise": "palette_03", "teal": "palette_03",
+        "teal_dc": "palette_03", "gb": "palette_03",
+        "sky_blue": "palette_17", "azure": "palette_17",
+        "blue_dc": "palette_17", "babyBlueAndWhite": "palette_18",
+        "cobalt": "palette_17", "navy": "palette_17", "steel": "palette_18",
+        "grey_blue": "palette_18", "blellow": "palette_17",
+        // Removed purple
+        "violet": "palette_16", "purple": "palette_16",
+        "purple_dc": "palette_16", "ap": "palette_15",
+        "lilac": "palette_05",
+        "lavender": "palette_05", "mauve": "palette_15", "orchid": "palette_15",
+        // Removed pink
+        "pink0": "palette_07", "bubblegum": "palette_14",
+        "fuchsia": "palette_14", "rose": "palette_13",
+        // Removed brown/neutral
+        "coffee": "palette_20", "taupe": "palette_20",
+        // Removed gray
+        "silver0": "palette_18", "slate": "palette_18",
+        // Other removed
+        "tangerine": "palette_09", "gold": "palette_04", "green": "palette_19",
+        "ruby": "palette_13", "cherry": "palette_13",
+    ]
+    
+    // MARK: - O(1) Lookup
+    
+    /// Dictionary for O(1) preset lookup by ID.
+    private static let presetsById: [String: ThemePreset] = {
+        Dictionary(uniqueKeysWithValues: presets.map { ($0.id, $0) })
+    }()
+    
+    /// Resolves a theme ID (current or legacy) to a ThemePreset.
+    /// Falls back to `defaultPreset` if not found.
+    public static func resolve(for themeID: String) -> ThemePreset {
+        if let preset = presetsById[themeID] {
+            return preset
+        }
+        if let mappedID = legacyIDMap[themeID],
+           let preset = presetsById[mappedID] {
+            return preset
+        }
+        return defaultPreset
     }
     
-    return dtos.map { dto in
-        ThemePreset(
-            id: dto.id,
-            title: dto.title,
-            lightColors: dto.lightColors.map { Color(hex: $0) },
-            darkColors: dto.darkColors.map { Color(hex: $0) },
-            foregroundLight: Color(hex: dto.lightForegroundColor),
-            foregroundDark: Color(hex: dto.darkForegroundColor)
-        )
+    // MARK: - Loading
+    
+    private static func loadPresets() -> [ThemePreset] {
+        guard let url = Bundle.module.url(forResource: "Themes", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let dtos = try? JSONDecoder().decode([ThemePresetDTO].self, from: data) else {
+            assertionFailure("Failed to load Themes.json from bundle")
+            return []
+        }
+        
+        return dtos.map { dto in
+            ThemePreset(
+                id: dto.id,
+                title: dto.title,
+                lightColors: dto.lightColors.map { Color(hex: $0) },
+                darkColors: dto.darkColors.map { Color(hex: $0) },
+                foregroundLight: Color(hex: dto.lightForegroundColor),
+                foregroundDark: Color(hex: dto.darkForegroundColor)
+            )
+        }
     }
 }
 
@@ -214,7 +226,7 @@ private struct ThemePreviewCard: View {
 #Preview("All Themes", traits: .fixedLayout(width: 2000, height: 6000)) {
     ScrollView {
         LazyVGrid(columns: [GridItem(), GridItem(), GridItem(), GridItem(), GridItem()], spacing: 8) {
-            ForEach(themePresets, id: \.id) { preset in
+            ForEach(ThemeStore.presets, id: \.id) { preset in
                 ThemePreviewCard(preset: preset)
                     .frame(height: 200)
                 }

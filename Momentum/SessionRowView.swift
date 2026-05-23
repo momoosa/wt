@@ -17,20 +17,20 @@ struct SessionRowView: View {
     @Environment(\.sessionActions) private var sessionActions
     
     private var tintColor: Color {
-        session.themeColor(for: colorScheme)
+        session.theme.color(for: colorScheme)
     }
     
     private var textForegroundColor: Color {
         if isRecommended {
-            return session.themeTextColor(for: colorScheme)
+            return session.theme.foregroundColor(for: colorScheme)
         } else {
-            return session.themeColor(for: colorScheme)
+            return session.theme.color(for: colorScheme)
         }
     }
     
     private var rowBackground: Color {
         if colorScheme == .dark {
-            return session.themeColors(for: colorScheme).first!.opacity(0.03)
+            return session.theme.colors(for: colorScheme).first!.opacity(0.03)
         } else {
             return Color(.systemBackground)
         }
@@ -53,7 +53,7 @@ struct SessionRowView: View {
                 VStack(alignment: .leading) {
                         Text(session.title)
                             .fontWeight(.semibold)
-                            .foregroundStyle(isRecommended ? session.themeTextColor(for: colorScheme) : .primary)
+                            .foregroundStyle(isRecommended ? session.theme.foregroundColor(for: colorScheme) : .primary)
                     
                     HStack {
                         if session.targetUnit.isTimeBased {
@@ -108,12 +108,12 @@ struct SessionRowView: View {
                         HealthKitBadge(
                             metric: session.goal?.healthKitMetric,
                             isEnabled: session.goal?.healthKitSyncEnabled == true,
-                            color: isRecommended ? session.themeTextColor(for: colorScheme) : .red
+                            color: isRecommended ? session.theme.foregroundColor(for: colorScheme) : .red
                         )
                         
                         Spacer()
                     }
-                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
+                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                 }
                 
                 Spacer()
@@ -137,7 +137,7 @@ struct SessionRowView: View {
                             }
                             .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
                         }
-                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                     } else {
                         // Read-only HealthKit metric: Show sync button
                         Button {
@@ -149,7 +149,7 @@ struct SessionRowView: View {
                                 .animation(sessionActions.isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: sessionActions.isSyncingHealthKit)
                         }
                         .accessibilityLabel(sessionActions.isSyncingHealthKit ? "Syncing health data" : "Sync health data")
-                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                         .disabled(sessionActions.isSyncingHealthKit)
                     }
                 } else {
@@ -165,13 +165,13 @@ struct SessionRowView: View {
                                 .contentTransition(.symbolEffect(.replace))
                                 .font(.title2)
                         } else {
-                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.themeColor(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
                                 .contentTransition(.symbolEffect(.replace))
                                 .font(.title2)
                         }
                     }
                     .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
-                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
+                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                 }
             }
             .buttonStyle(.plain)

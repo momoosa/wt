@@ -322,11 +322,11 @@ private extension IntervalListSession {
     }
     
     func themeColor(for colorScheme: ColorScheme) -> Color {
-        (list?.goal?.primaryTag?.theme ?? defaultThemePreset).color(for: colorScheme)
+        (list?.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset).color(for: colorScheme)
     }
     
     func themeColors(for colorScheme: ColorScheme) -> [Color] {
-        (list?.goal?.primaryTag?.theme ?? defaultThemePreset).colors(for: colorScheme)
+        (list?.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset).colors(for: colorScheme)
     }
     
     var sortedIntervals: [IntervalSession] {

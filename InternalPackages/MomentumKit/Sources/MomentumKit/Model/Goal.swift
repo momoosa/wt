@@ -300,7 +300,7 @@ public extension Goal {
 
 public extension Goal {
     func tintColor(for colorScheme: ColorScheme) -> Color {
-        return primaryTag?.theme.color(for: colorScheme) ?? defaultThemePreset.color(for: colorScheme)
+        return primaryTag?.theme.color(for: colorScheme) ?? ThemeStore.defaultPreset.color(for: colorScheme)
     }
     
     // MARK: - Weather Helpers

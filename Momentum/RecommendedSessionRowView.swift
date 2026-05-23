@@ -44,7 +44,7 @@ struct RecommendedSessionRowView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.ultraThinMaterial, in: Capsule())
-                        .foregroundStyle(useOutline ? Color.primary : session.themeTextColor(for: colorScheme))
+                        .foregroundStyle(useOutline ? Color.primary : session.theme.foregroundColor(for: colorScheme))
                     }
                 }
             } else {
