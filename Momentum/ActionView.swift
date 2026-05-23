@@ -40,7 +40,7 @@ struct ActionView: View {
                     .font(.title2)
             }
         }
-        .foregroundStyle(session.theme.dark)
+        .foregroundStyle(session.theme.color(for: colorScheme))
     }
 }
 

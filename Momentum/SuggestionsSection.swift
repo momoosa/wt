@@ -48,27 +48,26 @@ struct SuggestionsSection: View {
                         }
                     }
                 }
-                TabView(selection: $viewModel.selectedCategoryIndex) {
-                    RemindersTabView(
-                        userInput: $viewModel.userInput,
-                        onReminderSelected: { reminder in
-                            viewModel.userInput = reminder.title ?? ""
-                            viewModel.selectedTemplate = nil
-                        }
-                    )
-                    .tag(-1)
-
-                    ForEach(Array(viewModel.suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
+                Group {
+                    if viewModel.selectedCategoryIndex == -1 {
+                        RemindersTabView(
+                            userInput: $viewModel.userInput,
+                            onReminderSelected: { reminder in
+                                viewModel.userInput = reminder.title ?? ""
+                                viewModel.selectedTemplate = nil
+                            }
+                        )
+                    } else if let category = viewModel.suggestionsData.categories[safe: viewModel.selectedCategoryIndex] {
                         CategorySuggestionsView(
                             category: category,
                             selectedTemplate: $viewModel.selectedTemplate,
                             userInput: $viewModel.userInput
                         )
-                        .tag(index)
+                        .id(category.id)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(height: LayoutConstants.Heights.suggestionPanel)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.selectedCategoryIndex)
             }
 
         } header: {

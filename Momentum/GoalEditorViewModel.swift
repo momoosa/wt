@@ -263,17 +263,20 @@ class GoalEditorViewModel {
         showingColorPicker = false
     }
     
-    func activeThemeColor(for colorScheme: ColorScheme) -> Color {
+    var activeThemePreset: ThemePreset? {
         if let selectedPreset = selectedColorPreset {
-            return selectedPreset.color(for: colorScheme)
+            return selectedPreset
         } else if let selectedTheme = selectedGoalTheme {
-            return selectedTheme.themePreset.color(for: colorScheme)
+            return selectedTheme.theme
         } else if let template = selectedTemplate,
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
-            let matchedTheme = matchTheme(named: category.color)
-            return matchedTheme.color(for: colorScheme)
+            return matchTheme(named: category.color)
         }
-        return .accentColor
+        return nil
+    }
+    
+    func activeThemeColor(for colorScheme: ColorScheme) -> Color {
+        activeThemePreset?.color(for: colorScheme) ?? .accentColor
     }
     
     func buttonTextColor(for colorScheme: ColorScheme) -> Color {
@@ -505,8 +508,9 @@ class GoalEditorViewModel {
         
         let categoryName = category.name
         
-        // Create GoalTheme based on category's color
+        // Create GoalTheme based on the category color
         let matchedTheme = matchTheme(named: category.color)
+        selectedColorPreset = matchedTheme
         
         // Check if a tag with the category name already exists in the database
         let existingTag = allTags.first(where: { $0.title == categoryName })
@@ -561,7 +565,6 @@ class GoalEditorViewModel {
         print("   Daily Minutes: \(dailyMinutes) min per day")
         print("   Goal Type: \(selectedGoalType)")
         print("   Primary Target: \(primaryMetricTarget)")
-        print("   Theme: \(template.theme)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
     }
     
@@ -1060,7 +1063,7 @@ class GoalEditorViewModel {
         if let selectedPreset = selectedColorPreset {
             return selectedPreset.color(for: colorScheme)
         } else if let selectedTheme = selectedGoalTheme {
-            return selectedTheme.themePreset.color(for: colorScheme)
+            return selectedTheme.theme.color(for: colorScheme)
         } else if let template = selectedTemplate,
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             let matchedTheme = matchTheme(named: category.color)

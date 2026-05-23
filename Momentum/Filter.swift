@@ -74,7 +74,7 @@ extension ContentView {
             }
         }
         
-        var tintColor: Color {
+        func tintColor(for colorScheme: ColorScheme) -> Color {
             switch self {
             case .activeToday:
                 return .blue
@@ -85,7 +85,7 @@ extension ContentView {
             case .inactive:
                 return .gray
             case .theme(let tag):
-                return tag.theme.dark
+                return tag.theme.color(for: colorScheme)
             }
         }
         

@@ -17,22 +17,20 @@ struct SessionRowView: View {
     @Environment(\.sessionActions) private var sessionActions
     
     private var tintColor: Color {
-        session.themeDark
+        session.themeColor(for: colorScheme)
     }
     
     private var textForegroundColor: Color {
         if isRecommended {
             return session.themeTextColor(for: colorScheme)
-        } else if colorScheme == .dark {
-            return session.themeNeon
         } else {
-            return session.themeDark
+            return session.themeColor(for: colorScheme)
         }
     }
     
     private var rowBackground: Color {
         if colorScheme == .dark {
-            return session.themeLight.opacity(0.03)
+            return session.themeColors(for: colorScheme).first!.opacity(0.03)
         } else {
             return Color(.systemBackground)
         }
@@ -115,7 +113,7 @@ struct SessionRowView: View {
                         
                         Spacer()
                     }
-                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
+                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                 }
                 
                 Spacer()
@@ -139,7 +137,7 @@ struct SessionRowView: View {
                             }
                             .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
                         }
-                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                     } else {
                         // Read-only HealthKit metric: Show sync button
                         Button {
@@ -151,7 +149,7 @@ struct SessionRowView: View {
                                 .animation(sessionActions.isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: sessionActions.isSyncingHealthKit)
                         }
                         .accessibilityLabel(sessionActions.isSyncingHealthKit ? "Syncing health data" : "Sync health data")
-                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                         .disabled(sessionActions.isSyncingHealthKit)
                     }
                 } else {
@@ -173,7 +171,7 @@ struct SessionRowView: View {
                         }
                     }
                     .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
-                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient) : AnyShapeStyle(textForegroundColor))
+                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.themeGradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                 }
             }
             .buttonStyle(.plain)

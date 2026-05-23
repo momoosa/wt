@@ -539,16 +539,16 @@ extension ToggleTimerIntent {
         
         // Create activity attributes
         let primaryTag = session.goal?.primaryTag
-        let theme = primaryTag?.theme ?? themePresets[0]
+        let theme = primaryTag?.theme ?? defaultThemePreset
         
         let attributes = MomentumWidgetAttributes(
             sessionID: sessionID,
             dayID: dayID,
             goalTitle: session.title,
             dailyTarget: session.unifiedTargetValue,
-            themeLight: "#\(theme.light.toHex() ?? "007AFF")",
-            themeDark: "#\(theme.dark.toHex() ?? "0051D5")",
-            themeNeon: "#\(theme.neon.toHex() ?? "00D4FF")"
+            themeLight: "#\((theme.lightColors.first ?? .gray).toHex() ?? "007AFF")",
+            themeDark: "#\((theme.darkColors.last ?? .gray).toHex() ?? "0051D5")",
+            themeNeon: "#\((theme.darkColors.first ?? .gray).toHex() ?? "00D4FF")"
         )
         
         let contentState = MomentumWidgetAttributes.ContentState(

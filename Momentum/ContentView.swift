@@ -253,7 +253,7 @@ struct ContentView: View {
                             )
                         }
                     )
-                    .tint(session.themeDark)
+                    .tint(session.themeColor(for: colorScheme))
                     .environment(goalStore)
                 }
             }

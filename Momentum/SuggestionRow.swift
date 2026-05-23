@@ -14,27 +14,11 @@ import MomentumKit
 struct SuggestionRow: View {
     let suggestion: GoalTemplateSuggestion
     let isSelected: Bool
-    let categoryColor: Color
+    let themePreset: ThemePreset
+    @Environment(\.colorScheme) private var colorScheme
     
-    // Calculate text colors based on luminance
-    private var iconAndTextColor: Color {
-        if isSelected {
-            let luminance = categoryColor.luminance ?? 0.5
-            return luminance > 0.5 ? .black : .white
-        } else {
-            return .primary
-        }
-    }
-    
-    private var durationBadgeTextColor: Color {
-        if isSelected {
-            // When selected, badge background is white, so use black text
-            return .black
-        } else {
-            // When not selected, badge background is categoryColor
-            let luminance = categoryColor.luminance ?? 0.5
-            return luminance > 0.5 ? .black : .white
-        }
+    private var textColor: Color {
+        isSelected ? themePreset.foregroundColor(for: colorScheme) : .primary
     }
     
     var body: some View {
@@ -42,18 +26,18 @@ struct SuggestionRow: View {
             // Icon
             Image(systemName: suggestion.icon)
                 .font(.system(size: 32))
-                .foregroundStyle(isSelected ? iconAndTextColor : categoryColor)
+                .foregroundStyle(isSelected ? textColor : themePreset.color(for: colorScheme))
                 .frame(width: 50)
             
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(suggestion.title)
                     .font(.headline)
-                    .foregroundStyle(iconAndTextColor)
+                    .foregroundStyle(textColor)
                 
                 Text(suggestion.subtitle)
                     .font(.caption)
-                    .foregroundStyle(isSelected ? iconAndTextColor.opacity(0.9) : .secondary)
+                    .foregroundStyle(isSelected ? textColor.opacity(0.9) : .secondary)
                     .lineLimit(2)
             }
             
@@ -63,11 +47,7 @@ struct SuggestionRow: View {
         .padding(.horizontal, 16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isSelected ? categoryColor : Color(.systemGray6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(isSelected ? categoryColor : Color.clear, lineWidth: 2)
+                .fill(isSelected ? AnyShapeStyle(themePreset.gradient(for: colorScheme)) : AnyShapeStyle(Color(.systemGray6)))
         )
         .scaleEffect(isSelected ? 1.02 : 1.0)
     }

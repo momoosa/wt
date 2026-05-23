@@ -32,18 +32,24 @@ struct ThemePreviewView: View {
                     selectedThemeIndex = index
                 } label: {
                     HStack {
-                        // Color preview
+                        // Gradient preview
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(theme.gradient)
+                            .fill(theme.gradient(for: .dark))
                             .frame(width: 40, height: 40)
                         
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(theme.title)
                                 .font(.headline)
-                            HStack(spacing: 4) {
-                                Circle().fill(theme.light).frame(width: 12, height: 12)
-                                Circle().fill(theme.dark).frame(width: 12, height: 12)
-                                Circle().fill(theme.neon).frame(width: 12, height: 12)
+                            HStack(spacing: 3) {
+                                ForEach(Array(theme.darkColors.enumerated()), id: \.offset) { _, color in
+                                    Circle().fill(color).frame(width: 10, height: 10)
+                                }
+                                Rectangle()
+                                    .fill(.secondary.opacity(0.3))
+                                    .frame(width: 1, height: 10)
+                                ForEach(Array(theme.lightColors.enumerated()), id: \.offset) { _, color in
+                                    Circle().fill(color).frame(width: 10, height: 10)
+                                }
                             }
                         }
                         
@@ -192,15 +198,129 @@ struct ThemeDetailView: View {
         ScrollView {
             VStack(spacing: 32) {
                 // Header
-                VStack(spacing: 8) {
+                VStack(spacing: 16) {
                     Text(theme.title)
                         .font(.largeTitle)
                         .bold()
                     
-                    HStack(spacing: 16) {
-                        ColorSwatch(color: theme.light, label: "Light")
-                        ColorSwatch(color: theme.dark, label: "Dark")
-                        ColorSwatch(color: theme.neon, label: "Neon")
+                    // Dark palette gradient
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Dark Colors (\(theme.darkColors.count))")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(theme.gradient(for: .dark))
+                            .frame(height: 50)
+                            .overlay {
+                                HStack(spacing: 0) {
+                                    ForEach(Array(theme.darkColors.enumerated()), id: \.offset) { _, color in
+                                        color
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    }
+                                }
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .opacity(0.5)
+                            }
+                            .overlay(alignment: .bottom) {
+                                HStack(spacing: 0) {
+                                    ForEach(Array(theme.darkColors.enumerated()), id: \.offset) { i, _ in
+                                        Text("\(i)")
+                                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                            .foregroundStyle(.white)
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                }
+                                .padding(.bottom, 4)
+                            }
+                        
+                        // Individual dark color swatches
+                        HStack(spacing: 6) {
+                            ForEach(Array(theme.darkColors.enumerated()), id: \.offset) { i, color in
+                                ColorSwatch(color: color, label: i == 0 ? "Neon" : (i == theme.darkColors.count - 1 ? "Dark" : "\(i)"))
+                            }
+                        }
+                    }
+                    
+                    // Light palette gradient
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Light Colors (\(theme.lightColors.count))")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(theme.gradient(for: .light))
+                            .frame(height: 50)
+                            .overlay {
+                                HStack(spacing: 0) {
+                                    ForEach(Array(theme.lightColors.enumerated()), id: \.offset) { _, color in
+                                        color
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    }
+                                }
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .opacity(0.5)
+                            }
+                            .overlay(alignment: .bottom) {
+                                HStack(spacing: 0) {
+                                    ForEach(Array(theme.lightColors.enumerated()), id: \.offset) { i, _ in
+                                        Text("\(i)")
+                                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                            .foregroundStyle(.black)
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                }
+                                .padding(.bottom, 4)
+                            }
+                        
+                        // Individual light color swatches
+                        HStack(spacing: 6) {
+                            ForEach(Array(theme.lightColors.enumerated()), id: \.offset) { i, color in
+                                ColorSwatch(color: color, label: i == 0 ? "Light" : "\(i)")
+                            }
+                        }
+                    }
+                    
+                    // Foreground colors
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Foreground Colors")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        
+                        HStack(spacing: 16) {
+                            // Light foreground on dark gradient
+                            VStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(theme.gradient(for: .dark))
+                                    .frame(width: 100, height: 36)
+                                    .overlay {
+                                        Text("Abc")
+                                            .font(.headline)
+                                            .foregroundStyle(theme.foregroundColor(for: .dark))
+                                    }
+                                Text("FG Dark")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            // Light foreground on light gradient
+                            VStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(theme.gradient(for: .light))
+                                    .frame(width: 100, height: 36)
+                                    .overlay {
+                                        Text("Abc")
+                                            .font(.headline)
+                                            .foregroundStyle(theme.foregroundColor(for: .light))
+                                    }
+                                Text("FG Light")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
                 .padding()
@@ -255,7 +375,7 @@ struct ThemeDetailView: View {
                                     sessionToLogManually: $sessionToLogManually,
                                 )
                                 .background(
-                                    session.themePreset.gradient
+                                    session.theme.gradient(for: .light)
                                         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
                                 )
                                 .environment(\.colorScheme, .light)
@@ -277,7 +397,7 @@ struct ThemeDetailView: View {
                                 )
                                 .background(
                                     RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                        .stroke(session.themePreset.gradient, lineWidth: 5)
+                                        .stroke(session.theme.gradient(for: .light), lineWidth: 5)
                                         .background(
                                             Color(.systemBackground)
                                                 .opacity(0.5)
@@ -303,7 +423,7 @@ struct ThemeDetailView: View {
 
                                 )
                                 .background(
-                                    session.themePreset.gradient
+                                    session.theme.gradient(for: .dark)
                                         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
                                 )
                                 .environment(\.colorScheme, .dark)
@@ -326,7 +446,7 @@ struct ThemeDetailView: View {
                                 )
                                 .background(
                                     RoundedRectangle(cornerRadius: 25, style: .continuous)
-                                        .stroke(session.themePreset.gradient, lineWidth: 5)
+                                        .stroke(session.theme.gradient(for: .dark), lineWidth: 5)
                                         .background(
                                             Color(.systemBackground)
                                                 .opacity(0.5)
@@ -509,7 +629,7 @@ struct GoalDetailPreview: View {
             // Hero header
             VStack(spacing: 12) {
                 Circle()
-                    .fill(theme.gradient)
+                    .fill(theme.gradient(for: colorScheme))
                     .frame(width: 80, height: 80)
                     .overlay {
                         Image(systemName: "book.fill")
@@ -527,7 +647,7 @@ struct GoalDetailPreview: View {
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(theme.gradient.opacity(0.1))
+            .background(theme.gradient(for: colorScheme).opacity(0.1))
             
             // Stats grid
             HStack(spacing: 12) {
@@ -548,13 +668,14 @@ struct StatCard: View {
     let theme: ThemePreset
     let value: String
     let label: String
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.title3)
                 .bold()
-                .foregroundStyle(theme.gradient)
+                .foregroundStyle(theme.gradient(for: colorScheme))
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -646,7 +767,7 @@ struct ComponentGroupedView: View {
                         sessionToLogManually: $sessionToLogManually
                     )
                     .background(
-                        session.themePreset.gradient
+                        session.theme.gradient(for: .light)
                             .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
                     )
                 }
@@ -667,7 +788,7 @@ struct ComponentGroupedView: View {
                         sessionToLogManually: $sessionToLogManually
                     )
                     .background(
-                        session.themePreset.gradient
+                        session.theme.gradient(for: .dark)
                             .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
                     )
                 }

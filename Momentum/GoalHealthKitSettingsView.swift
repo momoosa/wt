@@ -12,6 +12,7 @@ import MomentumKit
 struct GoalHealthKitSettingsView: View {
     @Bindable var goal: Goal
     @State private var healthKitManager = HealthKitManager()
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Form {
@@ -50,7 +51,7 @@ struct GoalHealthKitSettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: metric.symbolName)
-                                    .foregroundStyle(goal.primaryTag?.theme.dark ?? themePresets[0].dark)
+                                    .foregroundStyle(goal.primaryTag?.theme.color(for: colorScheme) ?? defaultThemePreset.color(for: colorScheme))
                                 Text(metric.description)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)

@@ -6,6 +6,7 @@ import MomentumKit
 /// Shows both deterministic and AI recommendations in a unified interface
 struct ConsolidatedTodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query private var allGoals: [Goal]
     
     private var activeGoals: [Goal] {
@@ -239,7 +240,7 @@ struct ConsolidatedTodayView: View {
     }
     
     private func goalCard(_ goal: Goal) -> some View {
-        let themePreset = goal.primaryTag?.themePreset ?? themePresets[0]
+        let themePreset = goal.primaryTag?.theme ?? defaultThemePreset
         let weeklyProgress = calculateWeeklyProgress(for: goal)
         
         return VStack(alignment: .leading, spacing: 12) {
@@ -285,7 +286,7 @@ struct ConsolidatedTodayView: View {
                         .frame(height: 8)
                     
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(themePreset.gradient)
+                        .fill(themePreset.gradient(for: colorScheme))
                         .frame(width: geometry.size.width * min(weeklyProgress, 1.0), height: 8)
                 }
             }
@@ -478,12 +479,12 @@ struct ConsolidatedTodayView: View {
     // MARK: - Helper Methods
     
     private func recommendationRow(goal: Goal, duration: TimeInterval?, reason: String) -> some View {
-        let themePreset = goal.primaryTag?.themePreset ?? themePresets[0]
+        let themePreset = goal.primaryTag?.theme ?? defaultThemePreset
         
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Circle()
-                    .fill(themePreset.gradient)
+                    .fill(themePreset.gradient(for: colorScheme))
                     .frame(width: 12, height: 12)
                 
                 VStack(alignment: .leading, spacing: 4) {

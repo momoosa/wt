@@ -39,10 +39,12 @@ struct GoalEditorView: View {
         viewModel.getActiveThemeColor(colorScheme: colorScheme)
     }
     
-    /// Calculate appropriate text color for buttons based on background luminance
+    /// Calculate appropriate text color for buttons based on the active theme preset
     private var buttonTextColor: Color {
-        let luminance = activeThemeColor.luminance ?? 0.5
-        return luminance > 0.5 ? .black : .white
+        if let preset = viewModel.activeThemePreset {
+            return preset.foregroundColor(for: colorScheme)
+        }
+        return .white
     }
 
 
@@ -77,7 +79,13 @@ struct GoalEditorView: View {
     
     // Handle user input changes
     private func handleUserInputChange(_ newValue: String) {
-        // Clear selection if user is typing freeform
+        // If the input matches the already-selected template, nothing to do
+        if let selected = viewModel.selectedTemplate,
+           selected.title == newValue {
+            return
+        }
+        
+        // Clear selection since user is typing freeform
         if !newValue.isEmpty {
             viewModel.selectedTemplate = nil
         }
@@ -125,7 +133,6 @@ struct GoalEditorView: View {
                 viewModel: viewModel,
                 scrollProxy: $scrollProxy
             )
-            .animation(.spring(), value: viewModel.result)
         }
         
         if viewModel.currentStage == .duration {
@@ -191,11 +198,17 @@ struct GoalEditorView: View {
                                 handleButtonTap()
                             }) {
                                 Text("Next")
+                                    .foregroundStyle(viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .primary)
+
+                                    .fontWeight(.semibold)
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background {
-                                        Capsule()
-                                            .fill(buttonEnabled ? activeThemeColor : Color.gray)
+                                        if buttonEnabled, let preset = viewModel.activeThemePreset {
+                                            Capsule().fill(preset.gradient(for: colorScheme))
+                                        } else {
+                                            Capsule().fill(Color.gray)
+                                        }
                                     }
                                     .foregroundStyle(buttonEnabled ? buttonTextColor : .white)
                             }
@@ -209,8 +222,11 @@ struct GoalEditorView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .background {
-                                        Capsule()
-                                            .fill(buttonEnabled ? activeThemeColor : Color.gray)
+                                        if buttonEnabled, let preset = viewModel.activeThemePreset {
+                                            Capsule().fill(preset.gradient(for: colorScheme))
+                                        } else {
+                                            Capsule().fill(Color.gray)
+                                        }
                                     }
                                     .foregroundStyle(buttonEnabled ? buttonTextColor : .white)
                             }

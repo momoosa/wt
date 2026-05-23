@@ -55,17 +55,11 @@ struct GoalSessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var tintColor: Color {
-        let theme = session.theme
-        return colorScheme == .dark ? theme.light : theme.dark
+        session.theme.color(for: colorScheme)
     }
     
     var chartGradient: LinearGradient {
-        let theme = session.theme
-        return LinearGradient(
-            colors: [theme.dark, theme.neon],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        session.theme.gradient(for: colorScheme)
     }
     
     // Schedule data for chart
@@ -417,11 +411,7 @@ struct GoalSessionDetailView: View {
                 
                 // Gradient with mask
                 HStack(spacing: 6) {
-                    LinearGradient(
-                        colors: [theme.dark, theme.neon],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    theme.gradient(for: colorScheme)
                     .mask {
                         VStack(spacing: 2) {
                             ForEach(times, id: \.self) { time in
@@ -474,8 +464,25 @@ struct GoalSessionDetailView: View {
     }
     
     var weeklyElapsedTime: TimeInterval {
-        // Placeholder - would need to sum all sessions in the week
-        return session.elapsedTime
+        let thisWeekMinutes = weeklyProgressData
+            .filter { $0.week == "This Week" }
+            .reduce(0.0) { $0 + $1.minutes }
+        return thisWeekMinutes * 60
+    }
+    
+    var weeklyDeltaMinutes: Double {
+        let thisWeek = weeklyProgressData.filter { $0.week == "This Week" }.reduce(0.0) { $0 + $1.minutes }
+        let lastWeek = weeklyProgressData.filter { $0.week == "Last Week" }.reduce(0.0) { $0 + $1.minutes }
+        return thisWeek - lastWeek
+    }
+    
+    var thisWeekDailyMinutes: [Double] {
+        let data = weeklyProgressData.filter { $0.week == "This Week" }
+        // Ensure we return exactly 7 values in Mon-Sun order
+        guard data.count == 7 else {
+            return Array(repeating: 0, count: 7)
+        }
+        return data.map { $0.minutes }
     }
     
     /// Calculates the total amount of overlapping time in minutes
@@ -825,7 +832,7 @@ struct GoalSessionDetailView: View {
                         .foregroundStyle(Color(.systemBackground))
                         .padding(4)
                         .frame(minWidth: 20)
-                        .background(Capsule().fill(session.theme.dark))
+                        .background(Capsule().fill(session.theme.color(for: colorScheme)))
                     Spacer()
                     Button {
                         isCreatingNewHistoricalSession = true
@@ -946,7 +953,7 @@ struct GoalSessionDetailView: View {
             // listsSection // Disabled for now
         }
         
-        let backgroundColor = session.theme.dark.opacity(0.1)
+        let backgroundColor = session.theme.color(for: colorScheme).opacity(0.1)
         
         return list
         .scrollContentBackground(.hidden)

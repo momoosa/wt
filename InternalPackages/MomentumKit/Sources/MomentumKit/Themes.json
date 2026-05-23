@@ -175,22 +175,7 @@
     "darkForegroundColor": "#ffffff",
     "lightForegroundColor": "#4a2200"
   },
-  {
-    "id": "palette_11",
-    "title": "Sunrise",
-    "darkColors": [
-      "#ffd988",
-      "#ffb047",
-      "#ff7a2d"
-    ],
-    "lightColors": [
-      "#ffe7a8",
-      "#ffc773",
-      "#ff9d5c"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#4a2a0e"
-  },
+
   {
     "id": "palette_20",
     "title": "Sand",
@@ -239,38 +224,8 @@
     "darkForegroundColor": "#ffffff",
     "lightForegroundColor": "#3f361b"
   },
-  {
-    "id": "yellow",
-    "title": "Yellow",
-    "darkColors": [
-      "#ffff33",
-      "#ecd229",
-      "#daa520"
-    ],
-    "lightColors": [
-      "#fffacd",
-      "#fffc9f",
-      "#fffd71"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#3f2e03"
-  },
-  {
-    "id": "lemon",
-    "title": "Lemon",
-    "darkColors": [
-      "#ffff66",
-      "#fff95a",
-      "#fff44f"
-    ],
-    "lightColors": [
-      "#fffacd",
-      "#fffcae",
-      "#fffd8f"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#3f3c0f"
-  },
+
+
   {
     "id": "straw",
     "title": "Straw",
@@ -384,6 +339,20 @@
     "lightForegroundColor": "#153f23"
   },
   {
+    "id": "lime",
+    "title": "Lime",
+    "darkColors": [
+      "#D5FF00",
+      "#90FF31",
+    ],
+    "lightColors": [
+        "#D5FF00",
+        "#90FF31",
+    ],
+    "darkForegroundColor": "#000000",
+    "lightForegroundColor": "#000000"
+  },
+  {
     "id": "palette_10",
     "title": "Done",
     "darkColors": [
@@ -448,38 +417,6 @@
     "lightForegroundColor": "#16402f"
   },
   {
-    "id": "mint_dc",
-    "title": "Mint (DC)",
-    "darkColors": [
-      "#7fd6c8",
-      "#499390",
-      "#135058"
-    ],
-    "lightColors": [
-      "#c2ebe2",
-      "#aee5da",
-      "#9aded2"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#08393f"
-  },
-  {
-    "id": "cyan",
-    "title": "Cyan",
-    "darkColors": [
-      "#00ffff",
-      "#00c5c5",
-      "#008b8b"
-    ],
-    "lightColors": [
-      "#b2ffff",
-      "#7dffff",
-      "#47ffff"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#003f3f"
-  },
-  {
     "id": "seaFoam_dc",
     "title": "Seafoam (DC)",
     "darkColors": [
@@ -494,6 +431,20 @@
     ],
     "darkForegroundColor": "#ffffff",
     "lightForegroundColor": "#052c3f"
+  },
+  {
+    "id": "bright_blue",
+    "title": "Bright Blue",
+    "darkColors": [
+        "#00EFFF",
+        "#00D4FF"
+    ],
+    "lightColors": [
+        "#00EFFF",
+        "#00D4FF"
+    ],
+    "darkForegroundColor": "#000",
+    "lightForegroundColor": "#002c54"
   },
   {
     "id": "blue",
@@ -575,22 +526,7 @@
     "darkForegroundColor": "#ffffff",
     "lightForegroundColor": "#1a2a52"
   },
-  {
-    "id": "navy",
-    "title": "Navy",
-    "darkColors": [
-      "#4169e1",
-      "#2034b0",
-      "#000080"
-    ],
-    "lightColors": [
-      "#d6e5f5",
-      "#a9c0ef",
-      "#7d9be9"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#00003f"
-  },
+
   {
     "id": "blueAndPastelPink",
     "title": "Blue & Pastel Pink",
@@ -671,37 +607,20 @@
     "darkForegroundColor": "#ffffff",
     "lightForegroundColor": "#24003f"
   },
-  {
-    "id": "violet",
-    "title": "Violet",
-    "darkColors": [
-      "#bf00ff",
-      "#a500ff",
-      "#8b00ff"
-    ],
-    "lightColors": [
-      "#e8d5ff",
-      "#dc95ff",
-      "#cf55ff"
-    ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#22003f"
-  },
+
   {
     "id": "magenta",
     "title": "Magenta",
     "darkColors": [
-      "#ff66ff",
-      "#ff33ff",
-      "#ff00ff"
+      "#FF53C9",
+      "#FF52E4"
     ],
     "lightColors": [
-      "#ffe6ff",
-      "#ffc0ff",
-      "#ff99ff"
+        "#FF53C9",
+        "#FF52E4"
     ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#3f003f"
+    "darkForegroundColor": "#000",
+    "lightForegroundColor": "#ffffff"
   },
   {
     "id": "plum",
@@ -910,5 +829,19 @@
     ],
     "darkForegroundColor": "#ffffff",
     "lightForegroundColor": "#3a353f"
+  },
+  {
+    "id": "b_w",
+    "title": "B&W",
+    "darkColors": [
+        "#ffffff",
+        "#fefefef"
+    ],
+    "lightColors": [
+        "#000000",
+        "#010101"
+    ],
+    "darkForegroundColor": "#000000",
+    "lightForegroundColor": "#ffffff"
   }
 ]

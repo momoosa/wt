@@ -25,29 +25,12 @@ struct GoalCategory: Codable, Identifiable {
     let color: String
     let suggestions: [GoalTemplateSuggestion]
     
-    var colorValue: Color {
-        // Look up the theme preset by matching the color name
-        // This ensures we use the same shade as the theme system
-        let normalizedColor = color.lowercased()
-        
-        if let preset = themePresets.first(where: { $0.title.lowercased() == normalizedColor }) {
-            // Use the neon color for the bright, selected state
-            return preset.neon
-        }
-        
-        // Fallback to system colors if no theme preset matches
-        switch normalizedColor {
-        case "red": return .red
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green": return .green
-        case "blue": return .blue
-        case "purple": return .purple
-        case "indigo": return .indigo
-        case "pink": return .pink
-        case "teal": return .teal
-        default: return .blue
-        }
+    var themePreset: ThemePreset {
+        themePresets.first(where: { $0.id == color }) ?? defaultThemePreset
+    }
+    
+    func colorValue(for scheme: ColorScheme) -> Color {
+        themePreset.color(for: scheme)
     }
 }
 
@@ -59,7 +42,6 @@ struct GoalTemplateSuggestion: Codable, Identifiable {
     let subtitle: String
     let duration: Int // in minutes
     let dailyGoal: Bool? // true = distribute across all 7 days, false/nil = weekdays only (Mon-Fri)
-    let theme: String? // Deprecated: now uses category color instead
     let healthKitMetric: String? // raw value of HealthKitMetric or null
     let icon: String
     let goalType: String? // "time", "count", or "calories" - optional for backward compatibility

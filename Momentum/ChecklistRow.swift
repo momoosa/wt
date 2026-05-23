@@ -10,11 +10,12 @@ import MomentumKit
 
 struct ChecklistRow: View {
     @Environment(\.editMode) var editMode
+    @Environment(\.colorScheme) private var colorScheme
     @Bindable var item: ChecklistItemSession
     @State private var showingNotes = false
     
     var body: some View {
-        let color = item.session?.theme.dark ?? themePresets[0].dark
+        let color = item.session?.theme.color(for: colorScheme) ?? defaultThemePreset.color(for: colorScheme)
         
         return VStack(alignment: .leading, spacing: 4) {
             HStack {

@@ -88,7 +88,7 @@ struct ProgressSummaryCardWrapper: View {
     
     var tintColor: Color {
         let theme = session.theme
-        return colorScheme == .dark ? theme.neon : theme.dark
+        return theme.color(for: colorScheme)
     }
 
     var body: some View {
@@ -329,15 +329,7 @@ struct ProgressSummaryCard: View {
                     }
                 }
                 .background {
-                    LinearGradient(
-                                   colors: [
-               //                        themeColors.light,
-                                       themeColors.neon,
-                                       themeColors.dark
-                                   ],
-                                   startPoint: .topLeading,
-                                   endPoint: .bottomTrailing
-                               )
+                    themeColors.gradient(for: colorScheme)
                
                                
                 }
@@ -347,7 +339,7 @@ struct ProgressSummaryCard: View {
                 ))
             }
             
-            .glassCardStyle(shadowColor: themeColors.neon)
+            .glassCardStyle(shadowColor: themeColors.color(for: colorScheme))
             #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
                 // Add subtle animation when device orientation changes

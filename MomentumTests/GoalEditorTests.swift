@@ -98,7 +98,7 @@ struct GoalEditorTests {
         let theme = helper.matchTheme(named: "UnknownCategory123")
         
         // Should return a valid theme (fallback to first theme)
-        #expect(theme.id == themePresets[0].id)
+        #expect(theme.id == defaultThemePreset.id)
     }
     
     @Test("matchTheme handles partial matches")

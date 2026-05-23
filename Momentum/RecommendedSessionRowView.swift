@@ -14,7 +14,7 @@ struct RecommendedSessionRowView: View {
     @AppStorage("useGradientOutline") private var useGradientOutline: Bool = false
     
     var body: some View {
-        let themePreset = session.themePreset
+        let themePreset = session.theme
         let useOutline = useGradientOutline && colorScheme == .dark
         
         return VStack(alignment: .leading, spacing: 12) {
@@ -69,7 +69,7 @@ struct RecommendedSessionRowView: View {
                 if useOutline {
                     // Gradient outline style
                     RoundedRectangle(cornerRadius: 25, style: .continuous)
-                        .stroke(themePreset.gradient, lineWidth: 5)
+                        .stroke(themePreset.gradient(for: colorScheme), lineWidth: 5)
                         .background(
                             Color(.systemBackground)
                                 .opacity(0.5)
@@ -77,7 +77,7 @@ struct RecommendedSessionRowView: View {
                         )
                 } else {
                     // Filled gradient style
-                    themePreset.gradient
+                    themePreset.gradient(for: colorScheme)
                         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
                 }
             }

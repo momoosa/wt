@@ -39,16 +39,19 @@ struct GoalDetailView: View {
     }
     
     private var tintColor: Color {
-        goal.primaryTag?.themePreset.color(for: colorScheme) ?? .blue
+        goal.primaryTag?.theme.color(for: colorScheme) ?? .blue
+    }
+    
+    private var themePreset: ThemePreset {
+        goal.primaryTag?.theme ?? defaultThemePreset
     }
     
     private var chartGradient: LinearGradient {
-        let theme = goal.primaryTag?.theme ?? themePresets[0]
-        return LinearGradient(
-            colors: [theme.dark, theme.neon],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        themePreset.gradient(for: colorScheme)
+    }
+    
+    private var textColor: Color {
+        themePreset.foregroundColor(for: colorScheme)
     }
     
     var body: some View {
@@ -175,67 +178,40 @@ struct GoalDetailView: View {
     // MARK: - Overview Card
     
     private var overviewCard: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Top row: label + delta
             HStack {
-                // Icon
-                if let iconName = goal.iconName {
-                    Image(systemName: iconName)
-                        .font(.system(size: 40))
-                        .foregroundStyle(chartGradient)
-                }
+                Text("TOTAL FOCUSED")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .tracking(1)
+                    .foregroundStyle(textColor.opacity(0.8))
                 
                 Spacer()
                 
-                // Weekly Progress Ring
-                ZStack {
-                    Circle()
-                        .stroke(tintColor.opacity(0.2), lineWidth: 8)
-                    
-                    Circle()
-                        .trim(from: 0, to: weeklyProgress)
-                        .stroke(chartGradient, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                    
-                    VStack(spacing: 2) {
-                        Text("\(Int(weeklyProgress * 100))%")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("this week")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                if weeklyDeltaMinutes != 0 {
+                    let deltaSeconds = abs(weeklyDeltaMinutes) * 60
+                    Text("\(weeklyDeltaMinutes > 0 ? "↑" : "↓") \(TimeInterval(deltaSeconds).formatted(style: .hourMinute))")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(textColor.opacity(0.9))
                 }
-                .frame(width: 100, height: 100)
             }
             
-            Divider()
+            // Big time display
+            Text(TimeInterval(Double(weeklyElapsedMinutes) * 60).formatted(style: .hourMinute))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundStyle(textColor)
             
-            // Stats Row
-            HStack(spacing: 0) {
-                statItem(title: "Target", value: "\(Int(goal.unifiedWeeklyTarget / 60))m")
-                Divider()
-                statItem(title: "Completed", value: "\(weeklyElapsedMinutes)m")
-                Divider()
-                statItem(title: "Remaining", value: "\(max(0, Int(goal.unifiedWeeklyTarget / 60) - weeklyElapsedMinutes))m")
-            }
-            .frame(height: 60)
+            // Weekly bar chart
+            WeeklyBarChart(dailyMinutes: thisWeekDailyMinutes, barColor: textColor)
         }
         .padding()
-        .background(tintColor.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding()
-    }
-    
-    private func statItem(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.headline)
-                .foregroundStyle(tintColor)
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        .background {
+            themePreset.gradient(for: colorScheme)
         }
-        .frame(maxWidth: .infinity)
+        .glassCardStyle(shadowColor: themePreset.color(for: colorScheme))
+        .padding(.horizontal)
     }
     
     // MARK: - Weekly Progress
@@ -246,25 +222,58 @@ struct GoalDetailView: View {
     }
     
     private var weeklyElapsedMinutes: Int {
+        thisWeekDailyMinutes.reduce(0) { $0 + Int($1) }
+    }
+    
+    /// Per-day minutes for the current week (7 values, Mon-Sun)
+    private var thisWeekDailyMinutes: [Double] {
         let calendar = Calendar.current
         let today = Date()
         guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) else {
-            return 0
+            return Array(repeating: 0, count: 7)
         }
         
-        var total: TimeInterval = 0
+        var daily: [Double] = []
         for dayOffset in 0..<7 {
-            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek) else { continue }
+            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek) else {
+                daily.append(0)
+                continue
+            }
             let dayID = date.yearMonthDayID(with: calendar)
             
             if let day = allDays.first(where: { $0.id == dayID }),
                let session = day.sessions?.first(where: { $0.goal?.id == goal.id }) {
-                // elapsedTime incorporates both manual sessions and healthKitTime
-                total += session.elapsedTime
+                daily.append(session.elapsedTime / 60)
+            } else {
+                daily.append(0)
+            }
+        }
+        return daily
+    }
+    
+    /// Delta in minutes between this week and last week totals
+    private var weeklyDeltaMinutes: Double {
+        let calendar = Calendar.current
+        let today = Date()
+        guard let thisWeekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)),
+              let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart) else {
+            return 0
+        }
+        
+        let thisWeekTotal = Double(weeklyElapsedMinutes)
+        
+        var lastWeekTotal: Double = 0
+        for dayOffset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: dayOffset, to: lastWeekStart) else { continue }
+            let dayID = date.yearMonthDayID(with: calendar)
+            
+            if let day = allDays.first(where: { $0.id == dayID }),
+               let session = day.sessions?.first(where: { $0.goal?.id == goal.id }) {
+                lastWeekTotal += session.elapsedTime / 60
             }
         }
         
-        return Int(total / 60)
+        return thisWeekTotal - lastWeekTotal
     }
     
     // MARK: - Chart
@@ -356,7 +365,7 @@ struct GoalDetailView: View {
             (5, "T"), (6, "F"), (7, "S"), (1, "S")
         ]
         let times = Array(TimeOfDay.allCases)
-        let theme = goal.primaryTag?.theme ?? themePresets[0]
+        let theme = goal.primaryTag?.theme ?? defaultThemePreset
         
         return VStack(spacing: 4) {
             // Header row
@@ -372,11 +381,7 @@ struct GoalDetailView: View {
             // Grid with gradient
             ZStack {
                 HStack(spacing: 6) {
-                    LinearGradient(
-                        colors: [theme.dark, theme.neon],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    theme.gradient(for: colorScheme)
                     .mask {
                         VStack(spacing: 2) {
                             ForEach(times, id: \.self) { time in
@@ -535,14 +540,14 @@ struct GoalDetailView: View {
                 ForEach(tags, id: \.themeID) { tag in
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(tag.themePreset.light)
+                            .fill(tag.theme.color(for: colorScheme))
                             .frame(width: 8, height: 8)
                         Text(tag.title)
                             .font(.subheadline)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(tag.themePreset.light.opacity(0.2))
+                    .background(tag.theme.color(for: colorScheme).opacity(0.2))
                     .clipShape(Capsule())
                 }
             }
@@ -607,3 +612,40 @@ struct GoalDetailView: View {
         }
     }
 }
+// MARK: - Weekly Bar Chart
+
+private struct WeeklyBarChart: View {
+    let dailyMinutes: [Double]  // 7 values, Mon-Sun
+    let barColor: Color
+    let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+    
+    var body: some View {
+        let maxMinutes = max(dailyMinutes.max() ?? 1, 1)
+        
+        HStack(alignment: .bottom, spacing: 8) {
+            ForEach(0..<7, id: \.self) { index in
+                let minutes = index < dailyMinutes.count ? dailyMinutes[index] : 0
+                let ratio = minutes / maxMinutes
+                
+                VStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(barColor.opacity(minutes > 0 ? 0.3 + (ratio * 0.7) : 0.15))
+                        .frame(height: max(barHeight(minutes, max: maxMinutes), 4))
+                    
+                    Text(dayLabels[index])
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(barColor.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 60)
+    }
+    
+    private func barHeight(_ value: Double, max maxValue: Double) -> CGFloat {
+        guard maxValue > 0, value > 0 else { return 4 }
+        return CGFloat(value / maxValue) * 48
+    }
+}
+

@@ -337,7 +337,7 @@ enum DebugGoals: String, CaseIterable, Identifiable {
         case .meditation: return resolveThemePreset(for: "palette_16")
         case .coding: return resolveThemePreset(for: "palette_19")
         case .music: return resolveThemePreset(for: "palette_04")
-        case .cooking: return resolveThemePreset(for: "palette_11")
+        case .cooking: return resolveThemePreset(for: "palette_04")
         case .learning: return resolveThemePreset(for: "palette_16")
         case .writing: return resolveThemePreset(for: "palette_03")
         }

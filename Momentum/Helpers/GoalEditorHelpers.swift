@@ -15,13 +15,18 @@ struct GoalEditorThemeHelper {
     func matchTheme(named themeName: String) -> ThemePreset {
         let normalizedThemeName = themeName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
+        // Direct ID match (e.g. "palette_06", "red", "mint")
+        if let idMatch = themePresets.first(where: { $0.id == normalizedThemeName }) {
+            return idMatch
+        }
+        
         let themeMapping: [String: String] = [
             "fitness": "palette_01",
             "wellness": "palette_05",
             "learning": "palette_02",
             "creative": "palette_04",
             "home": "palette_06",
-            "recreation": "palette_11",
+            "recreation": "palette_04",
             "productivity": "palette_03",
             "social": "palette_07"
         ]
@@ -71,7 +76,7 @@ struct GoalEditorThemeHelper {
             }
         }
         
-        return themePresets[0]
+        return defaultThemePreset
     }
     
     func findUnusedTheme(excluding goals: [Goal]) -> ThemePreset {
@@ -81,7 +86,7 @@ struct GoalEditorThemeHelper {
             return unusedPreset
         }
         
-        return (themePresets.randomElement() ?? themePresets[0])
+        return (themePresets.randomElement() ?? defaultThemePreset)
     }
 }
 

@@ -113,15 +113,11 @@ struct GoalRow: View {
 
 private extension Goal {
     func themeColor(for colorScheme: ColorScheme) -> Color {
-        primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
+        primaryTag?.theme.color(for: colorScheme) ?? defaultThemePreset.color(for: colorScheme)
     }
     
-    var themeNeon: Color {
-        primaryTag?.themePreset.neon ?? themePresets[0].neon
-    }
-    
-    var themeLight: Color {
-        primaryTag?.themePreset.light ?? themePresets[0].light
+    func themeColors(for scheme: ColorScheme) -> [Color] {
+        primaryTag?.theme.colors(for: scheme) ?? defaultThemePreset.colors(for: scheme)
     }
 }
 
@@ -225,9 +221,9 @@ struct SevenDayBarChart: View {
     
     private func barColor(for progress: TimeInterval) -> Color {
         if progress >= dailyTarget {
-            return goal.themeNeon
+            return goal.themeColor(for: colorScheme)
         } else if progress > 0 {
-            return goal.themeLight.opacity(0.6)
+            return goal.themeColor(for: colorScheme).opacity(0.6)
         } else {
             return Color(.systemGray5)
         }

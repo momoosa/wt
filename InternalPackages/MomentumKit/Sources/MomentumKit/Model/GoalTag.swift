@@ -27,10 +27,7 @@ public final class GoalTag {
         resolveThemePreset(for: themeID)
     }
     
-    // Alias for backward compatibility
-    public var themePreset: ThemePreset {
-        theme
-    }
+
     
     // Smart Triggers (optional - nil means no constraint)
     public var weatherConditions: [String]? // WeatherCondition raw values
@@ -484,7 +481,7 @@ public extension GoalTag {
             // Phone Calls
             GoalTag(
                 title: "Calls & Catchup",
-                themeID: "palette_11",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.afternoon, .evening],
                 locationTypes: [.anywhere]
             ),
@@ -494,14 +491,14 @@ public extension GoalTag {
             // Early Morning Routine
             GoalTag(
                 title: "Early Morning",
-                themeID: "palette_11",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.morning]
             ),
             
             // Midday Break
             GoalTag(
                 title: "Lunch Break",
-                themeID: "palette_11",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.midday]
             ),
             
@@ -533,7 +530,7 @@ public extension GoalTag {
             // Sunny Day Activities
             GoalTag(
                 title: "Sunny Day",
-                themeID: "palette_11",
+                themeID: "palette_04",
                 weatherConditions: [.clear],
                 locationTypes: [.outdoor],
                 requiresDaylight: true
@@ -577,7 +574,7 @@ public extension GoalTag {
             // Morning Pages
             GoalTag(
                 title: "Morning Journal",
-                themeID: "palette_11",
+                themeID: "palette_04",
                 timeOfDayPreferences: [.morning],
                 locationTypes: [.home]
             ),

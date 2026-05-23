@@ -84,42 +84,27 @@ import SwiftUI
 extension GoalSession {
     /// Get the goal's theme preset, or default preset if no theme is set
     public var theme: ThemePreset {
-        goal?.primaryTag?.theme ?? themePresets[0]
+        goal?.primaryTag?.theme ?? defaultThemePreset
     }
     
-    /// Alias for backward compatibility
-    public var themePreset: ThemePreset {
-        theme
+    /// Adaptive gradient for the given color scheme
+    public func themeGradient(for scheme: ColorScheme) -> LinearGradient {
+        theme.gradient(for: scheme)
     }
     
-    /// Get the theme's dark color, or gray if no theme is set
-    public var themeDark: Color {
-        goal?.primaryTag?.themePreset.dark ?? .gray
+    /// Color palette for the given color scheme
+    public func themeColors(for scheme: ColorScheme) -> [Color] {
+        theme.colors(for: scheme)
     }
     
-    /// Get the theme's neon color, or gray if no theme is set
-    public var themeNeon: Color {
-        goal?.primaryTag?.themePreset.neon ?? .gray
-    }
-    
-    /// Get the theme's light color, or gray if no theme is set
-    public var themeLight: Color {
-        goal?.primaryTag?.themePreset.light ?? .gray
-    }
-    
-    /// Get the theme's gradient, or default gradient if no theme is set
-    public var themeGradient: LinearGradient {
-        goal?.primaryTag?.themePreset.gradient ?? themePresets[0].gradient
-    }
-    
-    /// Get the theme's color for the current color scheme
+    /// Primary accent color for the given color scheme
     public func themeColor(for colorScheme: ColorScheme) -> Color {
-        goal?.primaryTag?.themePreset.color(for: colorScheme) ?? themePresets[0].color(for: colorScheme)
+        theme.color(for: colorScheme)
     }
     
-    /// Get the theme's text color for the current color scheme
+    /// Foreground/text color for the given color scheme
     public func themeTextColor(for colorScheme: ColorScheme) -> Color {
-        goal?.primaryTag?.theme.textColor(for: colorScheme) ?? .primary
+        theme.foregroundColor(for: colorScheme)
     }
 }
 

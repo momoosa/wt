@@ -2,6 +2,7 @@ import SwiftUI
 import MomentumKit
 
 struct ThemeSelectionSection: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Bindable var viewModel: GoalEditorViewModel
     let activeThemeColor: Color
 
@@ -19,8 +20,8 @@ struct ThemeSelectionSection: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            viewModel.selectedColorPreset?.neon ?? activeThemeColor,
-                                            viewModel.selectedColorPreset?.dark ?? activeThemeColor
+                                            viewModel.selectedColorPreset?.colors(for: colorScheme).first ?? activeThemeColor,
+                                            viewModel.selectedColorPreset?.colors(for: colorScheme).last ?? activeThemeColor
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -63,7 +64,7 @@ struct ThemeSelectionSection: View {
                 TagFlowLayout(spacing: 8) {
                     ForEach(viewModel.selectedTags, id: \.title) { goalTheme in
                         ThemeTagButton(
-                            goalTheme: goalTheme,
+                            tag: goalTheme,
                             isSelected: true,
                             action: {
                                 HapticFeedbackManager.trigger(.light)

@@ -14,6 +14,7 @@ import MomentumKit
 /// Protocol for weather data access — enables mocking for tests
 protocol WeatherProviding: AnyObject {
     var currentWeather: CurrentWeather? { get }
+    var hourlyForecast: [HourWeather] { get }
     var isLoading: Bool { get }
     var error: Error? { get }
     var weatherDisplayString: String { get }
@@ -23,6 +24,8 @@ protocol WeatherProviding: AnyObject {
     func matchesAnyCondition(_ conditions: [MomentumKit.WeatherCondition]) -> Bool
     func temperatureAbove(_ minimum: Double) -> Bool
     func temperatureBelow(_ maximum: Double) -> Bool
+    func forecastCondition(at date: Date) -> MomentumKit.WeatherCondition?
+    func forecastTemperature(at date: Date) -> Double?
 }
 
 /// Manages weather data fetching and caching using WeatherKit
@@ -34,6 +37,7 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
     private let locationManager = CLLocationManager()
     
     var currentWeather: CurrentWeather?
+    var hourlyForecast: [HourWeather] = []
     var currentLocation: CLLocation?
     var lastUpdate: Date?
     var isLoading = false
@@ -101,17 +105,21 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
         }
         
         do {
-            let weather = try await weatherService.weather(for: location)
+            let (current, hourly) = try await weatherService.weather(
+                for: location,
+                including: .current, .hourly
+            )
             await MainActor.run {
                 var transaction = Transaction()
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {
-                    self.currentWeather = weather.currentWeather
+                    self.currentWeather = current
+                    self.hourlyForecast = Array(hourly)
                     self.currentLocation = location
                     self.lastUpdate = Date()
                     self.isLoading = false
                 }
-                print("✅ WeatherKit: Successfully fetched weather data")
+                print("✅ WeatherKit: Fetched current + \(hourly.count)h forecast")
             }
         } catch {
             await MainActor.run {
@@ -122,7 +130,6 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
                     self.isLoading = false
                 }
                 
-                // Log detailed error information
                 print("❌ WeatherKit Error: \(error.localizedDescription)")
                 if let nsError = error as NSError? {
                     print("   Domain: \(nsError.domain)")
@@ -130,7 +137,6 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
                     print("   UserInfo: \(nsError.userInfo)")
                 }
                 
-                // Provide helpful troubleshooting info
                 #if targetEnvironment(simulator)
                 print("⚠️  Running on simulator - WeatherKit may not work properly")
                 print("   Try running on a physical device for better results")
@@ -210,6 +216,26 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
         return temp <= maximum
     }
     
+    // MARK: - Hourly Forecast Lookup
+    
+    /// Find the nearest hourly forecast entry for a given date
+    private func nearestForecast(for date: Date) -> HourWeather? {
+        hourlyForecast.min(by: {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        })
+    }
+    
+    /// Get the forecast weather condition at a specific time
+    func forecastCondition(at date: Date) -> MomentumKit.WeatherCondition? {
+        guard let hour = nearestForecast(for: date) else { return nil }
+        return mapToWeatherCondition(hour.condition)
+    }
+    
+    /// Get the forecast temperature (Celsius) at a specific time
+    func forecastTemperature(at date: Date) -> Double? {
+        nearestForecast(for: date)?.temperature.value
+    }
+    
     /// Check if goal's weather requirements are met
     func meetsGoalWeatherRequirements(_ goal: Goal) -> Bool {
         // Check tag weather conditions
@@ -233,24 +259,29 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
     // MARK: - Helper Methods
     
     private func mapToWeatherCondition(_ condition: WeatherKit.WeatherCondition) -> MomentumKit.WeatherCondition {
-        // Map WeatherKit conditions to our simplified enum
-        let conditionDescription = condition.description.lowercased()
-        
-        if conditionDescription.contains("clear") {
+        switch condition {
+        // Clear
+        case .clear, .hot:
             return .clear
-        } else if conditionDescription.contains("partly") || conditionDescription.contains("mostly clear") {
+        // Partly cloudy
+        case .mostlyClear, .partlyCloudy, .breezy, .windy, .sunShowers, .sunFlurries:
             return .partlyCloudy
-        } else if conditionDescription.contains("cloud") {
+        // Cloudy
+        case .cloudy, .mostlyCloudy, .blowingDust:
             return .cloudy
-        } else if conditionDescription.contains("rain") || conditionDescription.contains("drizzle") {
+        // Rainy
+        case .drizzle, .rain, .heavyRain, .freezingDrizzle, .freezingRain, .hail, .sleet, .wintryMix:
             return .rainy
-        } else if conditionDescription.contains("thunder") || conditionDescription.contains("storm") {
+        // Stormy
+        case .thunderstorms, .strongStorms, .isolatedThunderstorms, .scatteredThunderstorms, .hurricane, .tropicalStorm:
             return .stormy
-        } else if conditionDescription.contains("snow") || conditionDescription.contains("flurr") || conditionDescription.contains("blizzard") {
+        // Snowy
+        case .snow, .heavySnow, .flurries, .blizzard, .blowingSnow, .frigid:
             return .snowy
-        } else if conditionDescription.contains("fog") || conditionDescription.contains("haze") || conditionDescription.contains("smok") {
+        // Foggy
+        case .foggy, .haze, .smoky:
             return .foggy
-        } else {
+        @unknown default:
             return .clear
         }
     }
@@ -281,7 +312,7 @@ extension WeatherManager {
         
         switch condition {
         case .clear:
-            return ["palette_11", "palette_08", "palette_12", "palette_17"]
+            return ["palette_04", "palette_08", "palette_12", "palette_17"]
         case .partlyCloudy:
             return ["palette_17", "palette_03", "palette_10"]
         case .cloudy:

@@ -210,7 +210,7 @@ struct Provider: AppIntentTimelineProvider {
                 return RecommendedSession(
                     id: session.id,
                     title: session.title,
-                    theme: session.goal?.primaryTag?.theme ?? themePresets[0],
+                    theme: session.goal?.primaryTag?.theme ?? defaultThemePreset,
                     progress: session.progress,
                     formattedTime: session.formattedTime,
                     hasMetTarget: session.hasMetDailyTarget,
@@ -415,6 +415,7 @@ struct MediumWidgetView: View {
 
 struct MediumWidgetCell: View {
     let session: RecommendedSession
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack(spacing: 6) {
@@ -425,7 +426,7 @@ struct MediumWidgetCell: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-                        .foregroundStyle(session.theme.neon)
+                        .foregroundStyle(session.theme.color(for: colorScheme))
                     
                     HStack(spacing: 4) {
                         if session.isTimerActive {
@@ -460,14 +461,14 @@ struct MediumWidgetCell: View {
                 // Read-only HealthKit: Show pencil icon (opens app for manual entry)
                 Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
                     Image(systemName: "pencil.circle.fill")
-                        .foregroundStyle(session.theme.neon)
+                        .foregroundStyle(session.theme.color(for: colorScheme))
                 }
                 .opacity(0.6)
             } else {
                 // Regular or writable HealthKit: Show play/stop button
                 Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
                     Image(systemName: session.isTimerActive ? "stop.circle.fill" : "play.circle.fill")
-                        .foregroundStyle(session.theme.neon)
+                        .foregroundStyle(session.theme.color(for: colorScheme))
                 }
                 .buttonStyle(.plain)
             }
@@ -485,6 +486,7 @@ struct MediumWidgetCell: View {
 
 struct LargeWidgetView: View {
     let entry: Provider.Entry
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -503,7 +505,7 @@ struct LargeWidgetView: View {
                             Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
                                 ZStack {
                                     Circle()
-                                        .fill(session.isTimerActive ? session.theme.dark : session.theme.light)
+                                        .fill(session.theme.color(for: colorScheme))
                                         .frame(width: 44, height: 44)
                                     
                                     Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
@@ -558,10 +560,10 @@ struct LargeWidgetView: View {
                                 GeometryReader { geometry in
                                     ZStack(alignment: .leading) {
                                         Rectangle()
-                                            .fill(session.theme.light.opacity(0.2))
+                                            .fill(session.theme.color(for: colorScheme).opacity(0.2))
                                         
                                         Rectangle()
-                                            .fill(session.theme.light)
+                                            .fill(session.theme.color(for: colorScheme))
                                             .frame(width: geometry.size.width * session.progress)
                                     }
                                 }
@@ -571,7 +573,7 @@ struct LargeWidgetView: View {
                         }
                         }
                         .padding()
-                        .background(session.theme.light.opacity(0.1))
+                        .background(session.theme.color(for: colorScheme).opacity(0.1))
                         .cornerRadius(12)
                     }
                 }

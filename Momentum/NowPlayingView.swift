@@ -35,14 +35,7 @@ struct NowPlayingView: View {
     var body: some View {
         ZStack {
             // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    session.themeLight,
-                    session.themeDark
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            session.themeGradient(for: .dark)
             .ignoresSafeArea()
             .gesture(
                 DragGesture(minimumDistance: 20)
@@ -113,7 +106,7 @@ struct NowPlayingView: View {
                             AngularGradient(
                                 gradient: Gradient(colors: [
                                     .white,
-                                    session.themeNeon,
+                                    session.themeColor(for: .dark),
                                     .white
                                 ]),
                                 center: .center,
@@ -216,7 +209,7 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(session.themeDark)
+                            .foregroundStyle(session.themeColor(for: .dark))
                             .frame(width: LayoutConstants.ProgressCircle.standardDiameter, height: LayoutConstants.ProgressCircle.standardDiameter)
                             .background(
                                 Circle()

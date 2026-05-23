@@ -64,13 +64,7 @@ struct ColorPresetButton: View {
             VStack(spacing: 8) {
                 // Color preview with gradient circle
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [preset.neon, preset.dark],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(preset.gradient(for: colorScheme))
                     .frame(width: 60, height: 60)
                     .overlay(
                         Circle()
@@ -79,7 +73,7 @@ struct ColorPresetButton: View {
                                 lineWidth: 3
                             )
                     )
-                    .shadow(color: preset.neon.opacity(0.3), radius: 6)
+                    .shadow(color: preset.color(for: colorScheme).opacity(0.3), radius: 6)
                 
                 // Color name
                 Text(preset.title)

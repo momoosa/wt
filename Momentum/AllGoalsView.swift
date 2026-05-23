@@ -14,6 +14,7 @@ struct AllGoalsView: View {
     @Environment(\.modelContext) private var modelContext
     let goals: [Goal]
     
+    @Environment(\.colorScheme) private var colorScheme
     @State private var goalToDelete: Goal?
     @State private var showingDeleteConfirmation = false
     @State private var selectedGoal: Goal?
@@ -50,70 +51,8 @@ struct AllGoalsView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !activeGoals.isEmpty {
-                    ForEach(activeGoalsByTheme, id: \.theme.themeID) { themeGroup in
-                        Section {
-                            ForEach(themeGroup.goals) { goal in
-                                Button {
-                                    selectedGoal = goal
-                                } label: {
-                                    GoalRow(goal: goal)
-                                }
-                                .buttonStyle(.plain)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        goalToDelete = goal
-                                        showingDeleteConfirmation = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        } header: {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(themeGroup.theme.themePreset.light)
-                                    .frame(width: 8, height: 8)
-                                Text(themeGroup.theme.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                    }
-                }
-                
-                if !archivedGoals.isEmpty {
-                    ForEach(archivedGoalsByTheme, id: \.theme.themeID) { themeGroup in
-                        Section {
-                            ForEach(themeGroup.goals) { goal in
-                                Button {
-                                    selectedGoal = goal
-                                } label: {
-                                    GoalRow(goal: goal)
-                                }
-                                .buttonStyle(.plain)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        goalToDelete = goal
-                                        showingDeleteConfirmation = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        } header: {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(themeGroup.theme.themePreset.light.opacity(0.5))
-                                    .frame(width: 8, height: 8)
-                                Text("\(themeGroup.theme.title) (Archived)")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
+                activeGoalsSection
+                archivedGoalsSection
                 
                 if goals.isEmpty {
                     ContentUnavailableView(
@@ -148,6 +87,77 @@ struct AllGoalsView: View {
             }
             .navigationDestination(item: $selectedGoal) { goal in
                 GoalDetailView(goal: goal)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var activeGoalsSection: some View {
+        if !activeGoals.isEmpty {
+            ForEach(activeGoalsByTheme, id: \.theme.themeID) { themeGroup in
+                Section {
+                    ForEach(themeGroup.goals) { goal in
+                        Button {
+                            selectedGoal = goal
+                        } label: {
+                            GoalRow(goal: goal)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                goalToDelete = goal
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                } header: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(themeGroup.theme.theme.color(for: colorScheme))
+                            .frame(width: 8, height: 8)
+                        Text(themeGroup.theme.title)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var archivedGoalsSection: some View {
+        if !archivedGoals.isEmpty {
+            ForEach(archivedGoalsByTheme, id: \.theme.themeID) { themeGroup in
+                Section {
+                    ForEach(themeGroup.goals) { goal in
+                        Button {
+                            selectedGoal = goal
+                        } label: {
+                            GoalRow(goal: goal)
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                goalToDelete = goal
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                } header: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(themeGroup.theme.theme.color(for: colorScheme).opacity(0.5))
+                            .frame(width: 8, height: 8)
+                        Text("\(themeGroup.theme.title) (Archived)")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
     }

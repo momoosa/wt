@@ -66,10 +66,10 @@ struct TagSelectionSheet: View {
                             
                             TagFlowLayout(spacing: 8) {
                                 ForEach(allTags, id: \.id) { tag in
-                                    TagButton(
+                                    ThemeTagButton(
                                         tag: tag,
                                         isSelected: selectedTags.contains(where: { $0.id == tag.id }),
-                                        onSelect: {
+                                        action: {
                                             toggleTagSelection(tag)
                                         },
                                         onEdit: {

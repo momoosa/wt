@@ -91,6 +91,7 @@ struct IntervalListView: View {
     let listSession: IntervalListSession
     let timerManager: SessionTimerManager?
     let goalSession: GoalSession?
+    @Environment(\.colorScheme) private var colorScheme
     
     // Pre-compute sorted intervals to avoid recomputing on every update
     private var sortedIntervals: [IntervalSession] {
@@ -130,11 +131,11 @@ struct IntervalListView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 12)
-                    .foregroundStyle(listSession.themeNeon)
+                    .foregroundStyle(listSession.themeColor(for: colorScheme))
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(
-                    listSession.themeNeon.opacity(0.1)
+                    listSession.themeColor(for: colorScheme).opacity(0.1)
                 )
             }
             
@@ -145,7 +146,7 @@ struct IntervalListView: View {
                     totalCount: totalIntervalCount,
                     isActive: activeIntervalID == item.id,
                     elapsed: activeIntervalID == item.id ? intervalElapsed : 0,
-                    themeLight: listSession.themeLight,
+                    themeLight: listSession.themeColors(for: colorScheme).first ?? .blue,
                     onTogglePlayback: { toggleIntervalPlayback(for: item) }
                 )
             }
@@ -320,12 +321,12 @@ private extension IntervalListSession {
         intervals?.count ?? 0
     }
     
-    var themeNeon: Color {
-        list?.goal?.primaryTag?.theme.neon ?? .blue
+    func themeColor(for colorScheme: ColorScheme) -> Color {
+        (list?.goal?.primaryTag?.theme ?? defaultThemePreset).color(for: colorScheme)
     }
     
-    var themeLight: Color {
-        list?.goal?.primaryTag?.theme.light ?? .blue
+    func themeColors(for colorScheme: ColorScheme) -> [Color] {
+        (list?.goal?.primaryTag?.theme ?? defaultThemePreset).colors(for: colorScheme)
     }
     
     var sortedIntervals: [IntervalSession] {

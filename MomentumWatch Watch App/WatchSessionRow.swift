@@ -32,12 +32,12 @@ struct WatchSessionRow: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-                        .foregroundStyle((session.goal?.primaryTag?.theme ?? themePresets[0]).textColor(for: colorScheme))
+                        .foregroundStyle((session.goal?.primaryTag?.theme ?? defaultThemePreset).foregroundColor(for: colorScheme))
                     
                     HStack(spacing: 4) {
                         Text(formattedTime)
                             .font(.caption2)
-                            .foregroundStyle((session.goal?.primaryTag?.theme ?? themePresets[0]).textColor(for: colorScheme).opacity(0.7))
+                            .foregroundStyle((session.goal?.primaryTag?.theme ?? defaultThemePreset).foregroundColor(for: colorScheme).opacity(0.7))
                         
                         Spacer(minLength: 0)
                     }
@@ -46,18 +46,11 @@ struct WatchSessionRow: View {
                 
                 // Play button
                 Image(systemName: "play.circle.fill")
-                    .foregroundStyle((session.goal?.primaryTag?.theme ?? themePresets[0]).textColor(for: colorScheme))
+                    .foregroundStyle((session.goal?.primaryTag?.theme ?? defaultThemePreset).foregroundColor(for: colorScheme))
             }
             .padding(6)
             .background(
-                LinearGradient(
-                    colors: [
-                        (session.goal?.primaryTag?.theme ?? themePresets[0]).neon,
-                        (session.goal?.primaryTag?.theme ?? themePresets[0]).dark
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                (session.goal?.primaryTag?.theme ?? defaultThemePreset).gradient(for: colorScheme)
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }

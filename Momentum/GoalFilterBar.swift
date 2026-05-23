@@ -41,7 +41,7 @@ struct GoalFilterBar: View {
             .frame(minWidth: 60.0, minHeight: 40)
             .background(
                 Capsule()
-                    .fill(isSelected ? filter.tintColor : Color.clear)
+                    .fill(isSelected ? filter.tintColor(for: colorScheme) : Color.clear)
             )
             .glassEffect(in: Capsule())
             .onTapGesture {

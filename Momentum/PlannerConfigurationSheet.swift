@@ -66,22 +66,23 @@ struct ThemeTag: View {
     let theme: GoalTag
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: action) {
             Text(theme.title)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundStyle(isSelected ? .white : theme.theme.dark)
+                .foregroundStyle(isSelected ? .white : theme.theme.color(for: colorScheme))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
-                        .fill(isSelected ? theme.theme.dark : theme.theme.light.opacity(0.5))
+                        .fill(isSelected ? theme.theme.color(for: colorScheme) : theme.theme.colors(for: colorScheme).first!.opacity(0.5))
                 )
                 .overlay(
                     Capsule()
-                        .strokeBorder(theme.theme.dark.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+                        .strokeBorder(theme.theme.color(for: colorScheme).opacity(isSelected ? 0 : 0.3), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)

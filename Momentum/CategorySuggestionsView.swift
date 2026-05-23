@@ -13,12 +13,6 @@ struct CategorySuggestionsView: View {
     @Binding var selectedTemplate: GoalTemplateSuggestion?
     @Binding var userInput: String
     
-    // Helper to get category theme colors
-    // Use the category's defined color to ensure consistency across all suggestions
-    private var categoryThemeColor: Color {
-        return category.colorValue
-    }
-    
     var body: some View {
         VStack(spacing: 0) {
             // Suggestions List
@@ -27,7 +21,7 @@ struct CategorySuggestionsView: View {
                     SuggestionRow(
                         suggestion: suggestion,
                         isSelected: selectedTemplate?.id == suggestion.id,
-                        categoryColor: categoryThemeColor
+                        themePreset: category.themePreset
                     )
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowBackground(Color.clear)
