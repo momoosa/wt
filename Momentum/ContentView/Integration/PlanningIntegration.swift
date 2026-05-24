@@ -86,7 +86,7 @@ extension ContentView {
             if !planningViewModel.selectedThemes.isEmpty {
                 activeGoals = activeGoals.filter { goal in
                     guard let primaryTag = goal.primaryTag else { return false }
-                    return planningViewModel.selectedThemes.contains(primaryTag.themeID)
+                    return planningViewModel.selectedThemes.contains(primaryTag.title.lowercased())
                 }
             }
             
@@ -307,7 +307,7 @@ extension ContentView {
         }
         
         // 5. Planned Theme - check if matches selected themes
-        if let primaryTag = goal.primaryTag, planningViewModel.selectedThemes.contains(primaryTag.themeID) {
+        if let primaryTag = goal.primaryTag, planningViewModel.selectedThemes.contains(primaryTag.title.lowercased()) {
             reasons.append(.plannedTheme)
         }
         

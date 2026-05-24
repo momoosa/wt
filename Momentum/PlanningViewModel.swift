@@ -14,7 +14,8 @@ import MomentumKit
 class PlanningViewModel {
     // MARK: - Planning Configuration
     var selectedThemes: Set<String> = []
-    var availableTimeMinutes: Int = 120
+    var availableTimeMinutes: Int = 60
+    var selectedWeather: WeatherCondition? = nil // nil means current/auto
     
     // MARK: - Planning State
     var isPlanning: Bool = false

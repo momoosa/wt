@@ -75,7 +75,7 @@ extension ContentView {
 ////            Button {
 ////                navigation.isSearching = true
 ////            } label: {
-////                Label("Search", systemImage: "magnifyingglass")
+////                Label("Search", sRystemImage: "magnifyingglass")
 ////            }
 ////            .matchedTransitionSource(id: "searchButton", in: animation)
 //        }

@@ -34,16 +34,19 @@ extension ContentView {
                 }
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .matchedTransitionSource(id: "plannerButton", in: animation)
             
             Spacer(minLength: 8)
             
             // Right zone: Action buttons
-            HStack(spacing: 16) {
+            HStack(spacing: 4) {
                 Button { navigation.showDayOverview = true } label: {
                     Image(systemName: "chart.bar.fill")
                         .font(.body)
                         .foregroundStyle(.secondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .matchedTransitionSource(id: "dayOverviewButton", in: animation)
                 
@@ -51,10 +54,12 @@ extension ContentView {
                     Image(systemName: "magnifyingglass")
                         .font(.body)
                         .foregroundStyle(.secondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .matchedTransitionSource(id: "searchButton", in: animation)
             }
-            .padding(.trailing, 16)
+            .padding(.trailing, 8)
         }
         .frame(height: 52)
         .glassEffect(in: Capsule())

@@ -193,6 +193,7 @@ struct MomentumApp: App {
     
     // CloudKit sync toast state
     @AppStorage("hasShownCloudKitToast") private var hasShownCloudKitToast = false
+    @AppStorage("hasSeededDefaultTags") private var hasSeededDefaultTags = false
     @State private var showCloudKitToast = false
     @State private var cloudKitToastStatus: CloudKitSyncToast.SyncStatus = .enabled
     
@@ -297,6 +298,12 @@ struct MomentumApp: App {
                                 
                                 // Eagerly create sessions for the day to avoid blank screen
                                 try createSessionsForDay(currentDay, context: sharedModelContainer.mainContext)
+                                
+                                // Seed default tags on first launch
+                                if !hasSeededDefaultTags {
+                                    seedDefaultTags(context: sharedModelContainer.mainContext)
+                                    hasSeededDefaultTags = true
+                                }
                                 
                                 // Update the day (this will trigger ContentView to load)
                                 self.day = currentDay
@@ -419,6 +426,22 @@ struct MomentumApp: App {
                 }
             }
         }
+    }
+    
+    /// Seeds the default set of smart tags on first launch
+    private func seedDefaultTags(context: ModelContext) {
+        let descriptor = FetchDescriptor<GoalTag>()
+        let existingTags = (try? context.fetch(descriptor)) ?? []
+        let existingTitles = Set(existingTags.map { $0.title.lowercased() })
+        
+        for tag in GoalTag.predefinedSmartTags() {
+            if !existingTitles.contains(tag.title.lowercased()) {
+                context.insert(tag)
+            }
+        }
+        
+        try? context.save()
+        AppLogger.app.info("Seeded default tags")
     }
     
     /// Creates GoalSession objects for all active goals for the given day

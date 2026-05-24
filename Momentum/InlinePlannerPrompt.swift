@@ -202,13 +202,14 @@ struct InlinePlannerPrompt: View {
                     ForEach(allThemes, id: \.theme.id) { theme in
                         ThemeTag(
                             theme: theme,
-                            isSelected: selectedThemes.contains(theme.theme.id)
+                            isSelected: selectedThemes.contains(theme.title.lowercased())
                         ) {
                             withAnimation(AnimationPresets.quickSpring) {
-                                if selectedThemes.contains(theme.theme.id) {
-                                    selectedThemes.remove(theme.theme.id)
+                                let key = theme.title.lowercased()
+                                if selectedThemes.contains(key) {
+                                    selectedThemes.remove(key)
                                 } else {
-                                    selectedThemes.insert(theme.theme.id)
+                                    selectedThemes.insert(key)
                                 }
                             }
                             
@@ -228,7 +229,7 @@ struct InlinePlannerPrompt: View {
         if selectedThemes.isEmpty {
             return "anything"
         } else if selectedThemes.count == 1,
-                  let theme = allThemes.first(where: { selectedThemes.contains($0.theme.id) }) {
+                  let theme = allThemes.first(where: { selectedThemes.contains($0.title.lowercased()) }) {
             return theme.title.lowercased()
         } else {
             return "\(selectedThemes.count) themes"

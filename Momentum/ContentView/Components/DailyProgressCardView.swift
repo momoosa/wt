@@ -161,32 +161,14 @@ extension ContentView {
     }
     
     var freeTimeText: String {
-        guard let event = nextCalendarEvent else { return "All day" }
-        
-        let now = Date()
-        let timeUntilEvent = event.startDate.timeIntervalSince(now)
-        
-        if timeUntilEvent < 0 {
-            // Event is happening now
-            let timeUntilEnd = event.endDate.timeIntervalSince(now)
-            if timeUntilEnd > 0 {
-                return "Busy now"
-            } else {
-                return "All day"
-            }
+        // Use planner's selected time as the displayed free time
+        let plannerMinutes = planningViewModel.availableTimeMinutes
+        if plannerMinutes >= 60 {
+            let h = plannerMinutes / 60
+            let m = plannerMinutes % 60
+            return m > 0 ? "\(h)h \(m)m free" : "\(h)h free"
         }
-        
-        // Calculate free time
-        let hours = Int(timeUntilEvent / 3600)
-        let minutes = Int((timeUntilEvent.truncatingRemainder(dividingBy: 3600)) / 60)
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else if minutes > 0 {
-            return "\(minutes)m"
-        } else {
-            return "< 1m"
-        }
+        return "\(plannerMinutes)m free"
     }
     
     func fetchNextCalendarEvent() {

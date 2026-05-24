@@ -229,421 +229,79 @@ public enum LocationType: String, Codable, CaseIterable {
 // MARK: - Predefined Smart Tags
 
 public extension GoalTag {
-    /// Predefined smart tags with intelligent triggers
+    /// Predefined smart tags — broad categories with sensible triggers
     static func predefinedSmartTags() -> [GoalTag] {
         return [
-            // MARK: - Fitness & Movement
-            
-            // Outdoor Running/Walking
             GoalTag(
-                title: "Outdoor Cardio",
+                title: "Movement",
                 themeID: "palette_01",
-                weatherConditions: [.clear, .partlyCloudy],
-                temperatureRange: 10...28,
                 timeOfDayPreferences: [.morning, .afternoon],
-                locationTypes: [.outdoor],
-                requiresDaylight: true
+                locationTypes: [.home, .gym, .outdoor]
             ),
-            
-            // Gym Workouts
-            GoalTag(
-                title: "Gym Session",
-                themeID: "palette_01",
-                timeOfDayPreferences: [.morning, .afternoon, .evening],
-                locationTypes: [.gym]
-            ),
-            
-            // Home Workouts
-            GoalTag(
-                title: "Home Fitness",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.morning, .evening],
-                locationTypes: [.home]
-            ),
-            
-            // Yoga & Stretching
-            GoalTag(
-                title: "Yoga & Stretch",
-                themeID: "palette_10",
-                timeOfDayPreferences: [.morning, .evening],
-                locationTypes: [.home, .outdoor]
-            ),
-            
-            // Outdoor Activities
             GoalTag(
                 title: "Outdoors",
-                themeID: "palette_19",
-                weatherConditions: [.clear, .partlyCloudy],
-                temperatureRange: 10...30,
-                locationTypes: [.outdoor],
-                requiresDaylight: true
-            ),
-            
-            // MARK: - Mindfulness & Wellness
-            
-            // Morning Meditation
-            GoalTag(
-                title: "Morning Meditation",
-                themeID: "palette_16",
-                timeOfDayPreferences: [.morning],
-                locationTypes: [.home]
-            ),
-            
-            // Evening Meditation
-            GoalTag(
-                title: "Evening Calm",
-                themeID: "palette_16",
-                timeOfDayPreferences: [.evening, .night],
-                locationTypes: [.home]
-            ),
-            
-            // Mindfulness Practice
-            GoalTag(
-                title: "Mindfulness",
-                themeID: "palette_05",
-                locationTypes: [.home, .outdoor]
-            ),
-            
-            // Breathing Exercises
-            GoalTag(
-                title: "Breathwork",
-                themeID: "palette_03",
-                locationTypes: [.anywhere]
-            ),
-            
-            // MARK: - Creativity & Arts
-            
-            // Creative Work
-            GoalTag(
-                title: "Creative Time",
-                themeID: "palette_07",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Music Practice
-            GoalTag(
-                title: "Music Practice",
-                themeID: "palette_15",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.home]
-            ),
-            
-            // Art & Drawing
-            GoalTag(
-                title: "Art & Drawing",
-                themeID: "palette_12",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.home],
-                requiresDaylight: true
-            ),
-            
-            // Writing
-            GoalTag(
-                title: "Writing",
-                themeID: "palette_20",
-                timeOfDayPreferences: [.morning, .afternoon],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Photography
-            GoalTag(
-                title: "Photography",
-                themeID: "palette_04",
-                weatherConditions: [.clear, .partlyCloudy],
-                locationTypes: [.outdoor],
-                requiresDaylight: true
-            ),
-            
-            // MARK: - Learning & Reading
-            
-            // Reading
-            GoalTag(
-                title: "Reading",
-                themeID: "palette_17",
-                timeOfDayPreferences: [.evening, .night],
-                locationTypes: [.home]
-            ),
-            
-            // Language Learning
-            GoalTag(
-                title: "Language Learning",
-                themeID: "palette_17",
-                timeOfDayPreferences: [.morning, .afternoon],
-                locationTypes: [.home, .commute]
-            ),
-            
-            // Study & Focus
-            GoalTag(
-                title: "Study Time",
-                themeID: "palette_18",
-                timeOfDayPreferences: [.morning, .midday, .afternoon],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Online Courses
-            GoalTag(
-                title: "Online Learning",
-                themeID: "palette_03",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.home]
-            ),
-            
-            // MARK: - Productivity & Work
-            
-            // Deep Work
-            GoalTag(
-                title: "Deep Work",
-                themeID: "palette_17",
-                timeOfDayPreferences: [.morning, .midday],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Quick Tasks
-            GoalTag(
-                title: "Quick Tasks",
-                themeID: "palette_03",
-                timeOfDayPreferences: [.midday, .afternoon],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Planning & Organization
-            GoalTag(
-                title: "Planning",
-                themeID: "palette_03",
-                timeOfDayPreferences: [.morning, .evening],
-                locationTypes: [.home, .office]
-            ),
-            
-            // Email & Communication
-            GoalTag(
-                title: "Communication",
-                themeID: "palette_18",
-                timeOfDayPreferences: [.morning, .afternoon],
-                locationTypes: [.office, .home]
-            ),
-            
-            // MARK: - Home & Lifestyle
-            
-            // Cooking
-            GoalTag(
-                title: "Cooking",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.home]
-            ),
-            
-            // Cleaning & Organizing
-            GoalTag(
-                title: "Cleaning",
-                themeID: "palette_10",
-                timeOfDayPreferences: [.morning, .midday],
-                locationTypes: [.home]
-            ),
-            
-            // Gardening
-            GoalTag(
-                title: "Gardening",
                 themeID: "palette_06",
                 weatherConditions: [.clear, .partlyCloudy],
-                timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.outdoor],
                 requiresDaylight: true
             ),
-            
-            // DIY Projects
             GoalTag(
-                title: "DIY Projects",
-                themeID: "palette_09",
-                timeOfDayPreferences: [.afternoon],
-                locationTypes: [.home],
-                requiresDaylight: true
-            ),
-            
-            // MARK: - Social & Family
-            
-            // Family Time
-            GoalTag(
-                title: "Family Time",
-                themeID: "palette_14",
-                timeOfDayPreferences: [.evening],
-                locationTypes: [.home]
-            ),
-            
-            // Social Activities
-            GoalTag(
-                title: "Social",
-                themeID: "palette_07",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.anywhere]
-            ),
-            
-            // Phone Calls
-            GoalTag(
-                title: "Calls & Catchup",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.afternoon, .evening],
-                locationTypes: [.anywhere]
-            ),
-            
-            // MARK: - Time of Day Specific
-            
-            // Early Morning Routine
-            GoalTag(
-                title: "Early Morning",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.morning]
-            ),
-            
-            // Midday Break
-            GoalTag(
-                title: "Lunch Break",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.midday]
-            ),
-            
-            // Evening Wind Down
-            GoalTag(
-                title: "Evening Wind Down",
-                themeID: "palette_15",
-                timeOfDayPreferences: [.evening, .night],
-                locationTypes: [.home]
-            ),
-            
-            // Weekend Activities
-            GoalTag(
-                title: "Weekend Special",
-                themeID: "palette_09",
-                timeOfDayPreferences: [.morning, .midday, .afternoon]
-            ),
-            
-            // MARK: - Weather Specific
-            
-            // Rainy Day Activities
-            GoalTag(
-                title: "Cozy Indoor",
-                themeID: "palette_20",
-                weatherConditions: [.rainy, .snowy, .cloudy],
-                locationTypes: [.home]
-            ),
-            
-            // Sunny Day Activities
-            GoalTag(
-                title: "Sunny Day",
-                themeID: "palette_04",
-                weatherConditions: [.clear],
-                locationTypes: [.outdoor],
-                requiresDaylight: true
-            ),
-            
-            // Cold Weather Activities
-            GoalTag(
-                title: "Winter Activity",
-                themeID: "palette_03",
-                weatherConditions: [.snowy],
-                temperatureRange: -10...10
-            ),
-            
-            // Warm Weather Activities
-            GoalTag(
-                title: "Summer Activity",
-                themeID: "palette_12",
-                weatherConditions: [.clear, .partlyCloudy],
-                temperatureRange: 20...35
-            ),
-            
-            // MARK: - Energy Level
-            
-            // High Energy
-            GoalTag(
-                title: "Energizing",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.morning, .midday]
-            ),
-            
-            // Low Energy / Relaxing
-            GoalTag(
-                title: "Low Key",
-                themeID: "palette_10",
-                timeOfDayPreferences: [.evening, .night],
-                locationTypes: [.home]
-            ),
-            
-            // MARK: - Journaling & Reflection
-            
-            // Morning Pages
-            GoalTag(
-                title: "Morning Journal",
-                themeID: "palette_04",
-                timeOfDayPreferences: [.morning],
-                locationTypes: [.home]
-            ),
-            
-            // Evening Reflection
-            GoalTag(
-                title: "Evening Reflection",
+                title: "Mindfulness",
                 themeID: "palette_16",
-                timeOfDayPreferences: [.evening, .night],
-                locationTypes: [.home]
-            ),
-            
-            // Gratitude Practice
-            GoalTag(
-                title: "Gratitude",
-                themeID: "palette_07",
-                timeOfDayPreferences: [.evening],
-                locationTypes: [.home]
-            ),
-            
-            // MARK: - Commute & Travel
-            
-            // Commute Time
-            GoalTag(
-                title: "Commute Activity",
-                themeID: "palette_18",
                 timeOfDayPreferences: [.morning, .evening],
-                locationTypes: [.commute]
-            ),
-            
-            // Podcast Listening
-            GoalTag(
-                title: "Podcast Time",
-                themeID: "palette_03",
-                locationTypes: [.commute, .home]
-            ),
-            
-            // Audiobook
-            GoalTag(
-                title: "Audiobook",
-                themeID: "palette_17",
-                timeOfDayPreferences: [.evening, .night],
-                locationTypes: [.home, .commute]
-            ),
-            
-            // MARK: - Self-Care
-            
-            // Skincare Routine
-            GoalTag(
-                title: "Skincare",
-                themeID: "palette_10",
-                timeOfDayPreferences: [.morning, .night],
                 locationTypes: [.home]
             ),
-            
-            // Bath & Relaxation
             GoalTag(
-                title: "Self-Care",
+                title: "Creative",
+                themeID: "palette_07",
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.home, .office]
+            ),
+            GoalTag(
+                title: "Learning",
+                themeID: "palette_17",
+                timeOfDayPreferences: [.morning, .afternoon],
+                locationTypes: [.home, .office, .commute]
+            ),
+            GoalTag(
+                title: "Reading",
+                themeID: "palette_20",
+                timeOfDayPreferences: [.evening, .night],
+                locationTypes: [.home]
+            ),
+            GoalTag(
+                title: "Deep Work",
+                themeID: "palette_18",
+                timeOfDayPreferences: [.morning, .midday],
+                locationTypes: [.home, .office]
+            ),
+            GoalTag(
+                title: "Wellbeing",
                 themeID: "palette_05",
                 timeOfDayPreferences: [.evening, .night],
                 locationTypes: [.home]
             ),
-            
-            // Nap Time
             GoalTag(
-                title: "Power Nap",
-                themeID: "palette_15",
-                timeOfDayPreferences: [.midday, .afternoon],
+                title: "Social",
+                themeID: "palette_14",
+                timeOfDayPreferences: [.afternoon, .evening],
+                locationTypes: [.anywhere]
+            ),
+            GoalTag(
+                title: "Home",
+                themeID: "palette_10",
+                timeOfDayPreferences: [.morning, .afternoon],
                 locationTypes: [.home]
+            ),
+            GoalTag(
+                title: "Journaling",
+                themeID: "palette_15",
+                timeOfDayPreferences: [.morning, .evening],
+                locationTypes: [.home]
+            ),
+            GoalTag(
+                title: "General",
+                themeID: "palette_03"
             )
         ]
     }

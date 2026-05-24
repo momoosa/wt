@@ -22,41 +22,12 @@ struct TagSelectionSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     if allTags.isEmpty {
-                        // Empty state
-                        VStack(spacing: 16) {
-                            Image(systemName: "tag.slash")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.secondary)
-                            
-                            Text("No Tags Available")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            
-                            Text("Load predefined tags or create your own")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                            
-                            Button {
-                                let predefined = GoalTag.predefinedSmartTags()
-                                for tag in predefined {
-                                    if !allTags.contains(where: { $0.title == tag.title }) {
-                                        modelContext.insert(tag)
-                                    }
-                                }
-                            } label: {
-                                Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 12)
-                                    .background(Color.accentColor)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(10)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
+                        ContentUnavailableView(
+                            "No Tags",
+                            systemImage: "tag.slash",
+                            description: Text("Tags will appear here once you add goals.")
+                        )
+                        .padding(.top, 40)
                     } else {
                         // Tags grid
                         VStack(alignment: .leading, spacing: 12) {
@@ -82,27 +53,7 @@ struct TagSelectionSheet: View {
                         }
                         .padding(.top)
                         
-                        // Action buttons
-                        VStack(spacing: 12) {
-                            Button {
-                                let predefined = GoalTag.predefinedSmartTags()
-                                for tag in predefined {
-                                    if !allTags.contains(where: { $0.title == tag.title }) {
-                                        modelContext.insert(tag)
-                                    }
-                                }
-                            } label: {
-                                Label("Load Predefined Smart Tags", systemImage: "square.and.arrow.down")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            // Future: Add custom tag creation button
-                        }
-                        .padding()
+
                     }
                 }
             }

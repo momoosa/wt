@@ -27,13 +27,6 @@ struct SessionFilterService {
                 $0.status != .skipped && 
                 ($0.unifiedTargetValue > 0 || $0.isActiveGoal)
             }.count
-        case .theme(let goalTheme):
-            return sessions.filter {
-                $0.goal?.primaryTag?.themeID == goalTheme.themeID &&
-                $0.goal?.status != .archived &&
-                $0.status != .skipped &&
-                ($0.unifiedTargetValue > 0 || $0.isActiveGoal)
-            }.count
         case .completedToday:
             return sessions.filter { $0.hasMetDailyTarget && ($0.unifiedTargetValue > 0 || $0.isActiveGoal) }.count
         case .inactive:
@@ -97,9 +90,6 @@ struct SessionFilterService {
                 return !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
             case .skippedSessions:
                 return isSkipped
-            case .theme(let goalTheme):
-                // Same logic as activeToday for theme filters
-                return session.goal?.primaryTag?.themeID == goalTheme.themeID && !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
             case .completedToday:
                 return session.hasMetDailyTarget && (session.unifiedTargetValue > 0 || session.isActiveGoal)
             case .inactive:
@@ -179,32 +169,38 @@ struct SessionFilterService {
         }
         
         // Fallback: Use scoring algorithm (soft refresh)
+        let now = Date()
         let scored = incomplete.compactMap { session -> (GoalSession, Double)? in
             guard validationCheck(session), let goal = session.goal else { return nil }
             
             let score = planner.scoreSession(
                 for: goal,
                 session: session,
-                at: Date(),
+                at: now,
                 preferences: preferences
             )
             return (session, score)
         }
         
-        // Sort by score and take top 3
-        return scored
+        // Sort by score and take top 3, then populate missing reasons
+        let top = scored
             .sorted { $0.1 > $1.1 }
             .prefix(3)
             .map { $0.0 }
+        
+        for session in top where session.recommendationReasons.isEmpty {
+            if let goal = session.goal {
+                session.recommendationReasons = Self.basicReasons(for: session, goal: goal, at: now, weatherManager: weatherManager)
+            }
+        }
+        
+        return top
     }
     
-    /// Build available filters from tags and sessions
-    /// - Parameters:
-    ///   - tags: Available goal tags
-    ///   - sessions: All sessions
+    /// Build available filters based on session states
+    /// - Parameter sessions: All sessions
     /// - Returns: Array of available filters
     static func buildAvailableFilters(
-        from tags: [GoalTag],
         sessions: [GoalSession]
     ) -> [ContentView.Filter] {
         var filters: [ContentView.Filter] = [.activeToday]
@@ -227,22 +223,66 @@ struct SessionFilterService {
             filters.append(.inactive)
         }
         
-        // Add theme filters for unique themes
-        var uniqueThemes: [GoalTag] = []
-        var seenIDs: Set<String> = []
+        return filters
+    }
+    
+    // MARK: - Basic Recommendation Reasons
+    
+    /// Generate basic recommendation reasons for fallback-scored sessions
+    static func basicReasons(
+        for session: GoalSession,
+        goal: Goal,
+        at date: Date = Date(),
+        weatherManager: (any WeatherProviding)? = nil
+    ) -> [RecommendationReason] {
+        var reasons: [RecommendationReason] = []
         
-        for tag in tags {
-            let themeID = tag.themeID
-            if !seenIDs.contains(themeID) {
-                uniqueThemes.append(tag)
-                seenIDs.insert(themeID)
-            }
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: date)
+        let currentWeekday = calendar.component(.weekday, from: date)
+        
+        // Quick Finish — less than 25% remaining
+        let target = session.unifiedTargetValue
+        let current = session.currentValue
+        let remaining = target - current
+        if remaining > 0 && remaining < target * 0.25 {
+            reasons.append(.quickFinish)
         }
         
-        let themeFilters = uniqueThemes.map { ContentView.Filter.theme($0) }
-        filters.append(contentsOf: themeFilters)
+        // Weekly Progress — behind and past midweek
+        if current < target * 0.5 && currentWeekday >= 4 {
+            reasons.append(.weeklyProgress)
+        }
         
-        return filters
+        // Preferred Time — matches goal's time-of-day preference
+        let preferredTimes = goal.timesForWeekday(currentWeekday)
+        if !preferredTimes.isEmpty {
+            let matches = preferredTimes.contains { tod in
+                switch tod {
+                case .morning: return currentHour >= 6 && currentHour < 10
+                case .midday: return currentHour >= 10 && currentHour < 14
+                case .afternoon: return currentHour >= 14 && currentHour < 18
+                case .evening: return currentHour >= 18 && currentHour < 22
+                case .night: return currentHour >= 22 || currentHour < 6
+                }
+            }
+            if matches { reasons.append(.preferredTime) }
+        }
+        
+        // Weather — goal has weather conditions and they match
+        if let wm = weatherManager,
+           let conditions = goal.effectiveWeatherConditions,
+           !conditions.isEmpty,
+           wm.matchesAnyCondition(conditions) {
+            reasons.append(.weather)
+        }
+        
+        // Energy Level — morning or early afternoon
+        if (6...9).contains(currentHour) || (13...15).contains(currentHour) {
+            reasons.append(.energyLevel)
+        }
+        
+        return reasons
     }
     
     // MARK: - Weather Filtering

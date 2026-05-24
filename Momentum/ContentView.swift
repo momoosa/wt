@@ -513,7 +513,12 @@ struct ContentView: View {
         PlannerConfigurationSheet(
             selectedThemes: $planningViewModel.selectedThemes,
             availableTimeMinutes: $planningViewModel.availableTimeMinutes,
+            selectedWeather: $planningViewModel.selectedWeather,
             allThemes: planningViewModel.cachedThemes,
+            sessions: focusFilteredSessions,
+            currentWeather: weatherManager.getCurrentCondition(),
+            nextEvent: nextCalendarEvent,
+            calendarFreeMinutes: nil,
             animation: animation
         ) {
             navigation.showPlannerSheet = false
@@ -592,14 +597,14 @@ struct ContentView: View {
     var availableGoalThemes: [GoalTag] {
         let activeGoals = goals.filter { $0.status == .active }
         var uniqueThemes: [GoalTag] = []
-        var seenIDs: Set<String> = []
+        var seenTitles: Set<String> = []
         
         for goal in activeGoals {
             guard let primaryTag = goal.primaryTag else { continue }
-            let themeID = primaryTag.themeID
-            if !seenIDs.contains(themeID) {
+            let key = primaryTag.title.lowercased()
+            if !seenTitles.contains(key) {
                 uniqueThemes.append(primaryTag)
-                seenIDs.insert(themeID)
+                seenTitles.insert(key)
             }
         }
         
@@ -607,7 +612,7 @@ struct ContentView: View {
     }
     
     var availableFilters: [Filter] {
-        SessionFilterService.buildAvailableFilters(from: availableGoalThemes, sessions: sessions)
+        SessionFilterService.buildAvailableFilters(sessions: sessions)
     }
     
     var sessionCountsForFilters: [FilterCount] {
@@ -644,22 +649,12 @@ struct ContentView: View {
         
         switch filter {
         case .activeToday:
-            // Scroll to the "Now" section (recommended)
             targetSection = .recommendedNow
-            
         case .completedToday:
             targetSection = .completed
-            
         case .inactive:
             targetSection = .inactive
-            
-        case .theme(_):
-            // For theme filters, scroll to "Available" section where themed goals appear
-            targetSection = .available
-            
         case .skippedSessions:
-            // Skipped sessions don't have a dedicated section in the contextual view
-            // Just scroll to top
             targetSection = nil
         }
         

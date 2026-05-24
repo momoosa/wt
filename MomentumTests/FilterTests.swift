@@ -18,9 +18,8 @@ struct FilterTests {
     @Test("activeToday filter is always available")
     func activeTodayFilterAlwaysAvailable() {
         let sessions: [GoalSession] = []
-        let tags: [GoalTag] = []
         
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: sessions)
+        let filters = SessionFilterService.buildAvailableFilters(sessions: sessions)
         
         #expect(filters.contains { filter in
             if case .activeToday = filter { return true }
@@ -42,8 +41,7 @@ struct FilterTests {
         session.unifiedTargetValue = 1800 // 30 minutes
         session.markedComplete = true // Mark as completed
         
-        let tags: [GoalTag] = []
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: [session])
+        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
         
         #expect(filters.contains { filter in
             if case .completedToday = filter { return true }
@@ -65,8 +63,7 @@ struct FilterTests {
         session.unifiedTargetValue = 1800 // 30 minutes
         session.markedComplete = false // Not completed
         
-        let tags: [GoalTag] = []
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: [session])
+        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
         
         #expect(!filters.contains { filter in
             if case .completedToday = filter { return true }
@@ -87,8 +84,7 @@ struct FilterTests {
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         session.status = .skipped
         
-        let tags: [GoalTag] = []
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: [session])
+        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
         
         #expect(filters.contains { filter in
             if case .skippedSessions = filter { return true }
@@ -109,8 +105,7 @@ struct FilterTests {
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         session.status = .active
         
-        let tags: [GoalTag] = []
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: [session])
+        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
         
         #expect(!filters.contains { filter in
             if case .skippedSessions = filter { return true }
@@ -131,8 +126,7 @@ struct FilterTests {
         let session = GoalSession(title: "Test Session", goal: goal, day: day)
         session.unifiedTargetValue = 0
         
-        let tags: [GoalTag] = []
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: [session])
+        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
         
         #expect(filters.contains { filter in
             if case .inactive = filter { return true }
@@ -213,14 +207,13 @@ struct FilterTests {
     @Test("allGoals filter is not available")
     func allGoalsFilterNotAvailable() {
         let sessions: [GoalSession] = []
-        let tags: [GoalTag] = []
         
-        let filters = SessionFilterService.buildAvailableFilters(from: tags, sessions: sessions)
+        let filters = SessionFilterService.buildAvailableFilters(sessions: sessions)
         
         // Verify .allGoals is not in the filter list
         let hasAllGoals = filters.contains { filter in
             switch filter {
-            case .activeToday, .completedToday, .skippedSessions, .inactive, .theme:
+            case .activeToday, .completedToday, .skippedSessions, .inactive:
                 return false
             }
         }

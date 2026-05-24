@@ -88,6 +88,27 @@ struct SettingsView: View {
                 }
                 
                 Section {
+                    NavigationLink {
+                        TagManagementView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "tag.fill")
+                                .foregroundStyle(.purple)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Manage Tags")
+                                Text("Rename or delete goal tags")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Label("Tags", systemImage: "tag")
+                } footer: {
+                    Text("Tags categorise your goals. Deleting a tag removes it from all goals that use it.")
+                }
+                
+                Section {
                     Toggle("Gradient Outline (Dark Mode)", isOn: $useGradientOutline)
                     
                     Text(useGradientOutline ? "Recommended sessions show gradient borders instead of filled backgrounds in dark mode." : "Recommended sessions use filled gradient backgrounds.")

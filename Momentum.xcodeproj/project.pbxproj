@@ -94,6 +94,7 @@
 		CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7578E32F5AD039003D7CFE /* WeatherManager.swift */; };
 		CD8845772FC1B8A20046F456 /* BottomCapsuleBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */; };
 		CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */; };
+		CD88457B2FC33CE50046F456 /* TagManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD88457A2FC33CE50046F456 /* TagManagementView.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */; };
 		CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */; };
@@ -304,6 +305,7 @@
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomCapsuleBar.swift; sourceTree = "<group>"; };
 		CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedCapsuleOverlay.swift; sourceTree = "<group>"; };
+		CD88457A2FC33CE50046F456 /* TagManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagManagementView.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
 		CD99B76D2FB7815300D9E37D /* MomentumTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MomentumTests.xctestplan; sourceTree = "<group>"; };
@@ -725,6 +727,7 @@
 				CD6A0C322F899C97008F5D93 /* HealthKitViewModel.swift */,
 				CD6A0C342F899CE4008F5D93 /* CalendarViewModel.swift */,
 				CD6A0C362F899D0C008F5D93 /* FilterService.swift */,
+				CD88457A2FC33CE50046F456 /* TagManagementView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1178,6 +1181,7 @@
 				CD6A0C2D2F899989008F5D93 /* SessionRepository.swift in Sources */,
 				CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */,
 				CDEFA6522F59786500661146 /* ContextualSection.swift in Sources */,
+				CD88457B2FC33CE50046F456 /* TagManagementView.swift in Sources */,
 				CDBE15022F86449400B7FCD6 /* SuggestionsSection.swift in Sources */,
 				CDEBAA402EE9FA1000C1C411 /* IntervalListView.swift in Sources */,
 				CD22552C2F543DB300777C79 /* InlinePlannerPrompt.swift in Sources */,

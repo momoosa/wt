@@ -255,7 +255,7 @@ class GoalEditorViewModel {
             selectedTags[0].themeID = preset.id
             selectedGoalTheme = selectedTags[0]
         } else {
-            let newTag = GoalTag(title: preset.title, themeID: preset.id)
+            let newTag = GoalTag(title: "General", themeID: preset.id)
             selectedGoalTheme = newTag
             selectedTags.append(newTag)
         }
@@ -811,11 +811,11 @@ class GoalEditorViewModel {
         } else if let selectedSuggestion = selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
             let matchedTheme = matchTheme(named: themeNames[0])
-            finalGoalTag = GoalTag(title: matchedTheme.title, themeID: matchedTheme.id)
+            finalGoalTag = GoalTag(title: "General", themeID: matchedTheme.id)
         } else {
             // Find an unused theme, or fall back to random
             let unusedTheme = findUnusedTheme(excluding: allGoals)
-            finalGoalTag = GoalTag(title: unusedTheme.title, themeID: unusedTheme.id)
+            finalGoalTag = GoalTag(title: "General", themeID: unusedTheme.id)
         }
         
         // Debug print day-time schedule
