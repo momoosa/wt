@@ -102,11 +102,10 @@ struct ContentView: View {
                     if focusFilterStore.isFocusFilterActive {
                         focusBanner
                     }
-                    GoalFilterBar(
-                        filters: availableFilters,
-                        activeFilter: $navigation.activeFilter,
-                        sessionCounts: sessionCountsForFilters,
-                        onFilterTap: scrollToFilterSection
+                    SectionPillBar(
+                        sections: contextualSections,
+                        expandedSections: $navigation.expandedSections,
+                        scrollProxy: navigation.scrollProxy
                     )
                     Spacer()
                 }
@@ -277,7 +276,6 @@ struct ContentView: View {
     private var searchSheet: some View {
         SearchSheet(
             sessions: focusFilteredSessions,
-            availableFilters: availableFilters,
             day: day,
             timerManager: timerManager,
             animation: animation,
@@ -327,22 +325,6 @@ struct ContentView: View {
             }
 
             if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
-                // Always show all sessions in contextual sections
-                let recommendedSessions = getRecommendedSessions()
-                let allSessionsFiltered = SessionFilterService.filter(
-                    focusFilteredSessions,
-                    by: .activeToday,  // Use activeToday logic for base filtering
-                    validationCheck: isGoalValid,
-                    weatherManager: weatherManager
-                )
-                
-                // Group sessions into contextual sections - this now includes all sections
-                let contextualSections = ContextualSection.groupSessions(
-                    allSessionsFiltered,
-                    recommendedSessions: recommendedSessions,
-                    allGoals: focusFilteredSessions  // Pass all focus-filtered sessions
-                )
-                
                 ForEach(contextualSections) { section in
                     contextualSectionView(section: section)
                 }
@@ -611,19 +593,6 @@ struct ContentView: View {
         return uniqueThemes
     }
     
-    var availableFilters: [Filter] {
-        SessionFilterService.buildAvailableFilters(sessions: sessions)
-    }
-    
-    var sessionCountsForFilters: [FilterCount] {
-        availableFilters.map { filter in
-            FilterCount(
-                filter: filter,
-                count: SessionFilterService.count(focusFilteredSessions, for: filter)
-            )
-        }
-    }
-
     /// Sessions pre-filtered by the active Focus filter (if any).
     /// When no Focus filter is active this is identical to `sessions`.
     var focusFilteredSessions: [GoalSession] {
@@ -634,42 +603,30 @@ struct ContentView: View {
             return activeTags.contains(primaryTag.title)
         }
     }
-
-
+    
+    /// All contextual sections for the current session list
+    var contextualSections: [ContextualSection] {
+        let recommendedSessions = getRecommendedSessions()
+        let allSessionsFiltered = SessionFilterService.filterActiveSessions(
+            focusFilteredSessions,
+            validationCheck: isGoalValid,
+            weatherManager: weatherManager
+        )
+        
+        return ContextualSection.groupSessions(
+            allSessionsFiltered,
+            recommendedSessions: recommendedSessions,
+            allGoals: focusFilteredSessions
+        )
+    }
     
     // MARK: - Session Management (see ContentView/Handlers/SessionManagement.swift)
     
-    // MARK: - Scroll & Recommendations
-    
-    func scrollToFilterSection(_ filter: Filter) {
-        guard let proxy = navigation.scrollProxy else { return }
-        
-        // Map filter to section type
-        let targetSection: ContextualSection.SectionType?
-        
-        switch filter {
-        case .activeToday:
-            targetSection = .recommendedNow
-        case .completedToday:
-            targetSection = .completed
-        case .inactive:
-            targetSection = .inactive
-        case .skippedSessions:
-            targetSection = nil
-        }
-        
-        // Scroll to the target section with animation
-        if let section = targetSection {
-            withAnimation {
-                proxy.scrollTo(section, anchor: .top)
-            }
-        }
-    }
+    // MARK: - Recommendations
     
     func getRecommendedSessions() -> [GoalSession] {
         return SessionFilterService.getRecommendedSessions(
             from: focusFilteredSessions,
-            filter: navigation.activeFilter,
             planner: planningViewModel.planner,
             preferences: planningViewModel.plannerPreferences,
             validationCheck: isGoalValid,

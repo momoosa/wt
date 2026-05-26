@@ -31,7 +31,6 @@ class NavigationState {
     var navigationPath = NavigationPath()
     var scrollProxy: ScrollViewProxy?
     var expandedSections: Set<ContextualSection.SectionType> = [.recommendedNow, .later]
-    var activeFilter: ContentView.Filter = .activeToday
     var showExpandedCapsule = false
     
     // MARK: - Toast

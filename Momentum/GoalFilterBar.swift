@@ -1,5 +1,5 @@
 //
-//  GoalFilterBar.swift
+//  SectionPillBar.swift
 //  Momentum
 //
 //  Created by Mo Moosa on 10/02/2026.
@@ -8,58 +8,71 @@
 import SwiftUI
 import MomentumKit
 
-/// Filter bar showing available filters as chips
-struct GoalFilterBar: View {
-    let filters: [ContentView.Filter]
-    @Binding var activeFilter: ContentView.Filter
-    let sessionCounts: [ContentView.FilterCount]
-    var onFilterTap: ((ContentView.Filter) -> Void)? = nil
-    
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                ForEach(filters, id: \.id) { filter in
-                    filterChip(for: filter)
-                }
-            }
-            .padding([.leading, .trailing])
-            .padding([.top, .bottom], 8)
-        }
-    }
+/// Pill bar showing contextual sections as toggleable chips
+struct SectionPillBar: View {
+    let sections: [ContextualSection]
+    @Binding var expandedSections: Set<ContextualSection.SectionType>
+    var scrollProxy: ScrollViewProxy?
     
     @Environment(\.colorScheme) private var colorScheme
     
-    private func filterChip(for filter: ContentView.Filter) -> some View {
-        let isSelected = filter.id == activeFilter.id
-        let textColor: Color = isSelected ? filter.foregroundColor(for: colorScheme) : .primary
-        
-        return filterText(for: filter)
-            .foregroundStyle(textColor)
-            .fontWeight(.semibold)
-            .padding([.top, .bottom], 6)
-            .padding([.leading, .trailing], 10)
-            .frame(minWidth: 60.0, minHeight: 40)
-            .background(
-                Capsule()
-                    .fill(isSelected ? filter.tintColor(for: colorScheme) : Color.clear)
-            )
-            .glassEffect(in: Capsule())
-            .onTapGesture {
-                withAnimation {
-                    activeFilter = filter
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(sections) { section in
+                    sectionPill(for: section)
                 }
-                onFilterTap?(filter)
             }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
     }
     
-    @ViewBuilder
-    private func filterText(for filter: ContentView.Filter) -> some View {
-        let count = sessionCounts.first(where: { $0.filter.id == filter.id })?.count ?? 0
-        HStack {
-            Text(filter.text)
-            Text("\(count)")
+    private func sectionPill(for section: ContextualSection) -> some View {
+        let isExpanded = expandedSections.contains(section.type)
+        let tint = section.type.iconColor
+        
+        return HStack(spacing: 4) {
+            if let icon = section.type.icon {
+                Image(systemName: icon)
+                    .font(.caption2)
+                    .foregroundStyle(isExpanded ? tint : .secondary)
+            }
+            Text(pillTitle(for: section.type))
+                .font(.footnote)
+                .fontWeight(.semibold)
+            Text("\(section.sessions.count)")
+                .font(.caption2)
                 .foregroundStyle(.secondary)
         }
-        .font(.footnote)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .frame(minHeight: 34)
+        .background(
+            Capsule()
+                .fill(isExpanded ? tint.opacity(0.2) : Color.clear)
+        )
+        .glassEffect(in: Capsule())
+        .onTapGesture {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                if isExpanded {
+                    // Collapse the section
+                    expandedSections.remove(section.type)
+                } else {
+                    // Expand and scroll to it
+                    expandedSections.insert(section.type)
+                    scrollProxy?.scrollTo(section.type, anchor: .top)
+                }
+            }
+        }
+    }
+    
+    private func pillTitle(for type: ContextualSection.SectionType) -> String {
+        switch type {
+        case .recommendedNow:
+            return "Top Picks"
+        default:
+            return type.title
+        }
     }
 }

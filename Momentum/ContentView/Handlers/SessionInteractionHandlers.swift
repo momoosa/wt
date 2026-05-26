@@ -27,7 +27,7 @@ extension ContentView {
         // If it was completed and we just started it, switch to Today filter and show toast
         if wasCompleted && timerManager.activeSession?.id == session.id {
             withAnimation {
-                navigation.activeFilter = .activeToday
+                _ = navigation.expandedSections.insert(.recommendedNow)
             }
             
             navigation.toastConfig = ToastConfig(

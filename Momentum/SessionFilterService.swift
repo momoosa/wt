@@ -9,44 +9,17 @@ import Foundation
 import MomentumKit
 import SwiftData
 
-/// Service for filtering and counting goal sessions
+/// Service for filtering and scoring goal sessions
 struct SessionFilterService {
     
-    /// Count sessions matching a filter
-    /// - Parameters:
-    ///   - sessions: All sessions to count
-    ///   - filter: The filter to apply
-    /// - Returns: Count of matching sessions
-    static func count(_ sessions: [GoalSession], for filter: ContentView.Filter) -> Int {
-        switch filter {
-        case .skippedSessions:
-            return sessions.filter { $0.status == .skipped }.count
-        case .activeToday:
-            return sessions.filter { 
-                $0.goal?.status != .archived && 
-                $0.status != .skipped && 
-                ($0.unifiedTargetValue > 0 || $0.isActiveGoal)
-            }.count
-        case .completedToday:
-            return sessions.filter { $0.hasMetDailyTarget && ($0.unifiedTargetValue > 0 || $0.isActiveGoal) }.count
-        case .inactive:
-            // Only truly inactive goals: no schedule or no weekly target
-            return sessions.filter { 
-                $0.unifiedTargetValue == 0 && !$0.isActiveGoal
-            }.count
-        }
-    }
-    
-    /// Filter sessions and sort appropriately
+    /// Filter sessions for active-today display and sort appropriately
     /// - Parameters:
     ///   - sessions: All sessions to filter
-    ///   - filter: The filter to apply
     ///   - validationCheck: Closure to check if a session's goal is still valid
     ///   - weatherManager: Optional weather manager for weather-based filtering
     /// - Returns: Filtered and sorted sessions
-    static func filter(
+    static func filterActiveSessions(
         _ sessions: [GoalSession],
-        by filter: ContentView.Filter,
         validationCheck: (GoalSession) -> Bool,
         weatherManager: (any WeatherProviding)? = nil
     ) -> [GoalSession] {
@@ -81,21 +54,8 @@ struct SessionFilterService {
                 return false
             }
             
-            switch filter {
-            case .activeToday:
-                // Show in Today if:
-                // 1. Not archived or skipped
-                // 2. Has a daily target OR is an active goal with a schedule
-                // Note: Completed goals are now shown in their own section, not hidden
-                return !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
-            case .skippedSessions:
-                return isSkipped
-            case .completedToday:
-                return session.hasMetDailyTarget && (session.unifiedTargetValue > 0 || session.isActiveGoal)
-            case .inactive:
-                // Only truly inactive goals: no schedule or no weekly target
-                return session.unifiedTargetValue == 0 && !session.isActiveGoal
-            }
+            // Active today: not archived, not skipped, has a daily target or is an active goal
+            return !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
         }
         
         // Sort by planned start time if available, otherwise by goal title
@@ -123,21 +83,18 @@ struct SessionFilterService {
     /// Get top 3 recommended sessions based on planning and scoring
     /// - Parameters:
     ///   - sessions: All sessions to consider
-    ///   - filter: Active filter
     ///   - planner: Goal session planner for scoring
     ///   - preferences: Planner preferences
     ///   - validationCheck: Closure to check if a session's goal is still valid
     /// - Returns: Up to 3 recommended sessions
     static func getRecommendedSessions(
         from sessions: [GoalSession],
-        filter: ContentView.Filter,
         planner: GoalSessionPlanner,
         preferences: PlannerPreferences,
         validationCheck: (GoalSession) -> Bool,
         weatherManager: (any WeatherProviding)? = nil
     ) -> [GoalSession] {
-        // self.filter() already validates persistentModelID, so no pre-filter needed
-        let filtered = self.filter(sessions, by: filter, validationCheck: validationCheck, weatherManager: weatherManager)
+        let filtered = filterActiveSessions(sessions, validationCheck: validationCheck, weatherManager: weatherManager)
         
         // Exclude sessions that have significantly exceeded their daily target (>= 100% complete)
         // These shouldn't be recommended — the user has already done enough for today
@@ -195,35 +152,6 @@ struct SessionFilterService {
         }
         
         return top
-    }
-    
-    /// Build available filters based on session states
-    /// - Parameter sessions: All sessions
-    /// - Returns: Array of available filters
-    static func buildAvailableFilters(
-        sessions: [GoalSession]
-    ) -> [ContentView.Filter] {
-        var filters: [ContentView.Filter] = [.activeToday]
-        
-        // Only add completed filter if there are completed sessions
-        let completedCount = count(sessions, for: .completedToday)
-        if completedCount > 0 {
-            filters.append(.completedToday)
-        }
-        
-        // Only add skipped filter if there are skipped sessions
-        let skippedCount = count(sessions, for: .skippedSessions)
-        if skippedCount > 0 {
-            filters.append(.skippedSessions)
-        }
-        
-        // Only add inactive filter if there are inactive sessions
-        let inactiveCount = count(sessions, for: .inactive)
-        if inactiveCount > 0 {
-            filters.append(.inactive)
-        }
-        
-        return filters
     }
     
     // MARK: - Basic Recommendation Reasons

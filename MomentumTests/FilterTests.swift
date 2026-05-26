@@ -10,214 +10,77 @@ import Foundation
 @testable import Momentum
 @testable import MomentumKit
 
-@Suite("Filter Tests")
+@Suite("Session Filter Tests")
 struct FilterTests {
     
-    // MARK: - Filter Availability Tests
+    // MARK: - Active Session Filtering Tests
     
-    @Test("activeToday filter is always available")
-    func activeTodayFilterAlwaysAvailable() {
-        let sessions: [GoalSession] = []
-        
-        let filters = SessionFilterService.buildAvailableFilters(sessions: sessions)
-        
-        #expect(filters.contains { filter in
-            if case .activeToday = filter { return true }
-            return false
-        })
-    }
-    
-    @Test("completedToday filter only shows when completed sessions exist")
-    func completedFilterShowsWhenCompletedSessionsExist() {
+    @Test("filterActiveSessions excludes skipped sessions")
+    func filterActiveSessionsExcludesSkipped() {
         let calendar = Calendar.current
         let date = Date()
         let goal = Goal(title: "Test Goal")
         goal.targetUnit = .seconds
         goal.unifiedDailyTarget = 3600 / 7.0
         let day = Day(start: date, end: date, calendar: calendar)
-        
-        // Create a completed session
-        let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.unifiedTargetValue = 1800 // 30 minutes
-        session.markedComplete = true // Mark as completed
-        
-        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
-        
-        #expect(filters.contains { filter in
-            if case .completedToday = filter { return true }
-            return false
-        })
-    }
-    
-    @Test("completedToday filter hidden when no completed sessions")
-    func completedFilterHiddenWhenNoCompletedSessions() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        // Create an incomplete session
-        let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.unifiedTargetValue = 1800 // 30 minutes
-        session.markedComplete = false // Not completed
-        
-        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
-        
-        #expect(!filters.contains { filter in
-            if case .completedToday = filter { return true }
-            return false
-        })
-    }
-    
-    @Test("skippedSessions filter only shows when skipped sessions exist")
-    func skippedFilterShowsWhenSkippedSessionsExist() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        // Create a skipped session
-        let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.status = .skipped
-        
-        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
-        
-        #expect(filters.contains { filter in
-            if case .skippedSessions = filter { return true }
-            return false
-        })
-    }
-    
-    @Test("skippedSessions filter hidden when no skipped sessions")
-    func skippedFilterHiddenWhenNoSkippedSessions() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        // Create an active session
-        let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.status = .active
-        
-        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
-        
-        #expect(!filters.contains { filter in
-            if case .skippedSessions = filter { return true }
-            return false
-        })
-    }
-    
-    @Test("inactive filter only shows when inactive sessions exist")
-    func inactiveFilterShowsWhenInactiveSessionsExist() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        // Create an inactive session (no daily target)
-        let session = GoalSession(title: "Test Session", goal: goal, day: day)
-        session.unifiedTargetValue = 0
-        
-        let filters = SessionFilterService.buildAvailableFilters(sessions: [session])
-        
-        #expect(filters.contains { filter in
-            if case .inactive = filter { return true }
-            return false
-        })
-    }
-    
-    // MARK: - Filter Counting Tests
-    
-    @Test("activeToday filter counts active sessions correctly")
-    func activeTodayCountsActiveSessions() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        let session1 = GoalSession(title: "Session 1", goal: goal, day: day)
-        session1.status = .active
-        
-        let session2 = GoalSession(title: "Session 2", goal: goal, day: day)
-        session2.status = .active
-        
-        let count = SessionFilterService.count([session1, session2], for: .activeToday)
-        
-        #expect(count == 2)
-    }
-    
-    @Test("completedToday filter counts completed sessions correctly")
-    func completedTodayCountsCompletedSessions() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        let completed1 = GoalSession(title: "Completed 1", goal: goal, day: day)
-        completed1.markedComplete = true
-        
-        let completed2 = GoalSession(title: "Completed 2", goal: goal, day: day)
-        completed2.markedComplete = true
-        
-        let incomplete = GoalSession(title: "Incomplete", goal: goal, day: day)
-        incomplete.markedComplete = false
-        
-        let count = SessionFilterService.count([completed1, completed2, incomplete], for: .completedToday)
-        
-        #expect(count == 2)
-    }
-    
-    @Test("skippedSessions filter counts skipped sessions correctly")
-    func skippedSessionsCountsSkippedSessions() {
-        let calendar = Calendar.current
-        let date = Date()
-        let goal = Goal(title: "Test Goal")
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = 3600 / 7.0
-        let day = Day(start: date, end: date, calendar: calendar)
-        
-        let skipped1 = GoalSession(title: "Skipped 1", goal: goal, day: day)
-        skipped1.status = .skipped
-        
-        let skipped2 = GoalSession(title: "Skipped 2", goal: goal, day: day)
-        skipped2.status = .skipped
         
         let active = GoalSession(title: "Active", goal: goal, day: day)
         active.status = .active
+        active.unifiedTargetValue = 1800
         
-        let count = SessionFilterService.count([skipped1, skipped2, active], for: .skippedSessions)
+        let skipped = GoalSession(title: "Skipped", goal: goal, day: day)
+        skipped.status = .skipped
+        skipped.unifiedTargetValue = 1800
         
-        #expect(count == 2)
+        let result = SessionFilterService.filterActiveSessions(
+            [active, skipped],
+            validationCheck: { _ in true }
+        )
+        
+        #expect(result.count == 1)
+        #expect(result.first?.title == "Active")
     }
     
-    // MARK: - Filter Identity Tests
+    @Test("filterActiveSessions includes sessions with daily targets")
+    func filterActiveSessionsIncludesWithTargets() {
+        let calendar = Calendar.current
+        let date = Date()
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 3600 / 7.0
+        let day = Day(start: date, end: date, calendar: calendar)
+        
+        let session = GoalSession(title: "Session", goal: goal, day: day)
+        session.status = .active
+        session.unifiedTargetValue = 1800
+        
+        let result = SessionFilterService.filterActiveSessions(
+            [session],
+            validationCheck: { _ in true }
+        )
+        
+        #expect(result.count == 1)
+    }
     
-    @Test("allGoals filter is not available")
-    func allGoalsFilterNotAvailable() {
-        let sessions: [GoalSession] = []
+    @Test("filterActiveSessions excludes inactive sessions with no target")
+    func filterActiveSessionsExcludesInactive() {
+        let calendar = Calendar.current
+        let date = Date()
+        let goal = Goal(title: "Test Goal")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 0
+        let day = Day(start: date, end: date, calendar: calendar)
         
-        let filters = SessionFilterService.buildAvailableFilters(sessions: sessions)
+        let session = GoalSession(title: "Session", goal: goal, day: day)
+        session.status = .active
+        session.unifiedTargetValue = 0
         
-        // Verify .allGoals is not in the filter list
-        let hasAllGoals = filters.contains { filter in
-            switch filter {
-            case .activeToday, .completedToday, .skippedSessions, .inactive:
-                return false
-            }
-        }
+        let result = SessionFilterService.filterActiveSessions(
+            [session],
+            validationCheck: { _ in true }
+        )
         
-        #expect(!hasAllGoals)
+        // Session with no target and not an active goal should be excluded
+        #expect(result.isEmpty)
     }
 }

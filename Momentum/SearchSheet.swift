@@ -14,7 +14,6 @@ struct SearchSheet: View {
     @State private var isSearchFieldFocused = false
     
     let sessions: [GoalSession]
-    let availableFilters: [ContentView.Filter]
     let day: Day
     let timerManager: SessionTimerManager?
     let animation: Namespace.ID
