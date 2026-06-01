@@ -8,35 +8,44 @@
 import SwiftUI
 import MomentumKit
 
-/// Pill bar showing contextual sections as toggleable chips
+/// Pill bar showing contextual sections as tappable chips that scroll to sections
 struct SectionPillBar: View {
     let sections: [ContextualSection]
-    @Binding var expandedSections: Set<ContextualSection.SectionType>
-    var scrollProxy: ScrollViewProxy?
+    var visibleSectionType: ContextualSection.SectionType?
+    var onSectionTapped: ((ContextualSection.SectionType) -> Void)?
     
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(sections) { section in
-                    sectionPill(for: section)
+        ScrollViewReader { pillProxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(sections) { section in
+                        sectionPill(for: section)
+                            .id(pillID(for: section.type))
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .onChange(of: visibleSectionType) { _, newValue in
+                guard let newValue else { return }
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    pillProxy.scrollTo(pillID(for: newValue), anchor: .center)
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
         }
     }
     
     private func sectionPill(for section: ContextualSection) -> some View {
-        let isExpanded = expandedSections.contains(section.type)
+        let isVisible = visibleSectionType == section.type
         let tint = section.type.iconColor
         
         return HStack(spacing: 4) {
             if let icon = section.type.icon {
                 Image(systemName: icon)
                     .font(.caption2)
-                    .foregroundStyle(isExpanded ? tint : .secondary)
+                    .foregroundStyle(isVisible ? tint : .secondary)
             }
             Text(pillTitle(for: section.type))
                 .font(.footnote)
@@ -50,20 +59,16 @@ struct SectionPillBar: View {
         .frame(minHeight: 34)
         .background(
             Capsule()
-                .fill(isExpanded ? tint.opacity(0.2) : Color.clear)
+                .fill(isVisible ? tint.opacity(0.3) : Color.clear)
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(isVisible ? tint.opacity(0.5) : .clear, lineWidth: 1.5)
         )
         .glassEffect(in: Capsule())
         .onTapGesture {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                if isExpanded {
-                    // Collapse the section
-                    expandedSections.remove(section.type)
-                } else {
-                    // Expand and scroll to it
-                    expandedSections.insert(section.type)
-                    scrollProxy?.scrollTo(section.type, anchor: .top)
-                }
-            }
+            HapticFeedbackManager.trigger(.light)
+            onSectionTapped?(section.type)
         }
     }
     
@@ -74,5 +79,9 @@ struct SectionPillBar: View {
         default:
             return type.title
         }
+    }
+    
+    private func pillID(for type: ContextualSection.SectionType) -> String {
+        "pill_\(type.hashValue)"
     }
 }

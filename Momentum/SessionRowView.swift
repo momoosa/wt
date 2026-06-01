@@ -11,6 +11,7 @@ struct SessionRowView: View {
     @Binding var sessionToLogManually: GoalSession?
     var isRecommended: Bool = false
     var useGradientAccents: Bool = false
+    var isCompleted: Bool = false
     
     @Environment(GoalStore.self) private var goalStore
     @Environment(\.colorScheme) private var colorScheme
@@ -124,19 +125,17 @@ struct SessionRowView: View {
                    let metric = goal.healthKitMetric {
                     
                     if metric.supportsWrite {
-                        // HealthKit metric that supports writing: Show BOTH play button AND log button
-                        HStack(spacing: 12) {
-                            // Play button for live tracking (writes to HealthKit when stopped)
-                            Button {
-                                timerManager?.toggleTimer(for: session, in: day)
-                            } label: {
-                                let isActive = timerManager?.activeSession?.id == session.id
-                                let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                                Image(systemName: image)
-                                    .font(.title2)
-                            }
-                            .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
+                        // HealthKit metric that supports writing: Show play button with progress gauge
+                        Button {
+                            timerManager?.toggleTimer(for: session, in: day)
+                        } label: {
+                            let isActive = timerManager?.activeSession?.id == session.id
+                            let image = isActive ? "stop.circle.fill" : "play.circle.fill"
+                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                                .contentTransition(.symbolEffect(.replace))
+                                .font(.title2)
                         }
+                        .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
                         .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                     } else {
                         // Read-only HealthKit metric: Show sync button
@@ -153,28 +152,22 @@ struct SessionRowView: View {
                         .disabled(sessionActions.isSyncingHealthKit)
                     }
                 } else {
-                    // Regular goal: Show standard play/stop button (live tracking)
+                    // Regular goal: Show standard play/stop button with progress gauge
                     Button {
                         timerManager?.toggleTimer(for: session, in: day)
                     } label: {
                         let isActive = timerManager?.activeSession?.id == session.id
                         let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                        
-                        if isRecommended {
-                            Image(systemName: image)
-                                .contentTransition(.symbolEffect(.replace))
-                                .font(.title2)
-                        } else {
-                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
-                                .contentTransition(.symbolEffect(.replace))
-                                .font(.title2)
-                        }
+                        GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: isRecommended ? session.theme.foregroundColor(for: colorScheme) : session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
+                            .contentTransition(.symbolEffect(.replace))
+                            .font(.title2)
                     }
                     .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
                     .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                 }
             }
             .buttonStyle(.plain)
+            .opacity(isCompleted ? 0.6 : 1.0)
             .listRowBackground(rowBackground)
             .onTapGesture {
                 HapticFeedbackManager.trigger(.light)
@@ -185,7 +178,7 @@ struct SessionRowView: View {
             .matchedTransitionSource(id: session.id, in: animation)
 
         }
-        .swipeActions {
+        .swipeActions(edge: .trailing) {
             Button {
                 HapticFeedbackManager.trigger(.medium)
                 sessionActions.onSkip(session)
@@ -197,6 +190,17 @@ struct SessionRowView: View {
                 }
             }
             .tint(.orange)
+        }
+        .swipeActions(edge: .leading) {
+            if !session.targetUnit.isTimeBased || session.goal?.healthKitSyncEnabled == true {
+                Button {
+                    HapticFeedbackManager.trigger(.light)
+                    sessionToLogManually = session
+                } label: {
+                    Label("Log", systemImage: "plus.circle.fill")
+                }
+                .tint(tintColor)
+            }
         }
     }
 }

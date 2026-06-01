@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 import MomentumKit
 
 /// Represents a contextual grouping of sessions with timing and constraint information
@@ -303,10 +304,16 @@ extension ContextualSection {
         let calendar = Calendar.current
         _ = calendar.component(.hour, from: currentDate)
         
+        // Safely access recommendationReasons (SwiftData backing can fault on deleted sessions)
+        func safeReasons(for session: GoalSession) -> [RecommendationReason] {
+            guard (try? session.persistentModelID) != nil else { return [] }
+            return session.recommendationReasons
+        }
+        
         // Group by weather constraints
         let weatherSessions = sessions.filter { session in
             !processedSessionIDs.contains(session.id) &&
-            session.recommendationReasons.contains(.weather)
+            safeReasons(for: session).contains(.weather)
         }
         
         if !weatherSessions.isEmpty {
@@ -332,7 +339,7 @@ extension ContextualSection {
         // Group by constrained time windows
         let constrainedSessions = sessions.filter { session in
             !processedSessionIDs.contains(session.id) &&
-            session.recommendationReasons.contains(.constrained)
+            safeReasons(for: session).contains(.constrained)
         }
         
         if !constrainedSessions.isEmpty {
@@ -373,7 +380,7 @@ extension ContextualSection {
         // Group by energy level windows
         let energySessions = sessions.filter { session in
             !processedSessionIDs.contains(session.id) &&
-            session.recommendationReasons.contains(.energyLevel)
+            safeReasons(for: session).contains(.energyLevel)
         }
         
         if !energySessions.isEmpty {

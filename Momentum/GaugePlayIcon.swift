@@ -19,16 +19,13 @@ public struct GaugePlayIcon: View {
             .contentTransition(.symbolEffect(.replace))
             .font(font)
             .background {
-                if isActive {
-                 
-                    Gauge(value: progress) {
-                        
-                    }
-                    .gaugeStyle(.accessoryCircularCapacity)
-                    .scaleEffect(gaugeScale)
-                    .transition(.scale.combined(with: .blurReplace))
-                    .tint(color)
+                Gauge(value: min(progress, 1.0)) {
+                    
                 }
+                .gaugeStyle(.accessoryCircularCapacity)
+                .scaleEffect(gaugeScale)
+                .tint(color)
+                .animation(.spring(response: 0.6, dampingFraction: 0.7), value: progress)
             }
     }
     
@@ -41,4 +38,3 @@ public struct GaugePlayIcon: View {
         self.gaugeScale = gaugeScale
     }
 }
-

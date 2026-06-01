@@ -110,12 +110,8 @@ class ContentViewModel {
         
         // Handle navigation and toast if successful
         if case .success = result {
-            // If it was completed and we just started it, switch to Today filter and show toast
+            // If it was completed and we just started it, show toast
             if wasCompleted && timerManager?.activeSession?.id == session.id {
-                withAnimation {
-                    _ = navigation.expandedSections.insert(.recommendedNow)
-                }
-
                 navigation.toastConfig = ToastConfig(
                     message: ToastMessageFactory.sessionResumed(),
                     showUndo: false

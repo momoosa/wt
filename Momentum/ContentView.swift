@@ -79,6 +79,9 @@ struct ContentView: View {
     @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
     @AppStorage("showCalendarTile") var showCalendarTile: Bool = true
     
+    // Scroll position for programmatic section scrolling (iOS 18+)
+    @State var scrollPosition = ScrollPosition()
+    
     // Shared session actions for child views (eliminates callback prop drilling)
     @State var sessionActions = SessionActions()
 
@@ -104,8 +107,15 @@ struct ContentView: View {
                     }
                     SectionPillBar(
                         sections: contextualSections,
-                        expandedSections: $navigation.expandedSections,
-                        scrollProxy: navigation.scrollProxy
+                        visibleSectionType: navigation.visibleSectionType,
+                        onSectionTapped: { sectionType in
+                            // Find the section's string ID for scroll targeting
+                            if let section = contextualSections.first(where: { $0.type == sectionType }) {
+                                withAnimation {
+                                    scrollPosition.scrollTo(id: section.id, anchor: .top)
+                                }
+                            }
+                        }
                     )
                     Spacer()
                 }
@@ -314,11 +324,10 @@ struct ContentView: View {
     // MARK: - Main List View
 
     private var mainListView: some View {
-        ScrollViewReader { proxy in
-            List {
-                // Show daily progress card once user has saved at least one session
-                Section {
-                
+        List {
+            // Show daily progress card once user has saved at least one session
+            Section {
+            
             } footer: {
                 Spacer()
                     .frame(height: LayoutConstants.Heights.smallSpacer)
@@ -333,23 +342,36 @@ struct ContentView: View {
                 if planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
                     planningIndicatorSection
                 }
-            }
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .onAppear {
-                navigation.scrollProxy = proxy
-            }
-            .refreshable {
-                syncHealthKitData(userInitiated: true)
-                refreshGoals()
-            }
-            .safeAreaInset(edge: .bottom) {
-                if !navigation.showExpandedCapsule {
-                    bottomCapsuleBar
-                        .transition(.move(edge: .bottom))
+            } else {
+                Section {
+                    ContentUnavailableView {
+                        Label("No Goals Yet", systemImage: "target")
+                    } description: {
+                        Text("Create your first goal to start tracking your progress.")
+                    } actions: {
+                        Button {
+                            navigation.showingGoalEditor = true
+                        } label: {
+                            Text("Create Goal")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
+                .listRowBackground(Color.clear)
+            }
+        }
+        .scrollPosition($scrollPosition)
+#if os(macOS)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+#endif
+        .refreshable {
+            syncHealthKitData(userInitiated: true)
+            refreshGoals()
+        }
+        .safeAreaInset(edge: .bottom) {
+            if !navigation.showExpandedCapsule {
+                bottomCapsuleBar
+                    .transition(.move(edge: .bottom))
             }
         }
     }
@@ -372,8 +394,11 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .id(section.type)
+            .id(section.id)
             .listSectionSpacing(.compact)
+            .onAppear {
+                navigation.visibleSectionType = section.type
+            }
             
             // Individual featured cards
             ForEach(Array(section.sessions.enumerated()), id: \.element.id) { index, session in
@@ -396,56 +421,37 @@ struct ContentView: View {
     }
     
     private func collapsibleSection(section: ContextualSection) -> some View {
-        let isExpanded = navigation.expandedSections.contains(section.type)
+        let isCompletedSection = section.type == .completed
         
         return Section {
-            if isExpanded {
-                ForEach(section.sessions) { session in
-                    sessionRow(for: session)
-                }
+            ForEach(section.sessions) { session in
+                sessionRow(for: session, isCompleted: isCompletedSection)
             }
         } header: {
-            Button(action: {
-                withAnimation {
-                    if isExpanded {
-                        navigation.expandedSections.remove(section.type)
-                    } else {
-                        navigation.expandedSections.insert(section.type)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    if let icon = section.type.icon {
+                        Image(systemName: icon)
+                            .foregroundStyle(section.type.iconColor)
                     }
+                    Text(section.type.title)
+                        .font(.headline)
+                    Spacer()
                 }
-            }) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        if let icon = section.type.icon {
-                            Image(systemName: icon)
-                                .foregroundStyle(section.type.iconColor)
-                        }
-                        Text(section.type.title)
-                            .font(.headline)
-                        if !isExpanded && !section.sessions.isEmpty {
-                            Text("(\(section.sessions.count))")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    if let explanation = section.explanation, isExpanded {
-                        Text(explanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                
+                if let explanation = section.explanation {
+                    Text(explanation)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions, \(isExpanded ? "expanded" : "collapsed")")
-            .accessibilityHint(isExpanded ? "Double tap to collapse" : "Double tap to expand")
+            .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions")
         }
-        .id(section.type)
+        .id(section.id)
         .listSectionSpacing(.compact)
+        .onAppear {
+            navigation.visibleSectionType = section.type
+        }
     }
         
     private var planningIndicatorSection: some View {
@@ -638,14 +644,15 @@ struct ContentView: View {
     // MARK: - Session Row
     
     @ViewBuilder
-    func sessionRow(for session: GoalSession) -> some View {
+    func sessionRow(for session: GoalSession, isCompleted: Bool = false) -> some View {
         SessionRowView(
             session: session,
             day: day,
             timerManager: timerManager,
             animation: animation,
             selectedSession: $navigation.selectedSession,
-            sessionToLogManually: $navigation.sessionToLogManually
+            sessionToLogManually: $navigation.sessionToLogManually,
+            isCompleted: isCompleted
         )
     }
     
