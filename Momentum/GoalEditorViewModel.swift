@@ -833,6 +833,7 @@ class GoalEditorViewModel {
             goal = existingGoal
             goal.title = userInput
             goal.primaryTag = finalGoalTag
+            goal.themeID = finalGoalTag.themeID
             goal.iconName = selectedIcon
             goal.scheduleNotificationsEnabled = scheduleNotificationsEnabled
             goal.completionNotificationsEnabled = completionNotificationsEnabled
@@ -855,6 +856,7 @@ class GoalEditorViewModel {
                 healthKitMetric: selectedHealthKitMetric,
                 healthKitSyncEnabled: healthKitSyncEnabled
             )
+            goal.themeID = finalGoalTag.themeID
             goal.iconName = selectedIcon
             goal.dailyMinimum = hasDailyMinimum ? TimeInterval((dailyMinimumMinutes ?? 10) * 60) : nil
             goal.completionBehaviors = selectedCompletionBehaviors

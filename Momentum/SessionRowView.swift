@@ -31,10 +31,40 @@ struct SessionRowView: View {
     
     private var rowBackground: Color {
         if colorScheme == .dark {
-            return session.theme.colors(for: colorScheme).first!.opacity(0.03)
+            return (session.theme.colors(for: colorScheme).first ?? tintColor).opacity(0.03)
         } else {
             return Color(.systemBackground)
         }
+    }
+    
+    /// Whether this session's timer is currently running
+    private var isActive: Bool {
+        timerManager?.activeSession?.id == session.id
+    }
+    
+    /// Live progress that updates every timer tick for the active session
+    private var liveProgress: Double {
+        guard let activeSession = timerManager?.activeSession,
+              activeSession.id == session.id else {
+            return session.progress
+        }
+        // Read tickCount to subscribe to timer updates
+        _ = activeSession.tickCount
+        let liveElapsed = activeSession.elapsedTime + Date().timeIntervalSince(activeSession.startDate)
+        guard activeSession.unifiedTargetValue > 0 else { return 0 }
+        return liveElapsed / activeSession.unifiedTargetValue
+    }
+    
+    /// Reusable play/stop button with circular progress gauge
+    private var gaugeButton: some View {
+        Button {
+            timerManager?.toggleTimer(for: session, in: day)
+        } label: {
+            let image = isActive ? "stop.circle.fill" : "play.circle.fill"
+            let color = isRecommended ? session.theme.foregroundColor(for: colorScheme) : session.theme.color(for: colorScheme)
+            GaugePlayIcon(imageName: image, progress: liveProgress, color: color)
+        }
+        .accessibilityLabel(isActive ? "Stop tracking" : "Start tracking")
     }
     
     var body: some View {
@@ -65,7 +95,7 @@ struct SessionRowView: View {
                                 Text(timeText)
                                     .contentTransition(.numericText())
                                     .fontWeight(.semibold)
-                                    .font(.footnote)
+                                    .font(.callout)
                                 
                                 if activeSession.hasMetDailyTarget {
                                     Image(systemName: "checkmark.circle.fill")
@@ -77,7 +107,7 @@ struct SessionRowView: View {
                             } else {
                                 Text(session.formattedTime)
                                     .fontWeight(.semibold)
-                                    .font(.footnote)
+                                    .font(.callout)
                                 
                                 if session.hasMetDailyTarget {
                                     Image(systemName: "checkmark.circle.fill")
@@ -92,10 +122,11 @@ struct SessionRowView: View {
                                 if let metric = session.goal?.healthKitMetric {
                                     Image(systemName: metric.symbolName)
                                         .font(.footnote)
+                                        .accessibilityLabel(metric.displayName)
                                 }
                                 Text(session.formattedTime)
                                     .fontWeight(.semibold)
-                                    .font(.footnote)
+                                    .font(.callout)
                             }
                             
                             if session.hasMetDailyTarget {
@@ -126,17 +157,8 @@ struct SessionRowView: View {
                     
                     if metric.supportsWrite {
                         // HealthKit metric that supports writing: Show play button with progress gauge
-                        Button {
-                            timerManager?.toggleTimer(for: session, in: day)
-                        } label: {
-                            let isActive = timerManager?.activeSession?.id == session.id
-                            let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                            GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
-                                .contentTransition(.symbolEffect(.replace))
-                                .font(.title2)
-                        }
-                        .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
-                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
+                        gaugeButton
+                            .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                     } else {
                         // Read-only HealthKit metric: Show sync button
                         Button {
@@ -153,17 +175,8 @@ struct SessionRowView: View {
                     }
                 } else {
                     // Regular goal: Show standard play/stop button with progress gauge
-                    Button {
-                        timerManager?.toggleTimer(for: session, in: day)
-                    } label: {
-                        let isActive = timerManager?.activeSession?.id == session.id
-                        let image = isActive ? "stop.circle.fill" : "play.circle.fill"
-                        GaugePlayIcon(isActive: isActive, imageName: image, progress: session.progress, color: isRecommended ? session.theme.foregroundColor(for: colorScheme) : session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.4)
-                            .contentTransition(.symbolEffect(.replace))
-                            .font(.title2)
-                    }
-                    .accessibilityLabel(timerManager?.activeSession?.id == session.id ? "Stop tracking" : "Start tracking")
-                    .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
+                    gaugeButton
+                        .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))
                 }
             }
             .buttonStyle(.plain)

@@ -304,16 +304,10 @@ extension ContextualSection {
         let calendar = Calendar.current
         _ = calendar.component(.hour, from: currentDate)
         
-        // Safely access recommendationReasons (SwiftData backing can fault on deleted sessions)
-        func safeReasons(for session: GoalSession) -> [RecommendationReason] {
-            guard (try? session.persistentModelID) != nil else { return [] }
-            return session.recommendationReasons
-        }
-        
         // Group by weather constraints
         let weatherSessions = sessions.filter { session in
             !processedSessionIDs.contains(session.id) &&
-            safeReasons(for: session).contains(.weather)
+            session.safeRecommendationReasons.contains(.weather)
         }
         
         if !weatherSessions.isEmpty {
@@ -339,7 +333,7 @@ extension ContextualSection {
         // Group by constrained time windows
         let constrainedSessions = sessions.filter { session in
             !processedSessionIDs.contains(session.id) &&
-            safeReasons(for: session).contains(.constrained)
+            session.safeRecommendationReasons.contains(.constrained)
         }
         
         if !constrainedSessions.isEmpty {
@@ -380,7 +374,7 @@ extension ContextualSection {
         // Group by energy level windows
         let energySessions = sessions.filter { session in
             !processedSessionIDs.contains(session.id) &&
-            safeReasons(for: session).contains(.energyLevel)
+            session.safeRecommendationReasons.contains(.energyLevel)
         }
         
         if !energySessions.isEmpty {

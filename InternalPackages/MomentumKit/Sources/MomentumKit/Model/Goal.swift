@@ -21,6 +21,11 @@ public final class Goal {
     @Relationship(deleteRule: .nullify)
     public var primaryTag: GoalTag? // Optional tag that provides both theme and smart triggers
     
+    /// Denormalized theme ID stored directly on the goal so the color survives
+    /// even when the `primaryTag` relationship hasn't been resolved yet (e.g. after
+    /// a reinstall while CloudKit is still syncing).
+    public var themeID: String?
+    
     @Relationship(deleteRule: .nullify)
     public var otherTags: [GoalTag]? = []
     
@@ -299,8 +304,20 @@ public extension Goal {
 }
 
 public extension Goal {
+    /// Resolved theme preset: prefers `primaryTag.theme`, falls back to the
+    /// denormalized `themeID` stored on the goal, then to `ThemeStore.defaultPreset`.
+    var resolvedTheme: ThemePreset {
+        if let tag = primaryTag {
+            return tag.theme
+        }
+        if let id = themeID {
+            return ThemeStore.resolve(for: id)
+        }
+        return ThemeStore.defaultPreset
+    }
+    
     func tintColor(for colorScheme: ColorScheme) -> Color {
-        return primaryTag?.theme.color(for: colorScheme) ?? ThemeStore.defaultPreset.color(for: colorScheme)
+        return resolvedTheme.color(for: colorScheme)
     }
     
     // MARK: - Weather Helpers

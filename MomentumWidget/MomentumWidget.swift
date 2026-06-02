@@ -210,7 +210,7 @@ struct Provider: AppIntentTimelineProvider {
                 return RecommendedSession(
                     id: session.id,
                     title: session.title,
-                    theme: session.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset,
+                    theme: session.goal?.resolvedTheme ?? ThemeStore.defaultPreset,
                     progress: session.progress,
                     formattedTime: session.formattedTime,
                     hasMetTarget: session.hasMetDailyTarget,

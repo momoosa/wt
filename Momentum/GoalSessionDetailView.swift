@@ -804,7 +804,13 @@ struct GoalSessionDetailView: View {
                                 Button {
                                     withAnimation {
                                         context.delete(historicalSession)
-                                        Task { try context.save() }
+                                        Task {
+                                            do {
+                                                try context.save()
+                                            } catch {
+                                                AppLogger.data.error("Failed to save after deleting historical session: \(error)")
+                                            }
+                                        }
                                     }
                                 } label: {
                                     Label { Text("Delete") } icon: { Image(systemName: "xmark.bin") }

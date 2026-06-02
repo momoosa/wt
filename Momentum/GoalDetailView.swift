@@ -39,11 +39,11 @@ struct GoalDetailView: View {
     }
     
     private var tintColor: Color {
-        goal.primaryTag?.theme.color(for: colorScheme) ?? .blue
+        goal.resolvedTheme.color(for: colorScheme)
     }
     
     private var themePreset: ThemePreset {
-        goal.primaryTag?.theme ?? ThemeStore.defaultPreset
+        goal.resolvedTheme
     }
     
     private var chartGradient: LinearGradient {

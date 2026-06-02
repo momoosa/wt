@@ -211,7 +211,7 @@ struct ContentView: View {
                 }
             }
             .onChange(of: navigation.showingGoalEditor) { _, show in
-                if show {
+                if show, goalEditorViewModel == nil {
                     goalEditorViewModel = GoalEditorViewModel()
                 }
             }
@@ -325,12 +325,22 @@ struct ContentView: View {
 
     private var mainListView: some View {
         List {
-            // Show daily progress card once user has saved at least one session
-            Section {
-            
-            } footer: {
-                Spacer()
-                    .frame(height: LayoutConstants.Heights.smallSpacer)
+            if !focusFilteredSessions.isEmpty {
+                // Show daily progress card once user has saved at least one session
+                Section {
+                
+                } footer: {
+                    Spacer()
+                        .frame(height: LayoutConstants.Heights.smallSpacer)
+                }
+            } else {
+                // Greeting header for empty state
+                Section {
+                    Text(timeOfDayGreeting)
+                        .font(.largeTitle.bold())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                }
             }
 
             if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
@@ -343,21 +353,7 @@ struct ContentView: View {
                     planningIndicatorSection
                 }
             } else {
-                Section {
-                    ContentUnavailableView {
-                        Label("No Goals Yet", systemImage: "target")
-                    } description: {
-                        Text("Create your first goal to start tracking your progress.")
-                    } actions: {
-                        Button {
-                            navigation.showingGoalEditor = true
-                        } label: {
-                            Text("Create Goal")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                }
-                .listRowBackground(Color.clear)
+                emptyStateView
             }
         }
         .scrollPosition($scrollPosition)
@@ -377,6 +373,155 @@ struct ContentView: View {
     }
     
 
+    
+    // MARK: - Empty State
+    
+    private var timeOfDayGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Good morning."
+        case 12..<17: return "Good afternoon."
+        case 17..<22: return "Good evening."
+        default: return "Good evening."
+        }
+    }
+    
+    private struct StarterSuggestion: Identifiable {
+        let id: String
+        let title: String
+        let category: String
+        let duration: String
+        let icon: String
+        let templateID: String
+        let gradientColors: [Color]
+    }
+    
+    private var starterSuggestions: [StarterSuggestion] {
+        [
+            StarterSuggestion(
+                id: "walk", title: "Daily walk", category: "Movement",
+                duration: "20m", icon: "figure.walk",
+                templateID: "walk",
+                gradientColors: [.green, .mint]
+            ),
+            StarterSuggestion(
+                id: "focus", title: "Deep work block", category: "Deep work",
+                duration: "1h", icon: "rectangle.on.rectangle",
+                templateID: "focus_work",
+                gradientColors: [.orange, .red]
+            ),
+            StarterSuggestion(
+                id: "breathe", title: "Breathe & reset", category: "Mindfulness",
+                duration: "10m", icon: "sparkles",
+                templateID: "meditation",
+                gradientColors: [.purple, .indigo]
+            ),
+            StarterSuggestion(
+                id: "read", title: "Read 20 minutes", category: "Learning",
+                duration: "20m", icon: "book.fill",
+                templateID: "reading",
+                gradientColors: [.blue, .cyan]
+            ),
+        ]
+    }
+    
+    @ViewBuilder
+    private var emptyStateView: some View {
+        Section {
+            VStack(spacing: 20) {
+                // Decorative circle with plus icon
+                ZStack {
+                    Circle()
+                        .fill(.pink.opacity(0.08))
+                        .frame(width: 120, height: 120)
+                    Circle()
+                        .fill(.pink.opacity(0.12))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.pink.opacity(0.6))
+                }
+                .padding(.top, 8)
+                
+                VStack(spacing: 8) {
+                    Text("What do you want\nto make time for?")
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                    
+                    Text("Add your first goal and Momentum\nwill find the right moments for it.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+        
+        Section {
+            ForEach(starterSuggestions) { suggestion in
+                HStack(spacing: 14) {
+                    // Gradient icon circle
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: suggestion.gradientColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+                        
+                        Image(systemName: suggestion.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(suggestion.title)
+                            .font(.subheadline.bold())
+                        
+                        Text("\(suggestion.category) · \(suggestion.duration)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        openEditorWithTemplate(id: suggestion.templateID)
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 4)
+            }
+        } header: {
+            Text("Start with one")
+        }
+    }
+    
+    private func openEditorWithTemplate(id templateID: String) {
+        let suggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
+        for category in suggestionsData.categories {
+            if let template = category.suggestions.first(where: { $0.id == templateID }) {
+                let vm = GoalEditorViewModel()
+                vm.selectedTemplate = template
+                vm.userInput = template.title
+                vm.durationInMinutes = template.duration
+                goalEditorViewModel = vm
+                navigation.showingGoalEditor = true
+                return
+            }
+        }
+        // Fallback: open blank editor
+        navigation.showingGoalEditor = true
+    }
     
     @ViewBuilder
     private func contextualSectionView(section: ContextualSection) -> some View {

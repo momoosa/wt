@@ -305,6 +305,10 @@ struct MomentumApp: App {
                                     hasSeededDefaultTags = true
                                 }
                                 
+                                // Backfill denormalized themeID on goals that have a
+                                // primaryTag but haven't stored themeID yet.
+                                backfillGoalThemeIDs(context: sharedModelContainer.mainContext)
+                                
                                 // Update the day (this will trigger ContentView to load)
                                 self.day = currentDay
                                 
@@ -425,6 +429,26 @@ struct MomentumApp: App {
                     AppLogger.app.error("Failed to load new day: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+    
+    /// Backfills the denormalized `themeID` on goals that already have a `primaryTag`
+    /// but were created before the field existed.
+    private func backfillGoalThemeIDs(context: ModelContext) {
+        let descriptor = FetchDescriptor<Goal>()
+        guard let goals = try? context.fetch(descriptor) else { return }
+        
+        var updated = 0
+        for goal in goals {
+            if goal.themeID == nil, let tagThemeID = goal.primaryTag?.themeID, !tagThemeID.isEmpty {
+                goal.themeID = tagThemeID
+                updated += 1
+            }
+        }
+        
+        if updated > 0 {
+            try? context.save()
+            AppLogger.data.info("Backfilled themeID on \(updated) goals")
         }
     }
     

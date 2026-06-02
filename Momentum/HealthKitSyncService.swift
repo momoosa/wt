@@ -352,8 +352,12 @@ enum HealthKitSampleMerger {
 
         // Merge multiple samples
         let sortedByDate = samples.sorted { $0.startDate < $1.startDate }
-        let earliestStart = sortedByDate.first!.startDate
-        let latestEnd = sortedByDate.max { $0.endDate < $1.endDate }!.endDate
+        guard let earliest = sortedByDate.first,
+              let latest = sortedByDate.max(by: { $0.endDate < $1.endDate }) else {
+            return samples[0]
+        }
+        let earliestStart = earliest.startDate
+        let latestEnd = latest.endDate
         let totalDuration = latestEnd.timeIntervalSince(earliestStart)
 
         // Create a combined ID from all merged sample IDs

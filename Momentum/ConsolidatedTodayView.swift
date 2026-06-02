@@ -240,7 +240,7 @@ struct ConsolidatedTodayView: View {
     }
     
     private func goalCard(_ goal: Goal) -> some View {
-        let themePreset = goal.primaryTag?.theme ?? ThemeStore.defaultPreset
+        let themePreset = goal.resolvedTheme
         let weeklyProgress = calculateWeeklyProgress(for: goal)
         
         return VStack(alignment: .leading, spacing: 12) {
@@ -479,7 +479,7 @@ struct ConsolidatedTodayView: View {
     // MARK: - Helper Methods
     
     private func recommendationRow(goal: Goal, duration: TimeInterval?, reason: String) -> some View {
-        let themePreset = goal.primaryTag?.theme ?? ThemeStore.defaultPreset
+        let themePreset = goal.resolvedTheme
         
         return VStack(alignment: .leading, spacing: 8) {
             HStack {

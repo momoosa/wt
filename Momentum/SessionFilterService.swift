@@ -100,15 +100,9 @@ struct SessionFilterService {
         // These shouldn't be recommended — the user has already done enough for today
         let incomplete = filtered.filter { !$0.hasMetDailyTarget }
         
-        // Safely access recommendationReasons (SwiftData backing can fault on deleted sessions)
-        func safeReasons(for session: GoalSession) -> [RecommendationReason] {
-            guard (try? session.persistentModelID) != nil else { return [] }
-            return session.recommendationReasons
-        }
-        
         // During planning or if we have planned sessions, show top 3 with planning details as recommended
         let plannedSessions = incomplete
-            .filter { $0.plannedStartTime != nil && !safeReasons(for: $0).isEmpty }
+            .filter { $0.plannedStartTime != nil && !$0.safeRecommendationReasons.isEmpty }
             .sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
         
         if !plannedSessions.isEmpty {
@@ -119,7 +113,7 @@ struct SessionFilterService {
         if let aiRecommendations = planner.getRecommendedSessionsFromPlan(allSessions: incomplete),
            !aiRecommendations.isEmpty {
             // Use AI recommendations - filter to only show ones with recommendation reasons
-            let recommendationsWithReasons = aiRecommendations.filter { !safeReasons(for: $0).isEmpty }
+            let recommendationsWithReasons = aiRecommendations.filter { !$0.safeRecommendationReasons.isEmpty }
             
             if !recommendationsWithReasons.isEmpty {
                 return Array(recommendationsWithReasons.prefix(3))
@@ -151,7 +145,7 @@ struct SessionFilterService {
             .prefix(3)
             .map { $0.0 }
         
-        for session in top where safeReasons(for: session).isEmpty {
+        for session in top where session.safeRecommendationReasons.isEmpty {
             if let goal = session.goal {
                 session.recommendationReasons = Self.basicReasons(for: session, goal: goal, at: now, weatherManager: weatherManager)
             }

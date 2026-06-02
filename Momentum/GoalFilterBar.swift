@@ -59,7 +59,7 @@ struct SectionPillBar: View {
         .frame(minHeight: 34)
         .background(
             Capsule()
-                .fill(isVisible ? tint.opacity(0.3) : Color.clear)
+                .fill(isVisible ? tint.opacity(0.3) : Color.secondary.opacity(0.1))
         )
         .overlay(
             Capsule()
@@ -82,6 +82,16 @@ struct SectionPillBar: View {
     }
     
     private func pillID(for type: ContextualSection.SectionType) -> String {
-        "pill_\(type.hashValue)"
+        switch type {
+        case .recommendedNow: return "pill_recommendedNow"
+        case .weatherWindow(let time, let condition, _): return "pill_weather_\(time)_\(condition)"
+        case .timeWindow(let time, let reason, _): return "pill_time_\(time)_\(reason)"
+        case .energyWindow(let time, let energyLevel): return "pill_energy_\(time)_\(energyLevel)"
+        case .workingOffSchedule: return "pill_offSchedule"
+        case .available: return "pill_available"
+        case .later: return "pill_later"
+        case .completed: return "pill_completed"
+        case .inactive: return "pill_inactive"
+        }
     }
 }

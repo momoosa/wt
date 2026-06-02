@@ -26,6 +26,8 @@ struct HealthKitBadge: View {
                 Capsule()
                     .fill(color.opacity(0.3))
             )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Synced with Apple Health: \(metric.displayName)")
         }
     }
 }

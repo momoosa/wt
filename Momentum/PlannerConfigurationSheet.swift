@@ -79,7 +79,7 @@ struct ThemeTag: View {
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
-                        .fill(isSelected ? theme.theme.color(for: colorScheme) : theme.theme.colors(for: colorScheme).first!.opacity(0.5))
+                        .fill(isSelected ? theme.theme.color(for: colorScheme) : (theme.theme.colors(for: colorScheme).first ?? theme.theme.color(for: colorScheme)).opacity(0.5))
                 )
                 .overlay(
                     Capsule()

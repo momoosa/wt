@@ -113,11 +113,11 @@ struct GoalRow: View {
 
 private extension Goal {
     func themeColor(for colorScheme: ColorScheme) -> Color {
-        primaryTag?.theme.color(for: colorScheme) ?? ThemeStore.defaultPreset.color(for: colorScheme)
+        resolvedTheme.color(for: colorScheme)
     }
     
     func themeColors(for scheme: ColorScheme) -> [Color] {
-        primaryTag?.theme.colors(for: scheme) ?? ThemeStore.defaultPreset.colors(for: scheme)
+        resolvedTheme.colors(for: scheme)
     }
 }
 

@@ -32,12 +32,12 @@ struct WatchSessionRow: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-                        .foregroundStyle((session.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset).foregroundColor(for: colorScheme))
+                        .foregroundStyle((session.goal?.resolvedTheme ?? ThemeStore.defaultPreset).foregroundColor(for: colorScheme))
                     
                     HStack(spacing: 4) {
                         Text(formattedTime)
                             .font(.caption2)
-                            .foregroundStyle((session.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset).foregroundColor(for: colorScheme).opacity(0.7))
+                            .foregroundStyle((session.goal?.resolvedTheme ?? ThemeStore.defaultPreset).foregroundColor(for: colorScheme).opacity(0.7))
                         
                         Spacer(minLength: 0)
                     }
@@ -46,11 +46,11 @@ struct WatchSessionRow: View {
                 
                 // Play button
                 Image(systemName: "play.circle.fill")
-                    .foregroundStyle((session.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset).foregroundColor(for: colorScheme))
+                    .foregroundStyle((session.goal?.resolvedTheme ?? ThemeStore.defaultPreset).foregroundColor(for: colorScheme))
             }
             .padding(6)
             .background(
-                (session.goal?.primaryTag?.theme ?? ThemeStore.defaultPreset).gradient(for: colorScheme)
+                (session.goal?.resolvedTheme ?? ThemeStore.defaultPreset).gradient(for: colorScheme)
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }

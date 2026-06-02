@@ -126,7 +126,6 @@
 		CDEBAA382EE9FA1000C1C411 /* GoalSessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA272EE9FA1000C1C411 /* GoalSessionDetailView.swift */; };
 		CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */; };
 		CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA292EE9FA1000C1C411 /* ContentView.swift */; };
-		CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */; };
 		CDEBAA3C2EE9FA1000C1C411 /* GaugePlayIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */; };
 		CDEBAA3D2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */; };
 		CDEBAA3E2EE9FA1000C1C411 /* GoalEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */; };
@@ -351,7 +350,6 @@
 		CDEBAA272EE9FA1000C1C411 /* GoalSessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSessionDetailView.swift; sourceTree = "<group>"; };
 		CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistRow.swift; sourceTree = "<group>"; };
 		CDEBAA292EE9FA1000C1C411 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Filter.swift; sourceTree = "<group>"; };
 		CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaugePlayIcon.swift; sourceTree = "<group>"; };
 		CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorSuggestionsResult.swift; sourceTree = "<group>"; };
 		CDEBAA2D2EE9FA1000C1C411 /* GoalEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorView.swift; sourceTree = "<group>"; };
@@ -620,7 +618,6 @@
 				CDEBAA282EE9FA1000C1C411 /* ChecklistRow.swift */,
 				CDEBAA292EE9FA1000C1C411 /* ContentView.swift */,
 				CD713B1C2F200F40003F901D /* PlannerConfigurationSheet.swift */,
-				CDEBAA2A2EE9FA1000C1C411 /* Filter.swift */,
 				CDEBAA2B2EE9FA1000C1C411 /* GaugePlayIcon.swift */,
 				CDEBAA2C2EE9FA1000C1C411 /* GoalEditorSuggestionsResult.swift */,
 				CDBE14FB2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift */,
@@ -1137,7 +1134,6 @@
 				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
-				CDEBAA3B2EE9FA1000C1C411 /* Filter.swift in Sources */,
 				CDBE14FC2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift in Sources */,
 				CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */,
 				CD2A6FC12F5778EB00F5503A /* ColorConstants.swift in Sources */,

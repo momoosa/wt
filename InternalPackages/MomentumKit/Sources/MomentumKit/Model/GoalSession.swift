@@ -83,9 +83,10 @@ import SwiftUI
 
 extension GoalSession {
     /// Get the goal's theme preset, or default preset if no theme is set.
-    /// Access adaptive colors directly via `session.theme.gradient(for:)`, etc.
+    /// Uses `Goal.resolvedTheme` which falls back to the denormalized `themeID`
+    /// when the `primaryTag` relationship hasn't synced yet.
     public var theme: ThemePreset {
-        goal?.primaryTag?.theme ?? ThemeStore.defaultPreset
+        goal?.resolvedTheme ?? ThemeStore.defaultPreset
     }
 }
 
@@ -390,6 +391,17 @@ public extension GoalSession {
         } else {
             self.unifiedTargetValue = 0
         }
+    }
+}
+
+// MARK: - Safe SwiftData Access
+
+public extension GoalSession {
+    /// Safely access recommendationReasons — returns empty array if the SwiftData
+    /// backing store has been invalidated (e.g. session deleted mid-evaluation).
+    var safeRecommendationReasons: [RecommendationReason] {
+        guard (try? persistentModelID) != nil else { return [] }
+        return recommendationReasons
     }
 }
 

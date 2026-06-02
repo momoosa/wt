@@ -18,6 +18,21 @@ struct RecommendedSessionRowView: View {
     private var themePreset: ThemePreset { session.theme }
     private var foreground: Color { themePreset.foregroundColor(for: colorScheme) }
     
+    private var isActive: Bool {
+        timerManager?.activeSession?.id == session.id
+    }
+    
+    private var liveProgress: Double {
+        guard let activeSession = timerManager?.activeSession,
+              activeSession.id == session.id else {
+            return session.progress
+        }
+        _ = activeSession.tickCount
+        let liveElapsed = activeSession.elapsedTime + Date().timeIntervalSince(activeSession.startDate)
+        guard activeSession.unifiedTargetValue > 0 else { return 0 }
+        return liveElapsed / activeSession.unifiedTargetValue
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Row 1: Number + Category + TOP PICK badge
@@ -40,7 +55,7 @@ struct RecommendedSessionRowView: View {
             // Row 2: Title
             
             // Row 3: Reason chips
-            let reasons = Array(session.recommendationReasons.prefix(3))
+            let reasons = Array(session.safeRecommendationReasons.prefix(3))
             if !reasons.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(reasons, id: \.self) { reason in
@@ -82,16 +97,50 @@ struct RecommendedSessionRowView: View {
                 
                 Spacer()
                 
-                Button {
-                    timerManager?.toggleTimer(for: session, in: day)
-                } label: {
-                    let isActive = timerManager?.activeSession?.id == session.id
-                    Image(systemName: isActive ? "stop.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(foreground)
-                        .contentTransition(.symbolEffect(.replace))
+                if let goal = session.goal,
+                   goal.healthKitSyncEnabled,
+                   let metric = goal.healthKitMetric,
+                   !metric.supportsWrite {
+                    // Read-only HealthKit metric: sync button with progress ring
+                    Button {
+                        sessionActions.onSyncHealthKit?()
+                    } label: {
+                        GaugePlayIcon(
+                            imageName: sessionActions.isSyncingHealthKit
+                                ? "arrow.triangle.2.circlepath"
+                                : "arrow.triangle.2.circlepath.circle.fill",
+                            progress: liveProgress,
+                            color: foreground,
+                            size: 44,
+                            lineWidth: 3
+                        )
+                        .rotationEffect(.degrees(sessionActions.isSyncingHealthKit ? 360 : 0))
+                        .animation(
+                            sessionActions.isSyncingHealthKit
+                                ? .linear(duration: 1).repeatForever(autoreverses: false)
+                                : .default,
+                            value: sessionActions.isSyncingHealthKit
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sessionActions.isSyncingHealthKit)
+                    .accessibilityLabel(sessionActions.isSyncingHealthKit ? "Syncing health data" : "Sync health data")
+                } else {
+                    // Regular or HealthKit-writable goal: play/stop button
+                    Button {
+                        timerManager?.toggleTimer(for: session, in: day)
+                    } label: {
+                        GaugePlayIcon(
+                            imageName: isActive ? "stop.circle.fill" : "play.circle.fill",
+                            progress: liveProgress,
+                            color: foreground,
+                            size: 44,
+                            lineWidth: 3
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(isActive ? "Stop tracking" : "Start tracking")
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(20)

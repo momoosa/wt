@@ -538,8 +538,7 @@ extension ToggleTimerIntent {
         print("✅ Intent: Found session '\(session.title)'")
         
         // Create activity attributes
-        let primaryTag = session.goal?.primaryTag
-        let theme = primaryTag?.theme ?? ThemeStore.defaultPreset
+        let theme = session.goal?.resolvedTheme ?? ThemeStore.defaultPreset
         
         let attributes = MomentumWidgetAttributes(
             sessionID: sessionID,

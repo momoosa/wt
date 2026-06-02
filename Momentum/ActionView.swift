@@ -17,6 +17,14 @@ struct ActionView: View {
     let session: GoalSession
     @Bindable var details: ActiveSessionDetails
     let eventHandler: (Event) -> Void
+    
+    private var liveProgress: Double {
+        _ = details.tickCount
+        let liveElapsed = details.elapsedTime + Date().timeIntervalSince(details.startDate)
+        guard details.unifiedTargetValue > 0 else { return 0 }
+        return liveElapsed / details.unifiedTargetValue
+    }
+    
     var body: some View {
         HStack {
             Spacer()
@@ -34,7 +42,7 @@ struct ActionView: View {
             Button {
                 eventHandler(.stopTapped)
             } label: {
-                GaugePlayIcon(isActive: true, imageName: "stop.circle.fill", progress: session.progress, color: session.theme.color(for: colorScheme), font: .title2, gaugeScale: 0.5)
+                GaugePlayIcon(imageName: "stop.circle.fill", progress: liveProgress, color: session.theme.color(for: colorScheme))
                     .contentTransition(.symbolEffect(.replace))
                     .symbolRenderingMode(.hierarchical)
                     .font(.title2)

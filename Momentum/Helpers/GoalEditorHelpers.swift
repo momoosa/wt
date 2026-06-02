@@ -80,7 +80,7 @@ struct GoalEditorThemeHelper {
     }
     
     func findUnusedTheme(excluding goals: [Goal]) -> ThemePreset {
-        let usedThemeIDs = Set(goals.filter { $0.status == .active }.compactMap { $0.primaryTag?.themeID })
+        let usedThemeIDs = Set(goals.filter { $0.status == .active }.compactMap { $0.primaryTag?.themeID ?? $0.themeID })
         
         if let unusedPreset = ThemeStore.presets.first(where: { !usedThemeIDs.contains($0.id) }) {
             return unusedPreset

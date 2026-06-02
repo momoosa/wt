@@ -695,20 +695,22 @@ private struct PlanSessionCard: View {
             }
             
             // Recommendation reasons
-            if !session.recommendationReasons.isEmpty {
+            if !session.safeRecommendationReasons.isEmpty {
                 Button {
                     showingReason.toggle()
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: session.recommendationReasons.first!.icon)
-                            .font(.caption)
+                        if let firstReason = session.safeRecommendationReasons.first {
+                            Image(systemName: firstReason.icon)
+                                .font(.caption)
+                            
+                            Text(firstReason.displayName)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
                         
-                        Text(session.recommendationReasons.first!.displayName)
-                            .font(.caption)
-                            .lineLimit(1)
-                        
-                        if session.recommendationReasons.count > 1 {
-                            Text("+\(session.recommendationReasons.count - 1)")
+                        if session.safeRecommendationReasons.count > 1 {
+                            Text("+\(session.safeRecommendationReasons.count - 1)")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -724,7 +726,7 @@ private struct PlanSessionCard: View {
                 
                 if showingReason {
                     VStack(alignment: .leading, spacing: 4) {
-                        ForEach(session.recommendationReasons, id: \.self) { reason in
+                        ForEach(session.safeRecommendationReasons, id: \.self) { reason in
                             HStack(spacing: 8) {
                                 Image(systemName: reason.icon)
                                     .font(.caption2)
@@ -743,7 +745,9 @@ private struct PlanSessionCard: View {
             HStack(spacing: 12) {
                 Button {
                     HapticFeedbackManager.trigger(.medium)
-                    timerManager?.toggleTimer(for: session, in: session.day!)
+                    if let day = session.day {
+                        timerManager?.toggleTimer(for: session, in: day)
+                    }
                 } label: {
                     Label("Start", systemImage: "play.fill")
                         .font(.subheadline)
