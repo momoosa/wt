@@ -450,3 +450,66 @@ public extension GoalTag {
         return Double(matchedConditions) / Double(totalConditions)
     }
 }
+
+// MARK: - Relevance Rule Types
+
+/// Tri-state availability for each weekday in the relevance rule.
+public enum DayAvailability: String, Codable, CaseIterable, Hashable {
+    /// Scheduled day — goal is always surfaced and prioritized.
+    case preferred
+    /// Not scheduled, but strong signals can still surface the goal.
+    case open
+    /// Hard block — goal will never appear on this day.
+    case never
+
+    public var next: DayAvailability {
+        switch self {
+        case .preferred: return .open
+        case .open: return .never
+        case .never: return .preferred
+        }
+    }
+}
+
+/// Controls how a signal affects recommendation: soft boost vs hard requirement.
+public enum SignalStrength: String, Codable, CaseIterable, Hashable {
+    /// Promotes the goal in ranking when the signal matches (soft).
+    case boost
+    /// Hides/downranks the goal when the signal does not match (hard).
+    case require
+    /// Downranks the goal when the signal *does* match (inverse of boost).
+    case avoid
+
+    public var displayName: String {
+        switch self {
+        case .boost: return "Boost"
+        case .require: return "Require"
+        case .avoid: return "Avoid"
+        }
+    }
+}
+
+/// The types of contextual signals that can influence goal relevance.
+public enum SignalType: String, Codable, CaseIterable, Identifiable, Hashable {
+    case timeOfDay
+    case weather
+    case location
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .timeOfDay: return "Time of Day"
+        case .weather: return "Weather"
+        case .location: return "Location"
+        }
+    }
+
+    public var icon: String {
+        switch self {
+        case .timeOfDay: return "clock.fill"
+        case .weather: return "cloud.sun.fill"
+        case .location: return "location.fill"
+        }
+    }
+}

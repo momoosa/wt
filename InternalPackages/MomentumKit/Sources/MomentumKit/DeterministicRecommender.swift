@@ -331,14 +331,31 @@ public struct DeterministicRecommender {
         _ goal: Goal,
         context: Context
     ) -> (score: Double, reason: RecommendationReason?) {
+        let calendar = Calendar.current
+        let currentWeekday = calendar.component(.weekday, from: context.currentDate)
+        
+        // New relevance rule system: factor in DayAvailability
+        if goal.hasRelevanceRule {
+            let availability = goal.dayAvailability(for: currentWeekday)
+            switch availability {
+            case .preferred:
+                // Full schedule score — proceed with existing logic below
+                break
+            case .open:
+                // Reduced score for open days — surfaceable but not prioritized
+                return (weights.scheduleFlexibility * 0.4, nil)
+            case .never:
+                // Should have been filtered already, but ensure 0
+                return (0.0, nil)
+            }
+        }
+        
         // Only relevant if we have availability data and goal has a schedule
         guard let availability = context.weekdayAvailability,
               goal.hasSchedule else {
             return (0.0, nil)
         }
         
-        let calendar = Calendar.current
-        let currentWeekday = calendar.component(.weekday, from: context.currentDate)
         let scheduledWeekdays = goal.scheduledWeekdays
         
         // Check if today is a scheduled day

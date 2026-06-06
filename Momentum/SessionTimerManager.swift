@@ -810,6 +810,12 @@ public final class SessionTimerManager {
         
         activeSession = restoredSession
         
+        // Sync GoalSession.currentValue with the dynamic elapsed time
+        let dynamicElapsed = elapsed + Date.now.timeIntervalSince(startDate)
+        if session.targetUnit.isTimeBased {
+            session.currentValue = dynamicElapsed
+        }
+        
         // Wire up the onTick callback to update Live Activity
         restoredSession.onTick = { [weak self] in
             self?.updateFromActiveSession()
@@ -929,14 +935,22 @@ public final class SessionTimerManager {
             return 
         }
         
+        // Calculate the true elapsed time: initial elapsed + time since timer started
+        let dynamicElapsed = activeSession.elapsedTime + Date.now.timeIntervalSince(activeSession.startDate)
+        
+        // Sync GoalSession.currentValue so UI that reads session.progress stays accurate
+        if let session = goalStore.sessions.first(where: { $0.id == activeSession.id }),
+           session.targetUnit.isTimeBased {
+            session.currentValue = dynamicElapsed
+        }
+        
         #if canImport(ActivityKit)
-        // Update Live Activity every second for responsive updates
+        // Update Live Activity with the dynamic elapsed time
         updateLiveActivity(
-            elapsedTime: activeSession.elapsedTime,
-            startDate: activeSession.startDate,
+            elapsedTime: dynamicElapsed,
+            startDate: Date.now,
             isActive: true
         )
-        AppLogger.sessionTimer.debug("Updated Live Activity: \(activeSession.elapsedTime)s")
         #endif
     }
     

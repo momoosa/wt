@@ -21,24 +21,13 @@ struct ScheduleSection: View {
                     targetSuggestions: viewModel.targetSuggestions,
                     onTypeChange: viewModel.handleGoalTypeChange
                 )
-
-                Divider()
-
-                // Schedule configuration
-                ScheduleDaysListSection(
-                    viewModel: viewModel,
-                    focusedField: $focusedField,
-                    expandedDay: $expandedDay,
-                    activeThemeColor: activeThemeColor,
-                    onToggleTime: onToggleTime
-                )
             }
             .padding(.vertical, 4)
         } header: {
-            Text(viewModel.selectedGoalType.isTimeBased ? "Weekly Goal" : "Goal & Schedule")
+            Text(viewModel.selectedGoalType.isTimeBased ? "Weekly Goal" : "Goal Target")
         } footer: {
             if !viewModel.selectedGoalType.isTimeBased {
-                Text("Select which days and times you want to be reminded about this goal. Your daily target of \(Int(viewModel.primaryMetricTarget)) \(viewModel.goalTypeUnit) applies to all selected days.")
+                Text("Your daily target of \(Int(viewModel.primaryMetricTarget)) \(viewModel.goalTypeUnit) applies to all active days.")
             }
         }
     }

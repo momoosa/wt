@@ -102,7 +102,7 @@ struct ProgressSummaryCardWrapper: View {
             currentValue: session.currentValue,
             unifiedTargetValue: session.unifiedTargetValue,
             shimmerOffset: $shimmerOffset,
-            activeSessionDetails: timerManager.activeSession,
+            activeSessionDetails: timerManager.isActive(session) ? timerManager.activeSession : nil,
             session: session,
             timerManager: timerManager,
             onDone: onDone,
@@ -252,7 +252,7 @@ struct ProgressSummaryCard: View {
                                     }
                                 } label: {
                                     let isActive = timerManager.isActive(session)
-                                    let isPaused = timerManager.activeSession?.isPaused ?? false
+                                    let isPaused = isActive && (timerManager.activeSession?.isPaused ?? false)
                                     VStack(spacing: 4) {
                                         Image(systemName: isPaused ? "play.circle.fill" : (isActive ? "pause.circle.fill" : "play.circle.fill"))
                                             .font(.title2)

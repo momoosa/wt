@@ -24,6 +24,7 @@ struct ContextualSection: Identifiable {
         case .later: return "later"
         case .completed: return "completed"
         case .inactive: return "inactive"
+        case .notNow: return "notNow"
         }
     }
     let type: SectionType
@@ -40,6 +41,7 @@ struct ContextualSection: Identifiable {
         case later
         case completed
         case inactive
+        case notNow
         
         var title: String {
             switch self {
@@ -61,6 +63,8 @@ struct ContextualSection: Identifiable {
                 return "Completed Today"
             case .inactive:
                 return "Inactive"
+            case .notNow:
+                return "Not Now"
             }
         }
         
@@ -84,12 +88,14 @@ struct ContextualSection: Identifiable {
                 return "checkmark.circle.fill"
             case .inactive:
                 return "circle.dotted"
+            case .notNow:
+                return "cloud.sun.fill"
             }
         }
         
         var shouldShowExplanation: Bool {
             switch self {
-            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .workingOffSchedule, .available:
+            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .workingOffSchedule, .available, .notNow:
                 return true
             case .later, .completed, .inactive:
                 return false
@@ -103,6 +109,7 @@ struct ContextualSection: Identifiable {
             case .available: return .orange
             case .workingOffSchedule: return .purple
             case .completed: return .green
+            case .notNow: return .orange
             case .later, .inactive: return .gray
             }
         }
@@ -115,6 +122,7 @@ extension ContextualSection {
         _ sessions: [GoalSession],
         recommendedSessions: [GoalSession],
         allGoals: [GoalSession]? = nil,
+        downrankedSessions: [DownrankedSession] = [],
         currentDate: Date = Date()
     ) -> [ContextualSection] {
         var sections: [ContextualSection] = []
@@ -212,7 +220,17 @@ extension ContextualSection {
                 ))
             }
             
-            // 7. Inactive section (goals with no schedule for today and not active)
+            // 7. Not Now section (weather mismatch, not scheduled today — still actionable)
+            if !downrankedSessions.isEmpty {
+                let explanation = generateNotNowExplanation(for: downrankedSessions, currentDate: currentDate)
+                sections.append(ContextualSection(
+                    type: .notNow,
+                    sessions: downrankedSessions.map(\.session),
+                    explanation: explanation
+                ))
+            }
+            
+            // 8. Inactive section (goals with no schedule for today and not active)
             let inactiveGoals = allGoals.filter { goal in
                 !scheduledIDs.contains(goal.id) &&
                 goal.unifiedTargetValue == 0 &&
@@ -292,6 +310,27 @@ extension ContextualSection {
         }
         
         return "Goals with activity outside their scheduled days"
+    }
+    
+    /// Generate explanation for downranked "Not Now" sessions
+    private static func generateNotNowExplanation(
+        for downranked: [DownrankedSession],
+        currentDate: Date
+    ) -> String {
+        let hasWeather = downranked.contains { $0.reason == .weatherMismatch }
+        let hasSchedule = downranked.contains { $0.reason == .notScheduledToday }
+        
+        if hasWeather && hasSchedule {
+            return "Conditions or schedule don't match right now"
+        } else if hasWeather {
+            return "Weather conditions don't match right now"
+        } else if hasSchedule {
+            let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            let todayWeekday = Calendar.current.component(.weekday, from: currentDate)
+            let todayName = weekdayNames[todayWeekday]
+            return "Not scheduled for \(todayName) — start anyway if you'd like"
+        }
+        return "Not ideal right now, but you can still start"
     }
     
     private static func groupByConstraints(

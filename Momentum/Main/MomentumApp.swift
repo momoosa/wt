@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
 import MomentumKit
 import UserNotifications
 import BackgroundTasks
@@ -197,6 +198,9 @@ struct MomentumApp: App {
     @State private var showCloudKitToast = false
     @State private var cloudKitToastStatus: CloudKitSyncToast.SyncStatus = .enabled
     
+    // iCloud data detection for reinstalls
+    @State private var iCloudDataObserver: NSObjectProtocol?
+    
     // Day change detection
     @State private var dayChangeTimer: Timer?
 
@@ -312,6 +316,12 @@ struct MomentumApp: App {
                                 // Update the day (this will trigger ContentView to load)
                                 self.day = currentDay
                                 
+                                // Check if this is a fresh install with no goals — listen for iCloud data
+                                let goalCount = (try? sharedModelContainer.mainContext.fetchCount(FetchDescriptor<Goal>())) ?? 0
+                                if goalCount == 0 {
+                                    startListeningForICloudData()
+                                }
+                                
                                 AppLogger.app.info("Initial day load complete with sessions")
                             } catch {
                                 AppLogger.app.error("Failed to load initial day: \(error.localizedDescription)")
@@ -388,6 +398,51 @@ struct MomentumApp: App {
             return .enabled
         } catch {
             return .error("Failed to access sync storage")
+        }
+    }
+    
+    // Listen for iCloud data arriving on a fresh install (reinstall / new device)
+    private func startListeningForICloudData() {
+        // Remove any previous observer
+        if let existing = iCloudDataObserver {
+            NotificationCenter.default.removeObserver(existing)
+        }
+        
+        iCloudDataObserver = NotificationCenter.default.addObserver(
+            forName: .NSPersistentStoreRemoteChange,
+            object: nil,
+            queue: .main
+        ) { [self] _ in
+            let goalCount = (try? sharedModelContainer.mainContext.fetchCount(FetchDescriptor<Goal>())) ?? 0
+            
+            guard goalCount > 0 else { return }
+            
+            // Goals have arrived from iCloud — show the toast
+            cloudKitToastStatus = .dataFound(goalCount)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                showCloudKitToast = true
+            }
+            
+            // Create sessions for the newly synced goals
+            if let currentDay = day {
+                try? createSessionsForDay(currentDay, context: sharedModelContainer.mainContext)
+            }
+            
+            // One-shot: remove observer after showing
+            if let observer = iCloudDataObserver {
+                NotificationCenter.default.removeObserver(observer)
+                iCloudDataObserver = nil
+            }
+            
+            AppLogger.app.info("iCloud data found: \(goalCount) goal(s) restored")
+        }
+        
+        // Stop listening after 30 seconds if no data arrives
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [self] in
+            if let observer = iCloudDataObserver {
+                NotificationCenter.default.removeObserver(observer)
+                iCloudDataObserver = nil
+            }
         }
     }
     

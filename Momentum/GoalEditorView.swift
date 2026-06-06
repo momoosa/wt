@@ -136,17 +136,22 @@ struct GoalEditorView: View {
         }
         
         if viewModel.currentStage == .duration {
-            ThemeSelectionSection(
-                viewModel: viewModel,
-                activeThemeColor: activeThemeColor
-            )
-
             ScheduleSection(
                 viewModel: viewModel,
                 focusedField: $focusedField,
                 expandedDay: $expandedDay,
                 activeThemeColor: activeThemeColor,
                 onToggleTime: toggleTimeSlot
+            )
+            ThemeSelectionSection(
+                viewModel: viewModel,
+                activeThemeColor: activeThemeColor
+            )
+
+
+            RelevanceRuleSummaryRow(
+                viewModel: viewModel,
+                activeThemeColor: activeThemeColor
             )
 
             CompletionBehaviorsSection(
@@ -172,9 +177,6 @@ struct GoalEditorView: View {
             
             // Checklist Section
             ChecklistSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
-            
-            // Weather-based visibility
-            WeatherConfigSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
         }
         
         Spacer()
@@ -388,6 +390,12 @@ struct GoalEditorView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $viewModel.showingRelevanceRuleSheet) {
+            RelevanceRuleView(
+                viewModel: viewModel,
+                activeThemeColor: activeThemeColor
+            )
         }
         .alert("Target Adjusted", isPresented: $viewModel.showingValidationAlert) {
             Button("OK", role: .cancel) { }

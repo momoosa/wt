@@ -22,32 +22,35 @@ struct SuggestionRow: View {
     }
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Icon
-            Image(systemName: suggestion.icon)
-                .font(.system(size: 32))
-                .foregroundStyle(isSelected ? textColor : themePreset.color(for: colorScheme))
-                .frame(width: 50)
-            
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(suggestion.title)
-                    .font(.headline)
-                    .foregroundStyle(textColor)
+        VStack {
+            Spacer()
+            HStack {
+                // Icon
+                Image(systemName: suggestion.icon)
+                    .font(.system(size: 32))
+                    .foregroundStyle(isSelected ? textColor : themePreset.color(for: colorScheme))
+                    .frame(width: 50)
                 
-                Text(suggestion.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(isSelected ? textColor.opacity(0.9) : .secondary)
-                    .lineLimit(2)
+                // Content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(suggestion.title)
+                        .font(.headline)
+                        .foregroundStyle(textColor)
+                    
+                    Text(suggestion.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(isSelected ? textColor.opacity(0.9) : .secondary)
+                        .lineLimit(2)
+                }
+                
+                Spacer()
             }
-            
             Spacer()
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .padding(10.0) // TODO: Constant
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isSelected ? AnyShapeStyle(themePreset.gradient(for: colorScheme)) : AnyShapeStyle(Color(.systemGray6)))
+                .fill(isSelected ? AnyShapeStyle(themePreset.gradient(for: colorScheme)) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)))
         )
         .scaleEffect(isSelected ? 1.02 : 1.0)
     }

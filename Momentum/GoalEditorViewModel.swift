@@ -124,6 +124,18 @@ class GoalEditorViewModel {
     var hasMaxTemperature: Bool = false
     var maxTemperature: Double = 25
     
+    // MARK: - Relevance Rule
+    
+    var dayAvailabilities: [Int: DayAvailability] = {
+        var avail: [Int: DayAvailability] = [:]
+        for weekday in 1...7 {
+            avail[weekday] = .open
+        }
+        return avail
+    }()
+    var signalStrengths: [SignalType: SignalStrength] = [:]
+    var showingRelevanceRuleSheet: Bool = false
+    
     // MARK: - Scheduling
     
     var dayTimePreferences: [Int: Set<TimeOfDay>] = {
@@ -387,6 +399,27 @@ class GoalEditorViewModel {
         if let maxTemp = goal.maxTemperature {
             hasMaxTemperature = true
             maxTemperature = maxTemp
+        }
+        
+        // Load relevance rule
+        if goal.hasRelevanceRule {
+            for weekday in 1...7 {
+                dayAvailabilities[weekday] = goal.dayAvailability(for: weekday)
+            }
+        } else {
+            // Migrate from legacy: active days → .preferred, inactive → .open
+            for weekday in 1...7 {
+                if activeDays.contains(weekday) {
+                    dayAvailabilities[weekday] = .preferred
+                } else {
+                    dayAvailabilities[weekday] = .open
+                }
+            }
+        }
+        
+        // Load signal strengths
+        for signalType in SignalType.allCases {
+            signalStrengths[signalType] = goal.signalStrength(for: signalType)
         }
         
         // Go straight to duration stage when editing
@@ -702,6 +735,152 @@ class GoalEditorViewModel {
         }
     }
     
+    // MARK: - Relevance Rule
+    
+    /// Cycle a day through preferred → open → never → preferred.
+    func cycleDayAvailability(_ weekday: Int) {
+        let current = dayAvailabilities[weekday] ?? .open
+        dayAvailabilities[weekday] = current.next
+        syncActiveDaysFromAvailabilities()
+    }
+    
+    /// Keep legacy activeDays in sync with dayAvailabilities.
+    func syncActiveDaysFromAvailabilities() {
+        activeDays = Set((1...7).filter { dayAvailabilities[$0] != .never })
+        for weekday in 1...7 where dayAvailabilities[weekday] == .never {
+            dailyTargets.removeValue(forKey: weekday)
+        }
+    }
+    
+    /// Compact summary for the goal editor row.
+    var compactRelevanceSummary: String {
+        let weekdayAbbrevs = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        var parts: [String] = []
+        
+        let preferred = (1...7).filter { dayAvailabilities[$0] == .preferred }
+        if !preferred.isEmpty {
+            parts.append(preferred.map { weekdayAbbrevs[$0] }.joined(separator: ", "))
+        } else {
+            parts.append("Any day")
+        }
+        
+        var signals: [String] = []
+        // Time of day summary
+        let allTimes = (1...7).flatMap { dayTimePreferences[$0] ?? [] }
+        let uniqueTimes = Set(allTimes)
+        if !uniqueTimes.isEmpty && uniqueTimes.count < TimeOfDay.allCases.count {
+            signals.append(uniqueTimes.sorted().map { $0.displayName }.joined(separator: ", "))
+        }
+        // Weather summary
+        if weatherEnabled && !selectedWeatherConditions.isEmpty {
+            signals.append(selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))
+        }
+        
+        if !signals.isEmpty {
+            parts.append(signals.joined(separator: " / "))
+        }
+        
+        return parts.joined(separator: " · ")
+    }
+    
+    /// Full natural-language summary for the relevance rule screen.
+    var relevanceRuleSummary: String {
+        let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        var parts: [String] = []
+        
+        let preferred = (1...7).filter { dayAvailabilities[$0] == .preferred }
+        let never = (1...7).filter { dayAvailabilities[$0] == .never }
+        
+        if !preferred.isEmpty {
+            parts.append("Usually \(preferred.map { weekdayNames[$0] }.joined(separator: ", "))")
+        }
+        
+        var signalDescriptions: [String] = []
+        let allTimes = (1...7).flatMap { dayTimePreferences[$0] ?? [] }
+        let uniqueTimes = Set(allTimes)
+        if !uniqueTimes.isEmpty && uniqueTimes.count < TimeOfDay.allCases.count {
+            signalDescriptions.append(uniqueTimes.sorted().map { $0.displayName.lowercased() }.joined(separator: " or "))
+        }
+        if weatherEnabled && !selectedWeatherConditions.isEmpty {
+            signalDescriptions.append(selectedWeatherConditions.map { $0.displayName.lowercased() }.joined(separator: " or "))
+        }
+        if !signalDescriptions.isEmpty {
+            parts.append("Promoted when \(signalDescriptions.joined(separator: " or "))")
+        }
+        
+        if !never.isEmpty {
+            parts.append("Never \(never.map { weekdayNames[$0] }.joined(separator: ", "))")
+        }
+        
+        let openCount = (1...7).filter { dayAvailabilities[$0] == .open }.count
+        if openCount > 0 {
+            let estimatedTimes = max(preferred.count, 1)
+            parts.append("≈ \(estimatedTimes)× this week · still openable anytime")
+        }
+        
+        return parts.joined(separator: ". ") + (parts.isEmpty ? "No rules configured" : ".")
+    }
+    
+    /// Remove a signal entirely (clear its values and strength).
+    func removeSignal(_ signalType: SignalType) {
+        signalStrengths.removeValue(forKey: signalType)
+        switch signalType {
+        case .timeOfDay:
+            for weekday in 1...7 {
+                dayTimePreferences[weekday] = Set(TimeOfDay.allCases)
+            }
+        case .weather:
+            weatherEnabled = false
+            selectedWeatherConditions.removeAll()
+            hasMinTemperature = false
+            hasMaxTemperature = false
+        case .location:
+            break
+        }
+    }
+    
+    /// Cycle a signal's strength: boost → require → avoid → boost.
+    func toggleSignalStrength(_ signalType: SignalType) {
+        let current = signalStrengths[signalType] ?? .boost
+        switch current {
+        case .boost: signalStrengths[signalType] = .require
+        case .require: signalStrengths[signalType] = .avoid
+        case .avoid: signalStrengths[signalType] = .boost
+        }
+    }
+    
+    /// Whether a signal type currently has configured values.
+    func hasSignalConfigured(_ signalType: SignalType) -> Bool {
+        switch signalType {
+        case .timeOfDay:
+            let allTimes = (1...7).flatMap { dayTimePreferences[$0] ?? [] }
+            let uniqueTimes = Set(allTimes)
+            return !uniqueTimes.isEmpty && uniqueTimes.count < TimeOfDay.allCases.count
+        case .weather:
+            return weatherEnabled && !selectedWeatherConditions.isEmpty
+        case .location:
+            return signalStrengths[.location] != nil
+        }
+    }
+    
+    /// Summary text for a specific signal's current configuration.
+    func signalValueSummary(_ signalType: SignalType) -> String {
+        switch signalType {
+        case .timeOfDay:
+            let allTimes = (1...7).flatMap { dayTimePreferences[$0] ?? [] }
+            let uniqueTimes = Set(allTimes)
+            if uniqueTimes.isEmpty || uniqueTimes.count >= TimeOfDay.allCases.count {
+                return "Any time"
+            }
+            return uniqueTimes.sorted().map { $0.displayName.lowercased() }.joined(separator: ", ")
+        case .weather:
+            if !weatherEnabled || selectedWeatherConditions.isEmpty { return "Not set" }
+            return selectedWeatherConditions.map { $0.displayName.lowercased() }.joined(separator: ", ")
+        case .location:
+            return "Not set"
+        }
+    }
+    
     // MARK: - Button Actions
     
     func handleButtonTap(allTags: [GoalTag]) {
@@ -902,6 +1081,15 @@ class GoalEditorViewModel {
             goal.weatherConditionsTyped = nil
             goal.minTemperature = nil
             goal.maxTemperature = nil
+        }
+        
+        // ✅ Save relevance rule
+        for weekday in 1...7 {
+            let availability = dayAvailabilities[weekday] ?? .open
+            goal.setDayAvailability(availability, for: weekday)
+        }
+        for (signalType, strength) in signalStrengths {
+            goal.setSignalStrength(strength, for: signalType)
         }
         
         // ✅ Save checklist items

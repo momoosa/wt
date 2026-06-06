@@ -116,6 +116,14 @@ struct TagManagementView: View {
                         
                         Divider()
                         
+                        Button {
+                            let unused = allTags.filter({$0.goalsAsPrimary?.count == 0})
+                            selectedTagIDs = Set(unused.map { $0.persistentModelID })
+                            showingBulkDeleteConfirmation = true
+                        } label: {
+                            Label("Remove Unused Tags", systemImage: "xmark.bin")
+                        }
+                        
                         Picker("Sort by", selection: $sortOrder) {
                             ForEach(TagSortOrder.allCases, id: \.self) { order in
                                 Text(order.rawValue).tag(order)

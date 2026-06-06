@@ -15,19 +15,21 @@ struct CloudKitSyncToast: View {
         case enabled
         case syncing
         case error(String)
+        case dataFound(Int)
         
         var icon: String {
             switch self {
             case .enabled: return "checkmark.icloud.fill"
             case .syncing: return "arrow.triangle.2.circlepath"
             case .error: return "exclamationmark.icloud.fill"
+            case .dataFound: return "icloud.and.arrow.down.fill"
             }
         }
         
         var color: Color {
             switch self {
             case .enabled: return .green
-            case .syncing: return .blue
+            case .syncing, .dataFound: return .blue
             case .error: return .red
             }
         }
@@ -37,6 +39,7 @@ struct CloudKitSyncToast: View {
             case .enabled: return "iCloud Sync Enabled"
             case .syncing: return "Syncing to iCloud"
             case .error: return "iCloud Sync Issue"
+            case .dataFound: return "iCloud Data Found"
             }
         }
         
@@ -45,6 +48,15 @@ struct CloudKitSyncToast: View {
             case .enabled: return "Your data syncs across all your devices"
             case .syncing: return "Setting up sync..."
             case .error(let errorMsg): return errorMsg
+            case .dataFound(let count):
+                return "Restoring \(count) goal\(count == 1 ? "" : "s") from iCloud..."
+            }
+        }
+        
+        var isPulsing: Bool {
+            switch self {
+            case .syncing, .dataFound: return true
+            default: return false
             }
         }
     }
@@ -57,7 +69,7 @@ struct CloudKitSyncToast: View {
                 Image(systemName: status.icon)
                     .font(.title2)
                     .foregroundStyle(status.color)
-                    .symbolEffect(.pulse, isActive: status == .syncing)
+                    .symbolEffect(.pulse, isActive: status.isPulsing)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(status.title)
@@ -99,6 +111,7 @@ struct CloudKitSyncToast: View {
             let dismissTime: Double = {
                 switch status {
                 case .enabled, .syncing: return 5.0
+                case .dataFound: return 6.0
                 case .error: return 8.0
                 }
             }()

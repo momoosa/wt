@@ -8,23 +8,24 @@
 import MomentumKit
 import SwiftUI
 
-struct CategorySuggestionsView: View {
+struct GoalSuggestionCategoryView: View {
     let category: GoalCategory
     @Binding var selectedTemplate: GoalTemplateSuggestion?
     @Binding var userInput: String
     
     var body: some View {
-        VStack(spacing: 0) {
             // Suggestions List
-            List {
+        ScrollView(.vertical) {
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ]) {
                 ForEach(category.suggestions) { suggestion in
                     SuggestionRow(
                         suggestion: suggestion,
                         isSelected: selectedTemplate?.id == suggestion.id,
                         themePreset: category.themePreset
                     )
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowBackground(Color.clear)
                     .onTapGesture {
                         withAnimation(AnimationPresets.quickSpring) {
                             selectedTemplate = suggestion
@@ -36,9 +37,8 @@ struct CategorySuggestionsView: View {
                     }
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
         }
     }
 }
+
 

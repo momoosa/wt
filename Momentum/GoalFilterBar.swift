@@ -76,6 +76,8 @@ struct SectionPillBar: View {
         switch type {
         case .recommendedNow:
             return "Top Picks"
+        case .notNow:
+            return "Not Now"
         default:
             return type.title
         }
@@ -92,6 +94,7 @@ struct SectionPillBar: View {
         case .later: return "pill_later"
         case .completed: return "pill_completed"
         case .inactive: return "pill_inactive"
+        case .notNow: return "pill_notNow"
         }
     }
 }

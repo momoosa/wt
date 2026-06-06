@@ -22,7 +22,7 @@ struct SuggestionsSection: View {
                                     }
 
                                 ForEach(Array(viewModel.suggestionsData.categories.enumerated()), id: \.element.id) { index, category in
-                                    CategoryTab(
+                                    GoalSuggestionCategoryTab(
                                         category: category,
                                         isSelected: viewModel.selectedCategoryIndex == index
                                     )
@@ -58,7 +58,7 @@ struct SuggestionsSection: View {
                             }
                         )
                     } else if let category = viewModel.suggestionsData.categories[safe: viewModel.selectedCategoryIndex] {
-                        CategorySuggestionsView(
+                        GoalSuggestionCategoryView(
                             category: category,
                             selectedTemplate: $viewModel.selectedTemplate,
                             userInput: $viewModel.userInput
@@ -66,7 +66,6 @@ struct SuggestionsSection: View {
                         .id(category.id)
                     }
                 }
-                .frame(height: LayoutConstants.Heights.suggestionPanel)
                 .animation(.easeInOut(duration: 0.2), value: viewModel.selectedCategoryIndex)
             }
 

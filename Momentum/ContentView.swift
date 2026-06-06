@@ -79,8 +79,9 @@ struct ContentView: View {
     @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
     @AppStorage("showCalendarTile") var showCalendarTile: Bool = true
     
-    // Scroll position for programmatic section scrolling (iOS 18+)
-    @State var scrollPosition = ScrollPosition()
+    // Track which sections are currently visible so we can highlight the topmost pill
+    @State private var visibleSectionIDs: Set<String> = []
+    @State private var scrollProxy: ScrollViewProxy?
     
     // Shared session actions for child views (eliminates callback prop drilling)
     @State var sessionActions = SessionActions()
@@ -109,10 +110,9 @@ struct ContentView: View {
                         sections: contextualSections,
                         visibleSectionType: navigation.visibleSectionType,
                         onSectionTapped: { sectionType in
-                            // Find the section's string ID for scroll targeting
                             if let section = contextualSections.first(where: { $0.type == sectionType }) {
                                 withAnimation {
-                                    scrollPosition.scrollTo(id: section.id, anchor: .top)
+                                    scrollProxy?.scrollTo(section.id, anchor: .top)
                                 }
                             }
                         }
@@ -182,8 +182,15 @@ struct ContentView: View {
                 // Check for external changes when coming back to foreground
                 timerManager?.checkForExternalChanges()
                 
-                if timerManager?.activeSession?.id != nil {
-                    timerManager?.activeSession?.startUITimer()
+                if let activeSession = timerManager?.activeSession {
+                    activeSession.startUITimer()
+                    
+                    // Sync GoalSession.currentValue with the dynamic elapsed time
+                    let dynamicElapsed = activeSession.elapsedTime + Date.now.timeIntervalSince(activeSession.startDate)
+                    if let session = sessions.first(where: { $0.id == activeSession.id }),
+                       session.targetUnit.isTimeBased {
+                        session.currentValue = dynamicElapsed
+                    }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -324,6 +331,7 @@ struct ContentView: View {
     // MARK: - Main List View
 
     private var mainListView: some View {
+        ScrollViewReader { proxy in
         List {
             if !focusFilteredSessions.isEmpty {
                 // Show daily progress card once user has saved at least one session
@@ -356,7 +364,8 @@ struct ContentView: View {
                 emptyStateView
             }
         }
-        .scrollPosition($scrollPosition)
+        .onAppear { scrollProxy = proxy }
+        } // ScrollViewReader
 #if os(macOS)
         .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
@@ -541,9 +550,8 @@ struct ContentView: View {
             }
             .id(section.id)
             .listSectionSpacing(.compact)
-            .onAppear {
-                navigation.visibleSectionType = section.type
-            }
+            .onAppear { trackSectionAppeared(section) }
+            .onDisappear { trackSectionDisappeared(section) }
             
             // Individual featured cards
             ForEach(Array(section.sessions.enumerated()), id: \.element.id) { index, session in
@@ -594,8 +602,27 @@ struct ContentView: View {
         }
         .id(section.id)
         .listSectionSpacing(.compact)
-        .onAppear {
-            navigation.visibleSectionType = section.type
+        .onAppear { trackSectionAppeared(section) }
+        .onDisappear { trackSectionDisappeared(section) }
+    }
+    
+    // MARK: - Section Visibility Tracking
+    
+    private func trackSectionAppeared(_ section: ContextualSection) {
+        visibleSectionIDs.insert(section.id)
+        updateVisibleSectionType()
+    }
+    
+    private func trackSectionDisappeared(_ section: ContextualSection) {
+        visibleSectionIDs.remove(section.id)
+        updateVisibleSectionType()
+    }
+    
+    /// Pick the topmost visible section by matching against the ordered contextualSections list
+    private func updateVisibleSectionType() {
+        let sections = contextualSections
+        if let first = sections.first(where: { visibleSectionIDs.contains($0.id) }) {
+            navigation.visibleSectionType = first.type
         }
     }
         
@@ -758,16 +785,17 @@ struct ContentView: View {
     /// All contextual sections for the current session list
     var contextualSections: [ContextualSection] {
         let recommendedSessions = getRecommendedSessions()
-        let allSessionsFiltered = SessionFilterService.filterActiveSessions(
+        let filterResult = SessionFilterService.filterActiveSessionsWithDownranked(
             focusFilteredSessions,
             validationCheck: isGoalValid,
             weatherManager: weatherManager
         )
         
         return ContextualSection.groupSessions(
-            allSessionsFiltered,
+            filterResult.active,
             recommendedSessions: recommendedSessions,
-            allGoals: focusFilteredSessions
+            allGoals: focusFilteredSessions,
+            downrankedSessions: filterResult.downranked
         )
     }
     

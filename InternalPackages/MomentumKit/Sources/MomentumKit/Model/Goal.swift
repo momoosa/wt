@@ -81,6 +81,16 @@ public final class Goal {
     public var maxTemperature: Double? // Celsius
     public var weatherEnabled: Bool = false // Whether weather-based visibility is enabled
     
+    // MARK: - Relevance Rule
+    
+    /// Per-weekday availability: keys "1"-"7" (1=Sun), values are DayAvailability raw values.
+    /// Empty dict means no rule configured — falls back to legacy dayTimeSchedule behavior.
+    public var dayAvailabilityRaw: [String: String] = [:]
+    
+    /// Signal strengths: keys are SignalType raw values, values are SignalStrength raw values.
+    /// Empty dict means all signals default to .boost behavior.
+    public var signalStrengthsRaw: [String: String] = [:]
+    
     @Relationship(deleteRule: .cascade)
     public var goalSessions: [GoalSession]? = []
     
@@ -136,6 +146,15 @@ public extension Goal {
             case .seconds: return "Time"
             case .steps: return "Count"
             case .kilocalories: return "Calories"
+            }
+        }
+        
+        /// SF Symbol for use in menus
+        public var menuIcon: String {
+            switch self {
+            case .seconds: return "clock"
+            case .steps: return "number"
+            case .kilocalories: return "flame"
             }
         }
         
@@ -373,5 +392,73 @@ public extension Goal {
             return temp
         }
         return primaryTag?.maxTemperature
+    }
+}
+
+// MARK: - Relevance Rule
+
+public extension Goal {
+    /// Whether this goal has been configured with the new relevance rule system.
+    var hasRelevanceRule: Bool {
+        !dayAvailabilityRaw.isEmpty
+    }
+    
+    /// Get the day availability for a specific weekday (1=Sun .. 7=Sat).
+    func dayAvailability(for weekday: Int) -> DayAvailability {
+        if let rawValue = dayAvailabilityRaw[String(weekday)],
+           let availability = DayAvailability(rawValue: rawValue) {
+            return availability
+        }
+        // Legacy fallback: scheduled days → .preferred, others → .open
+        if hasSchedule {
+            return scheduledWeekdays.contains(weekday) ? .preferred : .open
+        }
+        return .open
+    }
+    
+    /// Set the day availability for a specific weekday.
+    func setDayAvailability(_ availability: DayAvailability, for weekday: Int) {
+        dayAvailabilityRaw[String(weekday)] = availability.rawValue
+    }
+    
+    /// Get the signal strength for a given signal type.
+    func signalStrength(for signalType: SignalType) -> SignalStrength {
+        if let rawValue = signalStrengthsRaw[signalType.rawValue],
+           let strength = SignalStrength(rawValue: rawValue) {
+            return strength
+        }
+        return .boost
+    }
+    
+    /// Set the signal strength for a given signal type.
+    func setSignalStrength(_ strength: SignalStrength, for signalType: SignalType) {
+        signalStrengthsRaw[signalType.rawValue] = strength.rawValue
+    }
+    
+    /// All weekdays marked as .preferred.
+    var preferredDays: [Int] {
+        (1...7).filter { dayAvailability(for: $0) == .preferred }
+    }
+    
+    /// All weekdays marked as .open.
+    var openDays: [Int] {
+        (1...7).filter { dayAvailability(for: $0) == .open }
+    }
+    
+    /// All weekdays marked as .never.
+    var neverDays: [Int] {
+        (1...7).filter { dayAvailability(for: $0) == .never }
+    }
+    
+    /// Whether a signal type is configured (has any values set).
+    func hasSignal(_ signalType: SignalType) -> Bool {
+        switch signalType {
+        case .timeOfDay:
+            return !preferredTimesOfDay.isEmpty || dayTimeSchedule.values.contains(where: { !$0.isEmpty })
+        case .weather:
+            return weatherEnabled && weatherConditions != nil && !(weatherConditions?.isEmpty ?? true)
+        case .location:
+            return primaryTag?.locationTypes != nil && !(primaryTag?.locationTypes?.isEmpty ?? true)
+        }
     }
 }

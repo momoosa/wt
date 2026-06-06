@@ -9,6 +9,26 @@ import Foundation
 import MomentumKit
 import SwiftData
 
+    /// Describes why a session was downranked (not suitable right now but still visible)
+    enum DownrankReason: Equatable {
+        /// Weather triggers are not met (e.g., "Sunny expected, currently Rainy")
+        case weatherMismatch
+        /// Goal is not scheduled for today (e.g., "Scheduled Mon, Wed, Fri")
+        case notScheduledToday
+    }
+    
+    /// A session that was downranked along with its reason
+    struct DownrankedSession {
+        let session: GoalSession
+        let reason: DownrankReason
+    }
+    
+    /// Result of filtering that separates active from downranked sessions
+    struct FilterResult {
+        let active: [GoalSession]
+        let downranked: [DownrankedSession]
+    }
+
 /// Service for filtering and scoring goal sessions
 struct SessionFilterService {
     
@@ -23,61 +43,92 @@ struct SessionFilterService {
         validationCheck: (GoalSession) -> Bool,
         weatherManager: (any WeatherProviding)? = nil
     ) -> [GoalSession] {
-        let filtered = sessions.filter { session in
+        filterActiveSessionsWithDownranked(sessions, validationCheck: validationCheck, weatherManager: weatherManager).active
+    }
+    
+    /// Filter sessions and separate downranked ones (weather mismatch, not scheduled today)
+    /// instead of silently dropping them.
+    static func filterActiveSessionsWithDownranked(
+        _ sessions: [GoalSession],
+        validationCheck: (GoalSession) -> Bool,
+        weatherManager: (any WeatherProviding)? = nil
+    ) -> FilterResult {
+        var active: [GoalSession] = []
+        var downranked: [DownrankedSession] = []
+        
+        for session in sessions {
             // Check if not deleted first, before accessing any properties
-            guard (try? session.persistentModelID) != nil else {
-                return false
-            }
+            guard (try? session.persistentModelID) != nil else { continue }
             
             // Filter out sessions with deleted goals
-            guard validationCheck(session) else {
-                return false
-            }
+            guard validationCheck(session) else { continue }
             
-            // Apply weather filtering if enabled for this goal
-            if let weatherManager = weatherManager, let goal = session.goal, goal.hasWeatherTriggers {
-                // If goal has weather triggers but they're not met, filter it out
-                guard meetsWeatherRequirements(goal, weatherManager: weatherManager) else {
-                    return false
+            // Safely access status properties
+            let isArchived = session.goal?.status == .archived
+            let isSkipped = session.status == .skipped
+            guard !isArchived && !isSkipped else { continue }
+            
+            // Must have a daily target or be an active goal
+            guard session.unifiedTargetValue > 0 || session.isActiveGoal else { continue }
+            
+            // Day availability check (relevance rule)
+            if let goal = session.goal, goal.hasRelevanceRule {
+                let calendar = Calendar.current
+                let todayWeekday = calendar.component(.weekday, from: Date())
+                let availability = goal.dayAvailability(for: todayWeekday)
+                
+                if availability == .never {
+                    // Hard block — skip entirely
+                    continue
+                }
+                
+                if availability == .open {
+                    // Open days: only surface if a signal matches
+                    let hasMatchingSignal = hasAnyMatchingSignal(goal, weatherManager: weatherManager)
+                    if !hasMatchingSignal {
+                        downranked.append(DownrankedSession(session: session, reason: .notScheduledToday))
+                        continue
+                    }
                 }
             }
             
-            // Safely access status properties that might be faults
-            let isArchived: Bool
-            let isSkipped: Bool
-            
-            do {
-                isArchived = session.goal?.status == .archived
-                isSkipped = session.status == .skipped
-            } catch {
-                // If we can't access the status, assume it's not valid
-                return false
+            // Weather check: respect signal strength
+            if let weatherManager = weatherManager, let goal = session.goal, goal.hasWeatherTriggers {
+                let weatherStrength = goal.signalStrength(for: .weather)
+                let weatherMatches = meetsWeatherRequirements(goal, weatherManager: weatherManager)
+                
+                if weatherStrength == .avoid && weatherMatches {
+                    // Avoid: downrank when weather *does* match
+                    downranked.append(DownrankedSession(session: session, reason: .weatherMismatch))
+                    continue
+                } else if !weatherMatches && weatherStrength == .require {
+                    // Require: downrank when weather does *not* match
+                    downranked.append(DownrankedSession(session: session, reason: .weatherMismatch))
+                    continue
+                }
+                // .boost: don't filter — just let the score be lower
             }
             
-            // Active today: not archived, not skipped, has a daily target or is an active goal
-            return !isArchived && !isSkipped && (session.unifiedTargetValue > 0 || session.isActiveGoal)
+            active.append(session)
         }
         
-        // Sort by planned start time if available, otherwise by goal title
-        return filtered.sorted { session1, session2 in
-            // First, prioritize sessions with planned times
-            let has1 = session1.plannedStartTime != nil
-            let has2 = session2.plannedStartTime != nil
+        // Sort active by planned start time, then title
+        active.sort { s1, s2 in
+            let has1 = s1.plannedStartTime != nil
+            let has2 = s2.plannedStartTime != nil
             
             if has1 && has2 {
-                // Both have planned times - sort by time
-                return session1.plannedStartTime! < session2.plannedStartTime!
+                return s1.plannedStartTime! < s2.plannedStartTime!
             } else if has1 {
-                // Only session1 has a planned time - it comes first
                 return true
             } else if has2 {
-                // Only session2 has a planned time - it comes first
                 return false
             } else {
-                // Neither has a planned time - sort by goal title
-                return (session1.goal?.title ?? "") < (session2.goal?.title ?? "")
+                return (s1.goal?.title ?? "") < (s2.goal?.title ?? "")
             }
         }
+        
+        return FilterResult(active: active, downranked: downranked)
     }
     
     /// Get top 3 recommended sessions based on planning and scoring
@@ -220,6 +271,41 @@ struct SessionFilterService {
     ///   - goal: The goal to check
     ///   - weatherManager: Weather manager with current conditions
     /// - Returns: True if weather requirements are met or not enabled
+    /// Check if any configured signal currently matches for an open day.
+    static func hasAnyMatchingSignal(_ goal: Goal, weatherManager: (any WeatherProviding)? = nil) -> Bool {
+        // Time of day check
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        let currentTimeOfDay = TimeOfDay.from(hour: hour)
+        let todayWeekday = calendar.component(.weekday, from: Date())
+        let scheduledTimes = goal.timesForWeekday(todayWeekday)
+        if !scheduledTimes.isEmpty && scheduledTimes.contains(currentTimeOfDay) {
+            return true
+        }
+        
+        // Weather check
+        if let weatherManager = weatherManager, goal.hasWeatherTriggers {
+            if meetsWeatherRequirements(goal, weatherManager: weatherManager) {
+                return true
+            }
+        }
+        
+        // Tag context check
+        if let tag = goal.primaryTag, tag.isSmart {
+            let score = tag.contextMatchScore(
+                weather: nil,
+                temperature: nil,
+                timeOfDay: currentTimeOfDay,
+                location: nil
+            )
+            if score >= 0.8 {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
     static func meetsWeatherRequirements(_ goal: Goal, weatherManager: any WeatherProviding) -> Bool {
         // If weather triggers aren't enabled, always show the goal
         guard goal.weatherEnabled || goal.primaryTag?.isSmart == true else {
