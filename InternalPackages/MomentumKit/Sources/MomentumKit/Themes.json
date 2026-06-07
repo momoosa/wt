@@ -156,7 +156,7 @@
       "#ffb47c",
       "#f08b97"
     ],
-    "darkForegroundColor": "#ffffff",
+    "darkForegroundColor": "#4a2a0e",
     "lightForegroundColor": "#4a2a0e"
   },
   {
@@ -287,8 +287,8 @@
       "#b0daa8",
       "#93d2bb"
     ],
-    "darkForegroundColor": "#ffffff",
-    "lightForegroundColor": "#22401f"
+    "darkForegroundColor": "#000000",
+    "lightForegroundColor": "#000000"
   },
   {
     "id": "palette_19",
@@ -397,7 +397,7 @@
       "#77f4ce",
       "#44f9ca"
     ],
-    "darkForegroundColor": "#ffffff",
+    "darkForegroundColor": "#003f3f",
     "lightForegroundColor": "#003f3f"
   },
   {

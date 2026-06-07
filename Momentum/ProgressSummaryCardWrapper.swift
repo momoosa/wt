@@ -17,8 +17,12 @@ struct CircularProgressView: View {
     let foregroundColor: Color
     let backgroundColor: Color
     let animateOnAppear: Bool
+    /// Optional: previous week's progress at the same time of day (0.0–1.0+).
+    /// When provided, renders a subtle marker on the track.
+    let previousWeekProgress: Double?
     
     @State private var animatedProgress: Double = 0
+    @State private var animatedPreviousProgress: Double = 0
     
     init(
         progress: Double,
@@ -26,7 +30,8 @@ struct CircularProgressView: View {
         size: CGFloat = 44,
         foregroundColor: Color,
         backgroundColor: Color,
-        animateOnAppear: Bool = true
+        animateOnAppear: Bool = true,
+        previousWeekProgress: Double? = nil
     ) {
         self.progress = progress
         self.lineWidth = lineWidth
@@ -34,35 +39,59 @@ struct CircularProgressView: View {
         self.foregroundColor = foregroundColor
         self.backgroundColor = backgroundColor
         self.animateOnAppear = animateOnAppear
+        self.previousWeekProgress = previousWeekProgress
     }
     
     var body: some View {
-            // Background circle
-            Circle()
-                .stroke(backgroundColor, lineWidth: lineWidth)
-                .frame(width: size, height: size)
-                .overlay {
+            ZStack {
+                // Background circle
+                Circle()
+                    .stroke(backgroundColor, lineWidth: lineWidth)
+                    .frame(width: size, height: size)
+                
+                // Previous week marker (subtle dot on the track)
+                if let _ = previousWeekProgress, animatedPreviousProgress > 0 {
+                    let clampedPrev = min(animatedPreviousProgress, 1.0)
+                    let angle = Angle.degrees(360 * clampedPrev - 90)
+                    let radius = size / 2
                     Circle()
-                        .trim(from: 0, to: min(animatedProgress, 1.0))
-                        .stroke(
-                            foregroundColor,
-                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                        .fill(foregroundColor.opacity(0.35))
+                        .frame(width: lineWidth + 4, height: lineWidth + 4)
+                        .offset(
+                            x: radius * cos(angle.radians),
+                            y: radius * sin(angle.radians)
                         )
-                        .frame(width: size, height: size)
-                        .rotationEffect(.degrees(-90))
                 }
+                
+                // Main progress arc
+                Circle()
+                    .trim(from: 0, to: min(animatedProgress, 1.0))
+                    .stroke(
+                        foregroundColor,
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                    )
+                    .frame(width: size, height: size)
+                    .rotationEffect(.degrees(-90))
+            }
         .onAppear {
             if animateOnAppear {
                 withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
                     animatedProgress = progress
+                    animatedPreviousProgress = previousWeekProgress ?? 0
                 }
             } else {
                 animatedProgress = progress
+                animatedPreviousProgress = previousWeekProgress ?? 0
             }
         }
         .onChange(of: progress) { oldValue, newValue in
             withAnimation(AnimationPresets.slowSpring) {
                 animatedProgress = newValue
+            }
+        }
+        .onChange(of: previousWeekProgress) { oldValue, newValue in
+            withAnimation(AnimationPresets.slowSpring) {
+                animatedPreviousProgress = newValue ?? 0
             }
         }
     }
@@ -74,6 +103,7 @@ struct ProgressSummaryCardWrapper: View {
     let session: GoalSession
     let weeklyProgress: Double
     let weeklyElapsedTime: TimeInterval
+    var previousWeekProgress: Double?
     @Binding var cardRotationY: Double
     @Binding var shimmerOffset: CGFloat
     let timerManager: SessionTimerManager
@@ -100,7 +130,8 @@ struct ProgressSummaryCardWrapper: View {
             dailyElapsed: session.elapsedTime,
             targetUnit: session.targetUnit,
             currentValue: session.currentValue,
-            unifiedTargetValue: session.unifiedTargetValue,
+            unifiedTargetValue: session.effectiveTargetValue,
+            previousWeekProgress: previousWeekProgress,
             shimmerOffset: $shimmerOffset,
             activeSessionDetails: timerManager.isActive(session) ? timerManager.activeSession : nil,
             session: session,
@@ -123,6 +154,8 @@ struct ProgressSummaryCard: View {
     let targetUnit: Goal.TargetUnit
     let currentValue: Double
     let unifiedTargetValue: Double
+    /// Previous week's progress (0.0–1.0+) at the same time of day, if available.
+    var previousWeekProgress: Double?
     
     @Binding var shimmerOffset: CGFloat
     var activeSessionDetails: ActiveSessionDetails?
@@ -168,7 +201,8 @@ struct ProgressSummaryCard: View {
                                 lineWidth: 8,
                                 size: LayoutConstants.ProgressCircle.standardDiameter,
                                 foregroundColor: textColor,
-                                backgroundColor: textColor.opacity(0.3)
+                                backgroundColor: textColor.opacity(0.3),
+                                previousWeekProgress: previousWeekProgress
                             )
                             .overlay {
                                 Text("\(Int(currentProgress * 100))%")

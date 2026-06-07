@@ -434,6 +434,8 @@ struct ContentView: View {
         ]
     }
     
+    @State private var iCloudSyncStatus: CloudKitSyncToast.SyncStatus?
+    
     @ViewBuilder
     private var emptyStateView: some View {
         Section {
@@ -462,10 +464,36 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
+                
+                // iCloud sync status
+                if let status = iCloudSyncStatus {
+                    HStack(spacing: 10) {
+                        Image(systemName: status.icon)
+                            .font(.subheadline)
+                            .foregroundStyle(status.color)
+                            .symbolEffect(.pulse, isActive: status.isPulsing)
+                        
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(status.title)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            Text(status.message)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
             }
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+            .task {
+                await checkICloudSyncStatus()
+            }
         }
         
         Section {
@@ -512,6 +540,27 @@ struct ContentView: View {
             }
         } header: {
             Text("Start with one")
+        }
+    }
+    
+    private func checkICloudSyncStatus() async {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.moosa.momentum.ios") else {
+            withAnimation { iCloudSyncStatus = .error("iCloud sync not configured") }
+            return
+        }
+        
+        let storeURL = containerURL.appendingPathComponent("default.store")
+        
+        guard FileManager.default.fileExists(atPath: storeURL.path) else {
+            withAnimation { iCloudSyncStatus = .syncing }
+            return
+        }
+        
+        do {
+            _ = try FileManager.default.attributesOfItem(atPath: storeURL.path)
+            withAnimation { iCloudSyncStatus = .enabled }
+        } catch {
+            withAnimation { iCloudSyncStatus = .error("Failed to access sync storage") }
         }
     }
     

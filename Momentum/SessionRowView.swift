@@ -165,7 +165,8 @@ struct SessionRowView: View {
                             sessionActions.onSyncHealthKit?()
                         } label: {
                             Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                                .font(.title2)
+                                .font(.title)
+                                .symbolRenderingMode(.hierarchical)
                                 .rotationEffect(.degrees(sessionActions.isSyncingHealthKit ? 360 : 0))
                                 .animation(sessionActions.isSyncingHealthKit ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: sessionActions.isSyncingHealthKit)
                         }

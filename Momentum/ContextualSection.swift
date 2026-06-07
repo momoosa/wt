@@ -176,9 +176,12 @@ extension ContextualSection {
         // 5. Available Goals section (goals not scheduled for today but could be worked on)
         if let allGoals = allGoals {
             let scheduledIDs = Set(sessions.map { $0.id })
+            let downrankedIDs = Set(downrankedSessions.map { $0.session.id })
             let availableGoals = allGoals.filter { goal in
                 // Not already in a scheduled section
                 !scheduledIDs.contains(goal.id) &&
+                // Not already in the "Not Now" section
+                !downrankedIDs.contains(goal.id) &&
                 // Not scheduled for today (no target for today)
                 goal.unifiedTargetValue == 0 &&
                 // Goal is active (not skipped or archived)
@@ -233,6 +236,7 @@ extension ContextualSection {
             // 8. Inactive section (goals with no schedule for today and not active)
             let inactiveGoals = allGoals.filter { goal in
                 !scheduledIDs.contains(goal.id) &&
+                !downrankedIDs.contains(goal.id) &&
                 goal.unifiedTargetValue == 0 &&
                 !goal.isActiveGoal &&
                 goal.status != .skipped &&

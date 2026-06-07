@@ -16,19 +16,30 @@ struct TagSelectionSheet: View {
     let modelContext: ModelContext
     @Binding var editingTag: GoalTag?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    
+    @State private var isCreatingNewTag = false
+    @State private var newTagName = ""
+    @State private var selectedThemePreset: ThemePreset? = nil
+    @FocusState private var isNewTagNameFocused: Bool
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    if allTags.isEmpty {
+                    // Create new tag section
+                    if isCreatingNewTag {
+                        newTagCreationSection
+                    }
+                    
+                    if allTags.isEmpty && !isCreatingNewTag {
                         ContentUnavailableView(
                             "No Tags",
                             systemImage: "tag.slash",
-                            description: Text("Tags will appear here once you add goals.")
+                            description: Text("Create a new tag to get started.")
                         )
                         .padding(.top, 40)
-                    } else {
+                    } else if !allTags.isEmpty {
                         // Tags grid
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Select Tags")
@@ -52,14 +63,25 @@ struct TagSelectionSheet: View {
                             .padding(.horizontal)
                         }
                         .padding(.top)
-                        
-
                     }
                 }
             }
             .navigationTitle("Add Theme")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    if !isCreatingNewTag {
+                        Button("New Tag") {
+                            withAnimation(AnimationPresets.quickSpring) {
+                                isCreatingNewTag = true
+                                selectedThemePreset = ThemeStore.presets.first
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                isNewTagNameFocused = true
+                            }
+                        }
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
@@ -67,6 +89,123 @@ struct TagSelectionSheet: View {
                 }
             }
         }
+    }
+    
+    // MARK: - New Tag Creation
+    
+    private var newTagCreationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("New Tag")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    withAnimation(AnimationPresets.quickSpring) {
+                        isCreatingNewTag = false
+                        newTagName = ""
+                        selectedThemePreset = nil
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal)
+            
+            TextField("Tag name", text: $newTagName)
+                .textFieldStyle(.roundedBorder)
+                .focused($isNewTagNameFocused)
+                .padding(.horizontal)
+                .onSubmit {
+                    createNewTag()
+                }
+            
+            // Theme color grid
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHGrid(rows: [GridItem(.flexible()), GridItem(.flexible())]) {
+                    ForEach(ThemeStore.presets, id: \.id) { preset in
+                        let isSelected = selectedThemePreset?.id == preset.id
+                        Button {
+                            selectedThemePreset = preset
+                            HapticFeedbackManager.trigger(.light)
+                        } label: {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: preset.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(isSelected ? preset.color(for: colorScheme) : .clear, lineWidth: 2.5)
+                                        .padding(-3)
+                                )
+                                .scaleEffect(isSelected ? 1.15 : 1.0)
+                                .animation(AnimationPresets.quickSpring, value: isSelected)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            
+            Button {
+                createNewTag()
+            } label: {
+                HStack {
+                    Spacer()
+                    Label("Create Tag", systemImage: "plus.circle.fill")
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(canCreateTag ? (selectedThemePreset?.color(for: colorScheme) ?? .accentColor) : Color(.systemGray4))
+                )
+                .foregroundStyle(canCreateTag ? .white : .secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(!canCreateTag)
+            .padding(.horizontal)
+            
+            Divider()
+                .padding(.top, 4)
+        }
+        .padding(.top)
+    }
+    
+    private var canCreateTag: Bool {
+        let trimmed = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && selectedThemePreset != nil
+    }
+    
+    private func createNewTag() {
+        let trimmed = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let preset = selectedThemePreset else { return }
+        
+        let newTag = GoalTag(title: trimmed, themeID: preset.id)
+        modelContext.insert(newTag)
+        
+        // Auto-select the newly created tag
+        withAnimation(AnimationPresets.quickSpring) {
+            selectedTags.append(newTag)
+            if selectedGoalTheme == nil {
+                selectedGoalTheme = newTag
+            }
+            
+            // Reset creation state
+            newTagName = ""
+            selectedThemePreset = ThemeStore.presets.first
+            isCreatingNewTag = false
+        }
+        
+        HapticFeedbackManager.trigger(.success)
     }
     
     private func toggleTagSelection(_ tag: GoalTag) {

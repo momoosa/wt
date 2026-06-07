@@ -192,11 +192,7 @@ struct MomentumApp: App {
     @Query var days: [Day]
     private let permissionHandler = PermissionsHandler()
     
-    // CloudKit sync toast state
-    @AppStorage("hasShownCloudKitToast") private var hasShownCloudKitToast = false
     @AppStorage("hasSeededDefaultTags") private var hasSeededDefaultTags = false
-    @State private var showCloudKitToast = false
-    @State private var cloudKitToastStatus: CloudKitSyncToast.SyncStatus = .enabled
     
     // iCloud data detection for reinstalls
     @State private var iCloudDataObserver: NSObjectProtocol?
@@ -253,22 +249,6 @@ struct MomentumApp: App {
                             // Request ScreenTime authorization on app launch
                             await permissionHandler.requestScreentimeAuthorization()
                             
-                            // Show CloudKit sync toast on first launch
-                            if !hasShownCloudKitToast {
-                                // Wait a bit for the UI to settle
-                                try? await Task.sleep(for: .seconds(1.5))
-                                
-                                // Check if CloudKit is properly configured
-                                let syncStatus = await checkCloudKitStatus()
-                                cloudKitToastStatus = syncStatus
-                                
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    showCloudKitToast = true
-                                }
-                                
-                                hasShownCloudKitToast = true
-                            }
-                            
                             // Start monitoring for day changes
                             startDayChangeMonitoring()
                         }
@@ -281,7 +261,6 @@ struct MomentumApp: App {
                 .onOpenURL { url in
                     handleURL(url)
                 }
-                .cloudKitSyncToast(isShowing: $showCloudKitToast, status: cloudKitToastStatus)
             } else {
                 Text("")
                     .task {
@@ -378,29 +357,6 @@ struct MomentumApp: App {
         }
     }
     
-    // Check CloudKit sync status
-    private func checkCloudKitStatus() async -> CloudKitSyncToast.SyncStatus {
-        // Check if CloudKit container is accessible
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.moosa.momentum.ios") else {
-            return .error("iCloud sync not configured")
-        }
-        
-        let storeURL = containerURL.appendingPathComponent("default.store")
-        
-        // Check if store file exists
-        guard FileManager.default.fileExists(atPath: storeURL.path) else {
-            return .syncing
-        }
-        
-        // Check if we can read the store
-        do {
-            _ = try FileManager.default.attributesOfItem(atPath: storeURL.path)
-            return .enabled
-        } catch {
-            return .error("Failed to access sync storage")
-        }
-    }
-    
     // Listen for iCloud data arriving on a fresh install (reinstall / new device)
     private func startListeningForICloudData() {
         // Remove any previous observer
@@ -417,11 +373,11 @@ struct MomentumApp: App {
             
             guard goalCount > 0 else { return }
             
-            // Goals have arrived from iCloud — show the toast
-            cloudKitToastStatus = .dataFound(goalCount)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                showCloudKitToast = true
-            }
+            // Goals have arrived from iCloud — notify via toast
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ShowToast"),
+                object: "Restored \(goalCount) goal\(goalCount == 1 ? "" : "s") from iCloud"
+            )
             
             // Create sessions for the newly synced goals
             if let currentDay = day {
@@ -558,10 +514,15 @@ struct MomentumApp: App {
             }
         }
         
+        // Repair existing sessions whose cached target may be stale (e.g. from iCloud sync)
+        for session in existingSessions {
+            _ = session.effectiveTargetValue
+        }
+        
         // Save if we made changes
         if context.hasChanges {
             try context.save()
-            AppLogger.app.info("Created \(activeGoals.count - existingSessions.count) new sessions for day \(day.id)")
+            AppLogger.app.info("Created/updated sessions for day \(day.id)")
         }
     }
 

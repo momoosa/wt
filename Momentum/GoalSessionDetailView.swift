@@ -186,7 +186,7 @@ struct GoalSessionDetailView: View {
     }
     
     private var dailyTargetMinutes: Double {
-        return (session.unifiedTargetValue / 60.0)
+        return (session.effectiveTargetValue / 60.0)
     }
     
     private var dailyProgressData: [HourlyProgress] {
@@ -485,6 +485,55 @@ struct GoalSessionDetailView: View {
         return data.map { $0.minutes }
     }
     
+    /// Previous week's progress at the same time of day (as a 0.0–1.0+ ratio).
+    /// Returns nil if there's no target or no data for last week.
+    private func calculatePreviousWeekProgress() -> Double? {
+        guard let goal = session.goal else { return nil }
+        let target = session.effectiveTargetValue
+        guard target > 0, session.targetUnit.isTimeBased else { return nil }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Same weekday last week
+        let baseDate = session.day?.startDate ?? now
+        guard let lastWeekDate = calendar.date(byAdding: .weekOfYear, value: -1, to: baseDate) else { return nil }
+        let dayID = lastWeekDate.yearMonthDayID(with: calendar)
+        
+        // Current time of day as seconds since midnight
+        let comps = calendar.dateComponents([.hour, .minute, .second], from: now)
+        let hours = comps.hour ?? 0
+        let minutes = comps.minute ?? 0
+        let seconds = comps.second ?? 0
+        let secsSinceMidnight = TimeInterval(hours * 3600 + minutes * 60 + seconds)
+        let cutoffTime = calendar.startOfDay(for: lastWeekDate).addingTimeInterval(secsSinceMidnight)
+        
+        do {
+            let descriptor = FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })
+            guard let day = try context.fetch(descriptor).first,
+                  let historicalSessions = day.historicalSessions else {
+                return nil
+            }
+            
+            let goalIDString = goal.id.uuidString
+            let goalSessions = historicalSessions.filter { $0.goalIDs.contains(goalIDString) }
+            guard !goalSessions.isEmpty else { return nil }
+            
+            // Sum durations capped at the cutoff time
+            var totalSeconds: TimeInterval = 0
+            for hs in goalSessions {
+                guard hs.startDate < cutoffTime else { continue }
+                let effectiveEnd = min(hs.endDate, cutoffTime)
+                totalSeconds += effectiveEnd.timeIntervalSince(hs.startDate)
+            }
+            
+            guard totalSeconds > 0 else { return nil }
+            return totalSeconds / target
+        } catch {
+            return nil
+        }
+    }
+    
     /// Calculates the total amount of overlapping time in minutes
     private var overlappingMinutes: Int {
         let sessions = session.historicalSessions
@@ -511,6 +560,7 @@ struct GoalSessionDetailView: View {
                     session: session,
                     weeklyProgress: weeklyProgress,
                     weeklyElapsedTime: weeklyElapsedTime,
+                    previousWeekProgress: calculatePreviousWeekProgress(),
                     cardRotationY: $cardRotationY,
                     shimmerOffset: $shimmerOffset,
                     timerManager: timerManager,

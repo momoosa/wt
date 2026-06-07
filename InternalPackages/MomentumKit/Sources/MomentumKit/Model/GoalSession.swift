@@ -227,44 +227,65 @@ public final class GoalSession: SessionProgressProvider {
         }
     }
     
+    /// The effective target value, auto-repairing from the goal if the cached value
+    /// is stale (e.g. session was created before iCloud sync delivered the goal's target).
+    public var effectiveTargetValue: Double {
+        if unifiedTargetValue > 0 { return unifiedTargetValue }
+        // Cached target is 0 — check if the goal actually has a target for this day
+        guard let goal = goal, let day = day else { return 0 }
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: day.startDate)
+        guard goal.isScheduledDay(weekday) else { return 0 }
+        let goalTarget = goal.unifiedTarget(for: weekday)
+        if goalTarget > 0 {
+            // Auto-repair: persist the corrected value
+            unifiedTargetValue = goalTarget
+            targetUnitRawValue = goal.targetUnit.rawValue
+        }
+        return goalTarget
+    }
+    
     /// Progress as a value from 0.0 onwards (can exceed 1.0 when over target)
     public var progress: Double {
-        guard unifiedTargetValue > 0 else { return 0 }
+        let target = effectiveTargetValue
+        guard target > 0 else { return 0 }
         // For time-based goals, currentValue may not be synced yet for older sessions,
         // so fall back to elapsedTime
         if targetUnit.isTimeBased {
             let value = currentValue > 0 ? currentValue : elapsedTime
-            return value / unifiedTargetValue
+            return value / target
         }
-        return currentValue / unifiedTargetValue
+        return currentValue / target
     }
     
     /// Whether the daily target has been met (either by time or manual completion)
     public var hasMetDailyTarget: Bool {
         if markedComplete { return true }
-        guard unifiedTargetValue > 0 else { return false }
+        let target = effectiveTargetValue
+        guard target > 0 else { return false }
         if targetUnit.isTimeBased {
             let value = currentValue > 0 ? currentValue : elapsedTime
-            return value >= unifiedTargetValue
+            return value >= target
         }
-        return currentValue >= unifiedTargetValue
+        return currentValue >= target
     }
     
     public var formattedTime: String {
+        let target = effectiveTargetValue
         if targetUnit.isTimeBased {
             let value = currentValue > 0 ? currentValue : elapsedTime
-            return value.formattedProgress(target: unifiedTargetValue)
+            return value.formattedProgress(target: target)
         }
         
         let current = Int(currentValue)
-        let target = Int(unifiedTargetValue)
+        let targetInt = Int(target)
         switch targetUnit {
         case .kilocalories:
-            return "\(current) cal/\(target) cal"
+            return "\(current) cal/\(targetInt) cal"
         case .steps:
-            return "\(current.formatted())/\(target.formatted())"
+            return "\(current.formatted())/\(targetInt.formatted())"
         case .seconds:
-            return elapsedTime.formattedProgress(target: unifiedTargetValue)
+            return elapsedTime.formattedProgress(target: target)
         }
     }
     
