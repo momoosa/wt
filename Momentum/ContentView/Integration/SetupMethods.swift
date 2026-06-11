@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 import MomentumKit
 import HealthKit
+import CoreLocation
+import UserNotifications
 import OSLog
 
 // MARK: - Setup Methods
@@ -70,14 +72,21 @@ extension ContentView {
         })
         
         // Initialize weather data asynchronously in background to avoid blocking launch
-        backgroundTasks.append(Task(priority: .background) {
-            weatherManager.refreshWeatherIfNeeded()
-        })
+        // Skip if location permission hasn't been granted yet — the permissions screen handles this
+        if CLLocationManager().authorizationStatus != .notDetermined {
+            backgroundTasks.append(Task(priority: .background) {
+                weatherManager.refreshWeatherIfNeeded()
+            })
+        }
     }
     
     /// Reschedule notifications for all goals with schedule notifications enabled
     @MainActor
     func rescheduleGoalNotifications() async {
+        // Skip if notification permission hasn't been granted yet — the permissions screen handles this
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus != .notDetermined else { return }
+        
         let notificationManager = GoalNotificationManager()
         
         // Get all active goals with schedule notifications enabled

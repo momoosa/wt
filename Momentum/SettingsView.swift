@@ -89,6 +89,27 @@ struct SettingsView: View {
                 
                 Section {
                     NavigationLink {
+                        AppPermissionsView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "lock.shield")
+                                .foregroundStyle(.blue)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("App Permissions")
+                                Text("Location, Calendar, Notifications")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Label("Permissions", systemImage: "lock.shield")
+                } footer: {
+                    Text("Manage the system permissions Momentum uses for weather, scheduling, and reminders.")
+                }
+                
+                Section {
+                    NavigationLink {
                         TagManagementView()
                     } label: {
                         HStack {
@@ -180,6 +201,12 @@ struct SettingsView: View {
                 
                 #if DEBUG
                 Section {
+                    NavigationLink {
+                        DebugScoreView()
+                    } label: {
+                        Label("Score Breakdown", systemImage: "chart.bar.fill")
+                    }
+                    
                     Button {
                         addDebugGoals()
                     } label: {

@@ -33,7 +33,6 @@ struct GoalEditorViewModelTests {
                     subtitle: "Daily mindfulness practice",
                     duration: 30,
                     dailyGoal: true,
-                    theme: "palette_17",
                     healthKitMetric: nil,
                     icon: "brain.head.profile",
                     goalType: "time",
@@ -45,7 +44,6 @@ struct GoalEditorViewModelTests {
                     subtitle: "Cardio workout",
                     duration: 45,
                     dailyGoal: false,
-                    theme: "palette_19",
                     healthKitMetric: nil,
                     icon: "figure.run",
                     goalType: "time",
@@ -251,7 +249,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "palette_17",
+
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -270,7 +268,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "palette_17",
+
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -291,7 +289,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "palette_17",
+
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -312,7 +310,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "palette_17",
+
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -331,7 +329,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Daily practice",
             duration: 30,
             dailyGoal: true,
-            theme: "palette_17",
+
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
@@ -427,7 +425,7 @@ struct GoalEditorViewModelTests {
             subtitle: "Cardio workout",
             duration: 30,
             dailyGoal: false,
-            theme: "palette_19",
+
             healthKitMetric: nil,
             icon: "figure.run",
             goalType: "time",

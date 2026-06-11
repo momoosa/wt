@@ -37,6 +37,7 @@
 		CD13E01F2F44963500E65CCA /* FocusFilterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */; };
 		CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */; };
 		CD176C6D2F22BD840032DDEF /* SessionTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */; };
+		CD1905DE2FD5780A00CA3AB7 /* DebugScoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1905DD2FD5780A00CA3AB7 /* DebugScoreView.swift */; };
 		CD199C192FD0981200CA3AB7 /* RelevanceRuleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD199C182FD0981200CA3AB7 /* RelevanceRuleView.swift */; };
 		CD199C1B2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD199C1A2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift */; };
 		CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */; };
@@ -66,6 +67,7 @@
 		CD39BD462F2F641000F7265A /* GoalSessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085A82F1B94A200A555D6 /* GoalSessionPlanner.swift */; };
 		CD39BD4A2F2F66E600F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD492F2F66E600F7265A /* MomentumKit */; };
 		CD39BD4C2F2F66EF00F7265A /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CD39BD4B2F2F66EF00F7265A /* MomentumKit */; };
+		CD52E8592FD9F3540026E5B4 /* AppPermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD52E8582FD9F3540026E5B4 /* AppPermissionsView.swift */; };
 		CD5601662EEB2FD1001D0BB0 /* ScreentimeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */; };
 		CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5ADA492F7BA33D000C0FD8 /* ScreenTimeManager.swift */; };
 		CD5ADA4C2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5ADA4B2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift */; };
@@ -248,6 +250,7 @@
 		CD13E01E2F44963500E65CCA /* FocusFilterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusFilterStore.swift; sourceTree = "<group>"; };
 		CD174AB92F2381030032DDEF /* ProgressSummaryCardWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSummaryCardWrapper.swift; sourceTree = "<group>"; };
 		CD176C6C2F22BD840032DDEF /* SessionTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerManager.swift; sourceTree = "<group>"; };
+		CD1905DD2FD5780A00CA3AB7 /* DebugScoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugScoreView.swift; sourceTree = "<group>"; };
 		CD199C182FD0981200CA3AB7 /* RelevanceRuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelevanceRuleView.swift; sourceTree = "<group>"; };
 		CD199C1A2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelevanceRuleSummaryRow.swift; sourceTree = "<group>"; };
 		CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricalSessionEditorView.swift; sourceTree = "<group>"; };
@@ -275,6 +278,7 @@
 		CD39BD2C2F2F633800F7265A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CD39BD2E2F2F633800F7265A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		CD39BD4D2F2F677200F7265A /* Momentum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Momentum.entitlements; sourceTree = "<group>"; };
+		CD52E8582FD9F3540026E5B4 /* AppPermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPermissionsView.swift; sourceTree = "<group>"; };
 		CD5601652EEB2FCC001D0BB0 /* ScreentimeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreentimeSettingsView.swift; sourceTree = "<group>"; };
 		CD5ADA492F7BA33D000C0FD8 /* ScreenTimeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeManager.swift; sourceTree = "<group>"; };
 		CD5ADA4B2F7BA35D000C0FD8 /* ScreenTimeGoalConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeGoalConfigurationView.swift; sourceTree = "<group>"; };
@@ -731,6 +735,8 @@
 				CD88457A2FC33CE50046F456 /* TagManagementView.swift */,
 				CD199C182FD0981200CA3AB7 /* RelevanceRuleView.swift */,
 				CD199C1A2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift */,
+				CD1905DD2FD5780A00CA3AB7 /* DebugScoreView.swift */,
+				CD52E8582FD9F3540026E5B4 /* AppPermissionsView.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1077,6 +1083,7 @@
 				CDBE144D2F85149800B7FCD6 /* GoalSuggestionCategoryView.swift in Sources */,
 				CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */,
 				CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */,
+				CD1905DE2FD5780A00CA3AB7 /* DebugScoreView.swift in Sources */,
 				CD6A0C332F899C97008F5D93 /* HealthKitViewModel.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CDF6E9082FB3A506008767D9 /* SessionActions.swift in Sources */,
@@ -1171,6 +1178,7 @@
 				CD22C81C2F3BB8CA001F2406 /* PlanningViewModel.swift in Sources */,
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
+				CD52E8592FD9F3540026E5B4 /* AppPermissionsView.swift in Sources */,
 				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,

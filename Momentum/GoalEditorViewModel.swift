@@ -904,6 +904,100 @@ class GoalEditorViewModel {
         }
     }
     
+    // MARK: - Paste Bullet List to Checklist
+    
+    /// Parses pasted text containing bullet points, numbered lists, or plain lines
+    /// and appends them as checklist items.
+    ///
+    /// Lines with a bullet/number/checkbox prefix start new checklist items.
+    /// Lines that are indented or plain continuation text (no prefix) after a
+    /// prefixed item become notes on that item. If no lines have any prefix,
+    /// every line becomes its own checklist item.
+    func importChecklistFromText(_ text: String) {
+        let lines = text.components(separatedBy: .newlines)
+        
+        let bulletPrefixes: [String] = ["•", "-", "*", ">", "☐", "□", "▪", "▸", "–", "—", "·"]
+        
+        /// Returns the cleaned text and whether a structural prefix was found.
+        func stripPrefix(_ input: String) -> (cleaned: String, hadPrefix: Bool) {
+            var cleaned = input
+            var hadPrefix = false
+            
+            // Strip bullet prefixes
+            for prefix in bulletPrefixes {
+                if cleaned.hasPrefix(prefix) {
+                    cleaned = String(cleaned.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+                    hadPrefix = true
+                    break
+                }
+            }
+            
+            // Strip numbered list prefixes: "1.", "1)", "1:", "(1)"
+            if let match = cleaned.range(of: #"^\(?(\d+)[.):]\)?\s*"#, options: .regularExpression) {
+                cleaned = String(cleaned[match.upperBound...]).trimmingCharacters(in: .whitespaces)
+                hadPrefix = true
+            }
+            
+            // Strip markdown checkbox prefixes: "[ ]", "[x]", "[X]"
+            if let match = cleaned.range(of: #"^\[[ xX]?\]\s*"#, options: .regularExpression) {
+                cleaned = String(cleaned[match.upperBound...]).trimmingCharacters(in: .whitespaces)
+                hadPrefix = true
+            }
+            
+            return (cleaned, hadPrefix)
+        }
+        
+        // First pass: check if any top-level (non-indented) line has a structural
+        // prefix. If none do, treat every line as a separate item (plain list).
+        let hasAnyPrefix = lines.contains { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return false }
+            let leading = line.prefix(while: { $0 == " " || $0 == "\t" })
+            let indented = leading.count >= 2 || leading.contains("\t")
+            guard !indented else { return false }
+            return stripPrefix(trimmed).hadPrefix
+        }
+        
+        var newItems: [ChecklistItemData] = []
+        
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            
+            let leadingWhitespace = line.prefix(while: { $0 == " " || $0 == "\t" })
+            let isIndented = leadingWhitespace.count >= 2 || leadingWhitespace.contains("\t")
+            
+            let (cleaned, hadPrefix) = stripPrefix(trimmed)
+            guard !cleaned.isEmpty else { continue }
+            
+            // Indented lines are always notes on the preceding item
+            if isIndented, !newItems.isEmpty {
+                let lastIndex = newItems.count - 1
+                if newItems[lastIndex].notes.isEmpty {
+                    newItems[lastIndex].notes = cleaned
+                } else {
+                    newItems[lastIndex].notes += "\n" + cleaned
+                }
+            } else if !hasAnyPrefix {
+                // No prefixes found anywhere — each line is its own item
+                newItems.append(ChecklistItemData(title: cleaned))
+            } else if !hadPrefix, !newItems.isEmpty {
+                // Plain continuation line after a prefixed item — append as notes
+                let lastIndex = newItems.count - 1
+                if newItems[lastIndex].notes.isEmpty {
+                    newItems[lastIndex].notes = cleaned
+                } else {
+                    newItems[lastIndex].notes += "\n" + cleaned
+                }
+            } else {
+                newItems.append(ChecklistItemData(title: cleaned))
+            }
+        }
+        
+        guard !newItems.isEmpty else { return }
+        checklistItems.append(contentsOf: newItems)
+    }
+    
     // MARK: - Checklist Generation
     
     func generateChecklist(for input: String) {

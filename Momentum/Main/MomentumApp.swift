@@ -193,6 +193,7 @@ struct MomentumApp: App {
     private let permissionHandler = PermissionsHandler()
     
     @AppStorage("hasSeededDefaultTags") private var hasSeededDefaultTags = false
+    @State private var showPermissionsScreen = false
     
     // iCloud data detection for reinstalls
     @State private var iCloudDataObserver: NSObjectProtocol?
@@ -260,6 +261,16 @@ struct MomentumApp: App {
                 }
                 .onOpenURL { url in
                     handleURL(url)
+                }
+                .task {
+                    showPermissionsScreen = await AppPermissionsViewModel.hasUndeterminedPermissions()
+                }
+                .fullScreenCover(isPresented: $showPermissionsScreen) {
+                    NavigationStack {
+                        AppPermissionsView(onContinue: {
+                            showPermissionsScreen = false
+                        })
+                    }
                 }
             } else {
                 Text("")

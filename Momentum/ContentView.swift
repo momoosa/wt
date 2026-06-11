@@ -395,43 +395,18 @@ struct ContentView: View {
         }
     }
     
-    private struct StarterSuggestion: Identifiable {
-        let id: String
-        let title: String
-        let category: String
-        let duration: String
-        let icon: String
-        let templateID: String
-        let gradientColors: [Color]
-    }
+    private static let starterTemplateIDs = ["walk", "exercise_minutes", "meditation", "reading"]
     
-    private var starterSuggestions: [StarterSuggestion] {
-        [
-            StarterSuggestion(
-                id: "walk", title: "Daily walk", category: "Movement",
-                duration: "20m", icon: "figure.walk",
-                templateID: "walk",
-                gradientColors: [.green, .mint]
-            ),
-            StarterSuggestion(
-                id: "focus", title: "Deep work block", category: "Deep work",
-                duration: "1h", icon: "rectangle.on.rectangle",
-                templateID: "focus_work",
-                gradientColors: [.orange, .red]
-            ),
-            StarterSuggestion(
-                id: "breathe", title: "Breathe & reset", category: "Mindfulness",
-                duration: "10m", icon: "sparkles",
-                templateID: "meditation",
-                gradientColors: [.purple, .indigo]
-            ),
-            StarterSuggestion(
-                id: "read", title: "Read 20 minutes", category: "Learning",
-                duration: "20m", icon: "book.fill",
-                templateID: "reading",
-                gradientColors: [.blue, .cyan]
-            ),
-        ]
+    private var starterSuggestions: [(template: GoalTemplateSuggestion, category: GoalCategory)] {
+        let data = GoalSuggestionsLoader.shared.loadSuggestions()
+        return Self.starterTemplateIDs.compactMap { templateID in
+            for category in data.categories {
+                if let template = category.suggestions.first(where: { $0.id == templateID }) {
+                    return (template, category)
+                }
+            }
+            return nil
+        }
     }
     
     @State private var iCloudSyncStatus: CloudKitSyncToast.SyncStatus?
@@ -497,30 +472,24 @@ struct ContentView: View {
         }
         
         Section {
-            ForEach(starterSuggestions) { suggestion in
+            ForEach(starterSuggestions, id: \.template.id) { item in
                 HStack(spacing: 14) {
                     // Gradient icon circle
                     ZStack {
                         Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: suggestion.gradientColors,
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(item.category.themePreset.gradient(for: colorScheme))
                             .frame(width: 40, height: 40)
                         
-                        Image(systemName: suggestion.icon)
+                        Image(systemName: item.template.icon)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(suggestion.title)
+                        Text(item.template.title)
                             .font(.subheadline.bold())
                         
-                        Text("\(suggestion.category) · \(suggestion.duration)")
+                        Text("\(item.category.name) · \(item.template.duration)m")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -528,7 +497,7 @@ struct ContentView: View {
                     Spacer()
                     
                     Button {
-                        openEditorWithTemplate(id: suggestion.templateID)
+                        openEditorWithTemplate(id: item.template.id)
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -566,12 +535,13 @@ struct ContentView: View {
     
     private func openEditorWithTemplate(id templateID: String) {
         let suggestionsData = GoalSuggestionsLoader.shared.loadSuggestions()
-        for category in suggestionsData.categories {
+        for (categoryIndex, category) in suggestionsData.categories.enumerated() {
             if let template = category.suggestions.first(where: { $0.id == templateID }) {
                 let vm = GoalEditorViewModel()
                 vm.selectedTemplate = template
                 vm.userInput = template.title
                 vm.durationInMinutes = template.duration
+                vm.selectedCategoryIndex = categoryIndex
                 goalEditorViewModel = vm
                 navigation.showingGoalEditor = true
                 return
@@ -592,9 +562,6 @@ struct ContentView: View {
                         .font(.subheadline.weight(.bold))
                         .tracking(1)
                     Spacer()
-                    Text("\(section.sessions.count) matches")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
             .id(section.id)
@@ -937,8 +904,10 @@ func previewOnlyContainer() -> ModelContainer {
         healthKitManager: healthKitManager,
         weatherManager: WeatherManager.shared
     )
-    ContentView(day: day, viewModel: viewModel)
-        .environment(store)
-        .modelContainer(for: Item.self, inMemory: true)
+    NavigationStack {
+        ContentView(day: day, viewModel: viewModel)
+            .environment(store)
+            .modelContainer(for: Item.self, inMemory: true)        
+    }
 }
 
