@@ -522,10 +522,12 @@ class GoalEditorViewModel {
         // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
         let defaultDays: Set<Int> = (template.dailyGoal == true) ? Set(1...7) : Set(2...6)
         let targetDays = activeDays.isEmpty ? defaultDays : activeDays
-        let dailyMinutes = targetDays.isEmpty ? template.duration : template.duration / targetDays.count
-        
-        for weekday in targetDays {
-            dailyTargets[weekday] = dailyMinutes
+        let dayCount = max(targetDays.count, 1)
+        let baseDailyMinutes = template.duration / dayCount
+        let remainder = template.duration % dayCount
+        let sortedDays = targetDays.sorted()
+        for (index, weekday) in sortedDays.enumerated() {
+            dailyTargets[weekday] = baseDailyMinutes + (index < remainder ? 1 : 0)
         }
         
         // Infer and set icon from template
@@ -595,7 +597,7 @@ class GoalEditorViewModel {
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
         print("   Duration: \(template.duration) min")
-        print("   Daily Minutes: \(dailyMinutes) min per day")
+        print("   Daily Minutes: \(baseDailyMinutes) min per day")
         print("   Goal Type: \(selectedGoalType)")
         print("   Primary Target: \(primaryMetricTarget)")
         print("   HealthKit: \(template.healthKitMetric ?? "none")")
@@ -895,7 +897,17 @@ class GoalEditorViewModel {
                 applyTemplate(template, allTags: allTags)
                 currentStage = .duration
             } else {
-                // New goal: go to duration immediately
+                // New freeform goal: populate daily targets from default duration
+                if dailyTargets.isEmpty {
+                    let dayCount = max(activeDays.count, 1)
+                    let baseDailyMinutes = durationInMinutes / dayCount
+                    let remainder = durationInMinutes % dayCount
+                    let sortedDays = activeDays.sorted()
+                    for (index, weekday) in sortedDays.enumerated() {
+                        // Distribute remainder across first few days so weekly total is exact
+                        dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
+                    }
+                }
                 currentStage = .duration
             }
         case .duration:

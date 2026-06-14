@@ -270,22 +270,16 @@ struct GoalEditorView: View {
 
                 }
                 
-                // Save/Close button on duration stage
+                // Save button on duration stage
                 if viewModel.currentStage == .duration {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            if viewModel.existingGoal != nil {
-                                // Save when editing
-                                handleButtonTap()
-                            } else {
-                                // Close when creating new
-                                dismiss()
-                            }
+                            handleButtonTap()
                         } label: {
-                            Text(viewModel.existingGoal != nil ? "Save" : "Close")
+                            Text("Save")
                                 .fontWeight(.semibold)
                         }
-                        .disabled(viewModel.existingGoal != nil && !buttonEnabled)
+                        .disabled(!buttonEnabled)
                     }
                 }
                 

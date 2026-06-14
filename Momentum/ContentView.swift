@@ -558,7 +558,7 @@ struct ContentView: View {
             Section {
             } header: {
                 HStack {
-                    Text("TOP PICKS")
+                    Text("This Moment")
                         .font(.subheadline.weight(.bold))
                         .tracking(1)
                     Spacer()
@@ -907,7 +907,7 @@ func previewOnlyContainer() -> ModelContainer {
     NavigationStack {
         ContentView(day: day, viewModel: viewModel)
             .environment(store)
-            .modelContainer(for: Item.self, inMemory: true)        
+            .modelContainer(for: Item.self, inMemory: true)
     }
 }
 

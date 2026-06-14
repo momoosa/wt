@@ -14,9 +14,13 @@ struct NowPlayingView: View {
     let onStopTapped: () -> Void
     let onAdjustStartTime: ((TimeInterval) -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     @State private var showingAdjustments = false
     
+    var foregroundColor: Color {
+        session.theme.foregroundColor(for: colorScheme)
+    }
     // Optional interval information
     let currentIntervalName: String?
     let intervalProgress: Double?
@@ -35,7 +39,8 @@ struct NowPlayingView: View {
     var body: some View {
         ZStack {
             // Background gradient
-            session.theme.gradient(for: .dark)
+            
+            session.theme.gradient(for: colorScheme)
             .ignoresSafeArea()
             .gesture(
                 DragGesture(minimumDistance: 20)
@@ -55,7 +60,7 @@ struct NowPlayingView: View {
                         .frame(height: 30)
                     
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(.white.opacity(0.5))
+                        .fill(foregroundColor.opacity(0.5))
                         .frame(width: 40, height: 5)
                         .padding(.top, 12)
                     
@@ -66,11 +71,11 @@ struct NowPlayingView: View {
                         Image(systemName: "chevron.down")
                             .font(.title3)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(foregroundColor)
                             .frame(width: 36, height: 36)
                             .background(
                                 Circle()
-                                    .fill(.white.opacity(0.2))
+                                    .fill(foregroundColor.opacity(0.2))
                             )
                     }
                 }
@@ -82,26 +87,43 @@ struct NowPlayingView: View {
                     Text(session.goal?.title ?? "Goal")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(foregroundColor)
                     
                     Text(session.goal?.primaryTag?.title ?? "")
                         .font(.title3)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(foregroundColor.opacity(0.8))
                 }
                 
                 // Circular progress indicator
                 ZStack {
+                    let progress = activeSessionDetails.progress
+                    let completedLaps = Int(progress)
+                    let currentLap = progress - Double(completedLaps)
+                    let lineWidth = LayoutConstants.ProgressCircle.largeLineWidth
+                    let diameter = LayoutConstants.ProgressCircle.largeDiameter
+                    
                     // Background circle
                     Circle()
                         .stroke(
-                            Color.white.opacity(0.3),
-                            lineWidth: LayoutConstants.ProgressCircle.largeLineWidth
+                            foregroundColor.opacity(0.3),
+                            lineWidth: lineWidth
                         )
-                        .frame(width: LayoutConstants.ProgressCircle.largeDiameter, height: LayoutConstants.ProgressCircle.largeDiameter)
+                        .frame(width: diameter, height: diameter)
                     
-                    // Progress circle with gradient
+                    // Completed lap rings — stacked with decreasing opacity
+                    ForEach(0..<min(completedLaps, 5), id: \.self) { lap in
+                        Circle()
+                            .stroke(
+                                foregroundColor.opacity(0.15 + Double(lap) * 0.05),
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                            )
+                            .frame(width: diameter, height: diameter)
+                            .shadow(color: foregroundColor.opacity(0.3), radius: 4)
+                    }
+                    
+                    // Current lap arc
                     Circle()
-                        .trim(from: 0, to: min(activeSessionDetails.progress, 1.0))
+                        .trim(from: 0, to: progress >= 1.0 ? currentLap : progress)
                         .stroke(
                             AngularGradient(
                                 gradient: Gradient(colors: [
@@ -113,31 +135,45 @@ struct NowPlayingView: View {
                                 startAngle: .degrees(0),
                                 endAngle: .degrees(360)
                             ),
-                            style: StrokeStyle(lineWidth: LayoutConstants.ProgressCircle.largeLineWidth, lineCap: .round)
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                         )
-                        .frame(width: LayoutConstants.ProgressCircle.largeDiameter, height: LayoutConstants.ProgressCircle.largeDiameter)
+                        .frame(width: diameter, height: diameter)
                         .rotationEffect(.degrees(-90))
-                        .animation(.spring(response: 0.6), value: activeSessionDetails.progress)
+                        .shadow(color: foregroundColor.opacity(completedLaps > 0 ? 0.6 : 0), radius: 6)
+                        .animation(.spring(response: 0.6), value: progress)
                     
                     // Time display in center
                     VStack(spacing: 12) {
                         if let timeText = activeSessionDetails.timeText {
                             Text(timeText)
-                                .font(.system(size: 48, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundStyle(foregroundColor)
                                 .contentTransition(.numericText())
                         }
                         
                         // Progress percentage
-                        Text("\(Int(activeSessionDetails.progress * 100))%")
-                            .font(.title2)
+                        Text("\(Int(progress * 100))%")
+                            .font(.largeTitle)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(foregroundColor.opacity(0.8))
                         
                         // Daily target info
                         Text("of \(activeSessionDetails.dailyTarget.formatted(style: .hourMinute))")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .font(.title2)
+                            .foregroundStyle(foregroundColor.opacity(0.6))
+                        
+                        // Lap indicator
+                        if completedLaps > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                                    .font(.caption)
+                                Text("\(completedLaps)×")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                            }
+                            .foregroundStyle(foregroundColor.opacity(0.6))
+                            .transition(.scale.combined(with: .opacity))
+                        }
                     }
                 }
                 .padding(.vertical, 40)
@@ -193,11 +229,11 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.title2)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(foregroundColor)
                             .frame(width: 60, height: 60)
                             .background(
                                 Circle()
-                                    .fill(.white.opacity(0.2))
+                                    .fill(foregroundColor.opacity(0.2))
                             )
                     }
                     
@@ -209,11 +245,11 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 32))
-                            .foregroundStyle(session.theme.color(for: .dark))
+                            .foregroundStyle(session.theme.color(for: colorScheme))
                             .frame(width: LayoutConstants.ProgressCircle.standardDiameter, height: LayoutConstants.ProgressCircle.standardDiameter)
                             .background(
                                 Circle()
-                                    .fill(.white)
+                                    .fill(foregroundColor)
                                     .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
                             )
                     }
@@ -224,11 +260,11 @@ struct NowPlayingView: View {
                     } label: {
                         Image(systemName: "slider.horizontal.3")
                             .font(.title2)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(foregroundColor)
                             .frame(width: 60, height: 60)
                             .background(
                                 Circle()
-                                    .fill(.white.opacity(0.2))
+                                    .fill(foregroundColor.opacity(0.2))
                             )
                     }
                 }
@@ -303,13 +339,17 @@ struct SessionAdjustmentsSheet: View {
     }
 }
 
-#Preview {
-    
-    let theme = GoalTag(title: "Wellness", themeID: "palette_16")
+#Preview("In Progress") {
+    let theme = GoalTag(title: "Wellness", themeID: "bee")
     let goal = Goal(title: "Meditation", primaryTag: theme)
     let day = Day(start: Date(), end: Date())
     let session = GoalSession(title: "Meditation", goal: goal, day: day)
-    let details = ActiveSessionDetails(id: session.id, startDate: Date().addingTimeInterval(-600), elapsedTime: 600, dailyTarget: 1200)
+    // startDate 10 min ago, 0 prior elapsed, 20 min target → ~50% progress
+    let details: ActiveSessionDetails = {
+        let d = ActiveSessionDetails(id: session.id, startDate: Date().addingTimeInterval(-600), elapsedTime: 0, dailyTarget: 1200)
+        d.unifiedTargetValue = 1200
+        return d
+    }()
     
     NowPlayingView(
         session: session,
@@ -317,6 +357,26 @@ struct SessionAdjustmentsSheet: View {
         currentIntervalName: "Heel Stretch 2/4",
         intervalProgress: 0.6,
         intervalTimeRemaining: 12
+    ) {
+        print("Stop tapped")
+    }
+}
+
+#Preview("Over 100%") {
+    let theme = GoalTag(title: "Fitness", themeID: "coral")
+    let goal = Goal(title: "Running", primaryTag: theme)
+    let day = Day(start: Date(), end: Date())
+    let session = GoalSession(title: "Running", goal: goal, day: day)
+    // startDate 5 min ago, 25 min prior elapsed, 10 min target → ~300% (3 laps)
+    let details: ActiveSessionDetails = {
+        let d = ActiveSessionDetails(id: session.id, startDate: Date().addingTimeInterval(-300), elapsedTime: 2500, dailyTarget: 600)
+        d.unifiedTargetValue = 600
+        return d
+    }()
+    
+    NowPlayingView(
+        session: session,
+        activeSessionDetails: details
     ) {
         print("Stop tapped")
     }

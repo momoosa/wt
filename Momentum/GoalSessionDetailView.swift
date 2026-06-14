@@ -854,6 +854,11 @@ struct GoalSessionDetailView: View {
                                 Button {
                                     withAnimation {
                                         context.delete(historicalSession)
+                                        session.invalidateHistoricalSessionsCache()
+                                        // Sync currentValue so the session row updates
+                                        if session.targetUnit.isTimeBased {
+                                            session.currentValue = session.elapsedTime
+                                        }
                                         Task {
                                             do {
                                                 try context.save()

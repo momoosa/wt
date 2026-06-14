@@ -265,12 +265,14 @@ struct MomentumApp: App {
                 .task {
                     showPermissionsScreen = await AppPermissionsViewModel.hasUndeterminedPermissions()
                 }
-                .fullScreenCover(isPresented: $showPermissionsScreen) {
+                
+                .sheet(isPresented: $showPermissionsScreen) {
                     NavigationStack {
                         AppPermissionsView(onContinue: {
                             showPermissionsScreen = false
                         })
                     }
+                    .presentationDetents([.medium])
                 }
             } else {
                 Text("")

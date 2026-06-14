@@ -221,11 +221,9 @@
       "#f0cc62",
       "#f7d879"
     ],
-    "darkForegroundColor": "#ffffff",
+    "darkForegroundColor": "#3f361b",
     "lightForegroundColor": "#3f361b"
   },
-
-
   {
     "id": "straw",
     "title": "Straw",

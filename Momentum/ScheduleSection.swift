@@ -30,5 +30,17 @@ struct ScheduleSection: View {
                 Text("Your daily target of \(Int(viewModel.primaryMetricTarget)) \(viewModel.goalTypeUnit) applies to all active days.")
             }
         }
+
+        Section {
+            ScheduleDaysListSection(
+                viewModel: viewModel,
+                focusedField: $focusedField,
+                expandedDay: $expandedDay,
+                activeThemeColor: activeThemeColor,
+                onToggleTime: onToggleTime
+            )
+        } header: {
+            Text("Schedule")
+        }
     }
 }

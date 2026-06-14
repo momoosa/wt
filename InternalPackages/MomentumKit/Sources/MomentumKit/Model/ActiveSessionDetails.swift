@@ -24,8 +24,14 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     public var unifiedTargetValue: Double = 0 // Unified target in native unit
     public var targetUnit: Goal.TargetUnit = .seconds // Unit of the target
     
-    /// Protocol conformance: currentValue is the elapsed time for the active session
-    public var currentValue: Double { elapsedTime }
+    /// Protocol conformance: currentValue is the live elapsed time for the active session.
+    /// Uses tickCount to drive SwiftUI observation updates every second.
+    public var currentValue: Double {
+        // Access tickCount to establish an observation dependency so progress updates each tick
+        _ = tickCount
+        let liveElapsed = elapsedTime + Date().timeIntervalSince(startDate)
+        return liveElapsed
+    }
     public var isPaused: Bool = false // Track if the session is currently paused
     public var onTargetReached: (() -> Void)? // Callback when target is reached
     public var onTick: (() -> Void)? // Callback on every timer tick
@@ -62,7 +68,9 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: timerInterval, repeats: true) { _ in
             self.tickCount += 1
-            self.timeText = self.timerText()
+            withAnimation {
+                self.timeText = self.timerText()                
+            }
             self.currentTime = Date()
             
             // Check if target was just reached

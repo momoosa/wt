@@ -364,8 +364,6 @@ struct ProgressSummaryCard: View {
                 }
                 .background {
                     themeColors.gradient(for: colorScheme)
-               
-                               
                 }
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .scale(scale: 0.95)),
