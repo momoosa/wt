@@ -254,8 +254,115 @@ private struct PermissionRow: View {
 
 extension PermissionType: Hashable {}
 
-#Preview {
+// MARK: - Inline Permissions Prompt Card (for day-at-a-glance)
+
+struct PermissionsPromptCard: View {
+    @Bindable var viewModel: AppPermissionsViewModel
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private let cardGradient = LinearGradient(
+        colors: [Color.indigo, Color.purple],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    private var foreground: Color { .white }
+    
+    private var undeterminedPermissions: [(type: PermissionType, icon: String, label: String, detail: String)] {
+        var result: [(PermissionType, String, String, String)] = []
+        if viewModel.locationStatus == .notDetermined {
+            result.append((.location, "location.fill", "Location", "Weather-based suggestions"))
+        }
+        if viewModel.calendarStatus == .notDetermined {
+            result.append((.calendar, "calendar", "Calendar", "Find free time in your day"))
+        }
+        if viewModel.notificationStatus == .notDetermined {
+            result.append((.notifications, "bell.fill", "Notifications", "Scheduled reminders"))
+        }
+        return result
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Header
+            HStack {
+                Text("Get Started")
+                    .font(.title2.bold())
+                    .foregroundStyle(foreground)
+                
+                Spacer()
+                
+                Text("SET UP")
+                    .font(.caption2.weight(.bold))
+                    .tracking(0.5)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(foreground.opacity(0.15), in: Capsule())
+                    .foregroundStyle(foreground.opacity(0.8))
+            }
+            
+            Text("Enable permissions to personalise your schedule")
+                .font(.caption)
+                .foregroundStyle(foreground.opacity(0.7))
+            
+            // Permission rows
+            ForEach(undeterminedPermissions, id: \.type) { perm in
+                Button {
+                    Task { await viewModel.request(perm.type) }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: perm.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(width: 28, height: 28)
+                            .background(foreground.opacity(0.2), in: RoundedRectangle(cornerRadius: 7))
+                        
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(perm.label)
+                                .font(.subheadline.weight(.semibold))
+                            Text(perm.detail)
+                                .font(.caption2)
+                                .foregroundStyle(foreground.opacity(0.7))
+                        }
+                        
+                        Spacer()
+                        
+                        Text("Enable")
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(foreground.opacity(0.2), in: Capsule())
+                    }
+                    .foregroundStyle(foreground)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(20)
+        .listRowBackground(
+            cardGradient
+                .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+        )
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task { await viewModel.refresh() }
+            }
+        }
+    }
+}
+
+#Preview("Settings") {
     NavigationStack {
         AppPermissionsView()
+    }
+}
+
+#Preview("Card") {
+    List {
+        Section {
+            PermissionsPromptCard(viewModel: AppPermissionsViewModel())
+                .listRowInsets(EdgeInsets())
+        }
+        .listSectionSpacing(.compact)
     }
 }

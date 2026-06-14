@@ -83,6 +83,9 @@ struct ContentView: View {
     @State private var visibleSectionIDs: Set<String> = []
     @State private var scrollProxy: ScrollViewProxy?
     
+    // Permissions
+    @State private var permissionsViewModel = AppPermissionsViewModel()
+    
     // Shared session actions for child views (eliminates callback prop drilling)
     @State var sessionActions = SessionActions()
 
@@ -154,6 +157,7 @@ struct ContentView: View {
                 sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
                 sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
                 setupOnAppear()
+                await permissionsViewModel.refresh()
             }
             .onChange(of: viewModel.isSyncingHealthKit) { _, newValue in
                 sessionActions.isSyncingHealthKit = newValue
@@ -351,6 +355,15 @@ struct ContentView: View {
                 }
             }
 
+            // Inline permissions prompt — shown when any permission is undetermined
+            if permissionsViewModel.hasAnyUndetermined {
+                Section {
+                    PermissionsPromptCard(viewModel: permissionsViewModel)
+                        .listRowInsets(EdgeInsets())
+                }
+                .listSectionSpacing(.compact)
+            }
+            
             if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
                 ForEach(contextualSections) { section in
                     contextualSectionView(section: section)
