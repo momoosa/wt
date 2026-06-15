@@ -13,9 +13,11 @@ struct GoalTypeSection: View {
     let targetSuggestions: [Int]
     
     let onTypeChange: (Goal.TargetUnit) -> Void
+    var onWeeklyTargetChange: ((Int) -> Void)?
     
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isTargetFocused: Bool
+    @State private var weeklyTargetText: String = ""
     
     private var displayValue: String {
         if selectedType.isTimeBased {
@@ -50,11 +52,29 @@ struct GoalTypeSection: View {
     private var targetDisplay: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             if selectedType.isTimeBased {
-                Text(displayValue)
+                TextField("0", text: $weeklyTargetText)
+                    .keyboardType(.numberPad)
                     .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundStyle(activeThemeColor)
-                    .contentTransition(.numericText())
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize()
+                    .focused($isTargetFocused)
                     .id("weekly-value")
+                    .onAppear {
+                        weeklyTargetText = "\(calculatedWeeklyTarget)"
+                    }
+                    .onChange(of: calculatedWeeklyTarget) { _, newValue in
+                        if !isTargetFocused {
+                            weeklyTargetText = "\(newValue)"
+                        }
+                    }
+                    .onChange(of: isTargetFocused) { _, focused in
+                        if !focused, let minutes = Int(weeklyTargetText), minutes > 0 {
+                            onWeeklyTargetChange?(minutes)
+                        } else if !focused {
+                            weeklyTargetText = "\(calculatedWeeklyTarget)"
+                        }
+                    }
             } else {
                 TextField("0", value: $primaryMetricTarget, format: .number)
                     .keyboardType(.numberPad)

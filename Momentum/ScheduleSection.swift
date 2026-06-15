@@ -19,7 +19,8 @@ struct ScheduleSection: View {
                     activeThemeColor: activeThemeColor,
                     goalTypeUnit: viewModel.goalTypeUnit,
                     targetSuggestions: viewModel.targetSuggestions,
-                    onTypeChange: viewModel.handleGoalTypeChange
+                    onTypeChange: viewModel.handleGoalTypeChange,
+                    onWeeklyTargetChange: viewModel.updateWeeklyTarget
                 )
             }
             .padding(.vertical, 4)

@@ -402,10 +402,7 @@ struct GoalEditorView: View {
             Text(errorMessage)
         }
         .task {
-            // Load existing goal data if editing
-            if let existingGoal = viewModel.existingGoal {
-                viewModel.loadGoalData(from: existingGoal)
-            } else if viewModel.userInput.isEmpty {
+            if viewModel.existingGoal == nil && viewModel.userInput.isEmpty {
                 viewModel.generateChecklist(for: "")
             }
         }

@@ -16,7 +16,6 @@ struct GoalDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query private var allDays: [Day]
-    @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
     @State private var editViewModel: GoalEditorViewModel?
     
@@ -124,7 +123,7 @@ struct GoalDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
-                        showingEditSheet = true
+                        editViewModel = GoalEditorViewModel(existingGoal: goal)
                     } label: {
                         Label("Edit Goal", systemImage: "pencil")
                     }
@@ -153,18 +152,10 @@ struct GoalDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingEditSheet, onDismiss: {
-            editViewModel = nil
-        }) {
-            if let vm = editViewModel {
-                GoalEditorView(viewModel: vm)
-            }
+        .sheet(item: $editViewModel) { vm in
+            GoalEditorView(viewModel: vm)
         }
-        .onChange(of: showingEditSheet) { _, show in
-            if show {
-                editViewModel = GoalEditorViewModel(existingGoal: goal)
-            }
-        }
+
         .alert("Delete Goal?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {

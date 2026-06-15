@@ -19,7 +19,9 @@ extension ContentView {
 #if os(iOS)
         ToolbarItem(placement: .navigationBarTrailing) {
             HStack {
-                Button(action: { navigation.showingGoalEditor = true }) {
+                Button(action: {
+                    goalEditorViewModel = GoalEditorViewModel()
+                }) {
                     Image(systemName: "plus")
                 }
                 .matchedTransitionSource(id: "info", in: animation)

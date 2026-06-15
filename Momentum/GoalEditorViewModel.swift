@@ -15,7 +15,8 @@ import WidgetKit
 #endif
 
 @Observable
-class GoalEditorViewModel {
+class GoalEditorViewModel: Identifiable {
+    let id = UUID()
     
     // MARK: - Dependencies
     
@@ -452,6 +453,18 @@ class GoalEditorViewModel {
         case .steps, .kilocalories:
             return Int(primaryMetricTarget * Double(activeDays.count))
         }
+    }
+    
+    /// Redistributes a new weekly total evenly across active days
+    func updateWeeklyTarget(_ newWeeklyMinutes: Int) {
+        let dayCount = max(activeDays.count, 1)
+        let baseDailyMinutes = newWeeklyMinutes / dayCount
+        let remainder = newWeeklyMinutes % dayCount
+        let sortedDays = activeDays.sorted()
+        for (index, weekday) in sortedDays.enumerated() {
+            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
+        }
+        durationInMinutes = newWeeklyMinutes
     }
     
     func validatePrimaryMetricTarget() {

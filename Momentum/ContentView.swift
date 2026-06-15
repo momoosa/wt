@@ -72,7 +72,7 @@ struct ContentView: View {
     @State var backgroundTasks: [Task<Void, Never>] = []
     
     // Goal editor view model - held in @State to survive parent re-renders
-    @State private var goalEditorViewModel: GoalEditorViewModel?
+    @State var goalEditorViewModel: GoalEditorViewModel?
     
     // Progress Card Tile Visibility Settings
     @AppStorage("showProgressTile") var showProgressTile: Bool = true
@@ -82,6 +82,9 @@ struct ContentView: View {
     // Track which sections are currently visible so we can highlight the topmost pill
     @State private var visibleSectionIDs: Set<String> = []
     @State private var scrollProxy: ScrollViewProxy?
+    
+    // Scroll offset for collapsing header
+    @State var scrollOffset: CGFloat = 0
     
     // Permissions
     @State private var permissionsViewModel = AppPermissionsViewModel()
@@ -104,8 +107,38 @@ struct ContentView: View {
     var body: some View {
         mainListView
             .environment(\.sessionActions, sessionActions)
-            .overlay {
+            .overlay(alignment: .top) {
                 VStack(spacing: 0) {
+                    ScrollingHeaderView(scrollOffset: scrollOffset) {
+                        Text(timeOfDayGreeting)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } title: {
+                        Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                    } leading: {
+                        Button {
+                            navigation.showSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                        }
+                    } trailing: {
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                goalEditorViewModel = GoalEditorViewModel()
+                            }) {
+                                Image(systemName: "plus")
+                            }
+                            .matchedTransitionSource(id: "info", in: animation)
+                            
+                            Button {
+                                navigation.showAllGoals = true
+                            } label: {
+                                Image(systemName: "target")
+                            }
+                        }
+                    }
+                    
                     if focusFilterStore.isFocusFilterActive {
                         focusBanner
                     }
@@ -148,9 +181,7 @@ struct ContentView: View {
                 searchSheet
                     .navigationTransition(.zoom(sourceID: "searchButton", in: animation))
             }
-            .toolbar {
-                toolbarContent
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .task {
                 // Configure shared session actions for child views
                 sessionActions.onSkip = { [self] session in skip(session: session) }
@@ -211,20 +242,11 @@ struct ContentView: View {
             }
 
         
-            .sheet(isPresented: $navigation.showingGoalEditor, onDismiss: {
-                goalEditorViewModel = nil
-            }) {
-                if let vm = goalEditorViewModel {
-                    GoalEditorView(viewModel: vm)
-                        .navigationTransition(
-                            .zoom(sourceID: "info", in: animation)
-                        )
-                }
-            }
-            .onChange(of: navigation.showingGoalEditor) { _, show in
-                if show, goalEditorViewModel == nil {
-                    goalEditorViewModel = GoalEditorViewModel()
-                }
+            .sheet(item: $goalEditorViewModel) { vm in
+                GoalEditorView(viewModel: vm)
+                    .navigationTransition(
+                        .zoom(sourceID: "info", in: animation)
+                    )
             }
             .sheet(isPresented: $navigation.showAllGoals) {
                 allGoalsSheet
@@ -252,7 +274,7 @@ struct ContentView: View {
                 navigation.isSearching = true
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
-                navigation.showingGoalEditor = true
+                goalEditorViewModel = GoalEditorViewModel()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowToast"))) { notification in
                 if let message = notification.object as? String {
@@ -337,6 +359,13 @@ struct ContentView: View {
     private var mainListView: some View {
         ScrollViewReader { proxy in
         List {
+
+            Section {
+                
+            } header: {
+                Spacer()
+                    .frame(height: 50)
+            }
             if !focusFilteredSessions.isEmpty {
                 // Show daily progress card once user has saved at least one session
                 Section {
@@ -377,6 +406,7 @@ struct ContentView: View {
                 emptyStateView
             }
         }
+        .trackScrollOffset($scrollOffset)
         .onAppear { scrollProxy = proxy }
         } // ScrollViewReader
 #if os(macOS)
@@ -556,12 +586,11 @@ struct ContentView: View {
                 vm.durationInMinutes = template.duration
                 vm.selectedCategoryIndex = categoryIndex
                 goalEditorViewModel = vm
-                navigation.showingGoalEditor = true
                 return
             }
         }
         // Fallback: open blank editor
-        navigation.showingGoalEditor = true
+        goalEditorViewModel = GoalEditorViewModel()
     }
     
     @ViewBuilder
@@ -715,7 +744,7 @@ struct ContentView: View {
                 await generateDailyPlan()
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationSizing(.form.fitted(horizontal: false, vertical: true))
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(20)
         .presentationBackground(.thinMaterial)

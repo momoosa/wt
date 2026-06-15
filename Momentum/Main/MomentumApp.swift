@@ -243,8 +243,6 @@ struct MomentumApp: App {
                         day: day,
                         viewModel: contentViewModel
                     )
-                        .navigationBarTitleDisplayMode(.inline)
-                        .navigationTitle(day.startDate.formatted(.dateTime.month().day()))
                         .environment(goalStore)
                         .task {
                             // Request ScreenTime authorization on app launch

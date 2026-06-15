@@ -18,7 +18,6 @@ struct GoalSessionDetailView: View {
     var timerManager: SessionTimerManager
     var onMarkedComplete: (() -> Void)? = nil
     let historicalSessionLimit = 3
-    @State var isShowingEditScreen = false
     @State private var isShowingIntervalsEditor = false
     @State private var editGoalViewModel: GoalEditorViewModel?
     // Interval playback state
@@ -1076,7 +1075,6 @@ struct GoalSessionDetailView: View {
                 Button {
                     if let goal = session.goal {
                         editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
-                        isShowingEditScreen = true
                     }
                 } label: {
                     Image(systemName: "pencil.circle.fill")
@@ -1104,12 +1102,8 @@ struct GoalSessionDetailView: View {
                 IntervalsEditorView(list: list, goalSession: session)
             }
         }
-        .sheet(isPresented: $isShowingEditScreen, onDismiss: {
-            editGoalViewModel = nil
-        }) {
-            if let vm = editGoalViewModel {
-                GoalEditorView(viewModel: vm)
-            }
+        .sheet(item: $editGoalViewModel) { vm in
+            GoalEditorView(viewModel: vm)
         }
         
         .sheet(item: $editingHistoricalSession, content: { session in

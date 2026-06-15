@@ -99,7 +99,10 @@
 		CD8845772FC1B8A20046F456 /* BottomCapsuleBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */; };
 		CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */; };
 		CD88457B2FC33CE50046F456 /* TagManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD88457A2FC33CE50046F456 /* TagManagementView.swift */; };
+		CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
+		CDA2DD702FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */; };
+		CDA2DD722FDF389E00FD0DA6 /* ScrollingHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2DD712FDF389E00FD0DA6 /* ScrollingHeaderView.swift */; };
 		CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */; };
 		CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */; };
 		CDA398AF2F5D75AE00E03D07 /* CloudKitSyncToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */; };
@@ -313,9 +316,12 @@
 		CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomCapsuleBar.swift; sourceTree = "<group>"; };
 		CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedCapsuleOverlay.swift; sourceTree = "<group>"; };
 		CD88457A2FC33CE50046F456 /* TagManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagManagementView.swift; sourceTree = "<group>"; };
+		CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorCard.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
 		CD99B76D2FB7815300D9E37D /* MomentumTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MomentumTests.xctestplan; sourceTree = "<group>"; };
+		CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingNavBarPOC.swift; sourceTree = "<group>"; };
+		CDA2DD712FDF389E00FD0DA6 /* ScrollingHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingHeaderView.swift; sourceTree = "<group>"; };
 		CDA398A02F5D5C9400E03D07 /* UITestDataSeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestDataSeeder.swift; sourceTree = "<group>"; };
 		CDA398AC2F5D653500E03D07 /* CloudKitSyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncStatusView.swift; sourceTree = "<group>"; };
 		CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncToast.swift; sourceTree = "<group>"; };
@@ -737,6 +743,9 @@
 				CD199C1A2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift */,
 				CD1905DD2FD5780A00CA3AB7 /* DebugScoreView.swift */,
 				CD52E8582FD9F3540026E5B4 /* AppPermissionsView.swift */,
+				CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */,
+				CDA2DD712FDF389E00FD0DA6 /* ScrollingHeaderView.swift */,
+				CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1085,6 +1094,7 @@
 				CDA398A12F5D5C9400E03D07 /* UITestDataSeeder.swift in Sources */,
 				CD1905DE2FD5780A00CA3AB7 /* DebugScoreView.swift in Sources */,
 				CD6A0C332F899C97008F5D93 /* HealthKitViewModel.swift in Sources */,
+				CDA2DD722FDF389E00FD0DA6 /* ScrollingHeaderView.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CDF6E9082FB3A506008767D9 /* SessionActions.swift in Sources */,
 				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
@@ -1146,7 +1156,9 @@
 				CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */,
 				CD07C4D22F5C8EA9001EFE97 /* MomentumAppIntents.swift in Sources */,
 				CDF6E9002FB39F1A008767D9 /* SetupMethods.swift in Sources */,
+				CDA2DD702FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift in Sources */,
 				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
+				CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDBE14FC2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift in Sources */,

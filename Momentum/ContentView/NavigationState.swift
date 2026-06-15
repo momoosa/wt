@@ -16,7 +16,6 @@ class NavigationState {
     var showSettings = false
     var showNowPlaying = false
     var showDayOverview = false
-    var showingGoalEditor = false
     
     // MARK: - Session Selection
     var selectedSession: GoalSession?
@@ -42,7 +41,6 @@ class NavigationState {
         showSettings = false
         showNowPlaying = false
         showDayOverview = false
-        showingGoalEditor = false
         showExpandedCapsule = false
     }
     
