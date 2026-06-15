@@ -104,7 +104,7 @@ struct ContentView: View {
         self._viewModel = State(initialValue: viewModel)
     }
 
-    var body: some View {
+    var body: some View { 
         mainListView
             .environment(\.sessionActions, sessionActions)
             .overlay(alignment: .top) {
