@@ -578,7 +578,8 @@ struct GoalEditorCard: View {
     ]
     
     private var stylePicker: some View {
-        let rows = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
+        let rows = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8),
+                    GridItem(.flexible(), spacing: 8)]
         
         return VStack(alignment: .leading, spacing: 20) {
             // COLOR section
@@ -826,132 +827,404 @@ struct RecommendWhenCard: View {
 
 struct SettingsEditorCard: View {
     @State private var autoTrackEnabled: Bool = true
+    @State private var themeTags: [String] = ["Fitness"]
+    @State private var healthMetric: String = "Apple Move Minutes"
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Auto-track row with toggle
-            settingsRow(
-                icon: "heart.circle.fill",
-                iconColor: .pink,
-                title: "Auto-track from Apple Health",
-                subtitle: "Exercise minutes"
-            ) {
-                Toggle("", isOn: $autoTrackEnabled)
-                    .labelsHidden()
-                    .tint(Color(red: 0.6, green: 0.85, blue: 0.75))
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            // MARK: Theme Section
+            themeSection
             
-            Divider().padding(.leading, 52)
+            sectionDivider
             
-            // Reminders row
-            settingsRow(
-                icon: "bell.fill",
-                iconColor: .orange,
-                title: "Reminders",
-                detail: "Gentle · 1:45pm"
-            )
-            
-            Divider().padding(.leading, 52)
-            
-            // Themes row
-            settingsRow(
-                icon: "square.grid.2x2.fill",
-                iconColor: .purple,
-                title: "Themes",
-                detail: "Outdoor time"
-            )
-            
-            Divider().padding(.leading, 52)
-            
-            // Notes & checklist row
-            settingsRow(
-                icon: "note.text",
-                iconColor: .yellow,
-                title: "Notes & checklist",
-                detail: "2 items"
-            )
+            // MARK: HealthKit Integration Section
+            healthKitSection
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 16)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color(.systemBackground))
         )
     }
     
-    /// Row with a trailing detail + chevron
-    private func settingsRow(
-        icon: String,
-        iconColor: Color,
-        title: String,
-        detail: String
-    ) -> some View {
-        Button {} label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(iconColor)
-                    .frame(width: 32, height: 32)
+    // MARK: - Section Divider
+    
+    private var sectionDivider: some View {
+        Divider()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+    }
+    
+    // MARK: - Theme Section
+    
+    private var themeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("THEME")
+                .font(.caption)
+                .fontWeight(.bold)
+                .tracking(1.5)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+            
+            // Color + Icon pills side by side
+            HStack(spacing: 10) {
+                // Color pill
+                Button {} label: {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(selectedColorValue)
+                            .frame(width: 20, height: 20)
+                        
+                        Text(selectedColorName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(iconColor.opacity(0.12))
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.tertiarySystemFill))
                     )
+                }
+                .buttonStyle(.plain)
                 
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+                // Icon pill
+                Button {} label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: selectedIconName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.primary)
+                        
+                        Text("Icon")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.tertiarySystemFill))
+                    )
+                }
+                .buttonStyle(.plain)
                 
                 Spacer()
+            }
+            .padding(.horizontal, 16)
+            
+            // Theme tags
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(themeTags, id: \.self) { tag in
+                        HStack(spacing: 6) {
+                            Text(tag)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            
+                            Button {
+                                withAnimation(.snappy(duration: 0.2)) {
+                                    themeTags.removeAll { $0 == tag }
+                                }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .fill(Color(.tertiarySystemFill))
+                        )
+                    }
+                    
+                    // Add Theme button
+                    Button {
+                        // TODO: show theme picker
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Add Theme")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .stroke(Color(.separator), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+    
+    // MARK: - HealthKit Integration Section
+    
+    private var healthKitSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("HEALTHKIT INTEGRATION")
+                .font(.caption)
+                .fontWeight(.bold)
+                .tracking(1.5)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+            
+            // Health Metric row
+            Button {} label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(.pink)
+                        )
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Health Metric")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(healthMetric)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 16)
+            }
+            .buttonStyle(.plain)
+            
+            // Description
+            Text("Data from Apple Health will be automatically synced and counted towards your goal progress.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+            
+            // Sync status
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(.green)
+                    .frame(width: 6, height: 6)
                 
-                Text(detail)
+                Text("Connected · Last synced just now")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+    
+}
+
+// MARK: - Notes & Checklist Card
+
+struct NotesChecklistCard: View {
+    enum Tab: String, CaseIterable, Identifiable {
+        case notes = "Notes"
+        case checklist = "Checklist"
+        
+        var id: String { rawValue }
+        
+        var icon: String {
+            switch self {
+            case .notes: "note.text"
+            case .checklist: "checklist"
+            }
+        }
+    }
+    
+    @State private var selectedTab: Tab = .notes
+    @Namespace private var tabAnimation
+    
+    // Notes state
+    @State private var notesText: String = ""
+    @State private var linkText: String = ""
+    
+    // Checklist state
+    @State private var checklistItems: [ChecklistItem] = [
+        ChecklistItem(text: "Get running shoes", isChecked: true),
+        ChecklistItem(text: "Plan route", isChecked: false),
+    ]
+    @State private var newItemText: String = ""
+    
+    struct ChecklistItem: Identifiable {
+        let id = UUID()
+        var text: String
+        var isChecked: Bool
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Scrolling tab header
+            tabHeader
+            
+            Divider()
+                .padding(.horizontal, 16)
+            
+            // Page content
+            TabView(selection: $selectedTab) {
+                notesPage
+                    .tag(Tab.notes)
                 
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                checklistPage
+                    .tag(Tab.checklist)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(minHeight: 180)
+            .animation(.snappy(duration: 0.3), value: selectedTab)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(.systemBackground))
+        )
+    }
+    
+    // MARK: - Tab Header
+    
+    private var tabHeader: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(Tab.allCases) { tab in
+                    Button {
+                        withAnimation(.snappy(duration: 0.3)) {
+                            selectedTab = tab
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 12, weight: .medium))
+                            
+                            Text(tab.rawValue)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(selectedTab == tab ? .primary : .secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background {
+                            if selectedTab == tab {
+                                Capsule()
+                                    .fill(Color(.tertiarySystemFill))
+                                    .matchedGeometryEffect(id: "activeTab", in: tabAnimation)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
-        .buttonStyle(.plain)
     }
     
-    /// Row with a trailing custom accessory (e.g. toggle)
-    private func settingsRow<Accessory: View>(
-        icon: String,
-        iconColor: Color,
-        title: String,
-        subtitle: String? = nil,
-        @ViewBuilder accessory: () -> Accessory
-    ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(iconColor)
-                .frame(width: 32, height: 32)
+    // MARK: - Notes Page
+    
+    private var notesPage: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Notes text field
+            TextField("Add notes...", text: $notesText, axis: .vertical)
+                .font(.subheadline)
+                .lineLimit(3...6)
+                .padding(12)
                 .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(iconColor.opacity(0.12))
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.tertiarySystemFill))
                 )
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+            // Link field
+            HStack(spacing: 8) {
+                Image(systemName: "link")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                TextField("Add link or resource...", text: $linkText)
+                    .font(.subheadline)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.tertiarySystemFill))
+            )
+            
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+    }
+    
+    // MARK: - Checklist Page
+    
+    private var checklistPage: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Existing items
+            ForEach($checklistItems) { $item in
+                HStack(spacing: 10) {
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            item.isChecked.toggle()
+                        }
+                    } label: {
+                        Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(item.isChecked ? .green : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text(item.text)
+                        .font(.subheadline)
+                        .strikethrough(item.isChecked)
+                        .foregroundStyle(item.isChecked ? .secondary : .primary)
+                    
+                    Spacer()
                 }
+                .padding(.vertical, 4)
             }
             
-            Spacer()
+            // Add item row
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.secondary)
+                
+                TextField("Add item...", text: $newItemText)
+                    .font(.subheadline)
+                    .onSubmit {
+                        guard !newItemText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                        withAnimation(.snappy(duration: 0.2)) {
+                            checklistItems.append(ChecklistItem(text: newItemText, isChecked: false))
+                            newItemText = ""
+                        }
+                    }
+            }
+            .padding(.vertical, 4)
             
-            accessory()
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(16)
     }
 }
 
@@ -1003,6 +1276,14 @@ struct GoalEditorCardPreview: View {
                     if stage.index >= Stage.extras.index {
                         section(number: 3, title: "Settings") {
                             SettingsEditorCard()
+                        }
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom)),
+                            removal: .opacity
+                        ))
+                        
+                        section(number: 4, title: "Notes & checklist") {
+                            NotesChecklistCard()
                         }
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .move(edge: .bottom)),
