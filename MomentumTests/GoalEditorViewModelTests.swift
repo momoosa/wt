@@ -476,7 +476,7 @@ struct GoalEditorViewModelTests {
         let viewModel = createTestViewModel()
         viewModel.selectedGoalType = .kilocalories
         
-        #expect(viewModel.goalTypeUnit == "cal")
+        #expect(viewModel.goalTypeUnit == "kcal")
     }
     
     @Test("handleGoalTypeChange to count sets defaults")

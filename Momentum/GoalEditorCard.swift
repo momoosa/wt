@@ -2,137 +2,69 @@
 //  GoalEditorCard.swift
 //  Momentum
 //
-//  A sentence-style goal editor card.
+//  A sentence-style goal editor card, wired to GoalEditorViewModel.
 //
 
 import SwiftUI
 import MomentumKit
 
+// MARK: - Goal Editor Card
+
 struct GoalEditorCard: View {
-    @State var goalName: String
-    @State var targetValue: Int
-    @State var selectedUnit: TargetUnitType
-    @State var selectedPeriod: TargetPeriod
-    @State var iconName: String
-    @State var themeColor: Color
-    @State var selectedThemeID: String
-    @State private var activePicker: ActivePicker?
+    @Bindable var vm: GoalEditorViewModel
     @Binding var isExpanded: Bool
+    @State private var activePicker: ActivePicker?
     @Namespace private var cardAnimation
     @FocusState private var isNameFocused: Bool
+    @FocusState private var isValueFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
     
     enum ActivePicker: Equatable {
-        case value
-        case unit
-        case period
-        case style
+        case value, unit, period, style
     }
     
-    /// Binding init — caller owns the expanded state
-    init(
-        goalName: String = "Afternoon walk",
-        targetValue: Int = 3,
-        selectedUnit: TargetUnitType = .times,
-        selectedPeriod: TargetPeriod = .week,
-        iconName: String = "chart.line.uptrend.xyaxis",
-        themeColor: Color = Color(red: 0.6, green: 0.85, blue: 0.75),
-        selectedThemeID: String = "palette_10",
-        isExpanded: Binding<Bool>,
-        initialActivePicker: ActivePicker? = nil
-    ) {
-        self._goalName = State(initialValue: goalName)
-        self._targetValue = State(initialValue: targetValue)
-        self._selectedUnit = State(initialValue: selectedUnit)
-        self._selectedPeriod = State(initialValue: selectedPeriod)
-        self._iconName = State(initialValue: iconName)
-        self._themeColor = State(initialValue: themeColor)
-        self._selectedThemeID = State(initialValue: selectedThemeID)
-        self._isExpanded = isExpanded
-        self._activePicker = State(initialValue: initialActivePicker)
-    }
+    // MARK: UI-level unit display
     
-    enum TargetUnitType: String, CaseIterable {
-        case times
-        case days
-        case minutes
-        
-        var label: String {
-            switch self {
-            case .times: return "times"
-            case .days: return "days"
-            case .minutes: return "minutes"
-            }
-        }
-        
-        var title: String {
-            switch self {
-            case .times: return "Times"
-            case .days: return "Days"
-            case .minutes: return "Minutes"
-            }
-        }
-        
-        var subtitle: String {
-            switch self {
-            case .times: return "Sessions a week"
-            case .days: return "Distinct days a week"
-            case .minutes: return "Total time a week"
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .times: return "arrow.counterclockwise"
-            case .days: return "calendar"
-            case .minutes: return "clock"
-            }
+    /// Sentence-friendly unit labels derived from the VM's goal type
+    private var unitLabel: String {
+        switch vm.selectedGoalType {
+        case .seconds: "min"
+        case .steps: "steps"
+        case .kilocalories: "kcal"
         }
     }
     
-    enum TargetPeriod: String, CaseIterable {
-        case day
-        case week
-        case month
-        
-        var label: String {
-            switch self {
-            case .day: return "day"
-            case .week: return "week"
-            case .month: return "month"
-            }
+    /// The numeric target shown in the sentence chip (per-day for time goals)
+    private var displayTarget: Int {
+        switch vm.selectedGoalType {
+        case .seconds:
+            let dayCount = max(vm.activeDays.count, 1)
+            return vm.durationInMinutes / dayCount
+        case .steps, .kilocalories:
+            return Int(vm.primaryMetricTarget)
         }
-        
-        var title: String {
-            switch self {
-            case .day: return "Daily"
-            case .week: return "Weekly"
-            case .month: return "Monthly"
-            }
-        }
-        
-        var subtitle: String {
-            switch self {
-            case .day: return "Every single day"
-            case .week: return "Each calendar week"
-            case .month: return "Each calendar month"
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .day: return "sun.max"
-            case .week: return "calendar"
-            case .month: return "calendar.badge.clock"
-            }
-        }
+    }
+    
+    /// Period label based on active day count
+    private var periodLabel: String {
+        if vm.activeDays.count == 7 { return "day" }
+        return "week"
+    }
+    
+    /// The resolved icon name
+    private var iconName: String {
+        vm.selectedIcon ?? "chart.line.uptrend.xyaxis"
+    }
+    
+    /// The resolved theme color
+    private var themeColor: Color {
+        vm.getActiveThemeColor(colorScheme: colorScheme)
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Minimised row — always present, tappable when collapsed
             minimisedRow
             
-            // Expanded content — slides in/out
             if isExpanded {
                 expandedContent
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -160,7 +92,6 @@ struct GoalEditorCard: View {
             }
         } label: {
             HStack(spacing: 14) {
-                // Icon — shared between states
                 RoundedRectangle(cornerRadius: isExpanded ? 14 : 12)
                     .fill(themeColor.opacity(0.3))
                     .frame(width: isExpanded ? 52 : 44, height: isExpanded ? 52 : 44)
@@ -172,7 +103,6 @@ struct GoalEditorCard: View {
                     .matchedGeometryEffect(id: "icon", in: cardAnimation)
                 
                 if isExpanded {
-                    // Expanded: "THE GOAL" label + collapse + style
                     Text("THE GOAL")
                         .font(.caption)
                         .fontWeight(.bold)
@@ -180,7 +110,6 @@ struct GoalEditorCard: View {
                         .foregroundStyle(.secondary)
                         .matchedGeometryEffect(id: "label", in: cardAnimation)
                     
-                    // Collapse button
                     Button {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             activePicker = nil
@@ -203,10 +132,9 @@ struct GoalEditorCard: View {
                     
                     styleButton
                 } else {
-                    // Collapsed: goal name + chevron
-                    Text(goalName.isEmpty ? "Goal name" : goalName)
+                    Text(vm.userInput.isEmpty ? "Goal name" : vm.userInput)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(goalName.isEmpty ? .secondary : .primary)
+                        .foregroundStyle(vm.userInput.isEmpty ? .secondary : .primary)
                         .matchedGeometryEffect(id: "label", in: cardAnimation)
                     
                     Spacer()
@@ -229,11 +157,7 @@ struct GoalEditorCard: View {
         
         return Button {
             withAnimation {
-                if isStyleMode {
-                    activePicker = nil
-                } else {
-                    activePicker = .style
-                }
+                activePicker = isStyleMode ? nil : .style
             }
         } label: {
             Text(isStyleMode ? "DONE" : "STYLE")
@@ -260,19 +184,15 @@ struct GoalEditorCard: View {
     private var expandedContent: some View {
         Group {
             if activePicker == .style {
-                // Style picker replaces sentence content
                 stylePicker
                     .transition(.opacity.combined(with: .move(edge: .top)))
             } else {
-                // Sentence-style editor
                 sentenceEditor
                     .padding(.bottom, 12)
                 
-                // Summary text
                 summaryText
                     .padding(.bottom, activePicker != nil ? 16 : 0)
                 
-                // Expandable pickers
                 if activePicker == .unit {
                     unitPicker
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -295,51 +215,71 @@ struct GoalEditorCard: View {
     
     private var sentenceEditor: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Goal name line: "Afternoon walk —"
             HStack(alignment: .firstTextBaseline, spacing: 0) {
-                TextField("Goal name", text: $goalName)
+                TextField("Goal name", text: $vm.userInput, axis: .vertical)
                     .font(.system(size: 26, weight: .bold, design: .default))
                     .focused($isNameFocused)
                     .textFieldStyle(.plain)
-                
-                Text(" —")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(.secondary.opacity(0.5))
-                    .layoutPriority(1)
             }
             
-            defaultSentence
+            // Sentence: [value] [unit] a [period]
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                valueChip
+                
+                chipButton(
+                    text: unitLabel,
+                    isActive: activePicker == .unit,
+                    picker: .unit
+                )
+                
+                Text("a")
+                    .font(.system(size: 26, weight: .regular))
+                    .foregroundStyle(.secondary)
+                
+                chipButton(
+                    text: periodLabel,
+                    isActive: activePicker == .period,
+                    picker: .period
+                )
+            }
         }
     }
     
-    /// "3 times a week."
-    private var defaultSentence: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            chipButton(
-                text: "\(targetValue)",
-                isActive: activePicker == .value,
-                picker: .value
-            )
-            
-            chipButton(
-                text: selectedUnit.label,
-                isActive: activePicker == .unit,
-                picker: .unit
-            )
-            
-            Text("a")
-                .font(.system(size: 26, weight: .regular))
-                .foregroundStyle(.secondary)
-            
-            chipButton(
-                text: selectedPeriod.label,
-                isActive: activePicker == .period,
-                picker: .period
-            )
+    /// Formatted display string for the target value (e.g. "10,000")
+    private var formattedTarget: String {
+        displayTarget.formatted(.number)
+    }
+    
+    /// The value chip — a TextField that accepts only numbers
+    private var valueChip: some View {
+        TextField("0", value: Binding(
+            get: { displayTarget },
+            set: { applyTarget($0) }
+        ), format: .number)
+        .keyboardType(.numberPad)
+        .multilineTextAlignment(.center)
+        .focused($isValueFocused)
+        .font(.system(size: 26, weight: .bold))
+        .foregroundStyle(.primary)
+        .fixedSize()
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(themeColor.opacity(isValueFocused || activePicker == .value ? 0.3 : 0.15))
+        )
+        .onTapGesture {
+            withAnimation {
+                activePicker = activePicker == .value ? nil : .value
+            }
+        }
+        .onChange(of: isValueFocused) { _, focused in
+            if focused {
+                withAnimation { activePicker = .value }
+            }
         }
     }
     
-    /// A tappable chip button used in sentences
     private func chipButton(text: String, isActive: Bool, picker: ActivePicker) -> some View {
         Button {
             withAnimation {
@@ -362,7 +302,8 @@ struct GoalEditorCard: View {
     // MARK: - Summary
     
     private var summaryText: some View {
-        Text("Surfaced on your **\(targetValue)** best-fit moments \(selectedPeriod == .day ? "today" : "each \(selectedPeriod.label)")")
+        let dayCount = vm.activeDays.count
+        return Text("Surfaced on your **\(dayCount)** best-fit moments each \(periodLabel)")
             .font(.subheadline)
             .foregroundStyle(.secondary)
     }
@@ -370,39 +311,40 @@ struct GoalEditorCard: View {
     // MARK: - Unit Picker
     
     private var unitPicker: some View {
-        VStack(spacing: 4) {
-            ForEach(TargetUnitType.allCases, id: \.self) { unit in
+        let options: [(type: Goal.TargetUnit, title: String, subtitle: String, icon: String)] = [
+            (.seconds, "Minutes", "Total time", "clock"),
+            (.steps, "Steps", "Step count from Health", "shoeprints.fill"),
+            (.kilocalories, "Calories", "Active energy burned", "flame"),
+        ]
+        
+        return VStack(spacing: 4) {
+            ForEach(options, id: \.type) { option in
                 Button {
                     withAnimation {
-                        selectedUnit = unit
+                        vm.selectedGoalType = option.type
+                        vm.handleGoalTypeChange(option.type)
                         activePicker = nil
-                        // Reset to sensible defaults when switching units
-                        if unit == .minutes && targetValue < 5 {
-                            targetValue = 30
-                        } else if unit != .minutes && targetValue > 7 {
-                            targetValue = 3
-                        }
                     }
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: unit.icon)
+                        Image(systemName: option.icon)
                             .font(.body)
-                            .foregroundStyle(unit == selectedUnit ? themeColor : .secondary)
+                            .foregroundStyle(option.type == vm.selectedGoalType ? themeColor : .secondary)
                             .frame(width: 24)
                         
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(unit.title)
+                            Text(option.title)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.primary)
-                            Text(unit.subtitle)
+                            Text(option.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         
                         Spacer()
                         
-                        if unit == selectedUnit {
+                        if option.type == vm.selectedGoalType {
                             Image(systemName: "checkmark")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(themeColor)
@@ -412,7 +354,7 @@ struct GoalEditorCard: View {
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 14)
-                            .fill(unit == selectedUnit ? themeColor.opacity(0.12) : Color.clear)
+                            .fill(option.type == vm.selectedGoalType ? themeColor.opacity(0.12) : Color.clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -423,33 +365,44 @@ struct GoalEditorCard: View {
     // MARK: - Period Picker
     
     private var periodPicker: some View {
-        VStack(spacing: 4) {
-            ForEach(TargetPeriod.allCases, id: \.self) { period in
+        let options: [(label: String, title: String, subtitle: String, icon: String, days: Set<Int>)] = [
+            ("day", "Daily", "Every single day", "sun.max", Set(1...7)),
+            ("week", "Weekly", "Choose your active days", "calendar", vm.activeDays.isEmpty ? Set(2...6) : vm.activeDays),
+        ]
+        
+        return VStack(spacing: 4) {
+            ForEach(options, id: \.label) { option in
+                let isSelected = (option.label == "day" && vm.activeDays.count == 7) ||
+                    (option.label == "week" && vm.activeDays.count < 7)
+                
                 Button {
                     withAnimation {
-                        selectedPeriod = period
+                        vm.activeDays = option.days
+                        // Redistribute the weekly target across the new day count
+                        let weekly = vm.calculatedWeeklyTarget
+                        vm.updateWeeklyTarget(weekly)
                         activePicker = nil
                     }
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: period.icon)
+                        Image(systemName: option.icon)
                             .font(.body)
-                            .foregroundStyle(period == selectedPeriod ? themeColor : .secondary)
+                            .foregroundStyle(isSelected ? themeColor : .secondary)
                             .frame(width: 24)
                         
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(period.title)
+                            Text(option.title)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.primary)
-                            Text(period.subtitle)
+                            Text(option.subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         
                         Spacer()
                         
-                        if period == selectedPeriod {
+                        if isSelected {
                             Image(systemName: "checkmark")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(themeColor)
@@ -459,7 +412,7 @@ struct GoalEditorCard: View {
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 14)
-                            .fill(period == selectedPeriod ? themeColor.opacity(0.12) : Color.clear)
+                            .fill(isSelected ? themeColor.opacity(0.12) : Color.clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -470,78 +423,26 @@ struct GoalEditorCard: View {
     // MARK: - Value Picker
     
     private var valuePicker: some View {
-        let minValue = 1
-        let maxValue = selectedUnit == .minutes ? 180 : 99
-        let step = selectedUnit == .minutes ? 5 : 1
+        let currentValue = displayTarget
         
         return VStack(spacing: 16) {
-            // Stepper row: minus / value / plus
-            HStack(spacing: 16) {
-                Spacer()
-                
-                Button {
-                    let newValue = targetValue - step
-                    if newValue >= minValue {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            targetValue = newValue
-                        }
-                    }
-                } label: {
-                    Image(systemName: "minus")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Circle().fill(Color(.label)))
-                }
-                
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(targetValue)")
-                        .font(.system(size: 36, weight: .bold))
-                        .contentTransition(.numericText(value: Double(targetValue)))
-                    
-                    Text(selectedUnit.label)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(minWidth: 80)
-                
-                Button {
-                    let newValue = targetValue + step
-                    if newValue <= maxValue {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            targetValue = newValue
-                        }
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color(.label))
-                        .frame(width: 40, height: 40)
-                        .background(Circle().fill(themeColor.opacity(0.25)))
-                }
-                
-                Spacer()
-            }
-            .animation(.snappy(duration: 0.2), value: targetValue)
-            
             // Quick-select strip
             HStack(spacing: 0) {
                 ForEach(quickSelectValues, id: \.self) { value in
                     Button {
                         withAnimation(.snappy(duration: 0.2)) {
-                            targetValue = value
+                            applyTarget(value)
                         }
                     } label: {
                         Text("\(value)")
                             .font(.body)
-                            .fontWeight(value == targetValue ? .bold : .regular)
-                            .foregroundStyle(value == targetValue ? .white : .primary)
+                            .fontWeight(value == currentValue ? .bold : .regular)
+                            .foregroundStyle(value == currentValue ? .white : .primary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(value == targetValue ? Color(.label) : Color.clear)
+                                    .fill(value == currentValue ? Color(.label) : Color.clear)
                             )
                     }
                     .buttonStyle(.plain)
@@ -550,30 +451,42 @@ struct GoalEditorCard: View {
         }
     }
     
+    /// Write the target value back to the VM
+    private func applyTarget(_ value: Int) {
+        switch vm.selectedGoalType {
+        case .seconds:
+            // value is daily minutes — distribute across active days
+            let weeklyMinutes = value * max(vm.activeDays.count, 1)
+            vm.updateWeeklyTarget(weeklyMinutes)
+        case .steps, .kilocalories:
+            vm.primaryMetricTarget = Double(value)
+        }
+    }
+    
+    private var quickSelectValues: [Int] {
+        switch vm.selectedGoalType {
+        case .seconds:
+            return [10, 15, 20, 30, 45, 60]
+        case .steps:
+            return [2000, 5000, 7500, 10000, 15000]
+        case .kilocalories:
+            return [200, 300, 400, 500, 600]
+        }
+    }
+    
     // MARK: - Style Picker
     
-    @Environment(\.colorScheme) private var colorScheme
-    
-    /// Icon options for the style picker — curated from IconCategory
     private static let iconOptions: [String] = [
-        // Fitness
         "figure.run", "figure.walk", "figure.yoga", "dumbbell.fill",
         "bicycle", "figure.pool.swim", "figure.hiking", "shoeprints.fill",
-        // Wellness
         "heart.fill", "sparkles", "leaf.fill", "drop.fill",
         "sun.max.fill", "moon.stars.fill", "bed.double.fill", "brain.fill",
-        // Learning
         "book.fill", "graduationcap.fill", "lightbulb.fill", "pencil",
-        // Creative
         "paintbrush.fill", "camera.fill", "music.note", "guitars.fill",
-        // Productivity
         "checkmark.circle.fill", "list.bullet", "calendar", "clock.fill",
         "flag.fill", "star.fill", "target", "chart.line.uptrend.xyaxis",
-        // Home
         "house.fill", "fork.knife", "cup.and.saucer.fill", "mug.fill",
-        // Social
         "person.2.fill", "bubble.fill", "gift.fill", "party.popper.fill",
-        // Nature
         "tree.fill", "flower.fill", "pawprint.fill", "flame.fill",
     ]
     
@@ -593,13 +506,11 @@ struct GoalEditorCard: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHGrid(rows: rows, spacing: 8) {
                         ForEach(ThemeStore.presets, id: \.id) { preset in
-                            let presetColor = preset.color(for: colorScheme)
-                            let isSelected = selectedThemeID == preset.id
+                            let isSelected = vm.selectedColorPreset?.id == preset.id
                             
                             Button {
                                 withAnimation(.snappy(duration: 0.2)) {
-                                    selectedThemeID = preset.id
-                                    themeColor = presetColor
+                                    vm.handleColorSelection(preset)
                                 }
                             } label: {
                                 RoundedRectangle(cornerRadius: 10)
@@ -615,7 +526,6 @@ struct GoalEditorCard: View {
                         }
                     }
                 }
-                .frame(height: 96)
             }
             
             // ICON section
@@ -633,7 +543,7 @@ struct GoalEditorCard: View {
                             
                             Button {
                                 withAnimation(.snappy(duration: 0.2)) {
-                                    iconName = icon
+                                    vm.selectedIcon = icon
                                 }
                             } label: {
                                 RoundedRectangle(cornerRadius: 10)
@@ -654,25 +564,12 @@ struct GoalEditorCard: View {
                         }
                     }
                 }
-                .frame(height: 96)
             }
-        }
-    }
-    
-    /// Returns appropriate quick-select values based on unit type
-    private var quickSelectValues: [Int] {
-        if selectedUnit == .minutes {
-            return [10, 15, 20, 30, 45, 60]
-        } else {
-            let center = targetValue
-            let start = max(center - 2, 1)
-            let end = start + 4
-            return Array(start...end)
         }
     }
 }
 
-// MARK: - Section Header (external)
+// MARK: - Section Header
 
 struct GoalEditorSectionHeader: View {
     let number: Int
@@ -697,22 +594,19 @@ struct GoalEditorSectionHeader: View {
 // MARK: - Recommend When Card
 
 struct RecommendWhenCard: View {
-    @State private var selectedDays: Set<Int> = [0, 1, 2, 4] // Mon, Tue, Wed, Fri
-    @State private var timeOfDay: String = "afternoons"
+    @Bindable var vm: GoalEditorViewModel
+    @Environment(\.colorScheme) private var colorScheme
     
-    private let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
-    private let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
+    private let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     
-    // Gradient fills for selected days
-    private let selectedColors: [Color] = [
-        Color(red: 0.6, green: 0.85, blue: 0.75),
-        Color(red: 0.65, green: 0.88, blue: 0.78),
-        Color(red: 0.7, green: 0.90, blue: 0.80),
-    ]
+    /// The resolved theme color
+    private var themeColor: Color {
+        vm.getActiveThemeColor(colorScheme: colorScheme)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header
             HStack {
                 Text("RECOMMEND WHEN")
                     .font(.caption)
@@ -721,46 +615,32 @@ struct RecommendWhenCard: View {
                     .foregroundStyle(.secondary)
                 
                 Spacer()
-                
-                Button("EDIT") {}
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.secondary)
             }
             
             // Day color strip
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    ForEach(selectedDays.sorted(), id: \.self) { day in
+                    ForEach(vm.activeDays.sorted(), id: \.self) { day in
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(
-                                LinearGradient(
-                                    colors: selectedColors,
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
+                            .fill(themeColor.opacity(0.5))
                             .frame(width: 40, height: 28)
                     }
                 }
             }
             
-            // Day selector
+            // Day selector (1=Sun .. 7=Sat)
             HStack(spacing: 0) {
-                ForEach(0..<7, id: \.self) { index in
+                ForEach(1...7, id: \.self) { weekday in
+                    let isActive = vm.activeDays.contains(weekday)
                     Button {
                         withAnimation(.snappy(duration: 0.2)) {
-                            if selectedDays.contains(index) {
-                                selectedDays.remove(index)
-                            } else {
-                                selectedDays.insert(index)
-                            }
+                            vm.toggleActiveDay(weekday)
                         }
                     } label: {
-                        Text(dayLabels[index])
+                        Text(dayLabels[weekday - 1])
                             .font(.subheadline)
-                            .fontWeight(selectedDays.contains(index) ? .bold : .regular)
-                            .foregroundStyle(selectedDays.contains(index) ? .primary : .tertiary)
+                            .fontWeight(isActive ? .bold : .regular)
+                            .foregroundStyle(isActive ? .primary : .tertiary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                     }
@@ -768,20 +648,25 @@ struct RecommendWhenCard: View {
                 }
             }
             
-            // Summary text
+            // Summary
             VStack(alignment: .leading, spacing: 8) {
                 Text(daySummary)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 
-                // Context tags
-                HStack(spacing: 6) {
-                    Text("great when")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    
-                    contextTag(icon: "sun.max.fill", label: "Sunny")
-                    contextTag(icon: "calendar", label: "Calendar free")
+                // Context tags from selectedTags
+                if !vm.selectedTags.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            Text("themes")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                            
+                            ForEach(vm.selectedTags, id: \.title) { tag in
+                                contextTag(icon: "tag.fill", label: tag.title)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -793,17 +678,19 @@ struct RecommendWhenCard: View {
     }
     
     private var daySummary: String {
-        let sorted = selectedDays.sorted()
-        let names = sorted.map { dayNames[$0] }
+        let sorted = vm.activeDays.sorted()
+        let names = sorted.map { dayNames[$0 - 1] }
         guard !names.isEmpty else { return "No days selected" }
         
         let joined: String
         if names.count == 1 {
             joined = names[0]
+        } else if names.count == 7 {
+            joined = "Every day"
         } else {
             joined = names.dropLast().joined(separator: ", ") + " & " + names.last!
         }
-        return "\(joined) — \(timeOfDay)"
+        return joined
     }
     
     private func contextTag(icon: String, label: String) -> some View {
@@ -826,18 +713,19 @@ struct RecommendWhenCard: View {
 // MARK: - Settings Card
 
 struct SettingsEditorCard: View {
-    @State private var autoTrackEnabled: Bool = true
-    @State private var themeTags: [String] = ["Fitness"]
-    @State private var healthMetric: String = "Apple Move Minutes"
+    @Bindable var vm: GoalEditorViewModel
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var themeColor: Color {
+        vm.getActiveThemeColor(colorScheme: colorScheme)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // MARK: Theme Section
             themeSection
             
             sectionDivider
             
-            // MARK: HealthKit Integration Section
             healthKitSection
         }
         .padding(.vertical, 16)
@@ -847,93 +735,61 @@ struct SettingsEditorCard: View {
         )
     }
     
-    // MARK: - Section Divider
-    
     private var sectionDivider: some View {
         Divider()
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
     }
     
-    // MARK: - Theme Section
+    // MARK: - Theme Tags Section
     
     private var themeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("THEME")
+            Text("THEMES")
                 .font(.caption)
                 .fontWeight(.bold)
                 .tracking(1.5)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
             
-            // Color + Icon pills side by side
-            HStack(spacing: 10) {
-                // Color pill
-                Button {} label: {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(selectedColorValue)
-                            .frame(width: 20, height: 20)
-                        
-                        Text(selectedColorName)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.tertiarySystemFill))
-                    )
-                }
-                .buttonStyle(.plain)
-                
-                // Icon pill
-                Button {} label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: selectedIconName)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.primary)
-                        
-                        Text("Icon")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.tertiarySystemFill))
-                    )
-                }
-                .buttonStyle(.plain)
-                
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            
-            // Theme tags
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(themeTags, id: \.self) { tag in
+                    // Primary tag
+                    if let primary = vm.selectedGoalTheme {
                         HStack(spacing: 6) {
-                            Text(tag)
+                            Text(primary.title)
                                 .font(.caption)
                                 .fontWeight(.medium)
                             
                             Button {
                                 withAnimation(.snappy(duration: 0.2)) {
-                                    themeTags.removeAll { $0 == tag }
+                                    vm.selectedGoalTheme = nil
+                                }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .fill(themeColor.opacity(0.15))
+                        )
+                    }
+                    
+                    // Other tags
+                    ForEach(vm.selectedTags, id: \.title) { tag in
+                        HStack(spacing: 6) {
+                            Text(tag.title)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            
+                            Button {
+                                withAnimation(.snappy(duration: 0.2)) {
+                                    vm.removeGoalTheme(tag)
                                 }
                             } label: {
                                 Image(systemName: "xmark")
@@ -952,7 +808,7 @@ struct SettingsEditorCard: View {
                     
                     // Add Theme button
                     Button {
-                        // TODO: show theme picker
+                        vm.showingAddThemeSheet = true
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "plus")
@@ -990,7 +846,7 @@ struct SettingsEditorCard: View {
             // Health Metric row
             Button {} label: {
                 HStack(spacing: 12) {
-                    Image(systemName: "heart.fill")
+                    Image(systemName: vm.selectedHealthKitMetric?.symbolName ?? "heart.fill")
                         .font(.system(size: 14))
                         .foregroundStyle(.white)
                         .frame(width: 30, height: 30)
@@ -1003,7 +859,7 @@ struct SettingsEditorCard: View {
                         Text("Health Metric")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text(healthMetric)
+                        Text(vm.selectedHealthKitMetric?.displayName ?? "None")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.primary)
@@ -1019,31 +875,35 @@ struct SettingsEditorCard: View {
             }
             .buttonStyle(.plain)
             
-            // Description
-            Text("Data from Apple Health will be automatically synced and counted towards your goal progress.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-            
-            // Sync status
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(.green)
-                    .frame(width: 6, height: 6)
+            // Sync toggle
+            HStack(spacing: 12) {
+                Text("Auto-sync from Health")
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
                 
-                Text("Connected · Last synced just now")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Spacer()
+                
+                Toggle("", isOn: $vm.healthKitSyncEnabled)
+                    .labelsHidden()
+                    .tint(themeColor)
             }
             .padding(.horizontal, 16)
+            
+            if vm.healthKitSyncEnabled {
+                Text("Data from Apple Health will be automatically synced and counted towards your goal progress.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+            }
         }
     }
-    
 }
 
 // MARK: - Notes & Checklist Card
 
 struct NotesChecklistCard: View {
+    @Bindable var vm: GoalEditorViewModel
+    
     enum Tab: String, CaseIterable, Identifiable {
         case notes = "Notes"
         case checklist = "Checklist"
@@ -1060,33 +920,15 @@ struct NotesChecklistCard: View {
     
     @State private var selectedTab: Tab = .notes
     @Namespace private var tabAnimation
-    
-    // Notes state
-    @State private var notesText: String = ""
-    @State private var linkText: String = ""
-    
-    // Checklist state
-    @State private var checklistItems: [ChecklistItem] = [
-        ChecklistItem(text: "Get running shoes", isChecked: true),
-        ChecklistItem(text: "Plan route", isChecked: false),
-    ]
-    @State private var newItemText: String = ""
-    
-    struct ChecklistItem: Identifiable {
-        let id = UUID()
-        var text: String
-        var isChecked: Bool
-    }
+    @State private var newItemTitle: String = ""
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Scrolling tab header
             tabHeader
             
             Divider()
                 .padding(.horizontal, 16)
             
-            // Page content
             TabView(selection: $selectedTab) {
                 notesPage
                     .tag(Tab.notes)
@@ -1146,8 +988,7 @@ struct NotesChecklistCard: View {
     
     private var notesPage: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Notes text field
-            TextField("Add notes...", text: $notesText, axis: .vertical)
+            TextField("Add notes...", text: $vm.goalNotes, axis: .vertical)
                 .font(.subheadline)
                 .lineLimit(3...6)
                 .padding(12)
@@ -1156,13 +997,12 @@ struct NotesChecklistCard: View {
                         .fill(Color(.tertiarySystemFill))
                 )
             
-            // Link field
             HStack(spacing: 8) {
                 Image(systemName: "link")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
-                TextField("Add link or resource...", text: $linkText)
+                TextField("Add link or resource...", text: $vm.goalLink)
                     .font(.subheadline)
             }
             .padding(12)
@@ -1180,26 +1020,27 @@ struct NotesChecklistCard: View {
     
     private var checklistPage: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Existing items
-            ForEach($checklistItems) { $item in
+            ForEach($vm.checklistItems) { $item in
                 HStack(spacing: 10) {
-                    Button {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            item.isChecked.toggle()
-                        }
-                    } label: {
-                        Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 20))
-                            .foregroundStyle(item.isChecked ? .green : .secondary)
-                    }
-                    .buttonStyle(.plain)
+                    Image(systemName: "line.3.horizontal")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                     
-                    Text(item.text)
+                    TextField("Item title", text: $item.title)
                         .font(.subheadline)
-                        .strikethrough(item.isChecked)
-                        .foregroundStyle(item.isChecked ? .secondary : .primary)
                     
                     Spacer()
+                    
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            vm.checklistItems.removeAll { $0.id == item.id }
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.vertical, 4)
             }
@@ -1210,13 +1051,13 @@ struct NotesChecklistCard: View {
                     .font(.system(size: 20))
                     .foregroundStyle(.secondary)
                 
-                TextField("Add item...", text: $newItemText)
+                TextField("Add item...", text: $newItemTitle)
                     .font(.subheadline)
                     .onSubmit {
-                        guard !newItemText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                        guard !newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
                         withAnimation(.snappy(duration: 0.2)) {
-                            checklistItems.append(ChecklistItem(text: newItemText, isChecked: false))
-                            newItemText = ""
+                            vm.checklistItems.append(ChecklistItemData(title: newItemTitle))
+                            newItemTitle = ""
                         }
                     }
             }
@@ -1247,24 +1088,52 @@ struct GoalEditorCardPreview: View {
             case .extras: 3
             }
         }
+        
+        var nextStage: Stage? {
+            switch self {
+            case .title: .goal
+            case .goal: .schedule
+            case .schedule: .extras
+            case .extras: nil
+            }
+        }
+        
+        var previousStage: Stage? {
+            switch self {
+            case .title: nil
+            case .goal: .title
+            case .schedule: .goal
+            case .extras: .schedule
+            }
+        }
+        
+        var buttonLabel: String {
+            switch self {
+            case .title: "Next"
+            case .goal: "Next"
+            case .schedule: "Next"
+            case .extras: "Save Goal"
+            }
+        }
     }
     
     @State private var stage: Stage = .title
     @State private var cardExpanded: Bool = false
+    @State private var vm = GoalEditorViewModel()
     
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Goal card — minimised at title stage, expanded for all others
+                    // Section 1: Goal card
                     section(number: 1, title: stage == .title ? "Name it" : "Goal & target") {
-                        GoalEditorCard(isExpanded: $cardExpanded)
+                        GoalEditorCard(vm: vm, isExpanded: $cardExpanded)
                     }
                     
-                    // Recommend when
+                    // Section 2: Recommend when
                     if stage.index >= Stage.schedule.index {
                         section(number: 2, title: "Recommend when") {
-                            RecommendWhenCard()
+                            RecommendWhenCard(vm: vm)
                         }
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .move(edge: .bottom)),
@@ -1272,10 +1141,10 @@ struct GoalEditorCardPreview: View {
                         ))
                     }
                     
-                    // Settings
+                    // Section 3: Settings
                     if stage.index >= Stage.extras.index {
                         section(number: 3, title: "Settings") {
-                            SettingsEditorCard()
+                            SettingsEditorCard(vm: vm)
                         }
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .move(edge: .bottom)),
@@ -1283,7 +1152,7 @@ struct GoalEditorCardPreview: View {
                         ))
                         
                         section(number: 4, title: "Notes & checklist") {
-                            NotesChecklistCard()
+                            NotesChecklistCard(vm: vm)
                         }
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .move(edge: .bottom)),
@@ -1292,29 +1161,72 @@ struct GoalEditorCardPreview: View {
                     }
                 }
                 .padding(.top, 20)
-                .padding(.bottom, 40)
+                .padding(.bottom, 120)
             }
             .background(Color(.secondarySystemBackground))
             
-            // Stage picker
-            VStack(spacing: 8) {
-                Divider()
-                
-                Picker("Stage", selection: $stage) {
-                    ForEach(Stage.allCases) { s in
-                        Text(s.rawValue).tag(s)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-            }
-            .background(Color(.systemBackground))
+            // Bottom navigation bar
+            bottomBar
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: stage)
         .onChange(of: stage) {
             cardExpanded = stage != .title
         }
+    }
+    
+    // MARK: - Bottom Bar
+    
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            
+            HStack(spacing: 12) {
+                // Back button
+                if let previous = stage.previousStage {
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            stage = previous
+                        }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.tertiarySystemFill))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Next / Save button
+                Button {
+                    if let next = stage.nextStage {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            stage = next
+                        }
+                    } else {
+                        // Save action
+                    }
+                } label: {
+                    Text(stage.buttonLabel)
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.label))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .background(Color(.systemBackground))
     }
     
     private func section<Content: View>(number: Int, title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -1331,4 +1243,3 @@ struct GoalEditorCardPreview: View {
 #Preview("Goal Editor Card") {
     GoalEditorCardPreview()
 }
-

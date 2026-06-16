@@ -22,9 +22,35 @@ struct SettingsView: View {
     @AppStorage("showCalendarTile") private var showCalendarTile: Bool = true
     @State private var showingRemindersImport = false
     
+    @State private var showingWeeklyRecap = false
+    
     var body: some View {
         NavigationStack {
             Form {
+                
+                Section {
+                    Button {
+                        showingWeeklyRecap = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "chart.bar.fill")
+                                .foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Weekly Recap")
+                                Text("Review your progress this week")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                } header: {
+                    Label("Review", systemImage: "chart.xyaxis.line")
+                }
                 
                 Section {
                     Toggle("Unlimited Sessions", isOn: $unlimitedPlannedSessions)
@@ -261,6 +287,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingRemindersImport) {
                 RemindersImportView()
+            }
+            .sheet(isPresented: $showingWeeklyRecap) {
+                WeeklyRecapView()
             }
         }
     }

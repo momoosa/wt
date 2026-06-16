@@ -136,7 +136,7 @@ public extension Goal {
             switch self {
             case .seconds: return "min"
             case .steps: return "steps"
-            case .kilocalories: return "cal"
+            case .kilocalories: return "kcal"
             }
         }
         

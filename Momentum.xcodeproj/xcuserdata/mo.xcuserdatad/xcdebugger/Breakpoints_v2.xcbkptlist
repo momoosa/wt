@@ -88,7 +88,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "4EE9BD7A-6F6D-42FC-B9B9-BF38BE07F04E"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Momentum/GoalEditorViewModel.swift"
@@ -96,7 +96,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "525"
             endingLineNumber = "525"
-            landmarkName = "applyTemplate(_:allTags:)"
+            landmarkName = "handleGoalTypeChange(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

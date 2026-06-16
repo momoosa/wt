@@ -8,344 +8,144 @@ import WidgetKit
 #endif
 
 struct GoalEditorView: View {
-    enum Field: Hashable {
-        case goalName
-        case duration
-        case dailyMinimum
-        case scheduleDay(Int) // weekday 1-7
-    }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
-    @Namespace private var buttonNamespace
     @Query private var allGoals: [Goal]
     @Query private var allTags: [GoalTag]
-    @FocusState private var focusedField: Field?
     @Bindable private var viewModel: GoalEditorViewModel
     
-    // Initializer to properly initialize ViewModel
     init(viewModel: GoalEditorViewModel) {
         self.viewModel = viewModel
     }
     
+    // MARK: - Stage Management
     
-    @State private var scrollProxy: ScrollViewProxy?
-    @State private var expandedDay: Int? = nil
+    enum Stage: Int, CaseIterable, Identifiable {
+        case title = 0
+        case goal = 1
+        case schedule = 2
+        case extras = 3
+        
+        var id: Int { rawValue }
+        
+        var nextStage: Stage? {
+            Stage(rawValue: rawValue + 1)
+        }
+        
+        var previousStage: Stage? {
+            rawValue > 0 ? Stage(rawValue: rawValue - 1) : nil
+        }
+        
+        var buttonLabel: String {
+            switch self {
+            case .title: "Next"
+            case .goal: "Next"
+            case .schedule: "Next"
+            case .extras: "Save Goal"
+            }
+        }
+    }
+    
+    // Legacy Field enum kept for ExpandableDayRow / ScheduleSection compatibility
+    enum Field: Hashable {
+        case goalName
+        case duration
+        case dailyMinimum
+        case scheduleDay(Int)
+    }
+    
+    @State private var stage: Stage = .title
+    @State private var cardExpanded: Bool = false
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     
-    // Computed property for the active theme color
     private var activeThemeColor: Color {
         viewModel.getActiveThemeColor(colorScheme: colorScheme)
     }
     
-    /// Calculate appropriate text color for buttons based on the active theme preset
-    private var buttonTextColor: Color {
-        if let preset = viewModel.activeThemePreset {
-            return preset.foregroundColor(for: colorScheme)
-        }
-        return .white
-    }
-
-
-
-    // Helper to find matching suggestion and category
-    private func findMatchingSuggestion(for input: String) -> (categoryIndex: Int, suggestion: GoalTemplateSuggestion)? {
-        return viewModel.suggestionsData.categories.enumerated().compactMap { (idx, category) -> (Int, GoalTemplateSuggestion)? in
-            if let suggestion = category.suggestions.first(where: { viewModel.matchesSuggestion($0, with: input, aliases: viewModel.suggestionAliases) }) {
-                return (idx, suggestion)
-            }
-            return nil
-        }.first
+    private var isEditingExisting: Bool {
+        viewModel.existingGoal != nil
     }
     
-    // Computed binding for HealthKit daily target
-    private var healthKitDailyTargetBinding: Binding<Int?> {
-        Binding(
-            get: {
-                // Return the first active day's target as representative
-                return viewModel.activeDays.sorted().first.flatMap { viewModel.dailyTargets[$0] }
-            },
-            set: { newValue in
-                // Apply to all active days
-                if let minutes = newValue {
-                    for weekday in viewModel.activeDays {
-                        viewModel.dailyTargets[weekday] = minutes
-                    }
-                }
-            }
-        )
-    }
-    
-    // Handle user input changes
-    private func handleUserInputChange(_ newValue: String) {
-        // If the input matches the already-selected template, nothing to do
-        if let selected = viewModel.selectedTemplate,
-           selected.title == newValue {
-            return
-        }
-        
-        // Clear selection since user is typing freeform
-        if !newValue.isEmpty {
-            viewModel.selectedTemplate = nil
-        }
-
-        // Try to find a match among suggestions by title or aliases and select it
-        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        if let (categoryIndex, matchedSuggestion) = findMatchingSuggestion(for: trimmed) {
-            // Select the template and category
-            viewModel.selectedTemplate = matchedSuggestion
-            viewModel.selectedCategoryIndex = categoryIndex
-
-            // Scroll category tabs to selected category if available
-            if let proxy = scrollProxy {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    proxy.scrollTo(categoryIndex, anchor: .center)
-                }
-            }
-        }
-        
-        // Infer icon from user input if no icon is selected yet
-        if viewModel.selectedIcon == nil, !trimmed.isEmpty, trimmed.count >= 3 {
-            Task { @MainActor in
-                if viewModel.selectedIcon == nil {
-                    viewModel.selectedIcon = viewModel.inferIcon(from: trimmed)
-                }
-            }
+    private var buttonEnabled: Bool {
+        switch stage {
+        case .title:
+            return !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.selectedTemplate != nil
+        case .goal, .schedule, .extras:
+            return true
         }
     }
     
-    @ViewBuilder
-    private var listContent: some View {
-        // Custom input section
-        Section {
-            TextField("What do you want to do?", text: $viewModel.userInput)
-                .focused($focusedField, equals: .goalName)
-                .onChange(of: viewModel.userInput) { _, newValue in
-                    handleUserInputChange(newValue)
-                }
-        }
-        
-        if viewModel.currentStage == .name {
-            SuggestionsSection(
-                viewModel: viewModel,
-                scrollProxy: $scrollProxy
-            )
-        }
-        
-        if viewModel.currentStage == .duration {
-            ScheduleSection(
-                viewModel: viewModel,
-                focusedField: $focusedField,
-                expandedDay: $expandedDay,
-                activeThemeColor: activeThemeColor,
-                onToggleTime: toggleTimeSlot
-            )
-            ThemeSelectionSection(
-                viewModel: viewModel,
-                activeThemeColor: activeThemeColor
-            )
-
-
-            RelevanceRuleSummaryRow(
-                viewModel: viewModel,
-                activeThemeColor: activeThemeColor
-            )
-
-            CompletionBehaviorsSection(
-                viewModel: viewModel,
-                activeThemeColor: activeThemeColor
-            )
-            
-            HealthKitConfigurationView(
-                selectedMetric: $viewModel.selectedHealthKitMetric,
-                syncEnabled: $viewModel.healthKitSyncEnabled,
-                dailyTargetMinutes: healthKitDailyTargetBinding
-            )
-            
-            // Screen Time Configuration (only shown when editing an existing goal)
-            if let existingGoal = viewModel.existingGoal {
-                ScreenTimeGoalConfigurationView(goal: existingGoal)
-            }
-            
-            NotesAndResourcesSection(
-                viewModel: viewModel,
-                activeThemeColor: activeThemeColor
-            )
-            
-            // Checklist Section
-            ChecklistSection(viewModel: viewModel, activeThemeColor: activeThemeColor)
-        }
-        
-        Spacer()
-            .frame(height: LayoutConstants.Heights.filterBar)
-    }
+    // MARK: - Body
     
     var body: some View {
         NavigationStack {
-            List {
-                listContent
-            }
-            .animation(AnimationPresets.smoothSpring, value: viewModel.currentStage)
-                    
-            .overlay(alignment: .bottom) {
-                // Bottom button (hide when keyboard is active or when editing existing goal on duration stage)
-                if focusedField == nil && !(viewModel.existingGoal != nil && viewModel.currentStage == .duration) {
-                    VStack(spacing: 0) {
-                        Divider()
-                        if viewModel.currentStage == .name {
-                            Button(action: {
-                                handleButtonTap()
-                            }) {
-                                Text("Next")
-                                    .foregroundStyle(viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .primary)
-
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background {
-                                        if buttonEnabled, let preset = viewModel.activeThemePreset {
-                                            Capsule().fill(preset.gradient(for: colorScheme))
-                                        } else {
-                                            Capsule().fill(Color.gray)
-                                        }
-                                    }
-                                    .foregroundStyle(buttonEnabled ? buttonTextColor : .white)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Section 1: Goal card
+                        editorSection(
+                            number: 1,
+                            title: stage == .title ? "Name it" : "Goal & target"
+                        ) {
+                            GoalEditorCard(vm: viewModel, isExpanded: $cardExpanded)
+                        }
+                        
+                        // Section 2: Recommend when
+                        if stage.rawValue >= Stage.schedule.rawValue {
+                            editorSection(number: 2, title: "Recommend when") {
+                                RecommendWhenCard(vm: viewModel)
                             }
-                            .disabled(!buttonEnabled)
-                            .padding()
-                        } else {
-                            Button(action: {
-                                handleButtonTap()
-                            }) {
-                                Text("Save")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background {
-                                        if buttonEnabled, let preset = viewModel.activeThemePreset {
-                                            Capsule().fill(preset.gradient(for: colorScheme))
-                                        } else {
-                                            Capsule().fill(Color.gray)
-                                        }
-                                    }
-                                    .foregroundStyle(buttonEnabled ? buttonTextColor : .white)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity
+                            ))
+                        }
+                        
+                        // Section 3: Settings
+                        if stage.rawValue >= Stage.extras.rawValue {
+                            editorSection(number: 3, title: "Settings") {
+                                SettingsEditorCard(vm: viewModel)
                             }
-                            .matchedGeometryEffect(id: "actionButton", in: buttonNamespace)
-                            .disabled(!buttonEnabled)
-                            .padding()
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity
+                            ))
+                            
+                            editorSection(number: 4, title: "Notes & checklist") {
+                                NotesChecklistCard(vm: viewModel)
+                            }
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity
+                            ))
                         }
                     }
-                    .frame(height: LayoutConstants.Heights.filterBar)
-                    .background(Color(.systemBackground))
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.top, 20)
+                    .padding(.bottom, 120)
                 }
+                .background(Color(.secondarySystemBackground))
+                
+                // Bottom navigation bar
+                bottomBar
             }
-            .navigationTitle(viewModel.currentStage == .name ? (viewModel.existingGoal == nil ? "New Goal" : "Edit Goal") : "Goal Details")
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: stage)
+            .onChange(of: stage) {
+                cardExpanded = stage != .title
+            }
+            .navigationTitle(isEditingExisting ? "Edit Goal" : "New Goal")
             .navigationBarTitleDisplayMode(.inline)
             .tint(activeThemeColor)
-            .interactiveDismissDisabled(viewModel.currentStage != .name)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        if viewModel.currentStage == .duration && viewModel.existingGoal == nil {
-                            // Only allow going back to name stage if creating new goal
-                            withAnimation {
-                                viewModel.currentStage = .name
-                                // Reset theme selections when going back
-                                viewModel.selectedTags.removeAll()
-                                viewModel.selectedGoalTheme = nil
-                                viewModel.selectedTemplate = nil
-                            }
-                        } else {
-                            dismiss()
-                        }
+                        dismiss()
                     } label: {
-                        // Show X when editing, or when on name stage
-                        // Show back arrow only when on duration stage of new goal
-                        
-                        Image(systemName: (viewModel.currentStage == .name || viewModel.existingGoal != nil) ? "xmark" : "chevron.left")
-                    }
-
-                }
-                
-                // Save button on duration stage
-                if viewModel.currentStage == .duration {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            handleButtonTap()
-                        } label: {
-                            Text("Save")
-                                .fontWeight(.semibold)
-                        }
-                        .disabled(!buttonEnabled)
-                    }
-                }
-                
-                // Keyboard navigation toolbar
-                ToolbarItemGroup(placement: .keyboard) {
-                    HStack(spacing: 12) {
-                        Button {
-                            focusPreviousField()
-                        } label: {
-                            Image(systemName: "chevron.up")
-                        }
-                        .disabled(!canFocusPrevious)
-                        
-                        Button {
-                            focusNextField()
-                        } label: {
-                            Image(systemName: "chevron.down")
-                        }
-                        .disabled(!canFocusNext)
-                        
-                        Button {
-                            focusedField = nil
-                        } label: {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // Next button (only on name stage with goalName field focused)
-                    if viewModel.currentStage == .name && focusedField == .goalName {
-                        Button {
-                            handleButtonTap()
-                        } label: {
-                            Text("Next")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(activeThemeColor)
-                        }
-                        .disabled(!buttonEnabled)
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                    
-                    // Apply to All Days button (when editing a specific day's duration and it differs from others)
-                    if case .scheduleDay(let weekday) = focusedField, viewModel.shouldShowApplyToAll(for: weekday) {
-                        Button {
-                            viewModel.applyDurationToAllDays(from: weekday)
-                            // Dismiss keyboard and provide haptic feedback
-                            focusedField = nil
-                            HapticFeedbackManager.trigger(.success)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "calendar.badge.checkmark")
-                                    .font(.caption)
-                                Text("Apply to All")
-                            }
-                            .fontWeight(.semibold)
-                            .foregroundStyle(activeThemeColor)
-                        }
-                        .transition(.scale.combined(with: .opacity))
-                        .id("applyToAll-\(weekday)")
+                        Image(systemName: "xmark")
                     }
                 }
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: focusedField)
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.dailyTargets)
         }
         .sheet(isPresented: $viewModel.showingAddThemeSheet) {
             TagSelectionSheet(
@@ -401,161 +201,108 @@ struct GoalEditorView: View {
         } message: {
             Text(errorMessage)
         }
-        .task {
-            if viewModel.existingGoal == nil && viewModel.userInput.isEmpty {
-                viewModel.generateChecklist(for: "")
+        .onAppear {
+            // If editing an existing goal, start at the goal stage expanded
+            if isEditingExisting {
+                stage = .goal
+                cardExpanded = true
             }
         }
     }
     
-    var buttonEnabled: Bool {
-        switch viewModel.currentStage {
-        case .name:
-            return viewModel.selectedTemplate != nil || !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .duration:
-            return true
-        }
-    }
+    // MARK: - Bottom Bar
     
-    // MARK: - Keyboard Navigation
-    
-    private func focusNextField() {
-        switch focusedField {
-        case .goalName:
-            if viewModel.currentStage == .duration {
-                focusedField = .duration
-            }
-        case .duration:
-            if viewModel.hasDailyMinimum {
-                focusedField = .dailyMinimum
-            } else if let firstActiveDay = getNextActiveScheduleDay(after: nil) {
-                focusedField = .scheduleDay(firstActiveDay)
-            } else {
-                focusedField = nil
-            }
-        case .dailyMinimum:
-            if let firstActiveDay = getNextActiveScheduleDay(after: nil) {
-                focusedField = .scheduleDay(firstActiveDay)
-            } else {
-                focusedField = nil
-            }
-        case .scheduleDay(let weekday):
-            if let nextDay = getNextActiveScheduleDay(after: weekday) {
-                focusedField = .scheduleDay(nextDay)
-            } else {
-                focusedField = nil
-            }
-        case .none:
-            focusedField = .goalName
-        }
-    }
-    
-    private func focusPreviousField() {
-        switch focusedField {
-        case .goalName:
-            focusedField = nil
-        case .duration:
-            focusedField = .goalName
-        case .dailyMinimum:
-            focusedField = .duration
-        case .scheduleDay(let weekday):
-            if let previousDay = getPreviousActiveScheduleDay(before: weekday) {
-                focusedField = .scheduleDay(previousDay)
-            } else if viewModel.hasDailyMinimum {
-                focusedField = .dailyMinimum
-            } else {
-                focusedField = .duration
-            }
-        case .none:
-            if viewModel.currentStage == .duration {
-                if let lastActiveDay = getPreviousActiveScheduleDay(before: nil) {
-                    focusedField = .scheduleDay(lastActiveDay)
-                } else if viewModel.hasDailyMinimum {
-                    focusedField = .dailyMinimum
-                } else {
-                    focusedField = .duration
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            
+            HStack(spacing: 12) {
+                // Back button
+                if let previous = stage.previousStage {
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            stage = previous
+                        }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.tertiarySystemFill))
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-            } else {
-                focusedField = .goalName
+                
+                // Next / Save button
+                Button {
+                    handleNextTap()
+                } label: {
+                    Text(stage.buttonLabel)
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(buttonForegroundColor)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(buttonBackgroundStyle)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(!buttonEnabled)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .background(Color(.systemBackground))
+    }
+    
+    private var buttonForegroundColor: Color {
+        guard buttonEnabled else { return .white }
+        if let preset = viewModel.activeThemePreset {
+            return preset.foregroundColor(for: colorScheme)
+        }
+        return .white
+    }
+    
+    private var buttonBackgroundStyle: some ShapeStyle {
+        if buttonEnabled, let preset = viewModel.activeThemePreset {
+            return AnyShapeStyle(preset.gradient(for: colorScheme))
+        }
+        return AnyShapeStyle(Color.gray)
+    }
+    
+    // MARK: - Section Helper
+    
+    private func editorSection<Content: View>(
+        number: Int,
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GoalEditorSectionHeader(number: number, title: title)
+                .padding(.horizontal, 20)
+            
+            content()
+                .padding(.horizontal, 16)
         }
     }
     
-    private var canFocusNext: Bool {
-        switch focusedField {
-        case .goalName:
-            return viewModel.currentStage == .duration
-        case .duration:
-            return viewModel.hasDailyMinimum || getNextActiveScheduleDay(after: nil) != nil
-        case .dailyMinimum:
-            return getNextActiveScheduleDay(after: nil) != nil
-        case .scheduleDay(let weekday):
-            return getNextActiveScheduleDay(after: weekday) != nil
-        case .none:
-            return true
-        }
-    }
+    // MARK: - Actions
     
-    private var canFocusPrevious: Bool {
-        switch focusedField {
-        case .goalName:
-            return false
-        case .duration:
-            return true
-        case .dailyMinimum:
-            return true
-        case .scheduleDay:
-            return true
-        case .none:
-            return viewModel.currentStage == .duration
-        }
-    }
-    
-    // MARK: - Schedule Focus Navigation Helpers
-    
-    /// Get the next active schedule day after the given weekday (or first if nil)
-    private func getNextActiveScheduleDay(after weekday: Int?) -> Int? {
-        viewModel.getNextActiveScheduleDay(after: weekday)
-    }
-    
-    /// Get the previous active schedule day before the given weekday (or last if nil)
-    private func getPreviousActiveScheduleDay(before weekday: Int?) -> Int? {
-        viewModel.getPreviousActiveScheduleDay(before: weekday)
-    }
-    
-    // MARK: - Helper Functions
-
-
-    
-    private func toggleTimeSlot(weekday: Int, timeOfDay: TimeOfDay) {
-        // Check if we're deactivating the last time slot (for animation)
-        let willDeactivateDay = (viewModel.dayTimePreferences[weekday]?.count == 1 && 
-                                 viewModel.dayTimePreferences[weekday]?.contains(timeOfDay) == true)
-        
-        // Call ViewModel for business logic
-        viewModel.toggleTimeSlot(weekday: weekday, timeOfDay: timeOfDay)
-        
-        // Handle UI concerns
-        if willDeactivateDay {
-            withAnimation {
-                expandedDay = nil // Close the row when deactivating
-            }
-        }
-        
-        HapticFeedbackManager.trigger(.light)
-    }
-    
-    // MARK: - Button Actions
-    
-    func handleButtonTap() {
-        switch viewModel.currentStage {
-        case .name:
-            // Call ViewModel for stage progression logic (handles template application internally)
-            withAnimation {
+    private func handleNextTap() {
+        switch stage {
+        case .title:
+            // Apply template if matched, advance VM to .duration so it applies defaults
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 viewModel.handleButtonTap(allTags: allTags)
+                stage = .goal
             }
             
-            // Request HealthKit authorization if template applied and needed
+            // Request HealthKit auth if template set a metric
             if viewModel.selectedTemplate != nil,
                let metric = viewModel.selectedHealthKitMetric,
                viewModel.healthKitSyncEnabled {
@@ -563,20 +310,30 @@ struct GoalEditorView: View {
                     let healthKitManager = HealthKitManager()
                     do {
                         try await healthKitManager.requestAuthorization(for: [metric])
-                        print("✅ HealthKit authorization requested for \(metric.displayName)")
                     } catch {
-                        print("⚠️ Failed to request HealthKit authorization: \(error.localizedDescription)")
+                        print("Failed to request HealthKit authorization: \(error.localizedDescription)")
                     }
                 }
             }
-        case .duration:
+            
+        case .goal:
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                stage = .schedule
+            }
+            
+        case .schedule:
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                stage = .extras
+            }
+            
+        case .extras:
             saveGoal()
         }
     }
     
     @AppStorage("lastPlanGeneratedTimestamp") private var lastPlanGeneratedTimestamp: Double = 0
     
-    func saveGoal() {
+    private func saveGoal() {
         Task {
             do {
                 let newTimestamp = try await viewModel.saveGoal(
@@ -593,14 +350,14 @@ struct GoalEditorView: View {
                 )
                 lastPlanGeneratedTimestamp = newTimestamp
             } catch {
-                print("❌ Failed to save goal: \(error)")
+                print("Failed to save goal: \(error)")
                 errorMessage = "Failed to save goal: \(error.localizedDescription)"
                 showErrorAlert = true
             }
         }
     }
     
-    func requestNotificationPermissions() {
+    private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error {
                 print("Notification permission error: \(error.localizedDescription)")
