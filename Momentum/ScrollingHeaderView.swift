@@ -42,7 +42,7 @@ struct ScrollingHeaderView<Expanded: View, Title: View, Leading: View, Trailing:
         min(max(scrollOffset / collapseThreshold, 0), 1)
     }
     
-    private var expandedHeight: CGFloat { 100 }
+    private var expandedHeight: CGFloat { 90.0 }
     private var collapsedHeight: CGFloat { 48 }
     
     private var currentHeight: CGFloat {
@@ -52,13 +52,21 @@ struct ScrollingHeaderView<Expanded: View, Title: View, Leading: View, Trailing:
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
+                HStack {
+                    leading()
+                        .font(.title3)
+                    Spacer()
+                    
+                    // Trailing buttons
+                    trailing()
+                        .font(.title3)
+
+                }
+                .padding(.horizontal)
                 Spacer(minLength: 0)
                 
                 HStack(alignment: .bottom) {
                     // Leading buttons
-                    leading()
-                        .font(.body)
-                    
                     VStack(alignment: .leading, spacing: 2) {
                         // Expanded content — fades and slides out
                         expanded()
@@ -80,15 +88,10 @@ struct ScrollingHeaderView<Expanded: View, Title: View, Leading: View, Trailing:
                                 anchor: .bottomLeading
                             )
                     }
-                    
                     Spacer()
-                    
-                    // Trailing buttons
-                    trailing()
-                        .font(.body)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 10)
+                .padding(.bottom)
             }
             .frame(height: currentHeight)
             

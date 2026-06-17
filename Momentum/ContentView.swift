@@ -110,11 +110,11 @@ struct ContentView: View {
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     ScrollingHeaderView(scrollOffset: scrollOffset) {
-                        Text(timeOfDayGreeting)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    } title: {
                         Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                    } title: {
+                        Text(timeOfDayGreeting)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                     } leading: {
                         Button {
@@ -138,7 +138,7 @@ struct ContentView: View {
                             }
                         }
                     }
-                    
+
                     if focusFilterStore.isFocusFilterActive {
                         focusBanner
                     }
@@ -364,7 +364,7 @@ struct ContentView: View {
                 
             } header: {
                 Spacer()
-                    .frame(height: 50)
+                    .frame(height: 60)
             }
             if !focusFilteredSessions.isEmpty {
                 // Show daily progress card once user has saved at least one session

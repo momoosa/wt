@@ -99,23 +99,40 @@ extension ContentView {
     // MARK: - Capsule Content: Now Playing (Active Session)
     
     private func capsuleNowPlaying(session: GoalSession, details: ActiveSessionDetails) -> some View {
-        HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(session.theme.gradient(for: colorScheme))
-                .frame(width: 24, height: 24)
+        HStack(spacing: 10) {
+            CircularProgressView(
+                progress: details.progress,
+                lineWidth: 3.5,
+                size: 38,
+                foregroundColor: session.theme.color(for: colorScheme),
+                backgroundColor: session.theme.color(for: colorScheme).opacity(0.2),
+                animateOnAppear: false
+            )
+            .overlay {
+                Image(systemName: session.goal?.iconName ?? "target")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(session.theme.color(for: colorScheme))
+            }
             
-            Text(session.title)
-                .font(.subheadline.weight(.medium))
-                .lineLimit(1)
-            
-            if let timeText = details.timeText {
-                Text(timeText)
-                    .font(.subheadline.monospacedDigit())
+            VStack(alignment: .leading, spacing: 0) {
+                Text(session.title)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                
+                Text(details.currentValue.formatted(style: .hmmss))
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .contentTransition(.numericText())
             }
+            
+            Spacer(minLength: 0)
+            
+            Image(systemName: "chevron.up")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .padding(.trailing, 12)
         }
-        .padding(.leading, 14)
+        .padding(.leading, 10)
         .foregroundStyle(session.theme.color(for: colorScheme))
     }
 }

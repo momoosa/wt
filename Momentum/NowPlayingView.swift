@@ -119,8 +119,8 @@ struct NowPlayingView: View {
                     let progress = activeSessionDetails.progress
                     let completedLaps = Int(progress)
                     let currentLap = progress - Double(completedLaps)
-                    let ringSize: CGFloat = 220
-                    let lineWidth: CGFloat = 6
+                    let ringSize: CGFloat = 280
+                    let lineWidth: CGFloat = 14
                     
                     // Background ring
                     Circle()
@@ -151,22 +151,18 @@ struct NowPlayingView: View {
                         .rotationEffect(.degrees(-90))
                         .animation(.spring(response: 0.6), value: progress)
                     
-                    // Small dot at the top of the ring
-                    Circle()
-                        .fill(foregroundColor.opacity(0.5))
-                        .frame(width: 8, height: 8)
-                        .offset(y: -(ringSize / 2))
+               
                     
-                    // Center content: time + percentage
+                    // Center content: time + percentage + edit
                     VStack(spacing: 8) {
                         if let timeText = activeSessionDetails.timeText {
                             Text(timeText)
-                                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                                .font(.system(size: 38, weight: .bold, design: .rounded))
                                 .foregroundStyle(foregroundColor)
                                 .contentTransition(.numericText())
                         } else {
                             Text(elapsedFormatted)
-                                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                                .font(.system(size: 38, weight: .bold, design: .rounded))
                                 .foregroundStyle(foregroundColor)
                         }
                         
@@ -191,6 +187,24 @@ struct NowPlayingView: View {
                                 .transition(.scale.combined(with: .opacity))
                             }
                         }
+                        
+                        Button {
+                            showingAdjustments = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "pencil")
+                                    .font(.caption2.weight(.semibold))
+                                Text("Edit Time")
+                                    .font(.caption.weight(.medium))
+                            }
+                            .foregroundStyle(foregroundColor.opacity(0.5))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(foregroundColor.opacity(0.1))
+                            )
+                        }
                     }
                 }
                 
@@ -203,7 +217,7 @@ struct NowPlayingView: View {
                             .foregroundStyle(foregroundColor)
                         
                         Text(intervalTimeRemaining.formatted(style: .hmmss))
-                            .font(.system(size: 22, weight: .bold, design: .monospaced))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundStyle(foregroundColor.opacity(0.9))
                             .contentTransition(.numericText())
                         
