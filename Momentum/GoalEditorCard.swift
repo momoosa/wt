@@ -7,6 +7,8 @@
 
 import SwiftUI
 import MomentumKit
+import FamilyControls
+import ManagedSettings
 
 // MARK: - Goal Editor Card
 
@@ -14,6 +16,7 @@ struct GoalEditorCard: View {
     @Bindable var vm: GoalEditorViewModel
     @Binding var isExpanded: Bool
     @State private var activePicker: ActivePicker?
+    @State private var showAppPicker = false
     @Namespace private var cardAnimation
     @FocusState private var isNameFocused: Bool
     @FocusState private var isValueFocused: Bool
@@ -31,6 +34,7 @@ struct GoalEditorCard: View {
         case .seconds: "min"
         case .steps: "steps"
         case .kilocalories: "kcal"
+        case .screenTime: "min"
         }
     }
     
@@ -41,6 +45,8 @@ struct GoalEditorCard: View {
             let dayCount = max(vm.activeDays.count, 1)
             return vm.durationInMinutes / dayCount
         case .steps, .kilocalories:
+            return Int(vm.primaryMetricTarget)
+        case .screenTime:
             return Int(vm.primaryMetricTarget)
         }
     }
@@ -79,74 +85,62 @@ struct GoalEditorCard: View {
         )
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isExpanded)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: activePicker)
+        .sheet(isPresented: $showAppPicker) {
+            NavigationStack {
+                FamilyActivityPicker(selection: $vm.screenTimeSelection)
+                    .navigationTitle("Select Apps")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                showAppPicker = false
+                            }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showAppPicker = false
+                            }
+                        }
+                    }
+            }
+        }
     }
     
     // MARK: - Minimised Row
     
     private var minimisedRow: some View {
-        Button {
-            if !isExpanded {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    isExpanded = true
+        HStack(spacing: 14) {
+            RoundedRectangle(cornerRadius: isExpanded ? 14 : 12)
+                .fill(themeColor.opacity(0.3))
+                .frame(width: isExpanded ? 52 : 44, height: isExpanded ? 52 : 44)
+                .overlay {
+                    Image(systemName: iconName)
+                        .font(.system(size: isExpanded ? 22 : 18, weight: .medium))
+                        .foregroundStyle(themeColor.opacity(0.8))
                 }
-            }
-        } label: {
-            HStack(spacing: 14) {
-                RoundedRectangle(cornerRadius: isExpanded ? 14 : 12)
-                    .fill(themeColor.opacity(0.3))
-                    .frame(width: isExpanded ? 52 : 44, height: isExpanded ? 52 : 44)
-                    .overlay {
-                        Image(systemName: iconName)
-                            .font(.system(size: isExpanded ? 22 : 18, weight: .medium))
-                            .foregroundStyle(themeColor.opacity(0.8))
-                    }
-                    .matchedGeometryEffect(id: "icon", in: cardAnimation)
+                .matchedGeometryEffect(id: "icon", in: cardAnimation)
+            
+            if isExpanded, let theme = vm.selectedGoalTheme?.title {
+                Text(theme.uppercased())
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+                    .matchedGeometryEffect(id: "label", in: cardAnimation)
                 
-                if isExpanded {
-                    Text("THE GOAL")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .tracking(1.5)
-                        .foregroundStyle(.secondary)
-                        .matchedGeometryEffect(id: "label", in: cardAnimation)
-                    
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            activePicker = nil
-                            isExpanded = false
-                        }
-                    } label: {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.tertiary)
-                            .frame(width: 28, height: 28)
-                            .background(
-                                Circle()
-                                    .fill(Color(.tertiarySystemFill))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .matchedGeometryEffect(id: "chevron", in: cardAnimation)
-                    
-                    Spacer()
-                    
-                    styleButton
-                } else {
-                    Text(vm.userInput.isEmpty ? "Goal name" : vm.userInput)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(vm.userInput.isEmpty ? .secondary : .primary)
-                        .matchedGeometryEffect(id: "label", in: cardAnimation)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.tertiary)
-                        .matchedGeometryEffect(id: "chevron", in: cardAnimation)
-                }
+
+                Spacer()
+                
+                styleButton
+            } else {
+                TextField("Write your own goal...", text: $vm.userInput)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .focused($isNameFocused)
+                    .matchedGeometryEffect(id: "label", in: cardAnimation)
+                
+                Spacer()
             }
         }
-        .buttonStyle(.plain)
         .padding(.bottom, isExpanded ? 20 : 0)
     }
     
@@ -160,7 +154,7 @@ struct GoalEditorCard: View {
                 activePicker = isStyleMode ? nil : .style
             }
         } label: {
-            Text(isStyleMode ? "DONE" : "STYLE")
+            Text(isStyleMode ? "Done".uppercased() : "Edit".uppercased())
                 .font(.caption)
                 .fontWeight(.bold)
                 .tracking(1)
@@ -205,6 +199,11 @@ struct GoalEditorCard: View {
                 
                 if activePicker == .value {
                     valuePicker
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+                
+                if vm.selectedGoalType == .screenTime {
+                    screenTimeAppPickerSection
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
@@ -315,6 +314,7 @@ struct GoalEditorCard: View {
             (.seconds, "Minutes", "Total time", "clock"),
             (.steps, "Steps", "Step count from Health", "shoeprints.fill"),
             (.kilocalories, "Calories", "Active energy burned", "flame"),
+            (.screenTime, "Screen Time", "Limit app & category usage", "hourglass"),
         ]
         
         return VStack(spacing: 4) {
@@ -460,6 +460,8 @@ struct GoalEditorCard: View {
             vm.updateWeeklyTarget(weeklyMinutes)
         case .steps, .kilocalories:
             vm.primaryMetricTarget = Double(value)
+        case .screenTime:
+            vm.primaryMetricTarget = Double(value)
         }
     }
     
@@ -471,7 +473,103 @@ struct GoalEditorCard: View {
             return [2000, 5000, 7500, 10000, 15000]
         case .kilocalories:
             return [200, 300, 400, 500, 600]
+        case .screenTime:
+            return [30, 60, 90, 120, 180, 240]
         }
+    }
+    
+    // MARK: - Screen Time App Picker Section
+    
+    private var screenTimeAppPickerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+                .padding(.vertical, 4)
+            
+            Button {
+                showAppPicker = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "app.badge")
+                        .font(.body)
+                        .foregroundStyle(themeColor)
+                        .frame(width: 24)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Select Apps & Categories")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        
+                        if screenTimeSelectionCount > 0 {
+                            Text(screenTimeSelectionSummary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Choose which apps to track")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(themeColor.opacity(0.08))
+                )
+            }
+            .buttonStyle(.plain)
+            
+            // Show selected apps and categories
+            if screenTimeSelectionCount > 0 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Array(vm.screenTimeSelection.categoryTokens), id: \.self) { token in
+                            Label(token)
+                                .labelStyle(.titleAndIcon)
+                                .font(.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(themeColor.opacity(0.1))
+                                )
+                        }
+                        ForEach(Array(vm.screenTimeSelection.applicationTokens), id: \.self) { token in
+                            Label(token)
+                                .labelStyle(.titleAndIcon)
+                                .font(.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(themeColor.opacity(0.1))
+                                )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private var screenTimeSelectionCount: Int {
+        vm.screenTimeSelection.applicationTokens.count +
+        vm.screenTimeSelection.categoryTokens.count
+    }
+    
+    private var screenTimeSelectionSummary: String {
+        let apps = vm.screenTimeSelection.applicationTokens.count
+        let categories = vm.screenTimeSelection.categoryTokens.count
+        var parts: [String] = []
+        if apps > 0 { parts.append("\(apps) app\(apps == 1 ? "" : "s")") }
+        if categories > 0 { parts.append("\(categories) categor\(categories == 1 ? "y" : "ies")") }
+        return parts.joined(separator: ", ") + " selected"
     }
     
     // MARK: - Style Picker
@@ -715,6 +813,7 @@ struct RecommendWhenCard: View {
 struct SettingsEditorCard: View {
     @Bindable var vm: GoalEditorViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @State private var showingHealthKitBrowser = false
     
     private var themeColor: Color {
         vm.getActiveThemeColor(colorScheme: colorScheme)
@@ -733,6 +832,12 @@ struct SettingsEditorCard: View {
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color(.systemBackground))
         )
+        .sheet(isPresented: $showingHealthKitBrowser) {
+            HealthKitMetricsBrowserView(
+                selectedMetric: $vm.selectedHealthKitMetric,
+                currentGoal: vm.existingGoal
+            )
+        }
     }
     
     private var sectionDivider: some View {
@@ -745,7 +850,7 @@ struct SettingsEditorCard: View {
     
     private var themeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("THEMES")
+            Text("Themes".uppercased())
                 .font(.caption)
                 .fontWeight(.bold)
                 .tracking(1.5)
@@ -781,7 +886,7 @@ struct SettingsEditorCard: View {
                     }
                     
                     // Other tags
-                    ForEach(vm.selectedTags, id: \.title) { tag in
+                    ForEach(vm.selectedTags.filter({ $0.id != vm.selectedGoalTheme?.id }), id: \.title) { tag in
                         HStack(spacing: 6) {
                             Text(tag.title)
                                 .font(.caption)
@@ -844,7 +949,9 @@ struct SettingsEditorCard: View {
                 .padding(.horizontal, 16)
             
             // Health Metric row
-            Button {} label: {
+            Button {
+                showingHealthKitBrowser = true
+            } label: {
                 HStack(spacing: 12) {
                     Image(systemName: vm.selectedHealthKitMetric?.symbolName ?? "heart.fill")
                         .font(.system(size: 14))

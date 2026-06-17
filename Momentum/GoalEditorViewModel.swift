@@ -10,6 +10,7 @@ import SwiftData
 import MomentumKit
 import FoundationModels
 import UserNotifications
+import FamilyControls
 #if os(iOS)
 import WidgetKit
 #endif
@@ -104,6 +105,7 @@ class GoalEditorViewModel: Identifiable {
     
     var screenTimeEnabled: Bool = false
     var selectedScreenTimeCategories: Set<String> = []
+    var screenTimeSelection: FamilyActivitySelection = FamilyActivitySelection()
     
     // MARK: - Additional Fields
     
@@ -350,7 +352,11 @@ class GoalEditorViewModel: Identifiable {
         healthKitSyncEnabled = goal.healthKitSyncEnabled
 
         // Load or set default primary metric target
-        if !goal.targetUnit.isTimeBased && goal.unifiedDailyTarget > 0 {
+        if goal.targetUnit == .screenTime {
+            // Screen time stores daily target in seconds, convert to minutes for display
+            primaryMetricTarget = goal.unifiedDailyTarget > 0 ? goal.unifiedDailyTarget / 60 : 120
+            screenTimeEnabled = goal.screenTimeEnabled
+        } else if !goal.targetUnit.isTimeBased && goal.unifiedDailyTarget > 0 {
             primaryMetricTarget = goal.unifiedDailyTarget
         } else {
             // Set defaults based on goal type for migrated goals
@@ -361,6 +367,8 @@ class GoalEditorViewModel: Identifiable {
                 primaryMetricTarget = 10000 // Default: 10,000 steps
             case .kilocalories:
                 primaryMetricTarget = 500 // Default: 500 calories
+            case .screenTime:
+                primaryMetricTarget = 120 // Default: 2 hours
             }
         }
 
@@ -442,6 +450,8 @@ class GoalEditorViewModel: Identifiable {
             return [5000, 7500, 10000, 12500]
         case .kilocalories:
             return [200, 300, 500, 750]
+        case .screenTime:
+            return [30, 60, 90, 120, 180, 240]
         }
     }
     
@@ -451,6 +461,8 @@ class GoalEditorViewModel: Identifiable {
             // Sum the actual daily targets for time-based goals
             return dailyTargets.values.reduce(0, +)
         case .steps, .kilocalories:
+            return Int(primaryMetricTarget * Double(activeDays.count))
+        case .screenTime:
             return Int(primaryMetricTarget * Double(activeDays.count))
         }
     }
@@ -479,6 +491,10 @@ class GoalEditorViewModel: Identifiable {
                 primaryMetricTarget = 50
                 validationMessage = "Target set to minimum: 50 calories"
                 showingValidationAlert = true
+            case .screenTime:
+                primaryMetricTarget = 15
+                validationMessage = "Target set to minimum: 15 minutes"
+                showingValidationAlert = true
             }
             return
         }
@@ -505,6 +521,16 @@ class GoalEditorViewModel: Identifiable {
                 validationMessage = "Target adjusted to minimum: 50 calories"
                 showingValidationAlert = true
             }
+        case .screenTime:
+            if primaryMetricTarget > 1440 {
+                primaryMetricTarget = 1440
+                validationMessage = "Target adjusted to maximum: 24 hours"
+                showingValidationAlert = true
+            } else if primaryMetricTarget < 15 {
+                primaryMetricTarget = 15
+                validationMessage = "Target adjusted to minimum: 15 minutes"
+                showingValidationAlert = true
+            }
         }
     }
     
@@ -513,14 +539,22 @@ class GoalEditorViewModel: Identifiable {
         case .seconds:
             selectedHealthKitMetric = nil
             healthKitSyncEnabled = false
+            screenTimeEnabled = false
         case .steps:
             selectedHealthKitMetric = .stepCount
             healthKitSyncEnabled = true
             primaryMetricTarget = 10000
+            screenTimeEnabled = false
         case .kilocalories:
             selectedHealthKitMetric = .activeEnergyBurned
             healthKitSyncEnabled = true
             primaryMetricTarget = 500
+            screenTimeEnabled = false
+        case .screenTime:
+            selectedHealthKitMetric = nil
+            healthKitSyncEnabled = false
+            screenTimeEnabled = true
+            primaryMetricTarget = 120 // Default 2 hours
         }
     }
     
@@ -1188,6 +1222,12 @@ class GoalEditorViewModel: Identifiable {
         case .steps, .kilocalories:
             goal.unifiedDailyTarget = primaryMetricTarget
             goal.perDayTargets.removeAll()
+        case .screenTime:
+            // primaryMetricTarget is in minutes, store as seconds
+            goal.unifiedDailyTarget = primaryMetricTarget * 60
+            goal.perDayTargets.removeAll()
+            goal.screenTimeEnabled = true
+            goal.screenTimeIsInverseGoal = true
         }
         
         // ✅ Save weather settings
@@ -1268,6 +1308,18 @@ class GoalEditorViewModel: Identifiable {
                 print("✅ HealthKit authorization requested for \(metric.displayName)")
             } catch {
                 print("❌ Failed to request HealthKit authorization: \(error)")
+            }
+        }
+        
+        // Start Screen Time monitoring if this is a screen time goal
+        if goal.screenTimeEnabled && selectedGoalType == .screenTime {
+            let screenTimeManager = ScreenTimeManager.shared
+            if !screenTimeManager.isAuthorized {
+                try? await screenTimeManager.requestAuthorization()
+            }
+            if screenTimeManager.isAuthorized {
+                screenTimeManager.startMonitoring(goal: goal, selection: screenTimeSelection)
+                print("✅ Screen Time monitoring started for \(goal.title)")
             }
         }
         

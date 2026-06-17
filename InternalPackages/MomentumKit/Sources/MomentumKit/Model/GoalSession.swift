@@ -284,7 +284,7 @@ public final class GoalSession: SessionProgressProvider {
             return "\(current) cal/\(targetInt) cal"
         case .steps:
             return "\(current.formatted())/\(targetInt.formatted())"
-        case .seconds:
+        case .seconds, .screenTime:
             return elapsedTime.formattedProgress(target: target)
         }
     }

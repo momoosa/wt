@@ -14,27 +14,22 @@ struct GoalSuggestionCategoryView: View {
     @Binding var userInput: String
     
     var body: some View {
-            // Suggestions List
-        ScrollView(.vertical) {
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ]) {
-                ForEach(category.suggestions) { suggestion in
-                    SuggestionRow(
-                        suggestion: suggestion,
-                        isSelected: selectedTemplate?.id == suggestion.id,
-                        themePreset: category.themePreset
-                    )
-                    .onTapGesture {
-                        withAnimation(AnimationPresets.quickSpring) {
-                            selectedTemplate = suggestion
-                            userInput = suggestion.title // Prefill textfield
-                        }
-                        
-                        // Haptic feedback
-                        HapticFeedbackManager.trigger(.light)
+        LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: 10),
+            GridItem(.flexible(), spacing: 10)
+        ], spacing: 10) {
+            ForEach(category.suggestions) { suggestion in
+                SuggestionRow(
+                    suggestion: suggestion,
+                    isSelected: selectedTemplate?.id == suggestion.id,
+                    themePreset: category.themePreset
+                )
+                .onTapGesture {
+                    withAnimation(AnimationPresets.quickSpring) {
+                        selectedTemplate = suggestion
+                        userInput = suggestion.title
                     }
+                    HapticFeedbackManager.trigger(.light)
                 }
             }
         }

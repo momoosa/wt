@@ -538,8 +538,8 @@ struct GoalSessionDetailView: View {
                     }
                 }
                 
-                // Start Session button
-                if !isReadOnly {
+                // Start Session button (hidden for screen time goals — tracked automatically)
+                if !isReadOnly && !session.targetUnit.isScreenTime {
                     Button {
                         if let day = session.day {
                             timerManager.toggleTimer(for: session, in: day)

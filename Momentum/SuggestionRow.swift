@@ -17,40 +17,57 @@ struct SuggestionRow: View {
     let themePreset: ThemePreset
     @Environment(\.colorScheme) private var colorScheme
     
+    private var themeColor: Color {
+        themePreset.color(for: colorScheme)
+    }
+    
     private var textColor: Color {
         isSelected ? themePreset.foregroundColor(for: colorScheme) : .primary
     }
     
     var body: some View {
-        VStack {
-            Spacer()
-            HStack {
-                // Icon
-                Image(systemName: suggestion.icon)
-                    .font(.system(size: 32))
-                    .foregroundStyle(isSelected ? textColor : themePreset.color(for: colorScheme))
-                    .frame(width: 50)
-                
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(suggestion.title)
-                        .font(.headline)
-                        .foregroundStyle(textColor)
-                    
-                    Text(suggestion.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(isSelected ? textColor.opacity(0.9) : .secondary)
-                        .lineLimit(2)
+        VStack(alignment: .leading, spacing: 0) {
+            // Icon area
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? themeColor.opacity(0.3) : themeColor.opacity(0.12))
+                .frame(height: 64)
+                .overlay {
+                    Image(systemName: suggestion.icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(isSelected ? textColor : themeColor)
                 }
-                
-                Spacer()
+                .padding(.bottom, 10)
+            
+            // Title
+            Text(suggestion.title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(textColor)
+                .lineLimit(1)
+            
+            // Subtitle
+            Text(suggestion.subtitle)
+                .font(.caption)
+                .foregroundStyle(isSelected ? textColor.opacity(0.8) : .secondary)
+                .lineLimit(1)
+                .padding(.top, 1)
+            
+            Spacer(minLength: 8)
+            
+            // USE THIS →
+            HStack(spacing: 4) {
+                Text("USE THIS")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 9, weight: .bold))
             }
-            Spacer()
+            .foregroundStyle(isSelected ? textColor.opacity(0.9) : themeColor)
         }
-        .padding(10.0) // TODO: Constant
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isSelected ? AnyShapeStyle(themePreset.gradient(for: colorScheme)) : AnyShapeStyle(Color(.secondarySystemGroupedBackground)))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isSelected ? AnyShapeStyle(themePreset.gradient(for: colorScheme)) : AnyShapeStyle(Color(.systemBackground)))
         )
         .scaleEffect(isSelected ? 1.02 : 1.0)
     }

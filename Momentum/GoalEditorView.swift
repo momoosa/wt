@@ -21,28 +21,21 @@ struct GoalEditorView: View {
     
     // MARK: - Stage Management
     
-    enum Stage: Int, CaseIterable, Identifiable {
-        case title = 0
-        case goal = 1
-        case schedule = 2
-        case extras = 3
+    enum Stage: Identifiable {
+        case title
+        case editor
         
-        var id: Int { rawValue }
-        
-        var nextStage: Stage? {
-            Stage(rawValue: rawValue + 1)
-        }
-        
-        var previousStage: Stage? {
-            rawValue > 0 ? Stage(rawValue: rawValue - 1) : nil
+        var id: String {
+            switch self {
+            case .title: "title"
+            case .editor: "editor"
+            }
         }
         
         var buttonLabel: String {
             switch self {
             case .title: "Next"
-            case .goal: "Next"
-            case .schedule: "Next"
-            case .extras: "Save Goal"
+            case .editor: "Save Goal"
             }
         }
     }
@@ -57,8 +50,14 @@ struct GoalEditorView: View {
     
     @State private var stage: Stage = .title
     @State private var cardExpanded: Bool = false
+    @State private var selectedSuggestionCategory: Int = 0
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    
+    // Staggered section visibility
+    @State private var showScheduleSection = false
+    @State private var showSettingsSection = false
+    @State private var showNotesSection = false
     
     private var activeThemeColor: Color {
         viewModel.getActiveThemeColor(colorScheme: colorScheme)
@@ -72,7 +71,7 @@ struct GoalEditorView: View {
         switch stage {
         case .title:
             return !viewModel.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.selectedTemplate != nil
-        case .goal, .schedule, .extras:
+        case .editor:
             return true
         }
     }
@@ -92,8 +91,14 @@ struct GoalEditorView: View {
                             GoalEditorCard(vm: viewModel, isExpanded: $cardExpanded)
                         }
                         
+                        // Suggestions (only at title stage, not when editing)
+                        if stage == .title && !isEditingExisting {
+                            goalSuggestionsView
+                                .transition(.opacity)
+                        }
+                        
                         // Section 2: Recommend when
-                        if stage.rawValue >= Stage.schedule.rawValue {
+                        if showScheduleSection {
                             editorSection(number: 2, title: "Recommend when") {
                                 RecommendWhenCard(vm: viewModel)
                             }
@@ -104,7 +109,7 @@ struct GoalEditorView: View {
                         }
                         
                         // Section 3: Settings
-                        if stage.rawValue >= Stage.extras.rawValue {
+                        if showSettingsSection {
                             editorSection(number: 3, title: "Settings") {
                                 SettingsEditorCard(vm: viewModel)
                             }
@@ -112,7 +117,10 @@ struct GoalEditorView: View {
                                 insertion: .opacity.combined(with: .move(edge: .bottom)),
                                 removal: .opacity
                             ))
-                            
+                        }
+                        
+                        // Section 4: Notes & checklist
+                        if showNotesSection {
                             editorSection(number: 4, title: "Notes & checklist") {
                                 NotesChecklistCard(vm: viewModel)
                             }
@@ -132,7 +140,15 @@ struct GoalEditorView: View {
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: stage)
             .onChange(of: stage) {
-                cardExpanded = stage != .title
+                if stage == .editor {
+                    cardExpanded = true
+                    revealEditorSections()
+                } else {
+                    cardExpanded = false
+                    showScheduleSection = false
+                    showSettingsSection = false
+                    showNotesSection = false
+                }
             }
             .navigationTitle(isEditingExisting ? "Edit Goal" : "New Goal")
             .navigationBarTitleDisplayMode(.inline)
@@ -202,10 +218,13 @@ struct GoalEditorView: View {
             Text(errorMessage)
         }
         .onAppear {
-            // If editing an existing goal, start at the goal stage expanded
+            // If editing an existing goal, start at the editor stage with everything visible
             if isEditingExisting {
-                stage = .goal
+                stage = .editor
                 cardExpanded = true
+                showScheduleSection = true
+                showSettingsSection = true
+                showNotesSection = true
             }
         }
     }
@@ -217,11 +236,11 @@ struct GoalEditorView: View {
             Divider()
             
             HStack(spacing: 12) {
-                // Back button
-                if let previous = stage.previousStage {
+                // Back button (only in editor stage)
+                if stage == .editor {
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            stage = previous
+                            stage = .title
                         }
                     } label: {
                         Image(systemName: "chevron.left")
@@ -291,6 +310,83 @@ struct GoalEditorView: View {
         }
     }
     
+    // MARK: - Goal Suggestions
+    
+    private var goalSuggestionsView: some View {
+        let categories = viewModel.suggestionsData.categories
+        
+        return VStack(spacing: 16) {
+            // Divider label
+            HStack(spacing: 12) {
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(height: 0.5)
+                Text("OR PICK A STARTER")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .tracking(1)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize()
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(height: 0.5)
+            }
+            .padding(.horizontal, 20)
+            
+            // Category tabs
+            ScrollViewReader { scrollProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
+                            GoalSuggestionCategoryTab(
+                                category: category,
+                                isSelected: selectedSuggestionCategory == index
+                            )
+                            .id(index)
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                    selectedSuggestionCategory = index
+                                }
+                                HapticFeedbackManager.trigger(.light)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .onChange(of: selectedSuggestionCategory) {
+                    withAnimation {
+                        scrollProxy.scrollTo(selectedSuggestionCategory, anchor: .center)
+                    }
+                }
+            }
+            
+            // Category header
+            if categories.indices.contains(selectedSuggestionCategory) {
+                let category = categories[selectedSuggestionCategory]
+                
+                HStack {
+                    Text(category.name)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    Spacer()
+                    Text("\(category.suggestions.count) IDEAS")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 20)
+                
+                // Suggestion grid
+                GoalSuggestionCategoryView(
+                    category: category,
+                    selectedTemplate: $viewModel.selectedTemplate,
+                    userInput: $viewModel.userInput
+                )
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+    
     // MARK: - Actions
     
     private func handleNextTap() {
@@ -299,7 +395,7 @@ struct GoalEditorView: View {
             // Apply template if matched, advance VM to .duration so it applies defaults
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 viewModel.handleButtonTap(allTags: allTags)
-                stage = .goal
+                stage = .editor
             }
             
             // Request HealthKit auth if template set a metric
@@ -316,18 +412,22 @@ struct GoalEditorView: View {
                 }
             }
             
-        case .goal:
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                stage = .schedule
-            }
-            
-        case .schedule:
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                stage = .extras
-            }
-            
-        case .extras:
+        case .editor:
             saveGoal()
+        }
+    }
+    
+    private func revealEditorSections() {
+        let spring = Animation.spring(response: 0.45, dampingFraction: 0.85)
+        
+        withAnimation(spring.delay(0.15)) {
+            showScheduleSection = true
+        }
+        withAnimation(spring.delay(0.30)) {
+            showSettingsSection = true
+        }
+        withAnimation(spring.delay(0.45)) {
+            showNotesSection = true
         }
     }
     

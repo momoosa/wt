@@ -130,7 +130,7 @@ struct DayOverviewView: View {
         switch unit {
         case .kilocalories: return 5
         case .steps: return 50
-        case .seconds: return 30
+        case .seconds, .screenTime: return 30
         }
     }
     
@@ -1195,7 +1195,7 @@ private struct GroupedSmallActivityRow: View {
         switch summary.targetUnit {
         case .steps: return value.formatted()
         case .kilocalories: return "\(value)"
-        case .seconds: return "\(value)"
+        case .seconds, .screenTime: return "\(value)"
         }
     }
     
@@ -1240,7 +1240,7 @@ private struct ActivityGoalSummary: Identifiable {
         switch targetUnit {
         case .steps: return value.formatted()
         case .kilocalories: return "\(value)"
-        case .seconds: return "\(value)"
+        case .seconds, .screenTime: return "\(value)"
         }
     }
     
@@ -1249,7 +1249,7 @@ private struct ActivityGoalSummary: Identifiable {
         switch targetUnit {
         case .steps: return value.formatted()
         case .kilocalories: return "\(value)"
-        case .seconds: return "\(value)"
+        case .seconds, .screenTime: return "\(value)"
         }
     }
     
@@ -1270,7 +1270,7 @@ private struct ActivityGoalHourlyRow: View {
         switch summary.targetUnit {
         case .steps: return value.formatted()
         case .kilocalories: return "\(value)"
-        case .seconds: return "\(value)"
+        case .seconds, .screenTime: return "\(value)"
         }
     }
     

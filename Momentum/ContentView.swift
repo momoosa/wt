@@ -111,8 +111,8 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     ScrollingHeaderView(scrollOffset: scrollOffset) {
                         Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
-                            .foregroundStyle(.secondary)
                             .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     } title: {
                         Text(timeOfDayGreeting)
                             .font(.system(size: 28, weight: .bold, design: .rounded))

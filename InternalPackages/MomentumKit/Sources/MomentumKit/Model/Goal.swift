@@ -127,9 +127,13 @@ public extension Goal {
         case seconds = "seconds"
         case steps = "steps"
         case kilocalories = "kilocalories"
+        case screenTime = "screen_time"
         
         /// Whether this unit represents time (and thus uses the timer as its primary tracker)
-        public var isTimeBased: Bool { self == .seconds }
+        public var isTimeBased: Bool { self == .seconds || self == .screenTime }
+        
+        /// Whether this is a screen time goal (tracked automatically, no manual timer)
+        public var isScreenTime: Bool { self == .screenTime }
         
         /// Short label for display (e.g., "min", "steps", "cal")
         public var label: String {
@@ -137,6 +141,7 @@ public extension Goal {
             case .seconds: return "min"
             case .steps: return "steps"
             case .kilocalories: return "kcal"
+            case .screenTime: return "min"
             }
         }
         
@@ -146,6 +151,7 @@ public extension Goal {
             case .seconds: return "Time"
             case .steps: return "Count"
             case .kilocalories: return "Calories"
+            case .screenTime: return "Screen Time"
             }
         }
         
@@ -155,6 +161,7 @@ public extension Goal {
             case .seconds: return "clock"
             case .steps: return "number"
             case .kilocalories: return "flame"
+            case .screenTime: return "hourglass"
             }
         }
         
