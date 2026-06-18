@@ -34,10 +34,15 @@ struct GoalSessionDetailView: View {
     @State private var isCreatingNewHistoricalSession = false
     
     // Tab selection
-    @State private var selectedTab: DetailTab = .whyNow
+    @State private var selectedTab: DetailTab = .hero
     @State private var isScrollingFromTap = false
     
+    // Card state
+    @State private var cardRotationY: Double = 0
+    @State private var shimmerOffset: CGFloat = -200
+    
     enum DetailTab: String, CaseIterable {
+        case hero = "Overview"
         case whyNow = "Why now"
         case atAGlance = "At a glance"
         case thisWeek = "This week"
@@ -327,10 +332,32 @@ struct GoalSessionDetailView: View {
     
     var body: some View {
         ScrollViewReader { scrollProxy in
+            
             ScrollView {
                 VStack(spacing: 0) {
-                    heroCard
-                    tabBar(scrollProxy: scrollProxy)
+
+                    Spacer()
+                        .frame(height: 60)
+                        .id(DetailTab.hero)
+                        .onGeometryChange(for: CGFloat.self) { proxy in
+                            proxy.frame(in: .scrollView).minY
+                        } action: { minY in
+                            if !isScrollingFromTap && minY > -200 {
+                                selectedTab = .hero
+                            }
+                        }
+                    ProgressSummaryCardWrapper(
+                        session: session,
+                        weeklyProgress: currentProgress,
+                        weeklyElapsedTime: currentElapsed,
+                        cardRotationY: $cardRotationY,
+                        shimmerOffset: $shimmerOffset,
+                        timerManager: timerManager,
+                        onDone: { markGoalAsDone() },
+                        onSkip: { toggleSkip() },
+                        onManualLog: { isCreatingNewHistoricalSession = true }
+                    )
+                    .padding(.horizontal, 16)
                     
                     // All sections visible, scrollable
                     sectionHeader(.whyNow)
@@ -346,9 +373,15 @@ struct GoalSessionDetailView: View {
                     consistencyTab
                 }
             }
+            .overlay {
+                VStack {
+                    tabBar(scrollProxy: scrollProxy)
+                    Spacer()
+                }
+            }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("GOAL DETAIL")
+        .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -433,226 +466,66 @@ struct GoalSessionDetailView: View {
         }
     }
     
-    // MARK: - Hero Card
-    
-    private var heroCard: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                // Icon row
-                HStack {
-                    Image(systemName: session.goal?.iconName ?? "target")
-                        .font(.title2)
-                        .foregroundStyle(textColor.opacity(0.7))
-                    Spacer()
-                    // Status badges
-                    if session.status == .skipped {
-                        Text("SKIPPED")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(textColor.opacity(0.7))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(textColor.opacity(0.15))
-                            .clipShape(Capsule())
-                    }
-                    if isTimerActive {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(textColor)
-                                .frame(width: 6, height: 6)
-                            Text("ACTIVE")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(textColor)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(textColor.opacity(0.15))
-                        .clipShape(Capsule())
-                    }
-                }
-                
-                // Goal title
-                Text(session.goal?.title ?? "Goal")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundStyle(textColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Stats row
-                HStack(spacing: 24) {
-                    // Progress ring + elapsed
-                    HStack(spacing: 12) {
-                        CircularProgressView(
-                            progress: currentProgress,
-                            lineWidth: 4,
-                            size: 36,
-                            foregroundColor: textColor,
-                            backgroundColor: textColor.opacity(0.25)
-                        )
-                        .overlay {
-                            Text("\(Int(currentProgress * 100))%")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(textColor)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            if session.targetUnit.isTimeBased {
-                                Text(currentElapsed.formatted(style: .hourMinute))
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(textColor)
-                                Text("this week")
-                                    .font(.caption2)
-                                    .foregroundStyle(textColor.opacity(0.7))
-                            } else {
-                                Text("\(Int(session.currentValue).formatted())")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(textColor)
-                                Text(session.targetUnit.label)
-                                    .font(.caption2)
-                                    .foregroundStyle(textColor.opacity(0.7))
-                            }
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // Target
-                    VStack(alignment: .trailing, spacing: 2) {
-                        if session.targetUnit.isTimeBased {
-                            Text(session.effectiveTargetValue.formatted(style: .hourMinute))
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundStyle(textColor)
-                        } else {
-                            Text("\(Int(session.effectiveTargetValue).formatted())")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundStyle(textColor)
-                        }
-                        Text("target")
-                            .font(.caption2)
-                            .foregroundStyle(textColor.opacity(0.7))
-                    }
-                }
-                
-                // Start Session button (hidden for screen time goals — tracked automatically)
-                if !isReadOnly && !session.targetUnit.isScreenTime {
-                    Button {
-                        if let day = session.day {
-                            timerManager.toggleTimer(for: session, in: day)
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            let isActive = timerManager.isActive(session)
-                            let isPaused = isActive && (timerManager.activeSession?.isPaused ?? false)
-                            Image(systemName: isPaused ? "play.fill" : (isActive ? "pause.fill" : "play.fill"))
-                                .font(.subheadline)
-                            Text(isPaused ? "RESUME SESSION" : (isActive ? "PAUSE SESSION" : "START SESSION"))
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                        }
-                        .foregroundStyle(tintColor)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(.white)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-                
-                // Action row
-                HStack(spacing: 0) {
-                    if !isReadOnly {
-                        actionButton(icon: "square.and.pencil", label: "Log") {
-                            isCreatingNewHistoricalSession = true
-                        }
-                    }
-                    
-                    actionButton(
-                        icon: session.status == .skipped ? "arrow.uturn.backward" : "forward.fill",
-                        label: session.status == .skipped ? "Undo" : "Skip"
-                    ) {
-                        toggleSkip()
-                    }
-                    
-                    actionButton(icon: "checkmark", label: "Done") {
-                        markGoalAsDone()
-                    }
-                }
-            }
-            .padding(20)
-            .background {
-                session.theme.gradient(for: colorScheme)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-    }
-    
-    private func actionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.subheadline)
-                Text(label)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-            }
-            .frame(maxWidth: .infinity)
-            .foregroundStyle(textColor.opacity(0.7))
-        }
-        .buttonStyle(.plain)
-        .padding(.vertical, 8)
-    }
-    
     // MARK: - Tab Bar
     
     private func tabBar(scrollProxy: ScrollViewProxy) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(DetailTab.allCases, id: \.self) { tab in
-                    Button {
-                        isScrollingFromTap = true
-                        selectedTab = tab
-                        withAnimation(.snappy(duration: 0.35)) {
-                            scrollProxy.scrollTo(tab, anchor: .top)
+        ScrollViewReader { tabScrollProxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(DetailTab.allCases, id: \.self) { tab in
+                        Button {
+                            isScrollingFromTap = true
+                            selectedTab = tab
+                            withAnimation(.snappy(duration: 0.35)) {
+                                scrollProxy.scrollTo(tab, anchor: UnitPoint(x: 0.5, y: 0.08))
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                isScrollingFromTap = false
+                            }
+                        } label: {
+                            Text(tab.rawValue)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(selectedTab == tab ? .white : .primary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(
+                                    Capsule()
+                                        .fill(selectedTab == tab ? tintColor : Color(.systemGray5))
+                                )
+                                .animation(.easeInOut(duration: 0.25), value: selectedTab)
                         }
-                        // Allow visibility tracking to resume after scroll settles
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            isScrollingFromTap = false
-                        }
-                    } label: {
-                        Text(tab.rawValue)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(selectedTab == tab ? .white : .primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(
-                                Capsule()
-                                    .fill(selectedTab == tab ? tintColor : Color(.systemGray5))
-                            )
+                        .buttonStyle(.plain)
+                        .id("pill_\(tab.rawValue)")
                     }
-                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .onChange(of: selectedTab) { _, newTab in
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    tabScrollProxy.scrollTo("pill_\(newTab.rawValue)", anchor: .center)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
     }
     
     // MARK: - Section Header (scroll anchor)
     
     private func sectionHeader(_ tab: DetailTab) -> some View {
-        Color.clear
-            .frame(height: 1)
+        let isActive = selectedTab == tab
+        
+        return Text(tab.rawValue.uppercased())
+            .font(.caption)
+            .fontWeight(.bold)
+            .tracking(1.2)
+            .foregroundStyle(isActive ? tintColor : .secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.top, 24)
+            .padding(.bottom, 8)
             .id(tab)
+            .animation(.easeInOut(duration: 0.25), value: selectedTab)
             .onGeometryChange(for: CGFloat.self) { proxy in
                 proxy.frame(in: .scrollView).minY
             } action: { minY in
@@ -1390,6 +1263,69 @@ private struct GoalSessionDetailPreview: View {
     }
 }
 
-#Preview {
+#Preview("Full Detail") {
     GoalSessionDetailPreview()
+}
+
+#Preview("Hero Card") {
+    GoalSessionHeroCardPreview()
+}
+
+private struct GoalSessionHeroCardPreview: View {
+    let container: ModelContainer
+    let session: GoalSession
+    let store: GoalStore
+    let timerManager: SessionTimerManager
+    @State private var cardRotationY: Double = 0
+    @State private var shimmerOffset: CGFloat = -200
+    
+    init() {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(
+            for: Day.self, Goal.self, GoalSession.self, GoalTag.self,
+            configurations: config
+        )
+        self.container = container
+        
+        let goal = Goal(title: "Ship the launch deck")
+        goal.iconName = "doc.text.fill"
+        goal.themeID = "ocean"
+        goal.dailyMinimum = 5400 // 1h 30m
+        
+        let now = Date.now
+        let day = Day(start: now.startOfDay()!, end: now.endOfDay()!)
+        
+        container.mainContext.insert(goal)
+        container.mainContext.insert(day)
+        
+        let session = GoalSession(title: "Ship the launch deck", goal: goal, day: day)
+        container.mainContext.insert(session)
+        
+        try? container.mainContext.save()
+        
+        self.session = session
+        self.store = GoalStore()
+        self.timerManager = SessionTimerManager(goalStore: store, modelContext: container.mainContext)
+    }
+    
+    var body: some View {
+        ScrollView {
+            ProgressSummaryCardWrapper(
+                session: session,
+                weeklyProgress: session.progress,
+                weeklyElapsedTime: session.elapsedTime,
+                cardRotationY: $cardRotationY,
+                shimmerOffset: $shimmerOffset,
+                timerManager: timerManager,
+                onDone: {},
+                onSkip: {},
+                onManualLog: {}
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 20)
+        }
+        .background(Color(.systemGroupedBackground))
+        .environment(store)
+        .modelContainer(container)
+    }
 }

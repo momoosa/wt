@@ -132,12 +132,6 @@ struct GoalEditorCard: View {
                 
                 styleButton
             } else {
-                TextField("Write your own goal...", text: $vm.userInput)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .focused($isNameFocused)
-                    .matchedGeometryEffect(id: "label", in: cardAnimation)
-                
                 Spacer()
             }
         }

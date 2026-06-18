@@ -391,3 +391,51 @@ struct ProgressSummaryCard: View {
     
 }
 
+// MARK: - Preview
+
+#Preview("Progress Summary Card") {
+    @Previewable @State var shimmerOffset: CGFloat = -200
+    
+    let theme = ThemeStore.presets.first!
+    
+    ScrollView {
+        VStack(spacing: 20) {
+            ProgressSummaryCard(
+                goalTitle: "Morning Meditation",
+                themeName: "Ocean",
+                themeColors: theme,
+                dailyProgress: 0.35,
+                dailyElapsed: 1890,
+                targetUnit: .seconds,
+                currentValue: 0,
+                unifiedTargetValue: 5400,
+                shimmerOffset: $shimmerOffset
+            )
+            
+            ProgressSummaryCard(
+                goalTitle: "Daily Steps",
+                themeName: "Forest",
+                themeColors: ThemeStore.presets.dropFirst().first ?? theme,
+                dailyProgress: 0.72,
+                dailyElapsed: 0,
+                targetUnit: .steps,
+                currentValue: 7200,
+                unifiedTargetValue: 10000,
+                shimmerOffset: $shimmerOffset
+            )
+            
+            ProgressSummaryCard(
+                goalTitle: "Goal Complete",
+                themeName: "Sunset",
+                themeColors: ThemeStore.presets.dropFirst(2).first ?? theme,
+                dailyProgress: 1.0,
+                dailyElapsed: 3600,
+                targetUnit: .seconds,
+                currentValue: 0,
+                unifiedTargetValue: 3600,
+                shimmerOffset: $shimmerOffset
+            )
+        }
+        .padding()
+    }
+}
