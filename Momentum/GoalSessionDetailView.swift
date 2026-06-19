@@ -9,14 +9,50 @@ import WidgetKit
 #endif
 
 struct GoalSessionDetailView: View {
-    var session: GoalSession
+    // Core data — goal is always present, session may be resolved on appear
+    let goal: Goal
+    private var _initialSession: GoalSession?
+    var animation: Namespace.ID?
+    private var _externalTimerManager: SessionTimerManager?
+    var onMarkedComplete: (() -> Void)? = nil
+    @Namespace private var fallbackAnimation
+    
+    // Resolved session (populated on appear when entering via goal-only init)
+    @State private var resolvedSession: GoalSession?
+    @State private var localTimerManager: SessionTimerManager?
+    
     @Environment(\.editMode) private var editMode
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var context
     @Environment(GoalStore.self) private var goalStore
-    var animation: Namespace.ID
-    var timerManager: SessionTimerManager
-    var onMarkedComplete: (() -> Void)? = nil
+    
+    /// The active session — either the one passed in or resolved from today's Day
+    var session: GoalSession? {
+        _initialSession ?? resolvedSession
+    }
+    
+    /// The active timer manager — either external or locally created
+    var timerManager: SessionTimerManager? {
+        _externalTimerManager ?? localTimerManager
+    }
+    
+    /// Full init from planner (with session context)
+    init(session: GoalSession, animation: Namespace.ID, timerManager: SessionTimerManager, onMarkedComplete: (() -> Void)? = nil) {
+        self.goal = session.goal!
+        self._initialSession = session
+        self.animation = animation
+        self._externalTimerManager = timerManager
+        self.onMarkedComplete = onMarkedComplete
+    }
+    
+    /// Goal-only init from AllGoalsView (session resolved on appear, shares existing timer manager)
+    init(goal: Goal, timerManager: SessionTimerManager? = nil) {
+        self.goal = goal
+        self._initialSession = nil
+        self.animation = nil
+        self._externalTimerManager = timerManager
+        self.onMarkedComplete = nil
+    }
     let historicalSessionLimit = 3
     @State private var isShowingIntervalsEditor = false
     @State private var editGoalViewModel: GoalEditorViewModel?
@@ -56,48 +92,56 @@ struct GoalSessionDetailView: View {
     @State private var showingDeleteAlert = false
     @Environment(\.dismiss) private var dismiss
 
+    private var hasSession: Bool { session != nil }
+    
+    private var themePreset: ThemePreset {
+        goal.resolvedTheme
+    }
+    
     var tintColor: Color {
-        session.theme.color(for: colorScheme)
+        themePreset.color(for: colorScheme)
     }
     
     var textColor: Color {
-        session.theme.foregroundColor(for: colorScheme)
+        themePreset.foregroundColor(for: colorScheme)
     }
     
     var chartGradient: LinearGradient {
-        session.theme.gradient(for: colorScheme)
+        themePreset.gradient(for: colorScheme)
     }
     
     // MARK: - Data Helpers
     
     private var isTimerActive: Bool {
-        timerManager.isActive(session)
+        guard let session, let timerManager else { return false }
+        return timerManager.isActive(session)
     }
     
     private var currentElapsed: TimeInterval {
-        if let activeSession = timerManager.activeSession, timerManager.isActive(session) {
-            // Use currentValue which has built-in tickCount observation dependency
+        if let session, let timerManager,
+           let activeSession = timerManager.activeSession,
+           timerManager.isActive(session) {
             return activeSession.currentValue
         }
-        return session.elapsedTime
+        return session?.elapsedTime ?? 0
     }
     
     private var currentProgress: Double {
-        let target = session.effectiveTargetValue
+        let target = session?.effectiveTargetValue ?? goal.unifiedDailyTarget
         guard target > 0 else { return 0 }
-        if session.targetUnit.isTimeBased {
+        if (session?.targetUnit ?? goal.targetUnit).isTimeBased {
             return currentElapsed / target
         }
-        return session.currentValue / target
+        return (session?.currentValue ?? 0) / target
     }
     
     private var dailyTargetMinutes: Double {
-        session.effectiveTargetValue / 60.0
+        (session?.effectiveTargetValue ?? goal.unifiedDailyTarget) / 60.0
     }
     
     private var isReadOnly: Bool {
-        session.goal?.healthKitSyncEnabled == true &&
-        session.goal?.healthKitMetric?.supportsWrite == false
+        goal.healthKitSyncEnabled == true &&
+        goal.healthKitMetric?.supportsWrite == false
     }
     
     // MARK: - Weekly Data
@@ -114,7 +158,7 @@ struct GoalSessionDetailView: View {
     }
     
     private var weeklyProgressData: [DailyProgress] {
-        guard let goal = session.goal else { return [] }
+        let goal = self.goal
         
         let calendar = Calendar.current
         let now = Date()
@@ -220,7 +264,7 @@ struct GoalSessionDetailView: View {
     }
     
     private var totalDaysThisWeek: Int {
-        guard let goal = session.goal else { return 7 }
+        let goal = self.goal
         if goal.hasSchedule {
             var count = 0
             for wd in 1...7 {
@@ -232,7 +276,7 @@ struct GoalSessionDetailView: View {
     }
     
     private var currentStreak: Int {
-        guard let goal = session.goal else { return 0 }
+        let goal = self.goal
         let calendar = Calendar.current
         var streak = 0
         var date = Date()
@@ -287,7 +331,7 @@ struct GoalSessionDetailView: View {
     // MARK: - Consistency data (last 12 weeks grid)
     
     private var consistencyGrid: [[Double]] {
-        guard let goal = session.goal else { return [] }
+        let goal = self.goal
         let calendar = Calendar.current
         let today = Date()
         
@@ -346,31 +390,32 @@ struct GoalSessionDetailView: View {
                                 selectedTab = .hero
                             }
                         }
-                    ProgressSummaryCardWrapper(
-                        session: session,
-                        weeklyProgress: currentProgress,
-                        weeklyElapsedTime: currentElapsed,
-                        cardRotationY: $cardRotationY,
-                        shimmerOffset: $shimmerOffset,
-                        timerManager: timerManager,
-                        onDone: { markGoalAsDone() },
-                        onSkip: { toggleSkip() },
-                        onManualLog: { isCreatingNewHistoricalSession = true }
-                    )
-                    .padding(.horizontal, 16)
+                    if let session, let timerManager {
+                        ProgressSummaryCardWrapper(
+                            session: session,
+                            weeklyProgress: currentProgress,
+                            weeklyElapsedTime: currentElapsed,
+                            cardRotationY: $cardRotationY,
+                            shimmerOffset: $shimmerOffset,
+                            timerManager: timerManager,
+                            onDone: { markGoalAsDone() },
+                            onSkip: { toggleSkip() },
+                            onManualLog: { isCreatingNewHistoricalSession = true },
+                            onGoalTap: {
+                                editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                    } else {
+                        goalOverviewCard
+                            .padding(.horizontal, 16)
+                    }
                     
                     // All sections visible, scrollable
-                    sectionHeader(.whyNow)
-                    whyNowTab
-                    
-                    sectionHeader(.atAGlance)
-                    atAGlanceTab
-                    
-                    sectionHeader(.thisWeek)
-                    thisWeekTab
-                    
-                    sectionHeader(.consistency)
-                    consistencyTab
+                    ForEach(availableTabs.filter { $0 != .hero }, id: \.self) { tab in
+                        sectionHeader(tab)
+                        sectionContent(tab)
+                    }
                 }
             }
             .overlay {
@@ -386,36 +431,36 @@ struct GoalSessionDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button {
-                        withAnimation {
-                            session.pinnedInWidget.toggle()
-                        }
-                        #if canImport(WidgetKit)
-                        WidgetCenter.shared.reloadAllTimelines()
-                        #endif
-                    } label: {
-                        Label(
-                            session.pinnedInWidget ? "Unpin from Widget" : "Pin to Widget",
-                            systemImage: session.pinnedInWidget ? "pin.slash.fill" : "pin.fill"
-                        )
-                    }
-                    
-                    Divider()
-                    
-                    if let goal = session.goal {
+                    if let session {
                         Button {
                             withAnimation {
-                                goal.status = .archived
+                                session.pinnedInWidget.toggle()
                             }
+                            #if canImport(WidgetKit)
+                            WidgetCenter.shared.reloadAllTimelines()
+                            #endif
                         } label: {
-                            Text(goal.status == .archived ? "Unarchive" : "Archive")
+                            Label(
+                                session.pinnedInWidget ? "Unpin from Widget" : "Pin to Widget",
+                                systemImage: session.pinnedInWidget ? "pin.slash.fill" : "pin.fill"
+                            )
                         }
                         
-                        Button(role: .destructive) {
-                            showingDeleteAlert = true
-                        } label: {
-                            Label("Delete Goal", systemImage: "trash")
+                        Divider()
+                    }
+                    
+                    Button {
+                        withAnimation {
+                            goal.status = goal.status == .archived ? .active : .archived
                         }
+                    } label: {
+                        Text(goal.status == .archived ? "Unarchive" : "Archive")
+                    }
+                    
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete Goal", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill")
@@ -424,9 +469,7 @@ struct GoalSessionDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    if let goal = session.goal {
-                        editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
-                    }
+                    editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
                 } label: {
                     Image(systemName: "pencil.circle.fill")
                         .symbolRenderingMode(.hierarchical)
@@ -434,21 +477,21 @@ struct GoalSessionDetailView: View {
             }
         }
         .tint(tintColor)
-        .navigationTransition(.zoom(sourceID: session.id, in: animation))
+        .navigationTransition(.zoom(sourceID: session?.id ?? goal.id, in: animation ?? fallbackAnimation))
         .alert("Delete Goal?", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) { deleteGoal() }
         } message: {
-            Text("This will permanently delete \"\(session.goal?.title ?? "this goal")\" and all its data. This action cannot be undone.")
+            Text("This will permanently delete \"\(goal.title)\" and all its data. This action cannot be undone.")
         }
         .sheet(item: $editGoalViewModel) { vm in
             GoalEditorView(viewModel: vm)
         }
-        .sheet(item: $editingHistoricalSession) { session in
-            HistoricalSessionEditorView(session: session)
+        .sheet(item: $editingHistoricalSession) { historicalSession in
+            HistoricalSessionEditorView(session: historicalSession)
         }
         .sheet(isPresented: $isCreatingNewHistoricalSession) {
-            if let goal = session.goal, let day = session.day {
+            if let session, let day = session.day {
                 NavigationStack {
                     HistoricalSessionEditorView(
                         session: HistoricalSession(
@@ -464,6 +507,31 @@ struct GoalSessionDetailView: View {
                 }
             }
         }
+        .onAppear {
+            resolveSessionIfNeeded()
+        }
+    }
+    
+    /// When entering with just a Goal, look up today's session for this goal
+    private func resolveSessionIfNeeded() {
+        guard _initialSession == nil, resolvedSession == nil else { return }
+        
+        let calendar = Calendar.current
+        let todayID = Date().yearMonthDayID(with: calendar)
+        
+        do {
+            if let day = try context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == todayID })).first,
+               let session = day.sessions?.first(where: { $0.goal?.id == goal.id }) {
+                resolvedSession = session
+            }
+        } catch {
+            // No session found for today — goal-only mode
+        }
+        
+        // Create a local timer manager only if no external one was provided
+        if _externalTimerManager == nil && localTimerManager == nil {
+            localTimerManager = SessionTimerManager(goalStore: goalStore, modelContext: context)
+        }
     }
     
     // MARK: - Tab Bar
@@ -472,7 +540,7 @@ struct GoalSessionDetailView: View {
         ScrollViewReader { tabScrollProxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(DetailTab.allCases, id: \.self) { tab in
+                    ForEach(availableTabs, id: \.self) { tab in
                         Button {
                             isScrollingFromTap = true
                             selectedTab = tab
@@ -535,11 +603,86 @@ struct GoalSessionDetailView: View {
             }
     }
     
+    /// Tabs available for the current context
+    private var availableTabs: [DetailTab] {
+        if hasSession {
+            return DetailTab.allCases
+        } else {
+            return DetailTab.allCases.filter { $0 != .whyNow }
+        }
+    }
+    
+    @ViewBuilder
+    private func sectionContent(_ tab: DetailTab) -> some View {
+        switch tab {
+        case .hero:
+            EmptyView()
+        case .whyNow:
+            if hasSession { whyNowTab }
+        case .atAGlance:
+            atAGlanceTab
+        case .thisWeek:
+            thisWeekTab
+        case .consistency:
+            consistencyTab
+        }
+    }
+    
+    // MARK: - Goal Overview Card (no session)
+    
+    private var goalOverviewCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("TOTAL FOCUSED")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .tracking(1)
+                    .foregroundStyle(textColor.opacity(0.8))
+                
+                Spacer()
+                
+                if weeklyDeltaMinutes != 0 {
+                    let deltaSeconds = abs(weeklyDeltaMinutes) * 60
+                    Text("\(weeklyDeltaMinutes > 0 ? "↑" : "↓") \(TimeInterval(deltaSeconds).formatted(style: .hourMinute))")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(textColor.opacity(0.9))
+                }
+            }
+            
+            Text(TimeInterval(thisWeekMinutes * 60).formatted(style: .hourMinute))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundStyle(textColor)
+            
+            GoalWeeklyBarChart(dailyMinutes: thisWeekDailyMinutes, barColor: textColor)
+            
+            Button {
+                editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+            } label: {
+                HStack {
+                    Text(goal.title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(textColor.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .background {
+            themePreset.gradient(for: colorScheme)
+        }
+        .glassCardStyle(shadowColor: themePreset.color(for: colorScheme))
+    }
+    
     // MARK: - Why Now Tab
     
     private var whyNowTab: some View {
         VStack(spacing: 16) {
-            let reasons = session.safeRecommendationReasons
+            let reasons = session?.safeRecommendationReasons ?? []
             
             if !reasons.isEmpty {
                 // Callout banner
@@ -576,7 +719,7 @@ struct GoalSessionDetailView: View {
                 )
                 
                 // Footer
-                if session.goal?.hasSchedule == true {
+                if goal.hasSchedule {
                     HStack(spacing: 8) {
                         Image(systemName: "calendar")
                             .font(.caption)
@@ -716,8 +859,21 @@ struct GoalSessionDetailView: View {
             // Daily progress bar strip
             dailyProgressStrip
             
+            // Schedule grid
+            if goal.hasSchedule {
+                scheduleGridSection
+            }
+            
             // Settings section
             settingsSection
+            
+            // Tags
+            if let otherTags = goal.otherTags, !otherTags.isEmpty {
+                tagsSection(tags: otherTags)
+            }
+            
+            // Stats
+            goalStatsSection
             
             // Checklist
             checklistSection
@@ -986,73 +1142,91 @@ struct GoalSessionDetailView: View {
     
     // MARK: - History Section
     
+    @ViewBuilder
     private var historySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("HISTORY")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                
-                Text("\(session.historicalSessions.count)")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color(.systemBackground))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(tintColor))
-                
-                Spacer()
-                
-                Button {
-                    isCreatingNewHistoricalSession = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(tintColor)
+        if let session {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("HISTORY")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                    
+                    Text("\(session.historicalSessions.count)")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color(.systemBackground))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(tintColor))
+                    
+                    Spacer()
+                    
+                    Button {
+                        isCreatingNewHistoricalSession = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(tintColor)
+                    }
                 }
-            }
-            
-            if session.historicalSessions.isEmpty {
-                Text("No sessions recorded yet")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-            } else {
-                ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
-                    HStack {
-                        HistoricalSessionRow(
-                            session: historicalSession,
-                            showsTimeSummaryInsteadOfTitle: true,
-                            allSessions: Array(session.historicalSessions)
-                        )
-                        
-                        if historicalSession.healthKitType == nil {
-                            Spacer()
-                            Button {
-                                editingHistoricalSession = historicalSession
-                                isShowingHistoricalSessionEditor = true
-                            } label: {
-                                Image(systemName: "pencil.circle.fill")
-                                    .foregroundStyle(tintColor)
-                                    .font(.title3)
+                
+                if session.historicalSessions.isEmpty {
+                    Text("No sessions recorded yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                } else {
+                    ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
+                        HStack {
+                            HistoricalSessionRow(
+                                session: historicalSession,
+                                showsTimeSummaryInsteadOfTitle: true,
+                                allSessions: Array(session.historicalSessions)
+                            )
+                            
+                            if historicalSession.healthKitType == nil {
+                                Spacer()
+                                Button {
+                                    editingHistoricalSession = historicalSession
+                                    isShowingHistoricalSessionEditor = true
+                                } label: {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .foregroundStyle(tintColor)
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                        }
+                        .contextMenu {
+                            if historicalSession.healthKitType == nil {
+                                Button {
+                                    editingHistoricalSession = historicalSession
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                            }
+                            
+                            Button(role: .destructive) {
+                                deleteHistoricalSession(historicalSession)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        
+                        if historicalSession.id != session.historicalSessions.prefix(historicalSessionLimit).last?.id {
+                            Divider()
                         }
                     }
-                    
-                    if historicalSession.id != session.historicalSessions.prefix(historicalSessionLimit).last?.id {
-                        Divider()
-                    }
                 }
             }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemGroupedBackground))
-        )
     }
     
     // MARK: - Settings Section
@@ -1065,7 +1239,7 @@ struct GoalSessionDetailView: View {
                 .foregroundStyle(.secondary)
             
             // HealthKit
-            if let goal = session.goal, goal.healthKitSyncEnabled == true, let metric = goal.healthKitMetric {
+            if goal.healthKitSyncEnabled == true, let metric = goal.healthKitMetric {
                 HStack(spacing: 12) {
                     Image(systemName: metric.symbolName)
                         .foregroundStyle(.red)
@@ -1090,7 +1264,7 @@ struct GoalSessionDetailView: View {
             }
             
             // Notes
-            if let notes = session.goal?.notes, !notes.isEmpty {
+            if let notes = goal.notes, !notes.isEmpty {
                 HStack(spacing: 12) {
                     Image(systemName: "note.text")
                         .foregroundStyle(tintColor)
@@ -1102,8 +1276,47 @@ struct GoalSessionDetailView: View {
                 }
             }
             
+            // Notifications
+            if goal.scheduleNotificationsEnabled {
+                HStack(spacing: 12) {
+                    Image(systemName: "bell.badge.fill")
+                        .foregroundStyle(tintColor)
+                        .frame(width: 24)
+                    Text("Start Notifications")
+                        .font(.subheadline)
+                }
+            }
+            
+            if goal.completionNotificationsEnabled {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(tintColor)
+                        .frame(width: 24)
+                    Text("Finish Notifications")
+                        .font(.subheadline)
+                }
+            }
+            
+            // Weather
+            if goal.weatherEnabled {
+                HStack(spacing: 12) {
+                    Image(systemName: "cloud.sun.fill")
+                        .foregroundStyle(.blue)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Weather-Based Visibility")
+                            .font(.subheadline)
+                        if let conditions = goal.weatherConditionsTyped, !conditions.isEmpty {
+                            Text(conditions.map { $0.displayName }.joined(separator: ", "))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            
             // Link
-            if let link = session.goal?.link, let url = URL(string: link) {
+            if let link = goal.link, let url = URL(string: link) {
                 Button {
                     UIApplication.shared.open(url)
                 } label: {
@@ -1127,11 +1340,173 @@ struct GoalSessionDetailView: View {
         )
     }
     
+    // MARK: - Schedule Grid
+    
+    private var scheduleGridSection: some View {
+        let weekdays: [(Int, String)] = [
+            (2, "M"), (3, "T"), (4, "W"),
+            (5, "T"), (6, "F"), (7, "S"), (1, "S")
+        ]
+        let times = Array(TimeOfDay.allCases)
+        
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("SCHEDULE")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            VStack(spacing: 4) {
+                // Header row
+                HStack(spacing: 6) {
+                    ForEach(weekdays, id: \.0) { _, label in
+                        Text(label)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                
+                // Grid with gradient
+                ZStack {
+                    themePreset.gradient(for: colorScheme)
+                        .mask {
+                            VStack(spacing: 2) {
+                                ForEach(times, id: \.self) { time in
+                                    HStack(spacing: 8) {
+                                        ForEach(weekdays, id: \.0) { weekday, _ in
+                                            let isScheduled = goal.isScheduled(weekday: weekday, time: time)
+                                            Image(systemName: time.icon)
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundStyle(isScheduled ? Color.white : Color.clear)
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .frame(height: 20)
+                                        }
+                                    }
+                                    .frame(height: 20)
+                                }
+                            }
+                        }
+                    
+                    // Unscheduled overlay
+                    VStack(spacing: 2) {
+                        ForEach(times, id: \.self) { time in
+                            HStack(spacing: 8) {
+                                ForEach(weekdays, id: \.0) { weekday, _ in
+                                    let isScheduled = goal.isScheduled(weekday: weekday, time: time)
+                                    Image(systemName: time.icon)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(isScheduled ? Color.clear : Color.secondary.opacity(0.15))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .frame(height: 20)
+                                }
+                            }
+                            .frame(height: 20)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+    }
+    
+    // MARK: - Tags Section
+    
+    private func tagsSection(tags: [GoalTag]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("TAGS")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(tags, id: \.themeID) { tag in
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(tag.theme.color(for: colorScheme))
+                                .frame(width: 8, height: 8)
+                            Text(tag.title)
+                                .font(.subheadline)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(tag.theme.color(for: colorScheme).opacity(0.2))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+    }
+    
+    // MARK: - Goal Stats Section
+    
+    private var goalStatsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("GOAL INFO")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            HStack {
+                Text("Daily Target")
+                    .font(.subheadline)
+                Spacer()
+                Text("\(Int(goal.unifiedWeeklyTarget / 60 / 7))m")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            
+            HStack {
+                Text("Weekly Target")
+                    .font(.subheadline)
+                Spacer()
+                Text("\(Int(goal.unifiedWeeklyTarget / 60))m")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            
+            if let dailyMin = goal.dailyMinimum {
+                HStack {
+                    Text("Daily Minimum")
+                        .font(.subheadline)
+                    Spacer()
+                    Text("\(Int(dailyMin / 60))m")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            HStack {
+                Text("Status")
+                    .font(.subheadline)
+                Spacer()
+                Text(goal.status == .active ? "Active" : "Archived")
+                    .font(.subheadline)
+                    .foregroundStyle(goal.status == .active ? .green : .secondary)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+    }
+    
     // MARK: - Checklist Section
     
     @ViewBuilder
     private var checklistSection: some View {
-        if let checklist = session.checklist, !checklist.isEmpty {
+        if let checklist = session?.checklist, !checklist.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("CHECKLIST")
@@ -1168,6 +1543,7 @@ struct GoalSessionDetailView: View {
     // MARK: - Actions
     
     private func markGoalAsDone() {
+        guard let session, let timerManager else { return }
         withAnimation {
             guard let day = session.day else { return }
             timerManager.markGoalAsDone(session: session, day: day, context: context)
@@ -1182,6 +1558,7 @@ struct GoalSessionDetailView: View {
     }
     
     private func toggleSkip() {
+        guard let session else { return }
         withAnimation {
             if session.status == .skipped {
                 session.status = .active
@@ -1192,8 +1569,15 @@ struct GoalSessionDetailView: View {
         context.safeSave()
     }
     
+    private func deleteHistoricalSession(_ historicalSession: HistoricalSession) {
+        withAnimation {
+            session?.day?.historicalSessions?.removeAll { $0.id == historicalSession.id }
+            context.delete(historicalSession)
+        }
+        context.safeSave()
+    }
+    
     private func deleteGoal() {
-        guard let goal = session.goal else { return }
         HapticFeedbackManager.trigger(.warning)
         
         withAnimation {
@@ -1203,6 +1587,43 @@ struct GoalSessionDetailView: View {
         if context.safeSave() {
             dismiss()
         }
+    }
+}
+
+// MARK: - Weekly Bar Chart
+
+private struct GoalWeeklyBarChart: View {
+    let dailyMinutes: [Double]
+    let barColor: Color
+    let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+    
+    var body: some View {
+        let maxMinutes = max(dailyMinutes.max() ?? 1, 1)
+        
+        HStack(alignment: .bottom, spacing: 8) {
+            ForEach(0..<7, id: \.self) { index in
+                let minutes = index < dailyMinutes.count ? dailyMinutes[index] : 0
+                let ratio = minutes / maxMinutes
+                
+                VStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(barColor.opacity(minutes > 0 ? 0.3 + (ratio * 0.7) : 0.15))
+                        .frame(height: max(barHeight(minutes, max: maxMinutes), 4))
+                    
+                    Text(dayLabels[index])
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(barColor.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 60)
+    }
+    
+    private func barHeight(_ value: Double, max maxValue: Double) -> CGFloat {
+        guard maxValue > 0, value > 0 else { return 4 }
+        return CGFloat(value / maxValue) * 48
     }
 }
 
@@ -1300,7 +1721,7 @@ private struct GoalSessionHeroCardPreview: View {
         
         let session = GoalSession(title: "Ship the launch deck", goal: goal, day: day)
         container.mainContext.insert(session)
-        
+        session.day?.add(historicalSession: HistoricalSession(title: "1", start: now, end: now.endOfDay()!, needsHealthKitRecord: false))
         try? container.mainContext.save()
         
         self.session = session

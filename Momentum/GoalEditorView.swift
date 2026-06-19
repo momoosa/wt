@@ -59,6 +59,9 @@ struct GoalEditorView: View {
     @State private var showSettingsSection = false
     @State private var showNotesSection = false
     
+    // Debounce for theme recommendation
+    @State private var themeRecommendationDebounce: Task<Void, Never>?
+    
     private var activeThemeColor: Color {
         viewModel.getActiveThemeColor(colorScheme: colorScheme)
     }
@@ -225,6 +228,16 @@ struct GoalEditorView: View {
                 showScheduleSection = true
                 showSettingsSection = true
                 showNotesSection = true
+            }
+        }
+        .onChange(of: viewModel.userInput) {
+            // Debounce: kick off a theme recommendation after a short pause
+            guard stage == .title, !isEditingExisting else { return }
+            themeRecommendationDebounce?.cancel()
+            themeRecommendationDebounce = Task {
+                try? await Task.sleep(for: .milliseconds(600))
+                guard !Task.isCancelled else { return }
+                viewModel.recommendTheme(for: viewModel.userInput)
             }
         }
     }

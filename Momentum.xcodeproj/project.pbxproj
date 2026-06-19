@@ -25,7 +25,6 @@
 		CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */; };
 		CD07E13C2F6D571100D751D9 /* CalendarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */; };
 		CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */; };
-		CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD083F5C2F608C82002802E7 /* GoalDetailView.swift */; };
 		CD0B80992F43A590006EDA47 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0B80982F43A590006EDA47 /* SearchSheet.swift */; };
 		CD0F3CC32EEF249B00119B86 /* IntervalListSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */; };
 		CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */; };
@@ -242,7 +241,6 @@
 		CD07E13B2F6D571100D751D9 /* CalendarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSettingsView.swift; sourceTree = "<group>"; };
 		CD07E13E2F6D738700D751D9 /* ConsolidatedTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsolidatedTodayView.swift; sourceTree = "<group>"; };
 		CD07E1422F6DCA1B00D751D9 /* Momentum.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Momentum.xctestplan; sourceTree = "<group>"; };
-		CD083F5C2F608C82002802E7 /* GoalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDetailView.swift; sourceTree = "<group>"; };
 		CD0B80982F43A590006EDA47 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		CD0F3CC22EEF249B00119B86 /* IntervalListSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalListSelector.swift; sourceTree = "<group>"; };
 		CD0F3CC42EEF249E00119B86 /* ListsOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListsOverviewView.swift; sourceTree = "<group>"; };
@@ -711,7 +709,6 @@
 				CDA398AE2F5D75AE00E03D07 /* CloudKitSyncToast.swift */,
 				CDA398B22F5DA8B700E03D07 /* WatchConnectivityManager.swift */,
 				CD1A6C982F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift */,
-				CD083F5C2F608C82002802E7 /* GoalDetailView.swift */,
 				CD0799902F65A9B9001B9C33 /* DailyProgressViewModel.swift */,
 				CD0799942F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift */,
 				CD07E1372F6D505300D751D9 /* CalendarAvailabilityManager.swift */,
@@ -1111,7 +1108,6 @@
 				CD6A0C312F89999F008F5D93 /* SessionViewModel.swift in Sources */,
 				CD2C50622FE1196200F9ABD9 /* WeeklyRecapView.swift in Sources */,
 				CD0085972F1ADBC800A555D6 /* HealthKitInfoRow.swift in Sources */,
-				CD083F5D2F608C82002802E7 /* GoalDetailView.swift in Sources */,
 				CDF6E8FE2FB39F18008767D9 /* ToolbarBuilder.swift in Sources */,
 				CDF6E9062FB39F45008767D9 /* DeepLinkHandler.swift in Sources */,
 				CD199C1B2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift in Sources */,

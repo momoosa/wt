@@ -41,10 +41,22 @@ class GoalEditorViewModel: Identifiable {
     private var errorMessage: String?
     private var generationTask: Task<Void, Never>?
     var selectedSuggestion: GoalSuggestion.PartiallyGenerated?
+    
+    // MARK: - Theme Recommendation (on-device LLM)
+    
+    /// The recommended theme preset from the on-device model, ready to apply
+    var recommendedTheme: ThemePreset?
+    /// The recommended icon from the on-device model
+    var recommendedIcon: String?
+    /// Whether a recommendation is currently in flight
+    var isRecommendingTheme: Bool = false
+    /// Task handle for the recommendation so we can cancel on new input
+    private var themeRecommendationTask: Task<Void, Never>?
+    
     // MARK: - Template & Suggestions
     
     var selectedTemplate: GoalTemplateSuggestion?
-    var selectedCategoryIndex: Int = 0
+    var selectedCategoryIndex: Int = -2
     var suggestionsData: GoalSuggestionsData
     
     // Alias map for suggestion autocomplete
@@ -286,6 +298,8 @@ class GoalEditorViewModel: Identifiable {
         } else if let template = selectedTemplate,
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             return matchTheme(named: category.color)
+        } else if let recommended = recommendedTheme {
+            return recommended
         }
         return nil
     }
@@ -470,13 +484,15 @@ class GoalEditorViewModel: Identifiable {
     /// Redistributes a new weekly total evenly across active days
     func updateWeeklyTarget(_ newWeeklyMinutes: Int) {
         let dayCount = max(activeDays.count, 1)
-        let baseDailyMinutes = newWeeklyMinutes / dayCount
-        let remainder = newWeeklyMinutes % dayCount
+        // Enforce minimum 5 minutes per day for time-based goals
+        let clampedWeekly = max(newWeeklyMinutes, dayCount * 5)
+        let baseDailyMinutes = clampedWeekly / dayCount
+        let remainder = clampedWeekly % dayCount
         let sortedDays = activeDays.sorted()
         for (index, weekday) in sortedDays.enumerated() {
-            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
+            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 5)
         }
-        durationInMinutes = newWeeklyMinutes
+        durationInMinutes = clampedWeekly
     }
     
     func validatePrimaryMetricTarget() {
@@ -574,7 +590,7 @@ class GoalEditorViewModel: Identifiable {
         let remainder = template.duration % dayCount
         let sortedDays = targetDays.sorted()
         for (index, weekday) in sortedDays.enumerated() {
-            dailyTargets[weekday] = baseDailyMinutes + (index < remainder ? 1 : 0)
+            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 5)
         }
         
         // Infer and set icon from template
@@ -630,6 +646,9 @@ class GoalEditorViewModel: Identifiable {
             switch goalTypeString {
             case "count": selectedGoalType = .steps
             case "calories": selectedGoalType = .kilocalories
+            case "screentime":
+                selectedGoalType = .screenTime
+                handleGoalTypeChange(.screenTime)
             default: selectedGoalType = .seconds
             }
         } else {
@@ -944,7 +963,13 @@ class GoalEditorViewModel: Identifiable {
                 applyTemplate(template, allTags: allTags)
                 currentStage = .duration
             } else {
-                // New freeform goal: populate daily targets from default duration
+                // New freeform goal: apply LLM-recommended theme/icon if available
+                applyRecommendedThemeIfNeeded(allTags: allTags)
+                
+                // Infer icon from title if LLM didn't provide one
+                inferIconFromInput()
+                
+                // Populate daily targets from default duration
                 if dailyTargets.isEmpty {
                     let dayCount = max(activeDays.count, 1)
                     let baseDailyMinutes = durationInMinutes / dayCount
@@ -952,7 +977,7 @@ class GoalEditorViewModel: Identifiable {
                     let sortedDays = activeDays.sorted()
                     for (index, weekday) in sortedDays.enumerated() {
                         // Distribute remainder across first few days so weekly total is exact
-                        dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
+                        dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 5)
                     }
                 }
                 currentStage = .duration
@@ -1109,6 +1134,70 @@ class GoalEditorViewModel: Identifiable {
         }
     }
     
+    // MARK: - Theme Recommendation
+    
+    /// Kicks off an on-device LLM call to recommend a theme and icon for the given title.
+    /// Cancels any previous in-flight recommendation.
+    func recommendTheme(for title: String) {
+        themeRecommendationTask?.cancel()
+        
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else {
+            recommendedTheme = nil
+            recommendedIcon = nil
+            return
+        }
+        
+        isRecommendingTheme = true
+        
+        let themeTitles = ThemeStore.presets.map(\.title).joined(separator: ", ")
+        
+        themeRecommendationTask = Task {
+            defer { 
+                Task { @MainActor in self.isRecommendingTheme = false }
+            }
+            
+            do {
+                let session = LanguageModelSession()
+                let response = try await session.respond(
+                    to: "Given the goal title \"\(trimmed)\", pick the single most fitting color theme and SF Symbol icon. Available themes: \(themeTitles). Return the exact theme title and a valid SF Symbol name.",
+                    generating: ThemeRecommendationResult.self
+                )
+                
+                guard !Task.isCancelled else { return }
+                
+                let result = response.content
+                
+                // Match the theme title to an actual preset
+                let matched = ThemeStore.presets.first { $0.title.caseInsensitiveCompare(result.themeTitle) == .orderedSame }
+                    ?? ThemeStore.presets.first { $0.title.localizedCaseInsensitiveContains(result.themeTitle) }
+                
+                await MainActor.run {
+                    self.recommendedTheme = matched
+                    self.recommendedIcon = result.iconName
+                }
+            } catch {
+                // Silently fail — recommendation is best-effort
+            }
+        }
+    }
+    
+    /// Applies the LLM-recommended theme and icon if no user selection has been made.
+    func applyRecommendedThemeIfNeeded(allTags: [GoalTag]) {
+        // Don't override if the user already picked a color or template
+        guard selectedColorPreset == nil,
+              selectedGoalTheme == nil,
+              selectedTemplate == nil else { return }
+        
+        if let preset = recommendedTheme {
+            handleColorSelection(preset)
+        }
+        
+        if let icon = recommendedIcon, selectedIcon == nil {
+            selectedIcon = icon
+        }
+    }
+    
     // MARK: - Save Goal
     
     func saveGoal(
@@ -1214,7 +1303,7 @@ class GoalEditorViewModel: Identifiable {
         switch selectedGoalType {
         case .seconds:
             let avgDailySeconds = activeDays.isEmpty ? 1800.0 : Double(calculatedWeeklyTarget * 60) / Double(activeDays.count)
-            goal.unifiedDailyTarget = avgDailySeconds
+            goal.unifiedDailyTarget = max(avgDailySeconds, 300) // Minimum 5 minutes
             goal.perDayTargets.removeAll()
             for (weekday, minutes) in dailyTargets {
                 goal.perDayTargets[String(weekday)] = Double(minutes * 60)
@@ -1429,7 +1518,20 @@ class GoalEditorViewModel: Identifiable {
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             let matchedTheme = matchTheme(named: category.color)
             return matchedTheme.color(for: colorScheme)
+        } else if let recommended = recommendedTheme {
+            return recommended.color(for: colorScheme)
         }
         return .accentColor
     }
+}
+
+// MARK: - Generable Types for On-Device LLM
+
+@Generable(description: "A recommended theme and icon for a goal based on its title")
+struct ThemeRecommendationResult {
+    @Guide(description: "The exact title of the recommended color theme")
+    var themeTitle: String
+    
+    @Guide(description: "A valid SF Symbol name for the goal icon, e.g. 'figure.run', 'book.fill', 'music.note'")
+    var iconName: String
 }

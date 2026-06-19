@@ -110,6 +110,7 @@ struct ProgressSummaryCardWrapper: View {
     let onDone: () -> Void
     let onSkip: () -> Void
     let onManualLog: () -> Void
+    var onGoalTap: (() -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
     
     var isTimerActive: Bool {
@@ -138,7 +139,8 @@ struct ProgressSummaryCardWrapper: View {
             timerManager: timerManager,
             onDone: onDone,
             onSkip: onSkip,
-            onManualLog: onManualLog
+            onManualLog: onManualLog,
+            onGoalTap: onGoalTap
         )
     }
 }
@@ -164,6 +166,7 @@ struct ProgressSummaryCard: View {
     var onDone: (() -> Void)?
     var onSkip: (() -> Void)?
     var onManualLog: (() -> Void)?
+    var onGoalTap: (() -> Void)?
     
     // Computed property that accesses currentTime to ensure updates when timer is active
     private var currentElapsed: TimeInterval {
@@ -210,6 +213,7 @@ struct ProgressSummaryCard: View {
                                     .fontWeight(.bold)
                                     .foregroundStyle(textColor)
                                     .contentTransition(.numericText())
+                                    .animation(.default, value: Int(currentProgress * 100))
 
                             }
                             .accessibilityElement(children: .ignore)
@@ -235,6 +239,16 @@ struct ProgressSummaryCard: View {
                                         .background(textColor.opacity(0.2))
                                         .clipShape(Capsule())
                                 }
+                                
+                                if onGoalTap != nil {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(textColor.opacity(0.5))
+                                }
+                            }
+                            .onTapGesture {
+                                onGoalTap?()
                             }
 
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -242,6 +256,7 @@ struct ProgressSummaryCard: View {
                                     Text(currentElapsed.formatted(style: .hmmss))
                                         .foregroundStyle(textColor)
                                         .contentTransition(.numericText())
+                                        .animation(.default, value: Int(currentElapsed))
                                     
                                     Text("/ \(unifiedTargetValue.formatted(style: .hmmss))")
                                         .foregroundStyle(textColor.opacity(0.7))
@@ -249,6 +264,7 @@ struct ProgressSummaryCard: View {
                                     Text("\(Int(currentValue).formatted())")
                                         .foregroundStyle(textColor)
                                         .contentTransition(.numericText())
+                                        .animation(.default, value: Int(currentValue))
                                     
                                     Text("/ \(Int(unifiedTargetValue).formatted()) \(targetUnit.label)")
                                         .foregroundStyle(textColor.opacity(0.7))

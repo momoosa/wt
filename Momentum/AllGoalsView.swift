@@ -13,6 +13,7 @@ struct AllGoalsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let goals: [Goal]
+    var timerManager: SessionTimerManager?
     
     @Environment(\.colorScheme) private var colorScheme
     @State private var goalToDelete: Goal?
@@ -91,7 +92,7 @@ struct AllGoalsView: View {
                 Text("Are you sure you want to delete \"\(goal.title)\"? This action cannot be undone.")
             }
             .navigationDestination(item: $selectedGoal) { goal in
-                GoalDetailView(goal: goal)
+                GoalSessionDetailView(goal: goal, timerManager: timerManager)
             }
         }
     }

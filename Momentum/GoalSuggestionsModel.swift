@@ -13,7 +13,20 @@ import MomentumKit
 // MARK: - Root Model
 
 struct GoalSuggestionsData: Codable {
+    let featured: [String]?
     let categories: [GoalCategory]
+    
+    var featuredSuggestions: [(suggestion: GoalTemplateSuggestion, category: GoalCategory)] {
+        guard let ids = featured else { return [] }
+        return ids.compactMap { id in
+            for category in categories {
+                if let suggestion = category.suggestions.first(where: { $0.id == id }) {
+                    return (suggestion, category)
+                }
+            }
+            return nil
+        }
+    }
 }
 
 // MARK: - Category Model
@@ -44,8 +57,9 @@ struct GoalTemplateSuggestion: Codable, Identifiable {
     let dailyGoal: Bool? // true = distribute across all 7 days, false/nil = weekdays only (Mon-Fri)
     let healthKitMetric: String? // raw value of HealthKitMetric or null
     let icon: String
-    let goalType: String? // "time", "count", or "calories" - optional for backward compatibility
+    let goalType: String? // "time", "count", "calories", or "screentime"
     let primaryMetricTarget: Double? // daily target for count/calorie goals
+    let isPremium: Bool? // true = requires premium subscription
 }
 
 // MARK: - Loader
@@ -64,7 +78,7 @@ class GoalSuggestionsLoader {
         // Load from MomentumKit bundle
         guard let url = ThemeStore.bundle.url(forResource: "GoalSuggestions", withExtension: "json") else {
             AppLogger.app.error("Could not find GoalSuggestions.json")
-            return GoalSuggestionsData(categories: [])
+            return GoalSuggestionsData(featured: nil, categories: [])
         }
         
         do {
@@ -76,7 +90,7 @@ class GoalSuggestionsLoader {
             return suggestionsData
         } catch {
             AppLogger.app.error("Failed to decode GoalSuggestions.json: \(error)")
-            return GoalSuggestionsData(categories: [])
+            return GoalSuggestionsData(featured: nil, categories: [])
         }
     }
     

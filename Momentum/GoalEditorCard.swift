@@ -125,13 +125,17 @@ struct GoalEditorCard: View {
                     .fontWeight(.bold)
                     .tracking(1.5)
                     .foregroundStyle(.secondary)
-                    .matchedGeometryEffect(id: "label", in: cardAnimation)
                 
-
                 Spacer()
                 
                 styleButton
             } else {
+                TextField("Write your own goal...", text: $vm.userInput)
+                    .font(.system(size: isExpanded ? 26 : 17, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .focused($isNameFocused)
+                    .matchedGeometryEffect(id: "label", in: cardAnimation)
+                
                 Spacer()
             }
         }
@@ -213,6 +217,8 @@ struct GoalEditorCard: View {
                     .font(.system(size: 26, weight: .bold, design: .default))
                     .focused($isNameFocused)
                     .textFieldStyle(.plain)
+//                    .matchedGeometryEffect(id: "label", in: cardAnimation)
+
             }
             
             // Sentence: [value] [unit] a [period]

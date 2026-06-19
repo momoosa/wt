@@ -762,7 +762,7 @@ struct ContentView: View {
     
     
     private var allGoalsSheet: some View {
-        AllGoalsView(goals: goals)
+        AllGoalsView(goals: goals, timerManager: timerManager)
     }
     
     private var nowPlayingView: some View {

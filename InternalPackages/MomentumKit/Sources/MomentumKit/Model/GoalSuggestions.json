@@ -1,4 +1,5 @@
 {
+  "featured": ["move_goal", "run", "daily_steps", "screen_time_limit", "meditation", "reading", "yoga", "focus_work"],
   "categories": [
     {
       "id": "fitness",
@@ -37,6 +38,17 @@
           "duration": 20,
           "healthKitMetric": "walking",
           "icon": "figure.walk"
+        },
+        {
+          "id": "daily_steps",
+          "title": "10K Steps",
+          "subtitle": "Daily step count goal",
+          "duration": 0,
+          "dailyGoal": true,
+          "healthKitMetric": "stepCount",
+          "icon": "shoeprints.fill",
+          "goalType": "count",
+          "primaryMetricTarget": 10000
         },
         {
           "id": "strength",
@@ -221,6 +233,18 @@
           "duration": 90,
           "healthKitMetric": null,
           "icon": "rectangle.on.rectangle"
+        },
+        {
+          "id": "screen_time_limit",
+          "title": "Screen Time",
+          "subtitle": "Limit daily app usage",
+          "duration": 120,
+          "dailyGoal": true,
+          "healthKitMetric": null,
+          "icon": "hourglass",
+          "goalType": "screentime",
+          "primaryMetricTarget": 120,
+          "isPremium": true
         },
         {
           "id": "planning",
