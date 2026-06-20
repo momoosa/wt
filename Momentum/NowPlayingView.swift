@@ -36,12 +36,23 @@ struct NowPlayingView: View {
         self.onAdjustStartTime = onAdjustStartTime
     }
     
+    private var isTimeBased: Bool {
+        activeSessionDetails.targetUnit.isTimeBased
+    }
+    
     private var targetLabel: String {
-        let target = activeSessionDetails.dailyTarget
-        if target > 0 {
-            return "TARGET \(target.formatted(style: .hourMinute))".uppercased()
+        if isTimeBased {
+            let target = activeSessionDetails.dailyTarget
+            if target > 0 {
+                return "TARGET \(target.formatted(style: .hourMinute))".uppercased()
+            }
+            return ""
+        } else {
+            let target = Int(activeSessionDetails.unifiedTargetValue)
+            guard target > 0 else { return "" }
+            let unitLabel = activeSessionDetails.targetUnit == .steps ? "STEPS" : "KCAL"
+            return "TARGET \(target.formatted()) \(unitLabel)"
         }
-        return ""
     }
     
     private var elapsedFormatted: String {
@@ -54,6 +65,16 @@ struct NowPlayingView: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         }
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private var metricFormatted: String {
+        let current = Int(activeSessionDetails.metricValue)
+        let target = Int(activeSessionDetails.unifiedTargetValue)
+        let unitLabel = activeSessionDetails.targetUnit == .steps ? "steps" : "kcal"
+        if target > 0 {
+            return "\(current.formatted())/\(target.formatted()) \(unitLabel)"
+        }
+        return "\(current.formatted()) \(unitLabel)"
     }
     
     var body: some View {
@@ -153,17 +174,24 @@ struct NowPlayingView: View {
                     
                
                     
-                    // Center content: time + percentage + edit
+                    // Center content: time or metric + percentage + edit
                     VStack(spacing: 8) {
-                        if let timeText = activeSessionDetails.timeText {
-                            Text(timeText)
-                                .font(.system(size: 38, weight: .bold, design: .rounded))
+                        if isTimeBased {
+                            if let timeText = activeSessionDetails.timeText {
+                                Text(timeText)
+                                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                                    .foregroundStyle(foregroundColor)
+                                    .contentTransition(.numericText())
+                            } else {
+                                Text(elapsedFormatted)
+                                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                                    .foregroundStyle(foregroundColor)
+                            }
+                        } else {
+                            Text(metricFormatted)
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
                                 .foregroundStyle(foregroundColor)
                                 .contentTransition(.numericText())
-                        } else {
-                            Text(elapsedFormatted)
-                                .font(.system(size: 38, weight: .bold, design: .rounded))
-                                .foregroundStyle(foregroundColor)
                         }
                         
                         HStack(spacing: 6) {
@@ -188,22 +216,24 @@ struct NowPlayingView: View {
                             }
                         }
                         
-                        Button {
-                            showingAdjustments = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "pencil")
-                                    .font(.caption2.weight(.semibold))
-                                Text("Edit Time")
-                                    .font(.caption.weight(.medium))
+                        if isTimeBased {
+                            Button {
+                                showingAdjustments = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pencil")
+                                        .font(.caption2.weight(.semibold))
+                                    Text("Edit Time")
+                                        .font(.caption.weight(.medium))
+                                }
+                                .foregroundStyle(foregroundColor.opacity(0.5))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule()
+                                        .fill(foregroundColor.opacity(0.1))
+                                )
                             }
-                            .foregroundStyle(foregroundColor.opacity(0.5))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule()
-                                    .fill(foregroundColor.opacity(0.1))
-                            )
                         }
                     }
                 }
@@ -299,14 +329,7 @@ struct NowPlayingView: View {
                 
                 Spacer()
                     .frame(height: 32)
-                
-                // Motivational text at bottom
-                Text(motivationalText)
-                    .font(.footnote)
-                    .foregroundStyle(foregroundColor.opacity(0.5))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 40)
+               
             }
         }
         .gesture(
@@ -319,6 +342,7 @@ struct NowPlayingView: View {
         )
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingAdjustments) {
+
             SessionAdjustmentsSheet(
                 activeSessionDetails: activeSessionDetails,
                 onAdjustStartTime: onAdjustStartTime
@@ -328,21 +352,6 @@ struct NowPlayingView: View {
             .presentationBackgroundInteraction(.enabled)
         }
     }
-    
-    private var motivationalText: String {
-        let texts = [
-            "Lock in. The next stretch is yours — phone face down, breathing slow.",
-            "You showed up. That's the hardest part. Now let it flow.",
-            "Small steps compound. This moment matters.",
-            "Stay present. The only rep that counts is this one.",
-            "Progress isn't always visible, but it's always happening."
-        ]
-        // Use session ID hash for deterministic selection
-        let index = abs(session.id.hashValue) % texts.count
-        return texts[index]
-    }
-    
-
 }
 
 struct SessionAdjustmentsSheet: View {

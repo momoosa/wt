@@ -12,6 +12,7 @@ struct GoalSuggestionCategoryView: View {
     let category: GoalCategory
     @Binding var selectedTemplate: GoalTemplateSuggestion?
     @Binding var userInput: String
+    @State private var showingPremiumPaywall = false
     
     var body: some View {
         LazyVGrid(columns: [
@@ -25,13 +26,20 @@ struct GoalSuggestionCategoryView: View {
                     themePreset: category.themePreset
                 )
                 .onTapGesture {
-                    withAnimation(AnimationPresets.quickSpring) {
-                        selectedTemplate = suggestion
-                        userInput = suggestion.title
+                    if suggestion.isPremium == true && !SubscriptionManager.shared.isSubscribed {
+                        showingPremiumPaywall = true
+                    } else {
+                        withAnimation(AnimationPresets.quickSpring) {
+                            selectedTemplate = suggestion
+                            userInput = suggestion.title
+                        }
+                        HapticFeedbackManager.trigger(.light)
                     }
-                    HapticFeedbackManager.trigger(.light)
                 }
             }
+        }
+        .sheet(isPresented: $showingPremiumPaywall) {
+            PremiumPaywallSheet()
         }
     }
 }

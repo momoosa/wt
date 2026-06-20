@@ -250,10 +250,12 @@ struct PlannerConfigurationSheet: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(availableTimeMinutes <= timeMin ? 0.3 : 0.8))
-                        .frame(width: 56, height: 100)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(availableTimeMinutes <= timeMin)
+                .frame(width: 72, height: 100)
                 
                 Spacer()
                 
@@ -299,10 +301,12 @@ struct PlannerConfigurationSheet: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(availableTimeMinutes >= timeMax ? 0.3 : 0.8))
-                        .frame(width: 56, height: 100)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(availableTimeMinutes >= timeMax)
+                .frame(width: 72, height: 100)
             }
             .padding()
             .background(

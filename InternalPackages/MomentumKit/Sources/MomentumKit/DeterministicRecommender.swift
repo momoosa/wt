@@ -18,6 +18,7 @@ public struct DeterministicRecommender {
         public let currentDate: Date
         public let weather: WeatherCondition?
         public let temperature: Double?
+        public let windSpeed: Double? // km/h
         public let timeOfDay: TimeOfDay?
         public let location: LocationType?
         public let weekdayAvailability: [Int: TimeInterval]? // Weekday (1-7) -> available time in seconds
@@ -26,6 +27,7 @@ public struct DeterministicRecommender {
             currentDate: Date = Date(),
             weather: WeatherCondition? = nil,
             temperature: Double? = nil,
+            windSpeed: Double? = nil,
             timeOfDay: TimeOfDay? = nil,
             location: LocationType? = nil,
             weekdayAvailability: [Int: TimeInterval]? = nil
@@ -33,6 +35,7 @@ public struct DeterministicRecommender {
             self.currentDate = currentDate
             self.weather = weather
             self.temperature = temperature
+            self.windSpeed = windSpeed
             self.timeOfDay = timeOfDay
             self.location = location
             self.weekdayAvailability = weekdayAvailability
@@ -189,6 +192,7 @@ public struct DeterministicRecommender {
         let contextScore = tag.contextMatchScore(
             weather: context.weather,
             temperature: context.temperature,
+            windSpeed: context.windSpeed,
             timeOfDay: context.timeOfDay,
             location: context.location
         )

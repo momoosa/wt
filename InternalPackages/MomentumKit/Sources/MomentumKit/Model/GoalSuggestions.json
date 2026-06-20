@@ -45,7 +45,7 @@
           "subtitle": "Daily step count goal",
           "duration": 0,
           "dailyGoal": true,
-          "healthKitMetric": "stepCount",
+          "healthKitMetric": "step_count",
           "icon": "shoeprints.fill",
           "goalType": "count",
           "primaryMetricTarget": 10000
@@ -72,7 +72,8 @@
           "subtitle": "Outdoor or indoor bike",
           "duration": 45,
           "healthKitMetric": "cycling",
-          "icon": "bicycle"
+          "icon": "bicycle",
+          "isPremium": true
         },
         {
           "id": "swimming",
@@ -80,7 +81,8 @@
           "subtitle": "Full-body workout",
           "duration": 30,
           "healthKitMetric": "swimming",
-          "icon": "figure.pool.swim"
+          "icon": "figure.pool.swim",
+          "isPremium": true
         }
       ]
     },
@@ -95,7 +97,7 @@
           "title": "Meditation",
           "subtitle": "Calm your mind",
           "duration": 10,
-          "healthKitMetric": "mindfulness",
+          "healthKitMetric": "mindful_minutes",
           "icon": "sparkles"
         },
         {
@@ -120,7 +122,8 @@
           "subtitle": "Track quality rest",
           "duration": 480,
           "healthKitMetric": "sleep",
-          "icon": "bed.double.fill"
+          "icon": "bed.double.fill",
+          "isPremium": true
         }
       ]
     },

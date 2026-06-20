@@ -236,7 +236,13 @@ struct SettingsView: View {
                     Button {
                         addDebugGoals()
                     } label: {
-                        Text("Add Debug Goals")
+                        Label("Add Debug Goals (All Types)", systemImage: "plus.circle")
+                    }
+                    
+                    Button {
+                        addDebugHistoricalSessions()
+                    } label: {
+                        Label("Add Historical Sessions", systemImage: "clock.arrow.circlepath")
                     }
 
                 } header: {
@@ -296,66 +302,118 @@ struct SettingsView: View {
     
 #if DEBUG
     private func addDebugGoals() {
-        for debugGoal in DebugGoals.allCases {
-            addDebugGoal(debugGoal)
+        for spec in DebugGoalSpec.allSpecs {
+            let tag = GoalTag(title: spec.tagTitle, themeID: spec.themeID)
+            let goal = Goal(
+                title: spec.title,
+                primaryTag: tag,
+                healthKitMetric: spec.healthKitMetric,
+                healthKitSyncEnabled: spec.healthKitMetric != nil
+            )
+            goal.iconName = spec.iconName
+            goal.targetUnit = spec.targetUnit
+            goal.unifiedDailyTarget = spec.dailyTarget
+            
+            // Set schedule if provided (weekdays only, etc.)
+            for (weekday, times) in spec.schedule {
+                goal.setTimes(times, forWeekday: weekday)
+            }
+            
+            // Set weather triggers
+            if let conditions = spec.weatherConditions {
+                goal.weatherEnabled = true
+                goal.weatherConditionsTyped = conditions
+            }
+            
+            modelContext.insert(goal)
+            
+            // Add checklist items
+            for itemTitle in spec.checklistItems {
+                let item = ChecklistItem(title: itemTitle, goal: goal)
+                modelContext.insert(item)
+            }
+            
+            // Add interval lists
+            for intervalSpec in spec.intervalLists {
+                let intervals = intervalSpec.intervals.enumerated().map { index, iv in
+                    Interval(name: iv.name, durationSeconds: iv.seconds, orderIndex: index, kind: iv.kind)
+                }
+                let list = IntervalList(name: intervalSpec.name, goal: goal, intervals: intervals)
+                modelContext.insert(list)
+                for interval in intervals {
+                    modelContext.insert(interval)
+                }
+            }
         }
         
-        // Add historical sessions for the previous week to test weekly progress chart
         addDebugHistoricalSessions()
     }
-    
-    private func addDebugGoal(_ debugGoal: DebugGoals) {
-        let theme = GoalTag(title: debugGoal.themeTitle, themeID: debugGoal.theme.id)
-        let goal = Goal(
-            title: debugGoal.title,
-            primaryTag: theme,
-            healthKitMetric: debugGoal.healthKitMetric,
-            healthKitSyncEnabled: debugGoal.healthKitSyncEnabled
-        )
-        // Set unified target: convert weekly minutes to daily seconds
-        goal.targetUnit = .seconds
-        goal.unifiedDailyTarget = Double(debugGoal.weeklyTargetMinutes * 60) / 7.0
-        withAnimation {
-            modelContext.insert(goal)
-        }
-    }
-    
 #endif
-
+    
     private func addDebugHistoricalSessions() {
         let calendar = Calendar.current
         let today = Date()
         
-        // Fetch all goals to add historical sessions to
         let descriptor = FetchDescriptor<Goal>()
-        guard let goals = try? modelContext.fetch(descriptor) else { return }
+        guard let goals = try? modelContext.fetch(descriptor), !goals.isEmpty else { return }
         
-        // Create historical sessions for last week (7-13 days ago)
-        for dayOffset in 7...13 {
+        // Create sessions for the last 14 days (including recent days for visible progress)
+        for dayOffset in 1...14 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
             
             let startOfDay = calendar.startOfDay(for: date)
             let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+            let dayID = startOfDay.yearMonthDayID(with: calendar)
             
-            // Create or fetch the day
-            let day = Day(start: startOfDay, end: endOfDay, calendar: calendar)
-            modelContext.insert(day)
+            // Fetch existing day or create a new one
+            var dayDescriptor = FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })
+            dayDescriptor.fetchLimit = 1
+            let day: Day
+            if let existingDay = try? modelContext.fetch(dayDescriptor).first {
+                day = existingDay
+            } else {
+                day = Day(start: startOfDay, end: endOfDay, calendar: calendar)
+                modelContext.insert(day)
+            }
             
-            // Add sessions for each goal with some randomness
-            for goal in goals {
-                // Create a session for this goal on this day
+            // Pick a random subset of goals for this day (not every goal every day)
+            let goalCount = Int.random(in: max(1, goals.count / 2)...goals.count)
+            let dailyGoals = Array(goals.shuffled().prefix(goalCount))
+            
+            for goal in dailyGoals {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
                 modelContext.insert(session)
                 
-                // Add 1-3 historical sessions per day for variety
-                let sessionCount = Int.random(in: 1...3)
-                for _ in 0..<sessionCount {
-                    // Random duration between 5-45 minutes
-                    let duration = TimeInterval.random(in: 300...2700)
-                    // Random time during the day
-                    let startOffset = TimeInterval.random(in: 3600...72000) // Between 1am and 8pm
+                // Vary session patterns based on how recent the day is
+                let isRecent = dayOffset <= 3
+                let sessionCount = isRecent ? Int.random(in: 1...2) : Int.random(in: 1...3)
+                
+                for sessionIndex in 0..<sessionCount {
+                    // Spread sessions across the day: morning, afternoon, evening
+                    let baseHour: Double
+                    switch sessionIndex {
+                    case 0: baseHour = Double.random(in: 7...10)    // Morning
+                    case 1: baseHour = Double.random(in: 13...16)   // Afternoon
+                    default: baseHour = Double.random(in: 18...21)  // Evening
+                    }
+                    
+                    let startOffset = baseHour * 3600
                     let sessionStart = startOfDay.addingTimeInterval(startOffset)
-                    let sessionEnd = sessionStart.addingTimeInterval(duration)
+                    
+                    // Duration based on goal type
+                    let duration: TimeInterval
+                    switch goal.targetUnit {
+                    case .seconds:
+                        // Aim for partial to full daily target completion
+                        let targetPortion = Double.random(in: 0.3...0.8)
+                        duration = min(goal.unifiedDailyTarget * targetPortion, 3600)
+                    case .steps, .kilocalories:
+                        duration = TimeInterval.random(in: 600...1800) // 10-30 min
+                    case .screenTime:
+                        duration = TimeInterval.random(in: 300...1200) // 5-20 min
+                    }
+                    
+                    let sessionEnd = sessionStart.addingTimeInterval(max(duration, 120))
                     
                     let historicalSession = HistoricalSession(
                         title: goal.title,
@@ -364,7 +422,13 @@ struct SettingsView: View {
                         needsHealthKitRecord: false
                     )
                     historicalSession.goalIDs = [session.goalID]
+                    modelContext.insert(historicalSession)
                     day.add(historicalSession: historicalSession)
+                }
+                
+                // Sync currentValue for time-based goals so progress is visible
+                if goal.targetUnit.isTimeBased {
+                    session.syncCurrentValueFromElapsedTime()
                 }
             }
         }
@@ -377,83 +441,224 @@ struct SettingsView: View {
     SettingsView()
 }
 
+// MARK: - Debug Goal Specifications
+
 #if DEBUG
-enum DebugGoals: String, CaseIterable, Identifiable {
-    case reading = "Reading"
-    case exercise = "Exercise"
-    case meditation = "Meditation"
-    case coding = "Coding Practice"
-    case music = "Music Practice"
-    case cooking = "Cooking"
-    case learning = "Language Learning"
-    case writing = "Writing"
-    
-    var id: String { rawValue }
-    
-    var title: String {
-        rawValue
-    }
-    
-    var themeTitle: String {
-        switch self {
-        case .reading: return "Learning"
-        case .exercise: return "Health"
-        case .meditation: return "Wellness"
-        case .coding: return "Tech"
-        case .music: return "Creative"
-        case .cooking: return "Home"
-        case .learning: return "Education"
-        case .writing: return "Creative"
-        }
-    }
-    
-    var theme: ThemePreset {
-        switch self {
-        case .reading: return ThemeStore.resolve(for: "palette_17")
-        case .exercise: return ThemeStore.resolve(for: "palette_01")
-        case .meditation: return ThemeStore.resolve(for: "palette_16")
-        case .coding: return ThemeStore.resolve(for: "palette_19")
-        case .music: return ThemeStore.resolve(for: "palette_04")
-        case .cooking: return ThemeStore.resolve(for: "palette_04")
-        case .learning: return ThemeStore.resolve(for: "palette_16")
-        case .writing: return ThemeStore.resolve(for: "palette_03")
-        }
-    }
-    
-    var weeklyTargetMinutes: Int {
-        switch self {
-        case .reading: return 210 // 30 min/day
-        case .exercise: return 175 // 25 min/day
-        case .meditation: return 70 // 10 min/day
-        case .coding: return 420 // 60 min/day
-        case .music: return 140 // 20 min/day
-        case .cooking: return 105 // 15 min/day
-        case .learning: return 210 // 30 min/day
-        case .writing: return 140 // 20 min/day
-        }
-    }
-    
-    var notificationsEnabled: Bool {
-        switch self {
-        case .meditation, .exercise, .reading:
-            return true
-        default:
-            return false
-        }
-    }
-    
-    var healthKitMetric: HealthKitMetric? {
-        switch self {
-        case .exercise: return .appleExerciseTime
-        case .meditation: return .mindfulMinutes
-        default: return nil
-        }
-    }
-    
-    var healthKitSyncEnabled: Bool {
-        return healthKitMetric != nil
-    }
+
+/// Interval specification for debug goals
+private struct DebugIntervalSpec {
+    let name: String
+    let intervals: [(name: String, seconds: Int, kind: Interval.Kind)]
 }
+
+/// Specification for a debug goal
+private struct DebugGoalSpec {
+    let title: String
+    let iconName: String?
+    let tagTitle: String
+    let themeID: String
+    let targetUnit: Goal.TargetUnit
+    let dailyTarget: Double
+    let healthKitMetric: HealthKitMetric?
+    let schedule: [Int: Set<TimeOfDay>] // weekday -> times
+    let weatherConditions: [WeatherCondition]?
+    let checklistItems: [String]
+    let intervalLists: [DebugIntervalSpec]
+    
+    static let allSpecs: [DebugGoalSpec] = [
+        // 1. Simple time-based goal
+        DebugGoalSpec(
+            title: "Reading",
+            iconName: "book.fill",
+            tagTitle: "Learning",
+            themeID: "palette_17",
+            targetUnit: .seconds,
+            dailyTarget: 1800, // 30 min
+            healthKitMetric: nil,
+            schedule: [2: [.morning], 3: [.morning], 4: [.morning], 5: [.morning], 6: [.morning]], // Mon-Fri mornings
+            weatherConditions: nil,
+            checklistItems: [],
+            intervalLists: []
+        ),
+        // 2. Exercise with HealthKit
+        DebugGoalSpec(
+            title: "Exercise",
+            iconName: "figure.run",
+            tagTitle: "Health",
+            themeID: "palette_01",
+            targetUnit: .seconds,
+            dailyTarget: 1500, // 25 min
+            healthKitMetric: .appleExerciseTime,
+            schedule: [1: [.morning], 2: [.morning], 4: [.morning], 6: [.morning], 7: [.morning]], // Sun, Mon, Wed, Fri, Sat
+            weatherConditions: [.clear, .partlyCloudy],
+            checklistItems: [],
+            intervalLists: []
+        ),
+        // 3. Meditation with HealthKit
+        DebugGoalSpec(
+            title: "Meditation",
+            iconName: "brain.head.profile",
+            tagTitle: "Wellness",
+            themeID: "palette_16",
+            targetUnit: .seconds,
+            dailyTarget: 600, // 10 min
+            healthKitMetric: .mindfulMinutes,
+            schedule: [:], // Any day
+            weatherConditions: nil,
+            checklistItems: [],
+            intervalLists: []
+        ),
+        // 4. Step count goal (non-time metric)
+        DebugGoalSpec(
+            title: "Daily Walk",
+            iconName: "figure.walk",
+            tagTitle: "Movement",
+            themeID: "palette_04",
+            targetUnit: .steps,
+            dailyTarget: 10000,
+            healthKitMetric: .stepCount,
+            schedule: [:],
+            weatherConditions: [.clear, .partlyCloudy, .cloudy],
+            checklistItems: [],
+            intervalLists: []
+        ),
+        // 5. Calorie burn goal
+        DebugGoalSpec(
+            title: "Active Calories",
+            iconName: "flame.fill",
+            tagTitle: "Fitness",
+            themeID: "palette_01",
+            targetUnit: .kilocalories,
+            dailyTarget: 500,
+            healthKitMetric: .activeEnergyBurned,
+            schedule: [:],
+            weatherConditions: nil,
+            checklistItems: [],
+            intervalLists: []
+        ),
+        // 6. Goal with checklist items
+        DebugGoalSpec(
+            title: "Morning Routine",
+            iconName: "sunrise.fill",
+            tagTitle: "Wellbeing",
+            themeID: "palette_03",
+            targetUnit: .seconds,
+            dailyTarget: 2700, // 45 min
+            healthKitMetric: nil,
+            schedule: [1: [.morning], 2: [.morning], 3: [.morning], 4: [.morning], 5: [.morning], 6: [.morning], 7: [.morning]],
+            weatherConditions: nil,
+            checklistItems: [
+                "Make bed",
+                "Stretch for 5 minutes",
+                "Drink water",
+                "Journal",
+                "Review today's plan"
+            ],
+            intervalLists: []
+        ),
+        // 7. Goal with Pomodoro interval list
+        DebugGoalSpec(
+            title: "Deep Work",
+            iconName: "desktopcomputer",
+            tagTitle: "Deep Work",
+            themeID: "palette_19",
+            targetUnit: .seconds,
+            dailyTarget: 5400, // 90 min
+            healthKitMetric: nil,
+            schedule: [2: [.morning, .afternoon], 3: [.morning, .afternoon], 4: [.morning, .afternoon], 5: [.morning, .afternoon], 6: [.morning]],
+            weatherConditions: nil,
+            checklistItems: [],
+            intervalLists: [
+                DebugIntervalSpec(
+                    name: "Pomodoro",
+                    intervals: [
+                        (name: "Focus 1", seconds: 1500, kind: .work),
+                        (name: "Break 1", seconds: 300, kind: .breakTime),
+                        (name: "Focus 2", seconds: 1500, kind: .work),
+                        (name: "Break 2", seconds: 300, kind: .breakTime),
+                        (name: "Focus 3", seconds: 1500, kind: .work),
+                        (name: "Long Break", seconds: 900, kind: .breakTime),
+                    ]
+                )
+            ]
+        ),
+        // 8. Goal with custom interval (HIIT workout)
+        DebugGoalSpec(
+            title: "HIIT Workout",
+            iconName: "bolt.heart.fill",
+            tagTitle: "Health",
+            themeID: "palette_01",
+            targetUnit: .seconds,
+            dailyTarget: 1200, // 20 min
+            healthKitMetric: nil,
+            schedule: [2: [.morning], 4: [.morning], 6: [.morning]], // Mon, Wed, Fri
+            weatherConditions: nil,
+            checklistItems: [],
+            intervalLists: [
+                DebugIntervalSpec(
+                    name: "HIIT Circuit",
+                    intervals: [
+                        (name: "Warm Up", seconds: 120, kind: .breakTime),
+                        (name: "Sprint 1", seconds: 30, kind: .work),
+                        (name: "Rest", seconds: 30, kind: .breakTime),
+                        (name: "Sprint 2", seconds: 30, kind: .work),
+                        (name: "Rest", seconds: 30, kind: .breakTime),
+                        (name: "Sprint 3", seconds: 30, kind: .work),
+                        (name: "Rest", seconds: 30, kind: .breakTime),
+                        (name: "Sprint 4", seconds: 30, kind: .work),
+                        (name: "Rest", seconds: 30, kind: .breakTime),
+                        (name: "Sprint 5", seconds: 30, kind: .work),
+                        (name: "Cool Down", seconds: 120, kind: .breakTime),
+                    ]
+                )
+            ]
+        ),
+        // 9. Writing with checklist + weather preference
+        DebugGoalSpec(
+            title: "Creative Writing",
+            iconName: "pencil.line",
+            tagTitle: "Creative",
+            themeID: "palette_04",
+            targetUnit: .seconds,
+            dailyTarget: 1800, // 30 min
+            healthKitMetric: nil,
+            schedule: [1: [.afternoon], 7: [.afternoon]], // Weekends
+            weatherConditions: [.rainy, .cloudy], // Write when it's rainy
+            checklistItems: [
+                "Outline scene",
+                "Write first draft",
+                "Review and revise"
+            ],
+            intervalLists: []
+        ),
+        // 10. Unscheduled / flexible goal
+        DebugGoalSpec(
+            title: "Guitar Practice",
+            iconName: "guitars.fill",
+            tagTitle: "Creative",
+            themeID: "palette_04",
+            targetUnit: .seconds,
+            dailyTarget: 1200, // 20 min
+            healthKitMetric: nil,
+            schedule: [:], // Anytime
+            weatherConditions: nil,
+            checklistItems: [],
+            intervalLists: [
+                DebugIntervalSpec(
+                    name: "Practice Session",
+                    intervals: [
+                        (name: "Scales", seconds: 300, kind: .work),
+                        (name: "Break", seconds: 60, kind: .breakTime),
+                        (name: "Chords", seconds: 300, kind: .work),
+                        (name: "Break", seconds: 60, kind: .breakTime),
+                        (name: "Song Practice", seconds: 480, kind: .work),
+                    ]
+                )
+            ]
+        ),
+    ]
+}
+
 #endif
 
 

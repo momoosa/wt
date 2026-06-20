@@ -23,10 +23,11 @@ import SwiftData
         let reason: DownrankReason
     }
     
-    /// Result of filtering that separates active from downranked sessions
+    /// Result of filtering that separates active, downranked, and skipped sessions
     struct FilterResult {
         let active: [GoalSession]
         let downranked: [DownrankedSession]
+        let skipped: [GoalSession]
     }
 
 /// Service for filtering and scoring goal sessions
@@ -55,6 +56,7 @@ struct SessionFilterService {
     ) -> FilterResult {
         var active: [GoalSession] = []
         var downranked: [DownrankedSession] = []
+        var skipped: [GoalSession] = []
         
         for session in sessions {
             // Check if not deleted first, before accessing any properties
@@ -65,8 +67,12 @@ struct SessionFilterService {
             
             // Safely access status properties
             let isArchived = session.goal?.status == .archived
-            let isSkipped = session.status == .skipped
-            guard !isArchived && !isSkipped else { continue }
+            guard !isArchived else { continue }
+            
+            if session.status == .skipped {
+                skipped.append(session)
+                continue
+            }
             
             // Must have a daily target or be an active goal
             guard session.unifiedTargetValue > 0 || session.isActiveGoal else { continue }
@@ -128,7 +134,7 @@ struct SessionFilterService {
             }
         }
         
-        return FilterResult(active: active, downranked: downranked)
+        return FilterResult(active: active, downranked: downranked, skipped: skipped)
     }
     
     /// Get top 3 recommended sessions based on planning and scoring
@@ -329,6 +335,13 @@ struct SessionFilterService {
         // Check maximum temperature
         if let maxTemp = goal.effectiveMaxTemperature {
             guard weatherManager.temperatureBelow(maxTemp) else {
+                return false
+            }
+        }
+        
+        // Check maximum wind speed
+        if let maxWind = goal.effectiveMaxWindSpeed {
+            guard weatherManager.windSpeedBelow(maxWind) else {
                 return false
             }
         }

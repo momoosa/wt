@@ -79,6 +79,7 @@ public final class Goal {
     public var weatherConditions: [String]? // WeatherCondition raw values
     public var minTemperature: Double? // Celsius
     public var maxTemperature: Double? // Celsius
+    public var maxWindSpeed: Double? // km/h — goal hidden when wind exceeds this
     public var weatherEnabled: Bool = false // Whether weather-based visibility is enabled
     
     // MARK: - Relevance Rule
@@ -366,14 +367,15 @@ public extension Goal {
     
     /// Check if goal has any weather-based triggers (either on goal or primary tag)
     var hasWeatherTriggers: Bool {
-        if weatherEnabled && (weatherConditions != nil || minTemperature != nil || maxTemperature != nil) {
+        if weatherEnabled && (weatherConditions != nil || minTemperature != nil || maxTemperature != nil || maxWindSpeed != nil) {
             return true
         }
         guard let primaryTag = primaryTag else { return false }
         return primaryTag.isSmart && (
             primaryTag.weatherConditions != nil ||
             primaryTag.minTemperature != nil ||
-            primaryTag.maxTemperature != nil
+            primaryTag.maxTemperature != nil ||
+            primaryTag.maxWindSpeed != nil
         )
     }
     
@@ -399,6 +401,14 @@ public extension Goal {
             return temp
         }
         return primaryTag?.maxTemperature
+    }
+    
+    /// Get effective max wind speed (goal overrides tag)
+    var effectiveMaxWindSpeed: Double? {
+        if weatherEnabled, let speed = maxWindSpeed {
+            return speed
+        }
+        return primaryTag?.maxWindSpeed
     }
 }
 
@@ -463,7 +473,10 @@ public extension Goal {
         case .timeOfDay:
             return !preferredTimesOfDay.isEmpty || dayTimeSchedule.values.contains(where: { !$0.isEmpty })
         case .weather:
-            return weatherEnabled && weatherConditions != nil && !(weatherConditions?.isEmpty ?? true)
+            return weatherEnabled && (
+                (weatherConditions != nil && !(weatherConditions?.isEmpty ?? true)) ||
+                minTemperature != nil || maxTemperature != nil || maxWindSpeed != nil
+            )
         case .location:
             return primaryTag?.locationTypes != nil && !(primaryTag?.locationTypes?.isEmpty ?? true)
         }

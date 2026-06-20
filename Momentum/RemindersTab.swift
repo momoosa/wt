@@ -11,6 +11,7 @@ import EventKit
 
 struct RemindersTab: View {
     let isSelected: Bool
+    private var isSubscribed: Bool { SubscriptionManager.shared.isSubscribed }
     
     var body: some View {
         HStack(spacing: 8) {
@@ -18,6 +19,11 @@ struct RemindersTab: View {
                 .font(.body.weight(.medium))
             Text("Reminders")
                 .font(.subheadline.weight(.medium))
+            if !isSubscribed {
+                Image(systemName: "lock.fill")
+                    .font(.caption2)
+                    .foregroundStyle(isSelected ? .white.opacity(0.7) : .secondary)
+            }
         }
         .foregroundStyle(isSelected ? .white : .primary)
         .padding(.vertical, 12)
@@ -40,6 +46,7 @@ struct RemindersTabView: View {
     
     @Binding var userInput: String
     let onReminderSelected: (EKReminder) -> Void
+    @Binding var showingPremiumPaywall: Bool
     
     @State private var remindersManager = RemindersManager()
     @State private var reminders: [EKReminder] = []
@@ -47,9 +54,13 @@ struct RemindersTabView: View {
     @State private var errorMessage: String?
     @State private var showingPermissionAlert = false
     
+    private var isSubscribed: Bool { SubscriptionManager.shared.isSubscribed }
+    
     var body: some View {
         Group {
-            if !remindersManager.isAuthorized {
+            if !isSubscribed {
+                premiumUpsellView
+            } else if !remindersManager.isAuthorized {
                 permissionView
             } else if isLoading {
                 ProgressView("Loading reminders...")
@@ -61,7 +72,7 @@ struct RemindersTabView: View {
             }
         }
         .task {
-            if remindersManager.isAuthorized {
+            if isSubscribed && remindersManager.isAuthorized {
                 await loadReminders()
             }
         }
@@ -70,6 +81,45 @@ struct RemindersTabView: View {
         } message: {
             Text(errorMessage ?? "Cannot access Reminders")
         }
+    }
+    
+    private var premiumUpsellView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checklist")
+                .font(.system(size: 48))
+                .foregroundStyle(.teal)
+            
+            Text("Import from Reminders")
+                .font(.headline)
+            
+            Text("Turn your reminders into time-tracked goals with schedules, checklists, and progress tracking.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Button {
+                showingPremiumPaywall = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "crown.fill")
+                        .font(.caption)
+                    Text("Unlock with Pro")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 20)
+                .background(
+                    LinearGradient(
+                        colors: [.orange, .yellow],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    in: Capsule()
+                )
+            }
+        }
+        .padding()
     }
     
     private var permissionView: some View {

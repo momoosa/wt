@@ -24,13 +24,19 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     public var unifiedTargetValue: Double = 0 // Unified target in native unit
     public var targetUnit: Goal.TargetUnit = .seconds // Unit of the target
     
-    /// Protocol conformance: currentValue is the live elapsed time for the active session.
-    /// Uses tickCount to drive SwiftUI observation updates every second.
+    /// The current metric value for non-time goals (e.g. step count from HealthKit)
+    public var metricValue: Double = 0
+    
+    /// Protocol conformance: currentValue depends on the target unit.
+    /// For time-based goals: live elapsed time. For count/calorie goals: metricValue from HealthKit.
     public var currentValue: Double {
-        // Access tickCount to establish an observation dependency so progress updates each tick
-        _ = tickCount
-        let liveElapsed = elapsedTime + Date().timeIntervalSince(startDate)
-        return liveElapsed
+        if targetUnit.isTimeBased {
+            // Access tickCount to establish an observation dependency so progress updates each tick
+            _ = tickCount
+            let liveElapsed = elapsedTime + Date().timeIntervalSince(startDate)
+            return liveElapsed
+        }
+        return metricValue
     }
     public var isPaused: Bool = false // Track if the session is currently paused
     public var onTargetReached: (() -> Void)? // Callback when target is reached

@@ -8,6 +8,7 @@ struct RelevanceRuleView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var expandedSignal: SignalType?
+    @State private var showingPremiumPaywall = false
     
     private let timeSlots: [TimeOfDay] = [.morning, .midday, .afternoon, .evening, .night]
     
@@ -48,6 +49,9 @@ struct RelevanceRuleView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showingPremiumPaywall) {
+                PremiumPaywallSheet()
             }
         }
     }
@@ -384,9 +388,13 @@ struct RelevanceRuleView: View {
     
     private func addSignalButton(_ signalType: SignalType) -> some View {
         Button {
-            withAnimation {
-                enableSignal(signalType)
-                expandedSignal = signalType
+            if signalType == .weather && !SubscriptionManager.shared.isSubscribed {
+                showingPremiumPaywall = true
+            } else {
+                withAnimation {
+                    enableSignal(signalType)
+                    expandedSignal = signalType
+                }
             }
         } label: {
             Label(signalType.displayName, systemImage: signalType.icon)
@@ -499,6 +507,21 @@ struct RelevanceRuleView: View {
                         .tint(activeThemeColor)
                 }
             }
+            
+            Toggle(isOn: $viewModel.hasMaxWindSpeed) {
+                Text("Maximum wind speed")
+                    .font(.subheadline)
+            }
+            if viewModel.hasMaxWindSpeed {
+                HStack {
+                    Text("\(Int(viewModel.maxWindSpeed)) km/h")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 65)
+                    Slider(value: $viewModel.maxWindSpeed, in: 5...80, step: 5)
+                        .tint(activeThemeColor)
+                }
+            }
         }
     }
     
@@ -588,6 +611,20 @@ struct RelevanceRuleView: View {
                 c.foregroundColor = UIColor(activeThemeColor)
                 signalParts.append(c)
             }
+        }
+        
+        // Wind speed
+        if viewModel.weatherEnabled && viewModel.hasMaxWindSpeed {
+            if !signalParts.isEmpty {
+                var sep = AttributedString(", ")
+                sep.font = .subheadline
+                sep.foregroundColor = .secondary
+                signalParts.append(sep)
+            }
+            var w = AttributedString("wind ≤\(Int(viewModel.maxWindSpeed)) km/h")
+            w.font = .subheadline.bold()
+            w.foregroundColor = UIColor(activeThemeColor)
+            signalParts.append(w)
         }
         
         if !signalParts.isEmpty {

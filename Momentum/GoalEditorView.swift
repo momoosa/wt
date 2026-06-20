@@ -50,7 +50,8 @@ struct GoalEditorView: View {
     
     @State private var stage: Stage = .title
     @State private var cardExpanded: Bool = false
-    @State private var selectedSuggestionCategory: Int = 0
+    @State private var selectedSuggestionCategory: Int = -1 // -1 = Featured
+    @State private var showingPremiumPaywall = false
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     
@@ -350,6 +351,16 @@ struct GoalEditorView: View {
             ScrollViewReader { scrollProxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
+                        // Featured tab
+                        FeaturedTab(isSelected: selectedSuggestionCategory == -1)
+                            .id(-1)
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                    selectedSuggestionCategory = -1
+                                }
+                                HapticFeedbackManager.trigger(.light)
+                            }
+                        
                         ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
                             GoalSuggestionCategoryTab(
                                 category: category,
@@ -373,10 +384,31 @@ struct GoalEditorView: View {
                 }
             }
             
-            // Category header
-            if categories.indices.contains(selectedSuggestionCategory) {
+            if selectedSuggestionCategory == -1 {
+                // Featured header
+                HStack {
+                    Text("Featured")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    Spacer()
+                    let count = viewModel.suggestionsData.featuredSuggestions.count
+                    Text("\(count) IDEAS")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 20)
+                
+                // Featured grid
+                FeaturedSuggestionsGrid(
+                    viewModel: viewModel,
+                    showingPremiumPaywall: $showingPremiumPaywall
+                )
+                .padding(.horizontal, 16)
+            } else if categories.indices.contains(selectedSuggestionCategory) {
                 let category = categories[selectedSuggestionCategory]
                 
+                // Category header
                 HStack {
                     Text(category.name)
                         .font(.title3)
@@ -398,6 +430,9 @@ struct GoalEditorView: View {
                 .padding(.horizontal, 16)
             }
         }
+        .sheet(isPresented: $showingPremiumPaywall) {
+            PremiumPaywallSheet()
+        }
     }
     
     // MARK: - Actions
@@ -405,6 +440,9 @@ struct GoalEditorView: View {
     private func handleNextTap() {
         switch stage {
         case .title:
+            // Dismiss keyboard immediately
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            
             // Apply template if matched, advance VM to .duration so it applies defaults
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 viewModel.handleButtonTap(allTags: allTags)

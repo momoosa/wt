@@ -853,7 +853,8 @@ struct ContentView: View {
             filterResult.active,
             recommendedSessions: recommendedSessions,
             allGoals: focusFilteredSessions,
-            downrankedSessions: filterResult.downranked
+            downrankedSessions: filterResult.downranked,
+            skippedSessions: filterResult.skipped
         )
     }
     

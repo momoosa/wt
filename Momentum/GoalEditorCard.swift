@@ -17,6 +17,7 @@ struct GoalEditorCard: View {
     @Binding var isExpanded: Bool
     @State private var activePicker: ActivePicker?
     @State private var showAppPicker = false
+    @State private var showingPremiumPaywall = false
     @Namespace private var cardAnimation
     @FocusState private var isNameFocused: Bool
     @FocusState private var isValueFocused: Bool
@@ -102,6 +103,9 @@ struct GoalEditorCard: View {
                         }
                     }
             }
+        }
+        .sheet(isPresented: $showingPremiumPaywall) {
+            PremiumPaywallSheet()
         }
     }
     
@@ -300,9 +304,60 @@ struct GoalEditorCard: View {
     
     // MARK: - Summary
     
+    private func formatDuration(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let mins = minutes % 60
+        if hours > 0 && mins > 0 {
+            return "\(hours)h \(mins)m"
+        } else if hours > 0 {
+            return "\(hours)h"
+        } else {
+            return "\(mins) min"
+        }
+    }
+    
     private var summaryText: some View {
         let dayCount = vm.activeDays.count
-        return Text("Surfaced on your **\(dayCount)** best-fit moments each \(periodLabel)")
+        let isDaily = dayCount == 7
+        
+        let summaryString: String = {
+            switch vm.selectedGoalType {
+            case .seconds:
+                let weeklyTotal = vm.calculatedWeeklyTarget
+                if isDaily {
+                    return "That's **\(formatDuration(weeklyTotal))** per week"
+                } else {
+                    let dailyAvg = weeklyTotal / max(dayCount, 1)
+                    return "~**\(formatDuration(dailyAvg))** per day across **\(dayCount)** days"
+                }
+            case .steps:
+                let daily = Int(vm.primaryMetricTarget)
+                if isDaily {
+                    let weekly = daily * dayCount
+                    return "That's **\(weekly.formatted())** steps per week"
+                } else {
+                    return "**\(daily.formatted())** steps per day across **\(dayCount)** days"
+                }
+            case .kilocalories:
+                let daily = Int(vm.primaryMetricTarget)
+                if isDaily {
+                    let weekly = daily * dayCount
+                    return "That's **\(weekly.formatted())** kcal per week"
+                } else {
+                    return "**\(daily.formatted())** kcal per day across **\(dayCount)** days"
+                }
+            case .screenTime:
+                let daily = Int(vm.primaryMetricTarget)
+                if isDaily {
+                    let weekly = daily * dayCount
+                    return "That's **\(formatDuration(weekly))** per week"
+                } else {
+                    return "**\(formatDuration(daily))** per day across **\(dayCount)** days"
+                }
+            }
+        }()
+        
+        return Text(.init(summaryString))
             .font(.subheadline)
             .foregroundStyle(.secondary)
     }
@@ -320,10 +375,14 @@ struct GoalEditorCard: View {
         return VStack(spacing: 4) {
             ForEach(options, id: \.type) { option in
                 Button {
-                    withAnimation {
-                        vm.selectedGoalType = option.type
-                        vm.handleGoalTypeChange(option.type)
-                        activePicker = nil
+                    if option.type == .screenTime && !SubscriptionManager.shared.isSubscribed {
+                        showingPremiumPaywall = true
+                    } else {
+                        withAnimation {
+                            vm.selectedGoalType = option.type
+                            vm.handleGoalTypeChange(option.type)
+                            activePicker = nil
+                        }
                     }
                 } label: {
                     HStack(spacing: 14) {
@@ -377,7 +436,12 @@ struct GoalEditorCard: View {
                 
                 Button {
                     withAnimation {
-                        vm.activeDays = option.days
+                        if option.label == "week" && vm.activeDays.count == 7 {
+                            // Switching from daily to weekly — default to weekdays
+                            vm.activeDays = Set(2...6)
+                        } else {
+                            vm.activeDays = option.days
+                        }
                         // Redistribute the weekly target across the new day count
                         let weekly = vm.calculatedWeeklyTarget
                         vm.updateWeeklyTarget(weekly)

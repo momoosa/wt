@@ -18,6 +18,7 @@ import EventKit
 import WidgetKit
 #endif
 
+
 // MARK: - App Delegate for Notification Handling
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {

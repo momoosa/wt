@@ -33,12 +33,13 @@ public final class GoalTag {
     public var weatherConditions: [String]? // WeatherCondition raw values
     public var minTemperature: Double? // Celsius
     public var maxTemperature: Double? // Celsius
+    public var maxWindSpeed: Double? // km/h — tag hidden when wind exceeds this
     public var timeOfDayPreferences: [String]? // TimeOfDay raw values
     public var locationTypes: [String]? // LocationType raw values
     public var requiresDaylight: Bool = false
     public var isSmart: Bool { // Computed property to check if tag has any triggers
         weatherConditions != nil || minTemperature != nil || maxTemperature != nil || 
-        timeOfDayPreferences != nil || locationTypes != nil || requiresDaylight
+        maxWindSpeed != nil || timeOfDayPreferences != nil || locationTypes != nil || requiresDaylight
     }
     
     public init(
@@ -105,6 +106,11 @@ public final class GoalTag {
     public var requiresMaxTemperature: Double? {
         get { maxTemperature }
         set { maxTemperature = newValue }
+    }
+    
+    public var requiresMaxWindSpeed: Double? {
+        get { maxWindSpeed }
+        set { maxWindSpeed = newValue }
     }
 }
 
@@ -338,6 +344,21 @@ public extension GoalTag {
         return currentTemperature >= min && currentTemperature <= max
     }
     
+    /// Checks if the tag's wind speed limit matches the current wind speed
+    /// - Parameter currentWindSpeed: The current wind speed in km/h
+    /// - Returns: True if there is no wind speed requirement OR if the current wind speed is at or below the limit
+    func matchesWindSpeed(_ currentWindSpeed: Double?) -> Bool {
+        guard let maxWind = maxWindSpeed else {
+            return true // No wind speed requirement means it matches any wind speed
+        }
+        
+        guard let currentWindSpeed = currentWindSpeed else {
+            return false // Tag requires specific wind speed but current wind is unknown
+        }
+        
+        return currentWindSpeed <= maxWind
+    }
+    
     /// Checks if the tag's time of day preferences match the current time
     /// - Parameter currentTimeOfDay: The current time of day
     /// - Returns: True if there are no time preferences OR if the current time matches one of the preferred times
@@ -372,17 +393,20 @@ public extension GoalTag {
     /// - Parameters:
     ///   - weather: Current weather condition
     ///   - temperature: Current temperature in Celsius
+    ///   - windSpeed: Current wind speed in km/h
     ///   - timeOfDay: Current time of day
     ///   - location: Current location type
     /// - Returns: True if ALL applicable trigger conditions are met
     func matchesContext(
         weather: WeatherCondition? = nil,
         temperature: Double? = nil,
+        windSpeed: Double? = nil,
         timeOfDay: TimeOfDay? = nil,
         location: LocationType? = nil
     ) -> Bool {
         return matchesWeather(weather) &&
                matchesTemperature(temperature) &&
+               matchesWindSpeed(windSpeed) &&
                matchesTimeOfDay(timeOfDay) &&
                matchesLocation(location)
     }
@@ -392,17 +416,19 @@ public extension GoalTag {
     /// - Parameters:
     ///   - weather: Current weather condition
     ///   - temperature: Current temperature in Celsius
+    ///   - windSpeed: Current wind speed in km/h
     ///   - timeOfDay: Current time of day
     ///   - location: Current location type
     /// - Returns: A score from 0.0 (no match) to 1.0 (perfect match)
     func contextMatchScore(
         weather: WeatherCondition? = nil,
         temperature: Double? = nil,
+        windSpeed: Double? = nil,
         timeOfDay: TimeOfDay? = nil,
         location: LocationType? = nil
     ) -> Double {
         // If any required condition doesn't match, score is 0
-        guard matchesContext(weather: weather, temperature: temperature, timeOfDay: timeOfDay, location: location) else {
+        guard matchesContext(weather: weather, temperature: temperature, windSpeed: windSpeed, timeOfDay: timeOfDay, location: location) else {
             return 0.0
         }
         
@@ -421,6 +447,14 @@ public extension GoalTag {
         if minTemperature != nil || maxTemperature != nil {
             totalConditions += 1
             if temperature != nil {
+                matchedConditions += 1
+            }
+        }
+        
+        // Wind speed matching
+        if maxWindSpeed != nil {
+            totalConditions += 1
+            if windSpeed != nil {
                 matchedConditions += 1
             }
         }

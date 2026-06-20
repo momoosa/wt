@@ -24,6 +24,7 @@ protocol WeatherProviding: AnyObject {
     func matchesAnyCondition(_ conditions: [MomentumKit.WeatherCondition]) -> Bool
     func temperatureAbove(_ minimum: Double) -> Bool
     func temperatureBelow(_ maximum: Double) -> Bool
+    func windSpeedBelow(_ maximum: Double) -> Bool
     func forecastCondition(at date: Date) -> MomentumKit.WeatherCondition?
     func forecastTemperature(at date: Date) -> Double?
 }
@@ -186,6 +187,12 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
         return currentWeather?.temperature.value
     }
     
+    /// Get current wind speed in km/h
+    func getCurrentWindSpeed() -> Double? {
+        guard let weather = currentWeather else { return nil }
+        return weather.wind.speed.converted(to: .kilometersPerHour).value
+    }
+    
     /// Check if current weather matches the given condition
     func matchesCondition(_ condition: MomentumKit.WeatherCondition) -> Bool {
         guard let currentCondition = getCurrentCondition() else { return false }
@@ -214,6 +221,12 @@ class WeatherManager: NSObject, CLLocationManagerDelegate, WeatherProviding {
     func temperatureBelow(_ maximum: Double) -> Bool {
         guard let temp = getCurrentTemperature() else { return false }
         return temp <= maximum
+    }
+    
+    /// Check if current wind speed is at or below the maximum (km/h)
+    func windSpeedBelow(_ maximum: Double) -> Bool {
+        guard let speed = getCurrentWindSpeed() else { return false }
+        return speed <= maximum
     }
     
     // MARK: - Hourly Forecast Lookup

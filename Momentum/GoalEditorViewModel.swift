@@ -138,6 +138,8 @@ class GoalEditorViewModel: Identifiable {
     var minTemperature: Double = 10
     var hasMaxTemperature: Bool = false
     var maxTemperature: Double = 25
+    var hasMaxWindSpeed: Bool = false
+    var maxWindSpeed: Double = 30 // km/h default
     
     // MARK: - Relevance Rule
     
@@ -423,6 +425,10 @@ class GoalEditorViewModel: Identifiable {
             hasMaxTemperature = true
             maxTemperature = maxTemp
         }
+        if let maxWind = goal.maxWindSpeed {
+            hasMaxWindSpeed = true
+            maxWindSpeed = maxWind
+        }
         
         // Load relevance rule
         if goal.hasRelevanceRule {
@@ -655,10 +661,8 @@ class GoalEditorViewModel: Identifiable {
             selectedGoalType = .seconds
         }
 
-        // Set primary metric target if specified
-        if let target = template.primaryMetricTarget {
-            primaryMetricTarget = target
-        }
+        // Set primary metric target if specified, reset otherwise
+        primaryMetricTarget = template.primaryMetricTarget ?? 0
 
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
@@ -843,6 +847,9 @@ class GoalEditorViewModel: Identifiable {
         if weatherEnabled && !selectedWeatherConditions.isEmpty {
             signals.append(selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))
         }
+        if weatherEnabled && hasMaxWindSpeed {
+            signals.append("wind ≤\(Int(maxWindSpeed)) km/h")
+        }
         
         if !signals.isEmpty {
             parts.append(signals.joined(separator: " / "))
@@ -871,6 +878,9 @@ class GoalEditorViewModel: Identifiable {
         }
         if weatherEnabled && !selectedWeatherConditions.isEmpty {
             signalDescriptions.append(selectedWeatherConditions.map { $0.displayName.lowercased() }.joined(separator: " or "))
+        }
+        if weatherEnabled && hasMaxWindSpeed {
+            signalDescriptions.append("wind ≤\(Int(maxWindSpeed)) km/h")
         }
         if !signalDescriptions.isEmpty {
             parts.append("Promoted when \(signalDescriptions.joined(separator: " or "))")
@@ -902,6 +912,7 @@ class GoalEditorViewModel: Identifiable {
             selectedWeatherConditions.removeAll()
             hasMinTemperature = false
             hasMaxTemperature = false
+            hasMaxWindSpeed = false
         case .location:
             break
         }
@@ -925,7 +936,7 @@ class GoalEditorViewModel: Identifiable {
             let uniqueTimes = Set(allTimes)
             return !uniqueTimes.isEmpty && uniqueTimes.count < TimeOfDay.allCases.count
         case .weather:
-            return weatherEnabled && !selectedWeatherConditions.isEmpty
+            return weatherEnabled && (!selectedWeatherConditions.isEmpty || hasMinTemperature || hasMaxTemperature || hasMaxWindSpeed)
         case .location:
             return signalStrengths[.location] != nil
         }
@@ -942,8 +953,15 @@ class GoalEditorViewModel: Identifiable {
             }
             return uniqueTimes.sorted().map { $0.displayName.lowercased() }.joined(separator: ", ")
         case .weather:
-            if !weatherEnabled || selectedWeatherConditions.isEmpty { return "Not set" }
-            return selectedWeatherConditions.map { $0.displayName.lowercased() }.joined(separator: ", ")
+            if !weatherEnabled || (selectedWeatherConditions.isEmpty && !hasMinTemperature && !hasMaxTemperature && !hasMaxWindSpeed) { return "Not set" }
+            var parts: [String] = []
+            if !selectedWeatherConditions.isEmpty {
+                parts.append(selectedWeatherConditions.map { $0.displayName.lowercased() }.joined(separator: ", "))
+            }
+            if hasMaxWindSpeed {
+                parts.append("wind ≤\(Int(maxWindSpeed)) km/h")
+            }
+            return parts.isEmpty ? "Not set" : parts.joined(separator: " · ")
         case .location:
             return "Not set"
         }
@@ -1325,10 +1343,12 @@ class GoalEditorViewModel: Identifiable {
             goal.weatherConditionsTyped = selectedWeatherConditions.isEmpty ? nil : Array(selectedWeatherConditions)
             goal.minTemperature = hasMinTemperature ? minTemperature : nil
             goal.maxTemperature = hasMaxTemperature ? maxTemperature : nil
+            goal.maxWindSpeed = hasMaxWindSpeed ? maxWindSpeed : nil
         } else {
             goal.weatherConditionsTyped = nil
             goal.minTemperature = nil
             goal.maxTemperature = nil
+            goal.maxWindSpeed = nil
         }
         
         // ✅ Save relevance rule
@@ -1362,6 +1382,7 @@ class GoalEditorViewModel: Identifiable {
             print("🌤️ Weather triggers: \(selectedWeatherConditions.map { $0.displayName }.joined(separator: ", "))")
             if hasMinTemperature { print("   Min temp: \(Int(minTemperature))°C") }
             if hasMaxTemperature { print("   Max temp: \(Int(maxTemperature))°C") }
+            if hasMaxWindSpeed { print("   Max wind: \(Int(maxWindSpeed)) km/h") }
         }
         
         // Request notification permissions if enabled

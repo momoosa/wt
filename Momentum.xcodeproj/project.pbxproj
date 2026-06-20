@@ -127,6 +127,10 @@
 		CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15072F864D8300B7FCD6 /* ScheduleDaysListSection.swift */; };
 		CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */; };
 		CDCE06A22F84420900034FD3 /* GoalTypeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */; };
+		CDD5A9602FE5BEC400C5E968 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A95F2FE5BEC400C5E968 /* RevenueCat */; };
+		CDD5A9622FE5BEC400C5E968 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */; };
+		CDD5A9642FE5BF0200C5E968 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */; };
+		CDD5A9662FE5C2E600C5E968 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */; };
 		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
@@ -356,6 +360,8 @@
 		CDCE069F2F84416200034FD3 /* COMPOSITION_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMPOSITION_REFACTORING.md; sourceTree = "<group>"; };
 		CDCE06A02F8441A300034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
 		CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
+		CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		CDD6D19F2FBF685500133F88 /* MomentumKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = MomentumKit; sourceTree = "<group>"; };
 		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
 		CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePreviewView.swift; sourceTree = "<group>"; };
@@ -459,7 +465,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDD5A9602FE5BEC400C5E968 /* RevenueCat in Frameworks */,
 				CD39BD4A2F2F66E600F7265A /* MomentumKit in Frameworks */,
+				CDD5A9622FE5BEC400C5E968 /* RevenueCatUI in Frameworks */,
+				CDD5A9642FE5BF0200C5E968 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -513,6 +522,7 @@
 		CD06684F2E34C3620063AC1F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */,
 				CD39BD2C2F2F633800F7265A /* WidgetKit.framework */,
 				CD39BD2E2F2F633800F7265A /* SwiftUI.framework */,
 			);
@@ -746,6 +756,7 @@
 				CDA2DD712FDF389E00FD0DA6 /* ScrollingHeaderView.swift */,
 				CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */,
 				CD2C50612FE1196200F9ABD9 /* WeeklyRecapView.swift */,
+				CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -836,6 +847,8 @@
 			name = Momentum;
 			packageProductDependencies = (
 				CD39BD492F2F66E600F7265A /* MomentumKit */,
+				CDD5A95F2FE5BEC400C5E968 /* RevenueCat */,
+				CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */,
 			);
 			productName = Weektime;
 			productReference = CD75CC5B2E2FE5E600890F20 /* Momentum.app */;
@@ -1002,6 +1015,9 @@
 			);
 			mainGroup = CD75CC522E2FE5E600890F20;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CDD5A95E2FE5BEC400C5E968 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CD75CC5C2E2FE5E600890F20 /* Products */;
 			projectDirPath = "";
@@ -1145,6 +1161,7 @@
 				CD199C192FD0981200CA3AB7 /* RelevanceRuleView.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD6A0C212F88429F008F5D93 /* ContentViewModel.swift in Sources */,
+				CDD5A9662FE5C2E600C5E968 /* SubscriptionManager.swift in Sources */,
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD6A0C2B2F899624008F5D93 /* ToastMessageFactory.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
@@ -2187,6 +2204,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		CDD5A95E2FE5BEC400C5E968 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.79.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		CD39BD492F2F66E600F7265A /* MomentumKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -2199,6 +2227,16 @@
 		CDBC06992F56C98600D87642 /* MomentumKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MomentumKit;
+		};
+		CDD5A95F2FE5BEC400C5E968 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDD5A95E2FE5BEC400C5E968 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDD5A95E2FE5BEC400C5E968 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

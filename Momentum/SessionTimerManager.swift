@@ -393,13 +393,16 @@ public final class SessionTimerManager {
             id: session.id,
             startDate: startDate,
             elapsedTime: elapsedTime,
-            dailyTarget: session.unifiedTargetValue
+            dailyTarget: session.targetUnit.isTimeBased ? session.unifiedTargetValue : 0
         ) {
             // Callback when target is reached
             self.onTargetReached(for: session)
         }
         newActiveSession.unifiedTargetValue = session.unifiedTargetValue
         newActiveSession.targetUnit = session.targetUnit
+        if !session.targetUnit.isTimeBased {
+            newActiveSession.metricValue = session.currentValue
+        }
         
         activeSession = newActiveSession
         
@@ -611,13 +614,16 @@ public final class SessionTimerManager {
             id: session.id,
             startDate: .now,
             elapsedTime: session.elapsedTime,
-            dailyTarget: session.unifiedTargetValue
+            dailyTarget: session.targetUnit.isTimeBased ? session.unifiedTargetValue : 0
         ) {
             // Callback when target is reached
             self.onTargetReached(for: session)
         }
         newActiveSession.unifiedTargetValue = session.unifiedTargetValue
         newActiveSession.targetUnit = session.targetUnit
+        if !session.targetUnit.isTimeBased {
+            newActiveSession.metricValue = session.currentValue
+        }
         
         activeSession = newActiveSession
         saveTimerState()
@@ -801,12 +807,15 @@ public final class SessionTimerManager {
             id: uuid,
             startDate: startDate,
             elapsedTime: elapsed,
-            dailyTarget: session.unifiedTargetValue
+            dailyTarget: session.targetUnit.isTimeBased ? session.unifiedTargetValue : 0
         ) {
             self.onTargetReached(for: session)
         }
         restoredSession.unifiedTargetValue = session.unifiedTargetValue
         restoredSession.targetUnit = session.targetUnit
+        if !session.targetUnit.isTimeBased {
+            restoredSession.metricValue = session.currentValue
+        }
         
         activeSession = restoredSession
         
@@ -939,9 +948,13 @@ public final class SessionTimerManager {
         let dynamicElapsed = activeSession.elapsedTime + Date.now.timeIntervalSince(activeSession.startDate)
         
         // Sync GoalSession.currentValue so UI that reads session.progress stays accurate
-        if let session = goalStore.sessions.first(where: { $0.id == activeSession.id }),
-           session.targetUnit.isTimeBased {
-            session.currentValue = dynamicElapsed
+        if let session = goalStore.sessions.first(where: { $0.id == activeSession.id }) {
+            if session.targetUnit.isTimeBased {
+                session.currentValue = dynamicElapsed
+            } else {
+                // For non-time goals, sync metric value from GoalSession (updated by HealthKit)
+                activeSession.metricValue = session.currentValue
+            }
         }
         
         #if canImport(ActivityKit)

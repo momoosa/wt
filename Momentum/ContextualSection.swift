@@ -19,10 +19,10 @@ struct ContextualSection: Identifiable {
         case .weatherWindow(let time, let condition, _): return "weather_\(time)_\(condition)"
         case .timeWindow(let time, let reason, _): return "time_\(time)_\(reason)"
         case .energyWindow(let time, let energyLevel): return "energy_\(time)_\(energyLevel)"
-        case .workingOffSchedule: return "offSchedule"
         case .available: return "available"
         case .later: return "later"
         case .completed: return "completed"
+        case .skipped: return "skipped"
         case .inactive: return "inactive"
         case .notNow: return "notNow"
         }
@@ -36,10 +36,10 @@ struct ContextualSection: Identifiable {
         case weatherWindow(time: String, condition: String, icon: String)
         case timeWindow(time: String, reason: String, icon: String)
         case energyWindow(time: String, energyLevel: String)
-        case workingOffSchedule
         case available
         case later
         case completed
+        case skipped
         case inactive
         case notNow
         
@@ -53,14 +53,14 @@ struct ContextualSection: Identifiable {
                 return "\(time) - \(reason)"
             case .energyWindow(let time, let energyLevel):
                 return "\(time) (\(energyLevel) energy)"
-            case .workingOffSchedule:
-                return "Working Off-Schedule"
             case .available:
                 return "Available Goals"
             case .later:
                 return "Later"
             case .completed:
                 return "Completed Today"
+            case .skipped:
+                return "Skipped"
             case .inactive:
                 return "Inactive"
             case .notNow:
@@ -78,14 +78,14 @@ struct ContextualSection: Identifiable {
                 return icon
             case .energyWindow:
                 return "bolt.fill"
-            case .workingOffSchedule:
-                return "calendar.badge.clock"
             case .available:
                 return "lightbulb.fill"
             case .later:
                 return nil
             case .completed:
                 return "checkmark.circle.fill"
+            case .skipped:
+                return "xmark.circle.fill"
             case .inactive:
                 return "circle.dotted"
             case .notNow:
@@ -95,9 +95,9 @@ struct ContextualSection: Identifiable {
         
         var shouldShowExplanation: Bool {
             switch self {
-            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .workingOffSchedule, .available, .notNow:
+            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .available, .notNow:
                 return true
-            case .later, .completed, .inactive:
+            case .later, .completed, .skipped, .inactive:
                 return false
             }
         }
@@ -107,8 +107,8 @@ struct ContextualSection: Identifiable {
             case .recommendedNow: return .yellow
             case .weatherWindow, .timeWindow, .energyWindow: return .blue
             case .available: return .orange
-            case .workingOffSchedule: return .purple
             case .completed: return .green
+            case .skipped: return .orange
             case .notNow: return .orange
             case .later, .inactive: return .gray
             }
@@ -123,6 +123,7 @@ extension ContextualSection {
         recommendedSessions: [GoalSession],
         allGoals: [GoalSession]? = nil,
         downrankedSessions: [DownrankedSession] = [],
+        skippedSessions: [GoalSession] = [],
         currentDate: Date = Date()
     ) -> [ContextualSection] {
         var sections: [ContextualSection] = []
@@ -142,28 +143,13 @@ extension ContextualSection {
         // Get remaining sessions (not in recommended)
         let remainingSessions = sessions.filter { !recommendedIDs.contains($0.id) }
         
-        // 2. Working Off-Schedule section (goals not scheduled today but with recent activity)
-        let offScheduleSessions = identifyOffScheduleSessions(remainingSessions, currentDate: currentDate)
-        if !offScheduleSessions.isEmpty {
-            let explanation = generateOffScheduleExplanation(for: offScheduleSessions)
-            sections.append(ContextualSection(
-                type: .workingOffSchedule,
-                sessions: offScheduleSessions,
-                explanation: explanation
-            ))
-        }
-        
-        // Filter out off-schedule sessions from remaining
-        let offScheduleIDs = Set(offScheduleSessions.map { $0.id })
-        let regularSessions = remainingSessions.filter { !offScheduleIDs.contains($0.id) }
-        
-        // 3. Group remaining sessions by timing constraints
-        let groupedByConstraints = groupByConstraints(regularSessions, currentDate: currentDate)
+        // 2. Group remaining sessions by timing constraints
+        let groupedByConstraints = groupByConstraints(remainingSessions, currentDate: currentDate)
         sections.append(contentsOf: groupedByConstraints)
         
-        // 4. Later section (everything else, excluding completed goals)
+        // 3. Later section (everything else, excluding completed goals)
         let constraintSectionIDs = Set(groupedByConstraints.flatMap { $0.sessions.map { $0.id } })
-        let laterSessions = regularSessions.filter { !constraintSectionIDs.contains($0.id) && !$0.hasMetDailyTarget }
+        let laterSessions = remainingSessions.filter { !constraintSectionIDs.contains($0.id) && !$0.hasMetDailyTarget }
         
         if !laterSessions.isEmpty {
             sections.append(ContextualSection(
@@ -173,7 +159,7 @@ extension ContextualSection {
             ))
         }
         
-        // 5. Available Goals section (goals not scheduled for today but could be worked on)
+        // 4. Available Goals section (goals not scheduled for today but could be worked on)
         if let allGoals = allGoals {
             let scheduledIDs = Set(sessions.map { $0.id })
             let downrankedIDs = Set(downrankedSessions.map { $0.session.id })
@@ -210,7 +196,7 @@ extension ContextualSection {
                 ))
             }
             
-            // 6. Completed Today section (goals that have met their daily target)
+            // 5. Completed Today section (goals that have met their daily target)
             let completedGoals = allGoals.filter { goal in
                 goal.hasMetDailyTarget && (goal.unifiedTargetValue > 0 || goal.isActiveGoal)
             }
@@ -219,6 +205,15 @@ extension ContextualSection {
                 sections.append(ContextualSection(
                     type: .completed,
                     sessions: completedGoals,
+                    explanation: nil
+                ))
+            }
+            
+            // 6. Skipped section
+            if !skippedSessions.isEmpty {
+                sections.append(ContextualSection(
+                    type: .skipped,
+                    sessions: skippedSessions,
                     explanation: nil
                 ))
             }
@@ -233,7 +228,7 @@ extension ContextualSection {
                 ))
             }
             
-            // 8. Inactive section (goals with no schedule for today and not active)
+            // 8. Inactive section
             let inactiveGoals = allGoals.filter { goal in
                 !scheduledIDs.contains(goal.id) &&
                 !downrankedIDs.contains(goal.id) &&
@@ -253,67 +248,6 @@ extension ContextualSection {
         }
         
         return sections
-    }
-    
-    /// Identify sessions that are "working off-schedule" - not scheduled for today but with recent activity
-    private static func identifyOffScheduleSessions(
-        _ sessions: [GoalSession],
-        currentDate: Date
-    ) -> [GoalSession] {
-        let calendar = Calendar.current
-        let oneDayAgo = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
-        let todayWeekday = calendar.component(.weekday, from: currentDate)
-        
-        return sessions.filter { session in
-            guard let goal = session.goal else { return false }
-            
-            // Check if goal has a schedule
-            guard goal.hasSchedule else { return false }
-            
-            // Check if today is NOT in the goal's scheduled weekdays
-            // This is more reliable than checking dailyTarget == 0, which is always 0
-            // for count/calorie goals regardless of schedule
-            guard !goal.scheduledWeekdays.contains(todayWeekday) else {
-                return false
-            }
-            
-            // Now check if it meets any of the "working off-schedule" criteria:
-            
-            // 1. Created within last 24 hours
-            if let createdDate = session.day?.startDate,
-               createdDate >= oneDayAgo {
-                return true
-            }
-            
-            // 2. Has logged time today (elapsedTime > 0)
-            if session.elapsedTime > 0 {
-                return true
-            }
-            
-            return false
-        }
-    }
-    
-    /// Generate explanation for off-schedule sessions
-    private static func generateOffScheduleExplanation(for sessions: [GoalSession]) -> String {
-        // Check reasons
-        let hasNewGoals = sessions.contains { session in
-            guard let createdDate = session.day?.startDate else { return false }
-            let oneDayAgo = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
-            return createdDate >= oneDayAgo
-        }
-        
-        let hasActiveWork = sessions.contains { $0.elapsedTime > 0 }
-        
-        if hasNewGoals && hasActiveWork {
-            return "Recently added goals with progress today"
-        } else if hasNewGoals {
-            return "Recently added goals you can start now"
-        } else if hasActiveWork {
-            return "Goals you're working on outside their schedule"
-        }
-        
-        return "Goals with activity outside their scheduled days"
     }
     
     /// Generate explanation for downranked "Not Now" sessions

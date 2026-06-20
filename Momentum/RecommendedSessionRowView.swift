@@ -74,15 +74,7 @@ struct RecommendedSessionRowView: View {
                 .foregroundStyle(foreground.opacity(0.9))
             }
             
-            // Row 4: Explanation text
-            if let reasoning = session.plannedReasoning {
-                Text(reasoning)
-                    .font(.caption)
-                    .foregroundStyle(foreground.opacity(0.7))
-                    .lineLimit(2)
-            }
-            
-            // Row 5: SESSION label + duration + play button
+            // Row 4: SESSION label + duration + play button
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("SESSION")
@@ -106,25 +98,15 @@ struct RecommendedSessionRowView: View {
                         sessionActions.onSyncHealthKit?()
                     } label: {
                         GaugePlayIcon(
-                            imageName: sessionActions.isSyncingHealthKit
-                                ? "arrow.triangle.2.circlepath"
-                                : "arrow.triangle.2.circlepath.circle.fill",
+                            imageName: "arrow.triangle.2.circlepath.circle.fill",
                             progress: liveProgress,
                             color: foreground,
                             size: 44,
                             lineWidth: 3
                         )
-                        .rotationEffect(.degrees(sessionActions.isSyncingHealthKit ? 360 : 0))
-                        .animation(
-                            sessionActions.isSyncingHealthKit
-                                ? .linear(duration: 1).repeatForever(autoreverses: false)
-                                : .default,
-                            value: sessionActions.isSyncingHealthKit
-                        )
                     }
                     .buttonStyle(.plain)
-                    .disabled(sessionActions.isSyncingHealthKit)
-                    .accessibilityLabel(sessionActions.isSyncingHealthKit ? "Syncing health data" : "Sync health data")
+                    .accessibilityLabel("Sync health data")
                 } else {
                     // Regular or HealthKit-writable goal: play/stop button
                     Button {

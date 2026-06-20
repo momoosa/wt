@@ -12,6 +12,7 @@ public struct GoalTagTriggersEditor: View {
     @State private var requiresDaylight: Bool = false
     @State private var minTemperatureString: String = ""
     @State private var maxTemperatureString: String = ""
+    @State private var maxWindSpeedString: String = ""
 
     public var body: some View {
         Form {
@@ -66,6 +67,19 @@ public struct GoalTagTriggersEditor: View {
                         .frame(width: 80)
                 }
             }
+            
+            Section(header: Text("Wind Speed (km/h)")) {
+                HStack {
+                    Text("Max Wind Speed")
+                    Spacer()
+                    TextField("Max", text: $maxWindSpeedString)
+                        #if os(iOS)
+                        .keyboardType(.decimalPad)
+                        #endif
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                }
+            }
         }
         .navigationTitle("Edit Triggers")
         .onAppear(perform: loadFromGoalTag)
@@ -91,6 +105,11 @@ public struct GoalTagTriggersEditor: View {
         } else {
             maxTemperatureString = ""
         }
+        if let maxWind = goalTag.requiresMaxWindSpeed {
+            maxWindSpeedString = String(format: "%.0f", maxWind)
+        } else {
+            maxWindSpeedString = ""
+        }
     }
 
     private func saveToGoalTag() {
@@ -107,6 +126,11 @@ public struct GoalTagTriggersEditor: View {
             goalTag.requiresMaxTemperature = maxTemp
         } else {
             goalTag.requiresMaxTemperature = nil
+        }
+        if let maxWind = Double(maxWindSpeedString) {
+            goalTag.requiresMaxWindSpeed = maxWind
+        } else {
+            goalTag.requiresMaxWindSpeed = nil
         }
 
         // SwiftData automatically saves changes, but we can explicitly save if needed
