@@ -97,13 +97,14 @@ class HealthKitSyncService {
                 
                 if canUseAggregate {
                     // Use HKStatisticsQuery for a single aggregate number
-                    let duration = goal.targetUnit.isTimeBased
+                    let duration = goal.targetUnit.isTimeBased && !metric.isCountBased
                         ? try await healthKitManager.fetchExternalDuration(for: metric, from: day.startDate, to: day.endDate)
                         : 0 // Non-time metrics (steps, calories) don't need duration
                     
-                    // Fetch primary metric value if needed
+                    // Fetch primary metric value for count-based metrics (steps, calories)
+                    // regardless of the goal's targetUnit
                     var primaryMetricValue: Double? = nil
-                    if !goal.targetUnit.isTimeBased {
+                    if !goal.targetUnit.isTimeBased || metric.isCountBased {
                         primaryMetricValue = try? await healthKitManager.fetchTodayCount(for: metric)
                     }
                     
@@ -141,9 +142,10 @@ class HealthKitSyncService {
                         allocatedSampleIDs.insert(sample.id)
                     }
 
-                    // Fetch primary metric value if needed
+                    // Fetch primary metric value for count-based metrics (steps, calories)
+                    // regardless of the goal's targetUnit
                     var primaryMetricValue: Double? = nil
-                    if !goal.targetUnit.isTimeBased {
+                    if !goal.targetUnit.isTimeBased || metric.isCountBased {
                         primaryMetricValue = try? await healthKitManager.fetchTodayCount(for: metric)
                         AppLogger.healthKit.info("  - Fetched primary metric value: \(primaryMetricValue ?? 0)")
                     }

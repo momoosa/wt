@@ -17,7 +17,7 @@ extension ContentView {
     var dailyProgressCard: some View {
         let size = 80.0
         let vm = progressViewModel
-        let hasVisibleTiles = showProgressTile || showWeatherTile || showCalendarTile
+        let hasVisibleTiles = showProgressTile || showCalendarTile
         
         return Group {
             if hasVisibleTiles {
@@ -43,51 +43,6 @@ extension ContentView {
                             }
                     }
 
-                    // Weather Card
-                    if showWeatherTile {
-                        if let weather = weatherManager.currentWeather {
-                            VStack(spacing: 6) {
-                                Image(systemName: weatherSymbol(for: weather.condition))
-                                    .font(.title)
-                                    .foregroundStyle(.blue)
-                                
-                                Text("\(Int(weather.temperature.value))°")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                        } else if weatherManager.isLoading {
-                            // Loading state
-                            VStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.regular)
-                                
-                                Text("Loading")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                        } else {
-                            // Error or no data state
-                            VStack(spacing: 6) {
-                                Image(systemName: weatherManager.error != nil ? "exclamationmark.triangle" : "cloud.slash")
-                                    .font(.title)
-                                    .foregroundStyle(.gray)
-                                
-                                Text(weatherManager.error != nil ? "Error" : "No Data")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(width: size, height: size)
-                            .glassCardStyle(shadowColor: .black)
-                            .onTapGesture {
-                                weatherManager.forceRefreshWeather()
-                            }
-                        }
-                    }
-                    
                     // Calendar Free Time Card
                     if showCalendarTile {
                         if nextCalendarEvent != nil {
@@ -123,7 +78,6 @@ extension ContentView {
                 }
                 .padding()
                 .animation(.spring(), value: showProgressTile)
-                .animation(.spring(), value: showWeatherTile)
                 .animation(.spring(), value: showCalendarTile)
             }
         }

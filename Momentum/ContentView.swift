@@ -110,24 +110,35 @@ struct ContentView: View {
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
                     ScrollingHeaderView(scrollOffset: scrollOffset) {
-                        Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            if showWeatherTile, let weather = weatherManager.currentWeather {
+                                HStack(spacing: 3) {
+                                    Image(systemName: weatherSymbol(for: weather.condition))
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                    Text("\(Int(weather.temperature.value))°")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     } title: {
                         Text(timeOfDayGreeting)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                    } leading: {
-                        Button {
-                            navigation.showSettings = true
-                        } label: {
-                            Image(systemName: "gear")
-                        }
                     } trailing: {
-                        HStack(spacing: 16) {
+                        HStack(spacing: 12) {
                             Button(action: {
                                 goalEditorViewModel = GoalEditorViewModel()
                             }) {
                                 Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .frame(width: 34, height: 34)
+                                    .background(Circle().fill(Color.blue.opacity(0.12)))
                             }
                             .matchedTransitionSource(id: "info", in: animation)
                             
@@ -135,6 +146,18 @@ struct ContentView: View {
                                 navigation.showAllGoals = true
                             } label: {
                                 Image(systemName: "target")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .frame(width: 34, height: 34)
+                                    .background(Circle().fill(Color.blue.opacity(0.12)))
+                            }
+                            
+                            Button {
+                                navigation.showSettings = true
+                            } label: {
+                                Image(systemName: "gear")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .frame(width: 34, height: 34)
+                                    .background(Circle().fill(Color.blue.opacity(0.12)))
                             }
                         }
                     }

@@ -60,6 +60,9 @@ struct GoalEditorView: View {
     @State private var showSettingsSection = false
     @State private var showNotesSection = false
     
+    // Keyboard tracking
+    @State private var isKeyboardVisible = false
+    
     // Debounce for theme recommendation
     @State private var themeRecommendationDebounce: Task<Void, Never>?
     
@@ -173,15 +176,9 @@ struct GoalEditorView: View {
                 selectedTags: $viewModel.selectedTags,
                 selectedGoalTheme: $viewModel.selectedGoalTheme,
                 modelContext: modelContext,
-                editingTag: $viewModel.editingTag
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $viewModel.editingTag) { tag in
-            NavigationStack {
-                GoalTagTriggersEditor(goalTag: tag)
-            }
         }
         .sheet(isPresented: $viewModel.showingColorPicker) {
             ColorPickerSheet(
@@ -229,6 +226,7 @@ struct GoalEditorView: View {
                 showScheduleSection = true
                 showSettingsSection = true
                 showNotesSection = true
+                viewModel.computeRecommendedTarget(modelContext: modelContext)
             }
         }
         .onChange(of: viewModel.userInput) {
@@ -241,6 +239,12 @@ struct GoalEditorView: View {
                 viewModel.recommendTheme(for: viewModel.userInput)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
+        }
     }
     
     // MARK: - Bottom Bar
@@ -249,48 +253,67 @@ struct GoalEditorView: View {
         VStack(spacing: 0) {
             Divider()
             
-            HStack(spacing: 12) {
-                // Back button (only in editor stage)
-                if stage == .editor {
+            if isKeyboardVisible && stage == .editor {
+                // Keyboard toolbar: dismiss button
+                HStack {
+                    Spacer()
+                    
                     Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            stage = .title
-                        }
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .frame(width: 44, height: 44)
+                        Text("Done")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(activeThemeColor)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            } else {
+                HStack(spacing: 12) {
+                    // Back button (only in editor stage)
+                    if stage == .editor {
+                        Button {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                stage = .title
+                            }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 44, height: 44)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(.tertiarySystemFill))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Next / Save button
+                    Button {
+                        handleNextTap()
+                    } label: {
+                        Text(stage.buttonLabel)
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(buttonForegroundColor)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.tertiarySystemFill))
+                                    .fill(buttonBackgroundStyle)
                             )
                     }
                     .buttonStyle(.plain)
+                    .disabled(!buttonEnabled)
                 }
-                
-                // Next / Save button
-                Button {
-                    handleNextTap()
-                } label: {
-                    Text(stage.buttonLabel)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(buttonForegroundColor)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(buttonBackgroundStyle)
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(!buttonEnabled)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
         .background(Color(.systemBackground))
+        .animation(.snappy(duration: 0.2), value: isKeyboardVisible)
     }
     
     private var buttonForegroundColor: Color {

@@ -289,6 +289,12 @@ struct TagManagementView: View {
         let name = newTagName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         
+        // Don't create a duplicate tag
+        if allTags.contains(where: { $0.title.caseInsensitiveCompare(name) == .orderedSame }) {
+            newTagName = ""
+            return
+        }
+        
         // Pick a theme that isn't already used by existing tags
         let usedThemeIDs = Set(allTags.map { $0.themeID })
         let availablePreset = ThemeStore.presets.first { !usedThemeIDs.contains($0.id) }

@@ -53,6 +53,9 @@ class GoalEditorViewModel: Identifiable {
     /// Task handle for the recommendation so we can cancel on new input
     private var themeRecommendationTask: Task<Void, Never>?
     
+    /// Recommended daily target in minutes, computed from historical average
+    var recommendedDailyMinutes: Int?
+    
     // MARK: - Template & Suggestions
     
     var selectedTemplate: GoalTemplateSuggestion?
@@ -82,7 +85,6 @@ class GoalEditorViewModel: Identifiable {
     
     var selectedTags: [GoalTag] = []
     var showingTagPicker: Bool = false
-    var editingTag: GoalTag?
     var showingAddThemeSheet: Bool = false
     var customThemeName: String = ""
     var selectedBaseThemeForCustom: ThemePreset?
@@ -141,6 +143,14 @@ class GoalEditorViewModel: Identifiable {
     var hasMaxWindSpeed: Bool = false
     var maxWindSpeed: Double = 30 // km/h default
     
+    // MARK: - Location Triggers
+    
+    var locationEnabled: Bool = false
+    var locationLatitude: Double?
+    var locationLongitude: Double?
+    var locationRadius: Double = 200 // meters
+    var locationName: String = ""
+    
     // MARK: - Relevance Rule
     
     var dayAvailabilities: [Int: DayAvailability] = {
@@ -151,6 +161,7 @@ class GoalEditorViewModel: Identifiable {
         return avail
     }()
     var signalStrengths: [SignalType: SignalStrength] = [:]
+    var conditionMatchMode: ConditionMatchMode = .all
     var showingRelevanceRuleSheet: Bool = false
     
     // MARK: - Scheduling
@@ -430,6 +441,15 @@ class GoalEditorViewModel: Identifiable {
             maxWindSpeed = maxWind
         }
         
+        // Load location settings
+        locationEnabled = goal.locationEnabled
+        if let lat = goal.locationLatitude, let lon = goal.locationLongitude {
+            locationLatitude = lat
+            locationLongitude = lon
+            locationName = goal.locationName ?? ""
+            locationRadius = goal.locationRadius ?? 200
+        }
+        
         // Load relevance rule
         if goal.hasRelevanceRule {
             for weekday in 1...7 {
@@ -617,7 +637,7 @@ class GoalEditorViewModel: Identifiable {
         selectedColorPreset = matchedTheme
         
         // Check if a tag with the category name already exists in the database
-        let existingTag = allTags.first(where: { $0.title == categoryName })
+        let existingTag = allTags.first(where: { $0.title.caseInsensitiveCompare(categoryName) == .orderedSame })
         
         let goalTheme: GoalTag
         if let existing = existingTag {
@@ -850,6 +870,9 @@ class GoalEditorViewModel: Identifiable {
         if weatherEnabled && hasMaxWindSpeed {
             signals.append("wind ≤\(Int(maxWindSpeed)) km/h")
         }
+        if locationEnabled && locationLatitude != nil {
+            signals.append(locationName.isEmpty ? "📍 location" : "📍 \(locationName)")
+        }
         
         if !signals.isEmpty {
             parts.append(signals.joined(separator: " / "))
@@ -914,7 +937,11 @@ class GoalEditorViewModel: Identifiable {
             hasMaxTemperature = false
             hasMaxWindSpeed = false
         case .location:
-            break
+            locationEnabled = false
+            locationLatitude = nil
+            locationLongitude = nil
+            locationName = ""
+            locationRadius = 200
         }
     }
     
@@ -938,7 +965,7 @@ class GoalEditorViewModel: Identifiable {
         case .weather:
             return weatherEnabled && (!selectedWeatherConditions.isEmpty || hasMinTemperature || hasMaxTemperature || hasMaxWindSpeed)
         case .location:
-            return signalStrengths[.location] != nil
+            return locationEnabled && locationLatitude != nil
         }
     }
     
@@ -963,7 +990,8 @@ class GoalEditorViewModel: Identifiable {
             }
             return parts.isEmpty ? "Not set" : parts.joined(separator: " · ")
         case .location:
-            return "Not set"
+            if !locationEnabled || locationLatitude == nil { return "Not set" }
+            return locationName.isEmpty ? "Pinned location" : locationName
         }
     }
     
@@ -1216,6 +1244,42 @@ class GoalEditorViewModel: Identifiable {
         }
     }
     
+    // MARK: - Recommended Target
+    
+    /// Computes the recommended daily target from historical session averages
+    func computeRecommendedTarget(modelContext: ModelContext) {
+        guard let goal = existingGoal else { return }
+        let goalIDString = goal.id.uuidString
+        
+        do {
+            let descriptor = FetchDescriptor<Day>()
+            let allDays = try modelContext.fetch(descriptor)
+            
+            var totalSeconds: Double = 0
+            var sessionDayCount = 0
+            
+            for day in allDays {
+                guard let sessions = day.historicalSessions else { continue }
+                let dayTotal = sessions
+                    .filter { $0.goalIDs.contains(goalIDString) }
+                    .reduce(0.0) { $0 + $1.duration }
+                if dayTotal > 0 {
+                    totalSeconds += dayTotal
+                    sessionDayCount += 1
+                }
+            }
+            
+            guard sessionDayCount >= 3 else { return } // Need enough data
+            
+            let avgMinutes = Int((totalSeconds / Double(sessionDayCount)) / 60.0)
+            if avgMinutes > 0 {
+                recommendedDailyMinutes = avgMinutes
+            }
+        } catch {
+            // Silently fail
+        }
+    }
+    
     // MARK: - Save Goal
     
     func saveGoal(
@@ -1237,6 +1301,9 @@ class GoalEditorViewModel: Identifiable {
         let todayWeekday = calendar.component(.weekday, from: Date())
         let hadAnyScheduleForToday = existingGoal?.timesForWeekday(todayWeekday).isEmpty == false
         
+        // Fetch existing tags to avoid creating duplicates
+        let existingTags = (try? modelContext.fetch(FetchDescriptor<GoalTag>())) ?? []
+        
         // Determine theme based on user selection or suggestion
         let finalGoalTag: GoalTag
         if let customGoalTag = selectedGoalTheme {
@@ -1246,15 +1313,18 @@ class GoalEditorViewModel: Identifiable {
                   let category = suggestionsData.categories.first(where: { $0.suggestions.contains(where: { $0.id == template.id }) }) {
             // Use the category's theme to create a tag
             let matchedTheme = matchTheme(named: category.color)
-            finalGoalTag = GoalTag(title: category.name, themeID: matchedTheme.id)
+            finalGoalTag = existingTags.first(where: { $0.title.caseInsensitiveCompare(category.name) == .orderedSame })
+                ?? GoalTag(title: category.name, themeID: matchedTheme.id)
         } else if let selectedSuggestion = selectedSuggestion, let themeNames = selectedSuggestion.themes, !themeNames.isEmpty {
             // Use the first theme from generated suggestions
             let matchedTheme = matchTheme(named: themeNames[0])
-            finalGoalTag = GoalTag(title: "General", themeID: matchedTheme.id)
+            finalGoalTag = existingTags.first(where: { $0.title.caseInsensitiveCompare("General") == .orderedSame })
+                ?? GoalTag(title: "General", themeID: matchedTheme.id)
         } else {
             // Find an unused theme, or fall back to random
             let unusedTheme = findUnusedTheme(excluding: allGoals)
-            finalGoalTag = GoalTag(title: "General", themeID: unusedTheme.id)
+            finalGoalTag = existingTags.first(where: { $0.title.caseInsensitiveCompare("General") == .orderedSame })
+                ?? GoalTag(title: "General", themeID: unusedTheme.id)
         }
         
         // Debug print day-time schedule
@@ -1349,6 +1419,20 @@ class GoalEditorViewModel: Identifiable {
             goal.minTemperature = nil
             goal.maxTemperature = nil
             goal.maxWindSpeed = nil
+        }
+        
+        // ✅ Save location settings
+        goal.locationEnabled = locationEnabled
+        if locationEnabled, let lat = locationLatitude, let lon = locationLongitude {
+            goal.locationLatitude = lat
+            goal.locationLongitude = lon
+            goal.locationName = locationName.isEmpty ? nil : locationName
+            goal.locationRadius = locationRadius
+        } else {
+            goal.locationLatitude = nil
+            goal.locationLongitude = nil
+            goal.locationName = nil
+            goal.locationRadius = nil
         }
         
         // ✅ Save relevance rule

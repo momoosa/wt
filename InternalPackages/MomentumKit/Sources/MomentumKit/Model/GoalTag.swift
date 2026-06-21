@@ -523,6 +523,19 @@ public enum SignalStrength: String, Codable, CaseIterable, Hashable {
     }
 }
 
+/// Whether conditions are combined with AND (all must match) or OR (any one suffices).
+public enum ConditionMatchMode: String, Codable, CaseIterable, Hashable {
+    case all  // All conditions must match
+    case any  // Any single condition matching is enough
+    
+    public var displayName: String {
+        switch self {
+        case .all: return "Match ALL"
+        case .any: return "Match ANY"
+        }
+    }
+}
+
 /// The types of contextual signals that can influence goal relevance.
 public enum SignalType: String, Codable, CaseIterable, Identifiable, Hashable {
     case timeOfDay

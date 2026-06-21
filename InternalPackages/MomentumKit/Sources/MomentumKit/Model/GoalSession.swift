@@ -249,9 +249,15 @@ public final class GoalSession: SessionProgressProvider {
     public var progress: Double {
         let target = effectiveTargetValue
         guard target > 0 else { return 0 }
-        // For time-based goals, currentValue may not be synced yet for older sessions,
-        // so fall back to elapsedTime
+        // For time-based goals that have a count-based HealthKit metric,
+        // use the metric value for progress instead of elapsed time
         if targetUnit.isTimeBased {
+            if let goal = goal,
+               goal.healthKitSyncEnabled,
+               goal.healthKitMetric?.isCountBased == true,
+               currentValue > 0 {
+                return currentValue / target
+            }
             let value = currentValue > 0 ? currentValue : elapsedTime
             return value / target
         }
@@ -263,7 +269,15 @@ public final class GoalSession: SessionProgressProvider {
         if markedComplete { return true }
         let target = effectiveTargetValue
         guard target > 0 else { return false }
+        // For time-based goals that have a count-based HealthKit metric,
+        // use the metric value for completion instead of elapsed time
         if targetUnit.isTimeBased {
+            if let goal = goal,
+               goal.healthKitSyncEnabled,
+               goal.healthKitMetric?.isCountBased == true,
+               currentValue > 0 {
+                return currentValue >= target
+            }
             let value = currentValue > 0 ? currentValue : elapsedTime
             return value >= target
         }
@@ -272,7 +286,24 @@ public final class GoalSession: SessionProgressProvider {
     
     public var formattedTime: String {
         let target = effectiveTargetValue
+        // For time-based goals that have a count-based HealthKit metric,
+        // show metric format instead of time format
         if targetUnit.isTimeBased {
+            if let goal = goal,
+               goal.healthKitSyncEnabled,
+               let metric = goal.healthKitMetric,
+               metric.isCountBased {
+                let current = Int(currentValue)
+                let targetInt = Int(target)
+                switch metric {
+                case .activeEnergyBurned:
+                    return "\(current) cal/\(targetInt) cal"
+                case .stepCount:
+                    return "\(current.formatted())/\(targetInt.formatted())"
+                default:
+                    return "\(current)/\(targetInt)"
+                }
+            }
             let value = currentValue > 0 ? currentValue : elapsedTime
             return value.formattedProgress(target: target)
         }
@@ -340,9 +371,15 @@ public extension GoalSession {
         }
     }
     
-    /// Update the primary metric value (for count/calorie-based goals)
+    /// Update the primary metric value (for count/calorie-based goals).
+    /// Also accepts values when the goal has a count-based HealthKit metric
+    /// even if `targetUnit` is time-based (handles misconfigured goals).
     func updatePrimaryMetricValue(_ value: Double) {
         if !targetUnit.isTimeBased {
+            currentValue = value
+        } else if let goal = goal,
+                  goal.healthKitSyncEnabled,
+                  goal.healthKitMetric?.isCountBased == true {
             currentValue = value
         }
     }
@@ -371,9 +408,17 @@ public extension GoalSession {
         self.recommendationReasons = []
     }
     
-    /// Sync currentValue from elapsedTime (for time-based goals only)
+    /// Sync currentValue from elapsedTime (for time-based goals only).
+    /// Skips sync for goals with count-based HealthKit metrics to avoid
+    /// overwriting the metric value (e.g., step count) with elapsed time.
     func syncCurrentValueFromElapsedTime() {
         guard targetUnit.isTimeBased else { return }
+        // Don't overwrite count-based metric values with elapsed time
+        if let goal = goal,
+           goal.healthKitSyncEnabled,
+           goal.healthKitMetric?.isCountBased == true {
+            return
+        }
         currentValue = elapsedTime
     }
     

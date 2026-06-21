@@ -87,7 +87,11 @@ struct SessionRowView: View {
                             .foregroundStyle(isRecommended ? session.theme.foregroundColor(for: colorScheme) : .primary)
                     
                     HStack {
-                        if session.targetUnit.isTimeBased {
+                        // Check if this is effectively a count-based HealthKit metric goal
+                        let isCountBasedMetric = session.goal?.healthKitSyncEnabled == true &&
+                            session.goal?.healthKitMetric?.isCountBased == true
+                        
+                        if session.targetUnit.isTimeBased && !isCountBasedMetric {
                             // Time-based goal — show live timer or formatted time
                             if let activeSession = timerManager?.activeSession,
                                activeSession.id == session.id,

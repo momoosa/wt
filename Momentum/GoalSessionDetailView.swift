@@ -76,6 +76,8 @@ struct GoalSessionDetailView: View {
     // Card state
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
+    @State private var showingPremiumPaywall = false
+    private var isSubscribed: Bool { SubscriptionManager.shared.isSubscribed }
     
     enum DetailTab: String, CaseIterable {
         case hero = "Overview"
@@ -129,7 +131,8 @@ struct GoalSessionDetailView: View {
     private var currentProgress: Double {
         let target = session?.effectiveTargetValue ?? goal.unifiedDailyTarget
         guard target > 0 else { return 0 }
-        if (session?.targetUnit ?? goal.targetUnit).isTimeBased {
+        let isCountBasedMetric = goal.healthKitSyncEnabled && goal.healthKitMetric?.isCountBased == true
+        if (session?.targetUnit ?? goal.targetUnit).isTimeBased && !isCountBasedMetric {
             return currentElapsed / target
         }
         return (session?.currentValue ?? 0) / target
@@ -484,6 +487,9 @@ struct GoalSessionDetailView: View {
         } message: {
             Text("This will permanently delete \"\(goal.title)\" and all its data. This action cannot be undone.")
         }
+        .sheet(isPresented: $showingPremiumPaywall) {
+            PremiumPaywallSheet()
+        }
         .sheet(item: $editGoalViewModel) { vm in
             GoalEditorView(viewModel: vm)
         }
@@ -620,11 +626,40 @@ struct GoalSessionDetailView: View {
         case .whyNow:
             if hasSession { whyNowTab }
         case .atAGlance:
-            atAGlanceTab
+            analyticsContent { atAGlanceTab }
         case .thisWeek:
-            thisWeekTab
+            analyticsContent { thisWeekTab }
         case .consistency:
-            consistencyTab
+            analyticsContent { consistencyTab }
+        }
+    }
+    
+    @ViewBuilder
+    private func analyticsContent<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if isSubscribed {
+            content()
+        } else {
+            content()
+                .blur(radius: 6)
+                .allowsHitTesting(false)
+                .overlay {
+                    Button {
+                        showingPremiumPaywall = true
+                    } label: {
+                        VStack(spacing: 8) {
+                            Image(systemName: "lock.fill")
+                                .font(.title2)
+                            Text("Unlock Analytics")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundStyle(textColor.opacity(0.8))
+                        .padding(.vertical, 24)
+                        .frame(maxWidth: .infinity)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .padding(.horizontal, 20)
+                    }
+                }
         }
     }
     

@@ -189,6 +189,10 @@ struct GoalEditorCard: View {
                 summaryText
                     .padding(.bottom, activePicker != nil ? 16 : 0)
                 
+                if let recommended = vm.recommendedDailyMinutes, vm.selectedGoalType.isTimeBased {
+                    recommendedTargetButton(dailyMinutes: recommended)
+                }
+                
                 if activePicker == .unit {
                     unitPicker
                         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -360,6 +364,41 @@ struct GoalEditorCard: View {
         return Text(.init(summaryString))
             .font(.subheadline)
             .foregroundStyle(.secondary)
+    }
+    
+    // MARK: - Recommended Target
+    
+    private func recommendedTargetButton(dailyMinutes: Int) -> some View {
+        Button {
+            if SubscriptionManager.shared.isSubscribed {
+                let dayCount = max(vm.activeDays.count, 1)
+                let weeklyMinutes = dailyMinutes * dayCount
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    vm.durationInMinutes = weeklyMinutes
+                    vm.updateWeeklyTarget(weeklyMinutes)
+                }
+                HapticFeedbackManager.trigger(.success)
+            } else {
+                showingPremiumPaywall = true
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: SubscriptionManager.shared.isSubscribed ? "sparkles" : "lock.fill")
+                    .font(.caption2.weight(.semibold))
+                Text("Suggested: \(formatDuration(dailyMinutes))/day")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+            .foregroundStyle(themeColor)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(themeColor.opacity(0.12))
+            )
+        }
+        .buttonStyle(.plain)
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
     }
     
     // MARK: - Unit Picker
@@ -759,114 +798,119 @@ struct RecommendWhenCard: View {
     @Bindable var vm: GoalEditorViewModel
     @Environment(\.colorScheme) private var colorScheme
     
-    private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
-    private let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    
-    /// The resolved theme color
     private var themeColor: Color {
         vm.getActiveThemeColor(colorScheme: colorScheme)
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("RECOMMEND WHEN")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .tracking(1.5)
-                    .foregroundStyle(.secondary)
+        Button {
+            vm.showingRelevanceRuleSheet = true
+        } label: {
+            VStack(alignment: .leading, spacing: 14) {
+                // Header
+                HStack {
+                    Text("RECOMMENDED WHEN")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .tracking(1.5)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
                 
-                Spacer()
-            }
-            
-            // Day color strip
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(vm.activeDays.sorted(), id: \.self) { day in
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(themeColor.opacity(0.5))
-                            .frame(width: 40, height: 28)
-                    }
-                }
-            }
-            
-            // Day selector (1=Sun .. 7=Sat)
-            HStack(spacing: 0) {
-                ForEach(1...7, id: \.self) { weekday in
-                    let isActive = vm.activeDays.contains(weekday)
-                    Button {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            vm.toggleActiveDay(weekday)
-                        }
-                    } label: {
-                        Text(dayLabels[weekday - 1])
-                            .font(.subheadline)
-                            .fontWeight(isActive ? .bold : .regular)
-                            .foregroundStyle(isActive ? .primary : .tertiary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            
-            // Summary
-            VStack(alignment: .leading, spacing: 8) {
-                Text(daySummary)
+                // Condition pills
+                conditionPills
+                
+                // Summary
+                Text(vm.compactRelevanceSummary)
                     .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(.systemBackground))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private var conditionPills: some View {
+        let preferred = (1...7).filter { vm.dayAvailabilities[$0] == .preferred }
+        let allTimes = Set((1...7).flatMap { vm.dayTimePreferences[$0] ?? [] })
+        let hasSpecificTimes = !allTimes.isEmpty && allTimes.count < TimeOfDay.allCases.count
+        let hasWeather = vm.weatherEnabled && !vm.selectedWeatherConditions.isEmpty
+        let hasDayTime = !preferred.isEmpty || hasSpecificTimes
+        
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                if hasDayTime {
+                    conditionPill(
+                        icon: "clock.fill",
+                        label: dayTimePillLabel(preferred: preferred, times: hasSpecificTimes ? allTimes : nil)
+                    )
+                }
                 
-                // Context tags from selectedTags
-                if !vm.selectedTags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            Text("themes")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                            
-                            ForEach(vm.selectedTags, id: \.title) { tag in
-                                contextTag(icon: "tag.fill", label: tag.title)
-                            }
-                        }
-                    }
+                if hasWeather {
+                    conditionPill(
+                        icon: "cloud.sun.fill",
+                        label: vm.selectedWeatherConditions
+                            .sorted(by: { $0.displayName < $1.displayName })
+                            .map { $0.displayName.lowercased() }
+                            .joined(separator: ", ")
+                    )
+                }
+                
+                if !hasDayTime && !hasWeather {
+                    conditionPill(icon: "plus", label: "Add conditions")
                 }
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.systemBackground))
-        )
     }
     
-    private var daySummary: String {
-        let sorted = vm.activeDays.sorted()
-        let names = sorted.map { dayNames[$0 - 1] }
-        guard !names.isEmpty else { return "No days selected" }
+    private func dayTimePillLabel(preferred: [Int], times: Set<TimeOfDay>?) -> String {
+        let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        var parts: [String] = []
         
-        let joined: String
-        if names.count == 1 {
-            joined = names[0]
-        } else if names.count == 7 {
-            joined = "Every day"
-        } else {
-            joined = names.dropLast().joined(separator: ", ") + " & " + names.last!
+        if !preferred.isEmpty {
+            if preferred.count == 7 {
+                parts.append("Every day")
+            } else {
+                parts.append(preferred.map { weekdayNames[$0] }.joined(separator: ", "))
+            }
         }
-        return joined
+        
+        if let times, !times.isEmpty {
+            parts.append(times.sorted().map { $0.displayName.lowercased() }.joined(separator: ", "))
+        }
+        
+        return parts.isEmpty ? "Any day" : parts.joined(separator: " · ")
     }
     
-    private func contextTag(icon: String, label: String) -> some View {
-        HStack(spacing: 4) {
+    private func conditionPill(icon: String, label: String) -> some View {
+        HStack(spacing: 5) {
+            // Green dot
+            Circle()
+                .fill(themeColor)
+                .frame(width: 5, height: 5)
+            
             Image(systemName: icon)
                 .font(.caption2)
+                .foregroundStyle(.secondary)
+            
             Text(label)
                 .font(.caption)
                 .fontWeight(.medium)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
         .background(
-            Capsule()
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.tertiarySystemFill))
         )
     }

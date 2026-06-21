@@ -14,7 +14,6 @@ struct TagSelectionSheet: View {
     @Binding var selectedTags: [GoalTag]
     @Binding var selectedGoalTheme: GoalTag?
     let modelContext: ModelContext
-    @Binding var editingTag: GoalTag?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -53,9 +52,6 @@ struct TagSelectionSheet: View {
                                         isSelected: selectedTags.contains(where: { $0.id == tag.id }),
                                         action: {
                                             toggleTagSelection(tag)
-                                        },
-                                        onEdit: {
-                                            editingTag = tag
                                         }
                                     )
                                 }
@@ -188,6 +184,23 @@ struct TagSelectionSheet: View {
     private func createNewTag() {
         let trimmed = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let preset = selectedThemePreset else { return }
+        
+        // Reuse existing tag with same name if one exists
+        if let existing = allTags.first(where: { $0.title.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            withAnimation(AnimationPresets.quickSpring) {
+                if !selectedTags.contains(where: { $0.id == existing.id }) {
+                    selectedTags.append(existing)
+                }
+                if selectedGoalTheme == nil {
+                    selectedGoalTheme = existing
+                }
+                newTagName = ""
+                selectedThemePreset = ThemeStore.presets.first
+                isCreatingNewTag = false
+            }
+            HapticFeedbackManager.trigger(.success)
+            return
+        }
         
         let newTag = GoalTag(title: trimmed, themeID: preset.id)
         modelContext.insert(newTag)

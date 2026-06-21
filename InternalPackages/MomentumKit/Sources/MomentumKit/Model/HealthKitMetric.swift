@@ -139,6 +139,18 @@ public enum HealthKitMetric: String, Codable, CaseIterable, Identifiable {
         }
     }
     
+    /// Whether this metric measures a count or energy value rather than time.
+    /// Count-based metrics (steps, calories) should drive goal completion directly,
+    /// not via elapsed time.
+    public var isCountBased: Bool {
+        switch self {
+        case .stepCount, .activeEnergyBurned:
+            return true
+        default:
+            return false
+        }
+    }
+    
     /// Whether this metric can use HKStatisticsQuery for aggregate totals
     /// (quantity types that don't require special workout dispatch)
     public var isAggregatable: Bool {

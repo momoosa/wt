@@ -52,42 +52,37 @@ struct ScrollingHeaderView<Expanded: View, Title: View, Leading: View, Trailing:
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                HStack {
-                    leading()
-                        .font(.title3)
+                HStack(alignment: .center) {
+                    // Expanded content (date + weather) — fades out on scroll
+                    expanded()
+                        .opacity(1.0 - collapseProgress * 2.0)
+                        .scaleEffect(
+                            lerp(from: 1, to: 0.8, progress: collapseProgress),
+                            anchor: .leading
+                        )
+                    
                     Spacer()
                     
                     // Trailing buttons
                     trailing()
                         .font(.title3)
-
                 }
                 .padding(.horizontal)
+                .frame(
+                    height: lerp(from: 34, to: 0, progress: collapseProgress),
+                    alignment: .center
+                )
+                .clipped()
+                
                 Spacer(minLength: 0)
                 
                 HStack(alignment: .bottom) {
-                    // Leading buttons
-                    VStack(alignment: .leading, spacing: 2) {
-                        // Expanded content — fades and slides out
-                        expanded()
-                            .opacity(1.0 - collapseProgress * 2.0) // Fades out in first half
-                            .scaleEffect(
-                                lerp(from: 1, to: 0.8, progress: collapseProgress),
-                                anchor: .bottomLeading
-                            )
-                            .frame(
-                                height: lerp(from: 20, to: 0, progress: collapseProgress),
-                                alignment: .bottom
-                            )
-                            .clipped()
-                        
-                        // Title — shrinks from large to inline
-                        title()
-                            .scaleEffect(
-                                lerp(from: 1, to: 0.75, progress: collapseProgress),
-                                anchor: .bottomLeading
-                            )
-                    }
+                    // Title — shrinks from large to inline
+                    title()
+                        .scaleEffect(
+                            lerp(from: 1, to: 0.75, progress: collapseProgress),
+                            anchor: .bottomLeading
+                        )
                     Spacer()
                 }
                 .padding(.horizontal, 16)

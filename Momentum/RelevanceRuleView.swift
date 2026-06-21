@@ -1,4 +1,6 @@
 import SwiftUI
+import MapKit
+import CoreLocation
 import MomentumKit
 
 struct RelevanceRuleView: View {
@@ -7,22 +9,34 @@ struct RelevanceRuleView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
-    @State private var expandedSignal: SignalType?
     @State private var showingPremiumPaywall = false
+    @State private var expandedCondition: ConditionType?
+    @State private var locationSearchText = ""
+    @State private var locationSearchResults: [MKMapItem] = []
+    @State private var mapCameraPosition: MapCameraPosition = .automatic
+    @State private var locationManager = LocationManagerHelper()
+    @State private var isFetchingCurrentLocation = false
     
-    private let timeSlots: [TimeOfDay] = [.morning, .midday, .afternoon, .evening, .night]
+    private enum ConditionType: Hashable {
+        case dayTime
+        case weather
+        case location
+        case calendar
+    }
     
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 24) {
                     headerSection
-                    dayAvailabilitySection
-                    signalsSection
+                    matchModeToggle
+                    conditionCards
+                    addConditionSection
                 }
                 .padding()
-                .padding(.bottom, 160)
+                .padding(.bottom, 180)
             }
+            .background(Color(.secondarySystemBackground))
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 12) {
                     summaryCard
@@ -30,12 +44,14 @@ struct RelevanceRuleView: View {
                     Button {
                         dismiss()
                     } label: {
-                        Text("Save Rule")
-                            .font(.headline)
+                        Text("SAVE RULE")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .tracking(0.5)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .foregroundStyle(viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .white)
-                            .background(activeThemeColor)
+                            .background(Color(.label))
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 }
@@ -43,7 +59,6 @@ struct RelevanceRuleView: View {
                 .padding(.bottom, 8)
                 .background(.ultraThinMaterial)
             }
-            .navigationTitle("Relevance Rule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -59,394 +74,451 @@ struct RelevanceRuleView: View {
     // MARK: - Header
     
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label {
-                Text("Recommend by Relevance")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-            } icon: {
-                Image(systemName: "wand.and.stars")
-                    .foregroundStyle(activeThemeColor)
-            }
-            
-            Text(viewModel.userInput.isEmpty ? "New Goal" : viewModel.userInput)
-                .font(.title2)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("RECOMMENDED WHEN")
+                .font(.caption2)
                 .fontWeight(.bold)
-            
-            Text("Momentum **scores** this goal against the moment. More signals — and stronger ones — promote it higher. No single thing is required unless you say so.")
-                .font(.subheadline)
+                .tracking(1)
                 .foregroundStyle(.secondary)
+            
+            HStack(spacing: 10) {
+                // Goal icon
+                if let icon = viewModel.selectedIcon {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(activeThemeColor)
+                        .frame(width: 36, height: 36)
+                        .background(activeThemeColor.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                
+                Text(viewModel.userInput.isEmpty ? "New Goal" : viewModel.userInput)
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
         }
     }
     
-    // MARK: - Day Availability
+    // MARK: - Match Mode Toggle
     
-    private var dayAvailabilitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label {
-                Text("Your week")
-                    .font(.headline)
-            } icon: {
-                Text("1")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
-                    .background(Circle().fill(.primary))
+    private var matchModeToggle: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 0) {
+                matchModeButton(.all, isSelected: viewModel.conditionMatchMode == .all)
+                matchModeButton(.any, isSelected: viewModel.conditionMatchMode == .any)
             }
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.systemBackground))
+            )
             
-            // Time-of-day labels on left + day bar columns
-            HStack(alignment: .top, spacing: 0) {
-                // Time labels column
-                VStack(alignment: .trailing, spacing: 0) {
-                    // Spacer for the day-name header
-                    Text("M")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .hidden()
-                        .padding(.bottom, 6)
-                    
-                    ForEach(timeSlots, id: \.self) { time in
-                        Image(systemName: time.icon)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(height: 28)
-                    }
-                }
-                .padding(.trailing, 8)
-                
-                // Day columns
-                HStack(spacing: 6) {
-                    ForEach(WeekdayConstants.weekdays, id: \.0) { weekday, name in
-                        dayBarColumn(weekday: weekday, name: String(name.prefix(1)))
-                    }
-                }
-            }
-            
-            // Legend
-            HStack(spacing: 16) {
-                legendDot(color: activeThemeColor, label: "Preferred")
-                legendDot(color: Color(.systemGray4), label: "Open")
-                legendDot(color: .red.opacity(0.7), label: "Never")
-            }
-            .font(.caption2)
-            
-            // Explanation
-            Text("Tap the **day label** to cycle availability. Tap **segments** to pick preferred times of day.")
+            Text(matchModeDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
     
-    private func legendDot(color: Color, label: String) -> some View {
-        HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(color)
-                .frame(width: 10, height: 10)
-            Text(label)
-                .foregroundStyle(.secondary)
+    private func matchModeButton(_ mode: ConditionMatchMode, isSelected: Bool) -> some View {
+        Button {
+            withAnimation(.snappy(duration: 0.2)) {
+                viewModel.conditionMatchMode = mode
+            }
+        } label: {
+            Text(mode.displayName)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .foregroundStyle(isSelected ? (viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .white) : .secondary)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isSelected ? activeThemeColor : Color.clear)
+                )
+                .padding(2)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private var matchModeDescription: String {
+        switch viewModel.conditionMatchMode {
+        case .all:
+            return "Stack as many conditions as you like — Momentum suggests the goal when they all match."
+        case .any:
+            return "Momentum suggests the goal when at least one condition is true."
         }
     }
     
-    private func dayBarColumn(weekday: Int, name: String) -> some View {
-        let availability = viewModel.dayAvailabilities[weekday] ?? .open
-        let selectedTimes = viewModel.dayTimePreferences[weekday] ?? []
-        let isNever = availability == .never
-        
-        return VStack(spacing: 0) {
-            // Day label — tap to cycle availability
+    // MARK: - Condition Cards
+    
+    private var conditionCards: some View {
+        VStack(spacing: 10) {
+            // Day & Time condition (always shown if configured)
+            if hasDayTimeCondition {
+                conditionCard(
+                    type: .dayTime,
+                    label: "DAY & TIME",
+                    summary: dayTimeSummary,
+                    icon: "clock.fill"
+                ) {
+                    dayTimeDetail
+                }
+            }
+            
+            // Weather condition
+            if viewModel.weatherEnabled {
+                conditionCard(
+                    type: .weather,
+                    label: "WEATHER",
+                    summary: weatherSummary,
+                    icon: "cloud.sun.fill"
+                ) {
+                    weatherDetail
+                }
+            }
+            
+            // Location condition
+            if viewModel.locationEnabled {
+                conditionCard(
+                    type: .location,
+                    label: "LOCATION",
+                    summary: locationSummary,
+                    icon: "location.fill"
+                ) {
+                    locationDetail
+                }
+            }
+        }
+    }
+    
+    private func conditionCard<Detail: View>(
+        type: ConditionType,
+        label: String,
+        summary: String,
+        icon: String,
+        @ViewBuilder detail: @escaping () -> Detail
+    ) -> some View {
+        VStack(spacing: 0) {
+            // Card header row
             Button {
                 withAnimation(.snappy(duration: 0.2)) {
-                    viewModel.cycleDayAvailability(weekday)
+                    expandedCondition = expandedCondition == type ? nil : type
                 }
             } label: {
-                Text(name)
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(dayLabelColor(availability))
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 6)
-            
-            // Segmented bar
-            VStack(spacing: 1.5) {
-                ForEach(timeSlots, id: \.self) { time in
-                    let isSelected = selectedTimes.contains(time) && !isNever
-                    
-                    Button {
-                        guard !isNever else { return }
-                        withAnimation(.snappy(duration: 0.15)) {
-                            toggleTime(time, forWeekday: weekday)
-                        }
-                    } label: {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(segmentFill(availability: availability, isSelected: isSelected))
-                            .frame(height: 28)
-                            .overlay {
-                                if isNever && time == .afternoon {
-                                    Image(systemName: "xmark")
-                                        .font(.system(size: 8, weight: .bold))
-                                        .foregroundStyle(.white.opacity(0.8))
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isNever)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .frame(maxWidth: .infinity)
-        }
-    }
-    
-    private func segmentFill(availability: DayAvailability, isSelected: Bool) -> Color {
-        switch availability {
-        case .never:
-            return .red.opacity(0.25)
-        case .preferred:
-            return isSelected ? activeThemeColor : activeThemeColor.opacity(0.12)
-        case .open:
-            return isSelected ? activeThemeColor : Color(.systemGray5)
-        }
-    }
-    
-    private func toggleTime(_ time: TimeOfDay, forWeekday weekday: Int) {
-        var times = viewModel.dayTimePreferences[weekday] ?? []
-        if times.contains(time) {
-            times.remove(time)
-        } else {
-            times.insert(time)
-            // If they're selecting times on an open day, auto-promote to preferred
-            if viewModel.dayAvailabilities[weekday] == .open {
-                viewModel.dayAvailabilities[weekday] = .preferred
-                viewModel.syncActiveDaysFromAvailabilities()
-            }
-        }
-        viewModel.dayTimePreferences[weekday] = times
-        
-        // Enable time-of-day signal if not already
-        if viewModel.signalStrengths[.timeOfDay] == nil && !times.isEmpty {
-            viewModel.signalStrengths[.timeOfDay] = .boost
-        }
-    }
-    
-    private func dayLabelColor(_ availability: DayAvailability) -> Color {
-        switch availability {
-        case .preferred: return activeThemeColor
-        case .open: return .secondary
-        case .never: return .red
-        }
-    }
-    
-    // MARK: - Signals
-    
-    /// Signal types shown as cards (time-of-day is handled by the day bars above)
-    private var cardSignalTypes: [SignalType] {
-        [.weather, .location]
-    }
-    
-    private var signalsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label {
-                Text("What makes it a good time")
-                    .font(.headline)
-            } icon: {
-                Text("2")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
-                    .background(Circle().fill(.primary))
-            }
-            
-            VStack(spacing: 8) {
-                // Active signals
-                ForEach(cardSignalTypes) { signalType in
-                    if viewModel.hasSignalConfigured(signalType) {
-                        signalRow(signalType)
-                    }
-                }
-                
-                // Add buttons for unconfigured signals
-                let unconfigured = cardSignalTypes.filter { !viewModel.hasSignalConfigured($0) }
-                if !unconfigured.isEmpty {
-                    HStack(spacing: 8) {
-                        ForEach(unconfigured) { signalType in
-                            addSignalButton(signalType)
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private func signalRow(_ signalType: SignalType) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: signalType.icon)
-                    .font(.title3)
-                    .foregroundStyle(activeThemeColor)
-                    .frame(width: 32)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(signalType.displayName.uppercased())
+                HStack(spacing: 12) {
+                    Text(label)
                         .font(.caption2)
-                        .fontWeight(.semibold)
+                        .fontWeight(.bold)
+                        .tracking(0.5)
                         .foregroundStyle(.secondary)
+                    
+                    Spacer()
                     
                     HStack(spacing: 6) {
-                        Image(systemName: "sparkle")
-                            .font(.caption2)
-                        Text(viewModel.signalValueSummary(signalType))
+                        Text(summary)
                             .font(.subheadline)
                             .fontWeight(.medium)
+                        
+                        // Green dot indicator
+                        Circle()
+                            .fill(activeThemeColor)
+                            .frame(width: 6, height: 6)
                     }
-                }
-                
-                Spacer()
-                
-                // Strength badge
-                strengthBadge(for: signalType)
-                
-                // Remove button
-                Button {
-                    withAnimation { viewModel.removeSignal(signalType) }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(6)
-                }
-                
-                // Expand chevron
-                Button {
-                    withAnimation(.snappy(duration: 0.2)) {
-                        expandedSignal = expandedSignal == signalType ? nil : signalType
-                    }
-                } label: {
+                    
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
-                        .rotationEffect(.degrees(expandedSignal == signalType ? 90 : 0))
+                        .rotationEffect(.degrees(expandedCondition == type ? 90 : 0))
                 }
+                .padding(.vertical, 14)
+                .padding(.horizontal, 16)
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
+            .buttonStyle(.plain)
             
             // Expanded detail
-            if expandedSignal == signalType {
+            if expandedCondition == type {
                 Divider()
-                    .padding(.horizontal, 12)
-                signalDetailView(signalType)
-                    .padding(12)
+                    .padding(.horizontal, 16)
+                
+                detail()
+                    .padding(16)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            
+            // Remove button at bottom when expanded
+            if expandedCondition == type {
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) {
+                        removeCondition(type)
+                        expandedCondition = nil
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                        Text("Remove condition")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemGray6))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.systemBackground))
         )
     }
     
-    private func strengthBadge(for signalType: SignalType) -> some View {
-        let strength = viewModel.signalStrengths[signalType] ?? .boost
-        let color = strengthColor(strength)
-        
-        return Button {
-            withAnimation(.snappy(duration: 0.2)) {
-                viewModel.toggleSignalStrength(signalType)
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(strength.displayName.uppercased())
-                    .font(.caption2)
-                    .fontWeight(.bold)
+    // MARK: - Add Condition Section
+    
+    private var addConditionSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("ADD A CONDITION")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .tracking(1)
+                .foregroundStyle(.secondary)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                if !hasDayTimeCondition {
+                    addConditionButton(label: "Day & time", icon: "clock") {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            // Set some preferred days to activate day/time
+                            let preferredCount = (1...7).filter { viewModel.dayAvailabilities[$0] == .preferred }.count
+                            if preferredCount == 0 {
+                                // Default: weekdays preferred
+                                for weekday in 2...6 {
+                                    viewModel.dayAvailabilities[weekday] = .preferred
+                                }
+                                viewModel.syncActiveDaysFromAvailabilities()
+                            }
+                            expandedCondition = .dayTime
+                        }
+                    }
+                }
                 
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8, weight: .bold))
+                if !viewModel.locationEnabled {
+                    addConditionButton(label: "Location", icon: "location") {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            viewModel.locationEnabled = true
+                            if viewModel.signalStrengths[.location] == nil {
+                                viewModel.signalStrengths[.location] = .boost
+                            }
+                            expandedCondition = .location
+                        }
+                    }
+                }
+                
+                if !viewModel.weatherEnabled {
+                    addConditionButton(label: "Weather", icon: "cloud") {
+                        if !SubscriptionManager.shared.isSubscribed {
+                            showingPremiumPaywall = true
+                        } else {
+                            withAnimation(.snappy(duration: 0.2)) {
+                                viewModel.weatherEnabled = true
+                                if viewModel.selectedWeatherConditions.isEmpty {
+                                    viewModel.selectedWeatherConditions = [.clear]
+                                }
+                                if viewModel.signalStrengths[.weather] == nil {
+                                    viewModel.signalStrengths[.weather] = .boost
+                                }
+                                expandedCondition = .weather
+                            }
+                        }
+                    }
+                }
+                
+                addConditionButton(label: "Calendar", icon: "calendar") {
+                    // Calendar not yet implemented
+                }
             }
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+        }
+    }
+    
+    private func addConditionButton(label: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
             .background(
-                Capsule()
-                    .fill(color.opacity(0.15))
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.systemBackground))
             )
         }
         .buttonStyle(.plain)
     }
     
-    private func strengthColor(_ strength: SignalStrength) -> Color {
-        switch strength {
-        case .boost: return .green
-        case .require: return activeThemeColor
-        case .avoid: return .red
-        }
+    // MARK: - Day & Time Detail
+    
+    private var hasDayTimeCondition: Bool {
+        let hasPreferred = (1...7).contains { viewModel.dayAvailabilities[$0] == .preferred }
+        let hasNever = (1...7).contains { viewModel.dayAvailabilities[$0] == .never }
+        let allTimes = Set((1...7).flatMap { viewModel.dayTimePreferences[$0] ?? [] })
+        let hasSpecificTimes = !allTimes.isEmpty && allTimes.count < TimeOfDay.allCases.count
+        return hasPreferred || hasNever || hasSpecificTimes
     }
     
-    private func addSignalButton(_ signalType: SignalType) -> some View {
-        Button {
-            if signalType == .weather && !SubscriptionManager.shared.isSubscribed {
-                showingPremiumPaywall = true
-            } else {
-                withAnimation {
-                    enableSignal(signalType)
-                    expandedSignal = signalType
+    private var dayTimeSummary: String {
+        let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let preferred = (1...7).filter { viewModel.dayAvailabilities[$0] == .preferred }
+        var parts: [String] = []
+        
+        if !preferred.isEmpty {
+            parts.append(preferred.map { weekdayNames[$0] }.joined(separator: ", "))
+        }
+        
+        let allTimes = Set((1...7).flatMap { viewModel.dayTimePreferences[$0] ?? [] })
+        if !allTimes.isEmpty && allTimes.count < TimeOfDay.allCases.count {
+            parts.append(allTimes.sorted().map { $0.displayName.lowercased() }.joined(separator: ", "))
+        }
+        
+        return parts.isEmpty ? "Any" : parts.joined(separator: " · ")
+    }
+    
+    private var dayTimeDetail: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Day picker
+            Text("Days")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            HStack(spacing: 6) {
+                ForEach(WeekdayConstants.weekdays, id: \.0) { weekday, name in
+                    let availability = viewModel.dayAvailabilities[weekday] ?? .open
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            viewModel.cycleDayAvailability(weekday)
+                        }
+                    } label: {
+                        Text(String(name.prefix(1)))
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(dayPillForeground(availability))
+                            .background(dayPillBackground(availability))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-        } label: {
-            Label(signalType.displayName, systemImage: signalType.icon)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color(.systemGray4), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
-    
-    private func enableSignal(_ signalType: SignalType) {
-        viewModel.signalStrengths[signalType] = .boost
-        switch signalType {
-        case .weather:
-            viewModel.weatherEnabled = true
-            if viewModel.selectedWeatherConditions.isEmpty {
-                viewModel.selectedWeatherConditions = [.clear]
+            
+            // Legend
+            HStack(spacing: 12) {
+                legendDot(color: activeThemeColor, label: "Preferred")
+                legendDot(color: Color(.systemGray4), label: "Open")
+                legendDot(color: .red.opacity(0.6), label: "Never")
             }
-        case .timeOfDay, .location:
-            break
+            .font(.caption2)
+            
+            Divider()
+            
+            // Time of day picker
+            Text("Time of day")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 6) {
+                ForEach(TimeOfDay.allCases, id: \.self) { time in
+                    let isSelected = isTimeSelected(time)
+                    Button {
+                        withAnimation(.snappy(duration: 0.15)) {
+                            toggleGlobalTime(time)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: time.icon)
+                                .font(.caption2)
+                            Text(time.displayName)
+                                .font(.caption)
+                                .fontWeight(isSelected ? .semibold : .regular)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isSelected ? activeThemeColor.opacity(0.2) : Color(.systemGray6))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(isSelected ? activeThemeColor : Color.clear, lineWidth: 1)
+                        )
+                        .foregroundStyle(isSelected ? activeThemeColor : .primary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
     
-    // MARK: - Signal Detail Views
+    private func isTimeSelected(_ time: TimeOfDay) -> Bool {
+        // A time is considered selected if it's in any preferred day's preferences
+        let preferredDays = (1...7).filter { viewModel.dayAvailabilities[$0] == .preferred }
+        let daysToCheck = preferredDays.isEmpty ? Array(1...7) : preferredDays
+        return daysToCheck.contains { viewModel.dayTimePreferences[$0]?.contains(time) ?? false }
+    }
     
-    @ViewBuilder
-    private func signalDetailView(_ signalType: SignalType) -> some View {
-        switch signalType {
-        case .weather:
-            weatherDetail
-        case .location:
-            Text("Location-based signals coming soon.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        case .timeOfDay:
-            EmptyView()
+    private func toggleGlobalTime(_ time: TimeOfDay) {
+        let selected = isTimeSelected(time)
+        for weekday in 1...7 where viewModel.dayAvailabilities[weekday] != .never {
+            if selected {
+                viewModel.dayTimePreferences[weekday]?.remove(time)
+            } else {
+                viewModel.dayTimePreferences[weekday, default: []].insert(time)
+                if viewModel.dayAvailabilities[weekday] == .open {
+                    viewModel.dayAvailabilities[weekday] = .preferred
+                    viewModel.syncActiveDaysFromAvailabilities()
+                }
+            }
         }
+        if viewModel.signalStrengths[.timeOfDay] == nil {
+            viewModel.signalStrengths[.timeOfDay] = .boost
+        }
+    }
+    
+    // MARK: - Weather Detail
+    
+    private var weatherSummary: String {
+        var parts: [String] = []
+        if !viewModel.selectedWeatherConditions.isEmpty {
+            parts.append(viewModel.selectedWeatherConditions
+                .sorted(by: { $0.displayName < $1.displayName })
+                .map { $0.displayName.lowercased() }
+                .joined(separator: ", "))
+        }
+        if viewModel.hasMinTemperature || viewModel.hasMaxTemperature {
+            var tempParts: [String] = []
+            if viewModel.hasMinTemperature { tempParts.append("≥\(Int(viewModel.minTemperature))°") }
+            if viewModel.hasMaxTemperature { tempParts.append("≤\(Int(viewModel.maxTemperature))°") }
+            parts.append(tempParts.joined(separator: " "))
+        }
+        if viewModel.hasMaxWindSpeed {
+            parts.append("wind ≤\(Int(viewModel.maxWindSpeed))km/h")
+        }
+        return parts.isEmpty ? "Any" : parts.joined(separator: " · ")
     }
     
     private var weatherDetail: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("Weather conditions")
                 .font(.caption)
+                .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
             
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 8) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 85))], spacing: 8) {
                 ForEach(WeatherCondition.allCases, id: \.self) { condition in
                     let isSelected = viewModel.selectedWeatherConditions.contains(condition)
                     Button {
@@ -466,7 +538,7 @@ struct RelevanceRuleView: View {
                         .padding(.vertical, 8)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(isSelected ? activeThemeColor.opacity(0.2) : Color(.systemGray5))
+                                .fill(isSelected ? activeThemeColor.opacity(0.2) : Color(.systemGray6))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -477,7 +549,9 @@ struct RelevanceRuleView: View {
                 }
             }
             
-            // Temperature toggles
+            Divider()
+            
+            // Temperature
             Toggle(isOn: $viewModel.hasMinTemperature) {
                 Text("Minimum temperature")
                     .font(.subheadline)
@@ -525,7 +599,317 @@ struct RelevanceRuleView: View {
         }
     }
     
-    // MARK: - Summary Card (pinned above Save)
+    // MARK: - Location Detail
+    
+    private var locationSummary: String {
+        if let _ = viewModel.locationLatitude {
+            var parts: [String] = []
+            if !viewModel.locationName.isEmpty {
+                parts.append(viewModel.locationName)
+            } else {
+                parts.append("Pinned")
+            }
+            parts.append("\(Int(viewModel.locationRadius))m")
+            return parts.joined(separator: " · ")
+        }
+        return "Not set"
+    }
+    
+    private var locationDetail: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Search bar
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                TextField("Search for a place", text: $locationSearchText)
+                    .font(.subheadline)
+                    .textFieldStyle(.plain)
+                    .autocorrectionDisabled()
+                    .onSubmit {
+                        searchLocation()
+                    }
+                if !locationSearchText.isEmpty {
+                    Button {
+                        locationSearchText = ""
+                        locationSearchResults = []
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.systemGray6))
+            )
+            
+            // Current location button
+            Button {
+                useCurrentLocation()
+            } label: {
+                HStack(spacing: 8) {
+                    if isFetchingCurrentLocation {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "location.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(activeThemeColor)
+                    }
+                    Text("Use Current Location")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.systemGray6))
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isFetchingCurrentLocation)
+            
+            // Search results
+            if !locationSearchResults.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(locationSearchResults, id: \.self) { item in
+                        Button {
+                            selectMapItem(item)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundStyle(activeThemeColor)
+                                    .font(.title3)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name ?? "Unknown")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    if let subtitle = item.address?.shortAddress ?? item.addressRepresentations?.cityWithContext {
+                                        Text(subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 4)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if item != locationSearchResults.last {
+                            Divider()
+                        }
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            
+            // Map view
+            Map(position: $mapCameraPosition, interactionModes: [.pan, .zoom]) {
+                if let lat = viewModel.locationLatitude, let lon = viewModel.locationLongitude {
+                    Annotation(viewModel.locationName.isEmpty ? "Selected" : viewModel.locationName, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon)) {
+                        ZStack {
+                            Circle()
+                                .fill(activeThemeColor)
+                                .frame(width: 32, height: 32)
+                            Image(systemName: "mappin")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    
+                    MapCircle(center: CLLocationCoordinate2D(latitude: lat, longitude: lon), radius: viewModel.locationRadius)
+                        .foregroundStyle(activeThemeColor.opacity(0.15))
+                        .stroke(activeThemeColor.opacity(0.4), lineWidth: 1)
+                }
+            }
+            .frame(height: 200)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .onTapGesture { location in
+                // Allow tapping on map to set pin
+            }
+            
+            // Selected location name
+            if let _ = viewModel.locationLatitude {
+                HStack(spacing: 8) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundStyle(activeThemeColor)
+                    Text(viewModel.locationName.isEmpty ? "Pinned location" : viewModel.locationName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "mappin.slash")
+                        .foregroundStyle(.secondary)
+                    Text("Search for a place to pin a location")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Divider()
+            
+            // Radius slider
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Radius")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                
+                HStack {
+                    Text("\(Int(viewModel.locationRadius))m")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 55, alignment: .leading)
+                    Slider(value: $viewModel.locationRadius, in: 50...2000, step: 50)
+                        .tint(activeThemeColor)
+                        .onChange(of: viewModel.locationRadius) {
+                            updateMapCamera()
+                        }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Location Helpers
+    
+    private func searchLocation() {
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = locationSearchText
+        
+        let search = MKLocalSearch(request: request)
+        search.start { response, error in
+            if let items = response?.mapItems {
+                locationSearchResults = Array(items.prefix(5))
+            }
+        }
+    }
+    
+    private func selectMapItem(_ item: MKMapItem) {
+        let coordinate = item.location.coordinate
+        viewModel.locationLatitude = coordinate.latitude
+        viewModel.locationLongitude = coordinate.longitude
+        viewModel.locationName = item.name ?? ""
+        
+        locationSearchText = ""
+        locationSearchResults = []
+        
+        updateMapCamera()
+        
+        withAnimation(.snappy(duration: 0.2)) {
+            expandedCondition = nil
+        }
+    }
+    
+    private func useCurrentLocation() {
+        isFetchingCurrentLocation = true
+        locationManager.requestLocation { result in
+            isFetchingCurrentLocation = false
+            switch result {
+            case .success(let location):
+                viewModel.locationLatitude = location.coordinate.latitude
+                viewModel.locationLongitude = location.coordinate.longitude
+                
+                // Reverse geocode to get a place name
+                if let request = MKReverseGeocodingRequest(location: location) {
+                    request.getMapItems { items, _ in
+                        if let item = items?.first, let name = item.name {
+                            viewModel.locationName = name
+                        } else {
+                            viewModel.locationName = "Current Location"
+                        }
+                    }
+                } else {
+                    viewModel.locationName = "Current Location"
+                }
+                
+                locationSearchText = ""
+                locationSearchResults = []
+                updateMapCamera()
+            case .failure:
+                break
+            }
+        }
+    }
+    
+    private func updateMapCamera() {
+        if let lat = viewModel.locationLatitude, let lon = viewModel.locationLongitude {
+            let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            // Show a region that encompasses the radius with some padding
+            let regionRadius = max(viewModel.locationRadius * 2.5, 500)
+            mapCameraPosition = .region(MKCoordinateRegion(
+                center: coordinate,
+                latitudinalMeters: regionRadius,
+                longitudinalMeters: regionRadius
+            ))
+        }
+    }
+    
+    // MARK: - Remove Condition
+    
+    private func removeCondition(_ type: ConditionType) {
+        switch type {
+        case .dayTime:
+            // Reset all days to open, all times to all
+            for weekday in 1...7 {
+                viewModel.dayAvailabilities[weekday] = .open
+                viewModel.dayTimePreferences[weekday] = Set(TimeOfDay.allCases)
+            }
+            viewModel.syncActiveDaysFromAvailabilities()
+            viewModel.signalStrengths.removeValue(forKey: .timeOfDay)
+        case .weather:
+            viewModel.removeSignal(.weather)
+        case .location:
+            viewModel.removeSignal(.location)
+        case .calendar:
+            break
+        }
+    }
+    
+    // MARK: - Helpers
+    
+    private func dayPillForeground(_ availability: DayAvailability) -> Color {
+        switch availability {
+        case .preferred:
+            return viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .white
+        case .open: return .secondary
+        case .never: return .red
+        }
+    }
+    
+    private func dayPillBackground(_ availability: DayAvailability) -> Color {
+        switch availability {
+        case .preferred: return activeThemeColor
+        case .open: return Color(.systemGray5)
+        case .never: return .red.opacity(0.15)
+        }
+    }
+    
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 3)
+                .fill(color)
+                .frame(width: 10, height: 10)
+            Text(label)
+                .foregroundStyle(.secondary)
+        }
+    }
+    
+    // MARK: - Summary Card
     
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -561,11 +945,6 @@ struct RelevanceRuleView: View {
         let never = (1...7).filter { viewModel.dayAvailabilities[$0] == .never }
         
         if !preferred.isEmpty {
-            var prefix = AttributedString("Usually ")
-            prefix.font = .subheadline
-            prefix.foregroundColor = .secondary
-            result += prefix
-            
             var days = AttributedString(preferred.map { weekdayNames[$0] }.joined(separator: ", "))
             days.font = .subheadline.bold()
             result += days
@@ -576,65 +955,76 @@ struct RelevanceRuleView: View {
             result += any
         }
         
-        // Signals
-        var signalParts: [AttributedString] = []
-        
         // Time of day
-        let allTimes = (1...7).flatMap { viewModel.dayTimePreferences[$0] ?? [] }
-        let uniqueTimes = Set(allTimes)
-        if !uniqueTimes.isEmpty && uniqueTimes.count < TimeOfDay.allCases.count {
-            for (i, time) in uniqueTimes.sorted().enumerated() {
-                if i > 0 {
-                    var sep = AttributedString(", ")
-                    sep.font = .subheadline
-                    sep.foregroundColor = .secondary
-                    signalParts.append(sep)
-                }
-                var t = AttributedString(time.displayName)
-                t.font = .subheadline.bold()
-                t.foregroundColor = UIColor(activeThemeColor)
-                signalParts.append(t)
-            }
+        let allTimes = Set((1...7).flatMap { viewModel.dayTimePreferences[$0] ?? [] })
+        if !allTimes.isEmpty && allTimes.count < TimeOfDay.allCases.count {
+            var sep = AttributedString(" · ")
+            sep.font = .subheadline
+            sep.foregroundColor = .secondary
+            result += sep
+            
+            var times = AttributedString(allTimes.sorted().map { $0.displayName.lowercased() }.joined(separator: ", "))
+            times.font = .subheadline.bold()
+            result += times
         }
         
         // Weather
+        let joiner = viewModel.conditionMatchMode == .all ? " and " : " or "
+        
         if viewModel.weatherEnabled && !viewModel.selectedWeatherConditions.isEmpty {
-            for (i, condition) in viewModel.selectedWeatherConditions.sorted(by: { $0.displayName < $1.displayName }).enumerated() {
-                if i > 0 || !signalParts.isEmpty {
-                    var sep = AttributedString(signalParts.isEmpty ? "" : ", ")
-                    sep.font = .subheadline
-                    sep.foregroundColor = .secondary
-                    signalParts.append(sep)
-                }
-                var c = AttributedString(condition.displayName)
-                c.font = .subheadline.bold()
-                c.foregroundColor = UIColor(activeThemeColor)
-                signalParts.append(c)
-            }
+            var sep = AttributedString(joiner)
+            sep.font = .subheadline
+            sep.foregroundColor = .secondary
+            result += sep
+            
+            var conditions = AttributedString(
+                viewModel.selectedWeatherConditions
+                    .sorted(by: { $0.displayName < $1.displayName })
+                    .map { $0.displayName.lowercased() }
+                    .joined(separator: ", ")
+            )
+            conditions.font = .subheadline.bold()
+            result += conditions
         }
         
         // Wind speed
         if viewModel.weatherEnabled && viewModel.hasMaxWindSpeed {
-            if !signalParts.isEmpty {
-                var sep = AttributedString(", ")
-                sep.font = .subheadline
-                sep.foregroundColor = .secondary
-                signalParts.append(sep)
-            }
+            var sep = AttributedString(" · ")
+            sep.font = .subheadline
+            sep.foregroundColor = .secondary
+            result += sep
+            
             var w = AttributedString("wind ≤\(Int(viewModel.maxWindSpeed)) km/h")
             w.font = .subheadline.bold()
-            w.foregroundColor = UIColor(activeThemeColor)
-            signalParts.append(w)
+            result += w
         }
         
-        if !signalParts.isEmpty {
-            var dot = AttributedString(". Promoted when ")
-            dot.font = .subheadline
-            dot.foregroundColor = .secondary
-            result += dot
-            for part in signalParts {
-                result += part
-            }
+        // Location
+        if viewModel.locationEnabled, viewModel.locationLatitude != nil {
+            var sep = AttributedString(joiner)
+            sep.font = .subheadline
+            sep.foregroundColor = .secondary
+            result += sep
+            
+            let locText = viewModel.locationName.isEmpty ? "pinned location" : "near \(viewModel.locationName)"
+            var loc = AttributedString(locText)
+            loc.font = .subheadline.bold()
+            result += loc
+        }
+        
+        // Estimate
+        let estimatedTimes = max(preferred.count, 1)
+        var estimate = AttributedString(" · ≈ \(estimatedTimes)× this week")
+        estimate.font = .subheadline
+        estimate.foregroundColor = .secondary
+        result += estimate
+        
+        let openCount = (1...7).filter { viewModel.dayAvailabilities[$0] == .open }.count
+        if openCount > 0 {
+            var stillOpen = AttributedString(" · still openable anytime")
+            stillOpen.font = .subheadline
+            stillOpen.foregroundColor = .secondary
+            result += stillOpen
         }
         
         // Never days
@@ -650,13 +1040,60 @@ struct RelevanceRuleView: View {
             result += nevDays
         }
         
-        var period = AttributedString(".")
-        period.font = .subheadline
-        period.foregroundColor = .secondary
-        result += period
-        
         return result
     }
-    
+}
 
+// MARK: - Location Manager Helper
+
+@Observable
+private class LocationManagerHelper: NSObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    private var completion: ((Result<CLLocation, Error>) -> Void)?
+    
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+    }
+    
+    func requestLocation(completion: @escaping (Result<CLLocation, Error>) -> Void) {
+        self.completion = completion
+        
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        default:
+            completion(.failure(LocationError.denied))
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.first {
+            completion?(.success(location))
+            completion = nil
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        completion?(.failure(error))
+        completion = nil
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways {
+            if completion != nil {
+                manager.requestLocation()
+            }
+        } else if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted {
+            completion?(.failure(LocationError.denied))
+            completion = nil
+        }
+    }
+    
+    enum LocationError: Error {
+        case denied
+    }
 }

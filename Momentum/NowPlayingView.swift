@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import MomentumKit
 
 struct NowPlayingView: View {
@@ -15,8 +16,10 @@ struct NowPlayingView: View {
     let onAdjustStartTime: ((TimeInterval) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
     
     @State private var showingAdjustments = false
+    @State private var lastWeekProgress: Double?
     
     var foregroundColor: Color {
         session.theme.foregroundColor(for: colorScheme)
@@ -172,7 +175,22 @@ struct NowPlayingView: View {
                         .rotationEffect(.degrees(-90))
                         .animation(.spring(response: 0.6), value: progress)
                     
-               
+                    // Last week's progress triangle marker
+                    if let lwProgress = lastWeekProgress, lwProgress > 0 {
+                        let clampedProgress = min(lwProgress, 1.0)
+                        let angle = Angle.degrees(clampedProgress * 360 - 90)
+                        let radius = (ringSize / 2) + lineWidth / 2 + 8
+                        
+                        Triangle()
+                            .fill(foregroundColor.opacity(0.5))
+                            .frame(width: 10, height: 8)
+                            .rotationEffect(.degrees(90) + angle)
+                            .offset(
+                                x: radius * cos(angle.radians),
+                                y: radius * sin(angle.radians)
+                            )
+                            .transition(.opacity)
+                    }
                     
                     // Center content: time or metric + percentage + edit
                     VStack(spacing: 8) {
@@ -341,6 +359,9 @@ struct NowPlayingView: View {
                 }
         )
         .preferredColorScheme(.dark)
+        .task {
+            lastWeekProgress = computeLastWeekProgress()
+        }
         .sheet(isPresented: $showingAdjustments) {
 
             SessionAdjustmentsSheet(
@@ -350,6 +371,51 @@ struct NowPlayingView: View {
             .presentationDetents([.height(180)])
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled)
+        }
+    }
+}
+
+// MARK: - Triangle Shape
+
+private struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Last Week Progress
+
+extension NowPlayingView {
+    /// Computes last week's progress for this goal at the same time of day
+    func computeLastWeekProgress() -> Double? {
+        guard let goal = session.goal else { return nil }
+        let target = activeSessionDetails.unifiedTargetValue
+        guard target > 0 else { return nil }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        guard let lastWeekDate = calendar.date(byAdding: .weekOfYear, value: -1, to: now) else { return nil }
+        let dayID = lastWeekDate.yearMonthDayID(with: calendar)
+        let goalIDString = goal.id.uuidString
+        
+        do {
+            let days = try modelContext.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID }))
+            guard let day = days.first, let historicalSessions = day.historicalSessions else { return nil }
+            
+            // Sum up all time spent on this goal last week same day
+            let totalSeconds = historicalSessions
+                .filter { $0.goalIDs.contains(goalIDString) }
+                .reduce(0.0) { $0 + $1.duration }
+            
+            guard totalSeconds > 0 else { return nil }
+            return totalSeconds / target
+        } catch {
+            return nil
         }
     }
 }

@@ -82,6 +82,13 @@ public final class Goal {
     public var maxWindSpeed: Double? // km/h — goal hidden when wind exceeds this
     public var weatherEnabled: Bool = false // Whether weather-based visibility is enabled
     
+    // Location-based triggers
+    public var locationLatitude: Double?   // Pinned location latitude
+    public var locationLongitude: Double?  // Pinned location longitude
+    public var locationRadius: Double?     // Radius in meters (default 200)
+    public var locationName: String?       // Human-readable place name
+    public var locationEnabled: Bool = false
+    
     // MARK: - Relevance Rule
     
     /// Per-weekday availability: keys "1"-"7" (1=Sun), values are DayAvailability raw values.
