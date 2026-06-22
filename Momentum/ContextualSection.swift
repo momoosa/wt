@@ -131,8 +131,14 @@ extension ContextualSection {
         }
         
         // Include downranked sessions (weather mismatch, not scheduled today) in Later
-        let scheduledIDs = Set(sessions.map { $0.id })
-        let downrankedToInclude = downrankedSessions.filter { !scheduledIDs.contains($0.session.id) }
+        // Exclude any that already appear in active, recommended, or weather sections,
+        // and any that have already met their daily target (they belong in Completed).
+        let excludedIDs = recommendedIDs
+            .union(weatherIDs)
+            .union(Set(laterSessions.map { $0.id }))
+        let downrankedToInclude = downrankedSessions.filter {
+            !excludedIDs.contains($0.session.id) && !$0.session.hasMetDailyTarget
+        }
         laterSessions.append(contentsOf: downrankedToInclude.map(\.session))
         
         if !laterSessions.isEmpty {

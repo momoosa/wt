@@ -67,6 +67,7 @@ public struct DeterministicRecommender {
         public let deadline: Double
         public let historicalPattern: Double
         public let scheduleFlexibility: Double
+        public let goalSequence: Double
         
         public static let `default` = ScoringWeights(
             weatherContext: 25.0,  // 0-25 points for weather match
@@ -74,7 +75,8 @@ public struct DeterministicRecommender {
             timeOfDay: 20.0,        // 0-20 points for time matching
             deadline: 15.0,         // 0-15 points for approaching deadline
             historicalPattern: 10.0, // 0-10 points for historical usage
-            scheduleFlexibility: 25.0 // 0-25 points for schedule conflict urgency
+            scheduleFlexibility: 25.0, // 0-25 points for schedule conflict urgency
+            goalSequence: 20.0      // 0-20 points for goal sequence match
         )
         
         public init(
@@ -83,7 +85,8 @@ public struct DeterministicRecommender {
             timeOfDay: Double,
             deadline: Double,
             historicalPattern: Double,
-            scheduleFlexibility: Double
+            scheduleFlexibility: Double,
+            goalSequence: Double = 20.0
         ) {
             self.weatherContext = weatherContext
             self.weeklyProgress = weeklyProgress
@@ -91,6 +94,7 @@ public struct DeterministicRecommender {
             self.deadline = deadline
             self.historicalPattern = historicalPattern
             self.scheduleFlexibility = scheduleFlexibility
+            self.goalSequence = goalSequence
         }
     }
     
@@ -139,35 +143,86 @@ public struct DeterministicRecommender {
         var totalScore = 0.0
         var reasons: [RecommendationReason] = []
         
+        // --- Signal-based scores (user-configured conditions) ---
+        
+        // Collect results for each configured signal so we can apply match mode
+        var signalResults: [(score: Double, maxScore: Double, reason: RecommendationReason?)] = []
+        
         // 1. Weather Context Scoring (0-25 points)
-        let (weatherScore, weatherReason) = scoreWeatherContext(goal, context: context)
-        totalScore += weatherScore
-        if let reason = weatherReason {
-            reasons.append(reason)
+        if goal.hasSignal(.weather) {
+            let (s, r) = scoreWeatherContext(goal, context: context)
+            signalResults.append((s, weights.weatherContext, r))
         }
         
-        // 2. Weekly Progress Scoring (0-30 points)
+        // 2. Time of Day Scoring (0-20 points)
+        if goal.hasSignal(.timeOfDay) {
+            let (s, r) = scoreTimeOfDay(goal, context: context)
+            signalResults.append((s, weights.timeOfDay, r))
+        }
+        
+        // 3. Goal Sequence Scoring (0-20 points)
+        if goal.sequenceEnabled {
+            let (s, r) = scoreGoalSequence(goal, sessions: sessions, context: context)
+            signalResults.append((s, weights.goalSequence, r))
+        }
+        
+        // Apply match mode to signal scores
+        if goal.conditionMatchMode == .all && !signalResults.isEmpty {
+            // Match ALL: all configured signals must contribute positively.
+            // If any signal scored near zero, heavily penalize the combined signal score.
+            let allMatched = signalResults.allSatisfy { $0.score > $0.maxScore * 0.1 }
+            if allMatched {
+                // All matched — add full scores and a bonus for complete match
+                for result in signalResults {
+                    totalScore += result.score
+                    if let reason = result.reason { reasons.append(reason) }
+                }
+                totalScore += 5.0 // bonus for all conditions matching
+            } else {
+                // At least one signal didn't match — minimal score from signals
+                for result in signalResults {
+                    totalScore += result.score * 0.1
+                }
+            }
+        } else {
+            // Match ANY (default): each signal independently adds its score
+            for result in signalResults {
+                totalScore += result.score
+                if let reason = result.reason { reasons.append(reason) }
+            }
+        }
+        
+        // Also score weather for goals without explicit weather signals (tag-based)
+        if !goal.hasSignal(.weather) {
+            let (weatherScore, weatherReason) = scoreWeatherContext(goal, context: context)
+            totalScore += weatherScore
+            if let reason = weatherReason { reasons.append(reason) }
+        }
+        
+        // Also score time for goals without explicit time signals
+        if !goal.hasSignal(.timeOfDay) {
+            let (timeScore, timeReason) = scoreTimeOfDay(goal, context: context)
+            totalScore += timeScore
+            if let reason = timeReason { reasons.append(reason) }
+        }
+        
+        // --- Always-additive scores (not user-configured conditions) ---
+        
+        // 4. Weekly Progress Scoring (0-30 points)
         let (progressScore, progressReason) = scoreWeeklyProgress(goal, sessions: sessions, context: context)
         totalScore += progressScore
         if let reason = progressReason {
             reasons.append(reason)
         }
         
-        // 3. Time of Day Scoring (0-20 points)
-        let (timeScore, timeReason) = scoreTimeOfDay(goal, context: context)
-        totalScore += timeScore
-        if let reason = timeReason {
-            reasons.append(reason)
-        }
-        
-        // 4. Deadline/Urgency Scoring (0-15 points)
+        // 5. Deadline/Urgency Scoring (0-15 points)
         let (deadlineScore, deadlineReason) = scoreDeadline(goal, context: context)
         totalScore += deadlineScore
         if let reason = deadlineReason {
             reasons.append(reason)
         }
         
-        // 5. Schedule Flexibility Scoring (0-25 points)
+        // 6. Schedule Flexibility Scoring (0-25 points)
         let (flexibilityScore, flexibilityReason) = scoreScheduleFlexibility(goal, context: context)
         totalScore += flexibilityScore
         if let reason = flexibilityReason {
@@ -409,5 +464,48 @@ public struct DeterministicRecommender {
         }
         
         return (0.0, nil)
+    }
+    
+    /// Score based on goal sequence link (before/after another goal)
+    private func scoreGoalSequence(
+        _ goal: Goal,
+        sessions: [GoalSession],
+        context: Context
+    ) -> (score: Double, reason: RecommendationReason?) {
+        guard goal.sequenceEnabled,
+              let linkedGoalID = goal.sequenceGoalID,
+              let direction = goal.sequenceDirection else {
+            return (0.0, nil)
+        }
+        
+        // Find today's session for the linked goal
+        let linkedSession = sessions.first { $0.goalID == linkedGoalID }
+        
+        switch direction {
+        case "after":
+            // Boost if the linked goal has been completed today
+            if let session = linkedSession, session.hasMetDailyTarget {
+                return (weights.goalSequence, .goalSequence)
+            }
+            // Slight boost if the linked goal is in progress (partially done)
+            if let session = linkedSession, session.currentValue > 0 {
+                return (weights.goalSequence * 0.3, nil)
+            }
+            return (0.0, nil)
+            
+        case "before":
+            // Boost if the linked goal has NOT started yet today
+            if let session = linkedSession, session.currentValue == 0 && !session.hasMetDailyTarget {
+                return (weights.goalSequence, .goalSequence)
+            }
+            // No linked session today means it hasn't been done — boost
+            if linkedSession == nil {
+                return (weights.goalSequence * 0.8, .goalSequence)
+            }
+            return (0.0, nil)
+            
+        default:
+            return (0.0, nil)
+        }
     }
 }

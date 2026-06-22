@@ -205,7 +205,8 @@ struct GoalEditorView: View {
         .sheet(isPresented: $viewModel.showingRelevanceRuleSheet) {
             RelevanceRuleView(
                 viewModel: viewModel,
-                activeThemeColor: activeThemeColor
+                activeThemeColor: activeThemeColor,
+                allGoals: allGoals
             )
         }
         .alert("Target Adjusted", isPresented: $viewModel.showingValidationAlert) {

@@ -299,7 +299,7 @@ struct ContentView: View {
                     },
                     onTakeBreak: {
                         navigation.celebrationData = nil
-                        scheduleBreakNotification()
+                        startBreakSession()
                     },
                     onDismiss: {
                         navigation.celebrationData = nil

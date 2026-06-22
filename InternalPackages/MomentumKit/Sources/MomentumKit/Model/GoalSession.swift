@@ -19,6 +19,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
     case preferredTime = "preferred_time"        // Matches user's preferred time of day
     case usualTime = "usual_time"                // Based on historical usage patterns
     case constrained = "constrained"             // Goal is only active now, not later in the day
+    case goalSequence = "goal_sequence"          // Linked goal sequence suggests this
     
     public var displayName: String {
         switch self {
@@ -31,6 +32,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .preferredTime: return "Preferred Time"
         case .usualTime: return "Usual Time"
         case .constrained: return "Time-Limited"
+        case .goalSequence: return "Goal Sequence"
         }
     }
     
@@ -45,6 +47,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .preferredTime: return "calendar"
         case .usualTime: return "clock.arrow.circlepath"
         case .constrained: return "hourglass"
+        case .goalSequence: return "arrow.right.arrow.left.circle.fill"
         }
     }
     
@@ -59,6 +62,7 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .preferredTime: return "Your preferred time slot"
         case .usualTime: return "You often work on this now"
         case .constrained: return "Only available during this time window"
+        case .goalSequence: return "Follows your usual flow"
         }
     }
 }

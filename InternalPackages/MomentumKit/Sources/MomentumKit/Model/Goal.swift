@@ -89,6 +89,14 @@ public final class Goal {
     public var locationName: String?       // Human-readable place name
     public var locationEnabled: Bool = false
     
+    // Goal sequence triggers
+    public var sequenceGoalID: String?           // UUID string of the linked goal
+    public var sequenceDirection: String?        // "before" or "after"
+    public var sequenceEnabled: Bool = false
+    
+    // Condition match mode: "all" (AND) or "any" (OR)
+    public var conditionMatchModeRaw: String = ConditionMatchMode.any.rawValue
+    
     // MARK: - Relevance Rule
     
     /// Per-weekday availability: keys "1"-"7" (1=Sun), values are DayAvailability raw values.
@@ -459,6 +467,12 @@ public extension Goal {
         signalStrengthsRaw[signalType.rawValue] = strength.rawValue
     }
     
+    /// The condition match mode for this goal's relevance rule signals.
+    var conditionMatchMode: ConditionMatchMode {
+        get { ConditionMatchMode(rawValue: conditionMatchModeRaw) ?? .any }
+        set { conditionMatchModeRaw = newValue.rawValue }
+    }
+    
     /// All weekdays marked as .preferred.
     var preferredDays: [Int] {
         (1...7).filter { dayAvailability(for: $0) == .preferred }
@@ -486,6 +500,8 @@ public extension Goal {
             )
         case .location:
             return primaryTag?.locationTypes != nil && !(primaryTag?.locationTypes?.isEmpty ?? true)
+        case .goalSequence:
+            return sequenceEnabled && sequenceGoalID != nil
         }
     }
 }

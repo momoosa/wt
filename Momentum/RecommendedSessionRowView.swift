@@ -177,6 +177,7 @@ struct RecommendedSessionRowView: View {
         case .preferredTime: return "heart.fill"
         case .usualTime: return "clock.arrow.circlepath"
         case .constrained: return "hourglass"
+        case .goalSequence: return "arrow.right.arrow.left.circle.fill"
         }
     }
 }

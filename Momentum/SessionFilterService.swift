@@ -89,9 +89,9 @@ struct SessionFilterService {
                 }
                 
                 if availability == .open {
-                    // Open days: only surface if a signal matches
-                    let hasMatchingSignal = hasAnyMatchingSignal(goal, weatherManager: weatherManager)
-                    if !hasMatchingSignal {
+                    // Open days: only surface if signals match (respecting match mode)
+                    let signalsMatch = checkSignals(goal, weatherManager: weatherManager)
+                    if !signalsMatch {
                         downranked.append(DownrankedSession(session: session, reason: .notScheduledToday))
                         continue
                     }
@@ -267,11 +267,49 @@ struct SessionFilterService {
     
     // MARK: - Weather Filtering
     
-    /// Check if a goal's weather requirements are met
-    /// - Parameters:
-    ///   - goal: The goal to check
-    ///   - weatherManager: Weather manager with current conditions
-    /// - Returns: True if weather requirements are met or not enabled
+    /// Check if signals match for an open day, respecting the goal's match mode.
+    /// - Match ANY: at least one configured signal must match (default).
+    /// - Match ALL: every configured signal must match.
+    static func checkSignals(_ goal: Goal, weatherManager: (any WeatherProviding)? = nil) -> Bool {
+        if goal.conditionMatchMode == .all {
+            return hasAllMatchingSignals(goal, weatherManager: weatherManager)
+        }
+        return hasAnyMatchingSignal(goal, weatherManager: weatherManager)
+    }
+    
+    /// Check that every configured signal currently matches.
+    static func hasAllMatchingSignals(_ goal: Goal, weatherManager: (any WeatherProviding)? = nil) -> Bool {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        let currentTimeOfDay = TimeOfDay.from(hour: hour)
+        let todayWeekday = calendar.component(.weekday, from: Date())
+        
+        var configuredCount = 0
+        
+        // Time of day check
+        let scheduledTimes = goal.timesForWeekday(todayWeekday)
+        if !scheduledTimes.isEmpty {
+            configuredCount += 1
+            if !scheduledTimes.contains(currentTimeOfDay) { return false }
+        }
+        
+        // Weather check
+        if goal.hasWeatherTriggers, let weatherManager {
+            configuredCount += 1
+            if !meetsWeatherRequirements(goal, weatherManager: weatherManager) { return false }
+        }
+        
+        // Tag context check
+        if let tag = goal.primaryTag, tag.isSmart {
+            configuredCount += 1
+            let score = tag.contextMatchScore(weather: nil, temperature: nil, timeOfDay: currentTimeOfDay, location: nil)
+            if score < 0.8 { return false }
+        }
+        
+        // Must have at least one configured signal to pass
+        return configuredCount > 0
+    }
+    
     /// Check if any configured signal currently matches for an open day.
     static func hasAnyMatchingSignal(_ goal: Goal, weatherManager: (any WeatherProviding)? = nil) -> Bool {
         // Time of day check

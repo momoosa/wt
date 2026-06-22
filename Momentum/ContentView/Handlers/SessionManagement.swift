@@ -49,7 +49,8 @@ extension ContentView {
         
         // Then create sessions for goals that don't have them
         // Use allSessionsForDay (not filtered by dailyTarget) to check existence to avoid duplicates
-        for goal in goals {
+        // Skip archived goals (e.g. system break goal)
+        for goal in goals where goal.status != .archived {
             if !allSessionsForDay.contains(where: { $0.goal == goal && $0.day == day }) {
                 let session = GoalSession(title: goal.title, goal: goal, day: day)
                 modelContext.insert(session)

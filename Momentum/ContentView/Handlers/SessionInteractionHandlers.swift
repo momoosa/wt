@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import UserNotifications
 import MomentumKit
 #if canImport(WidgetKit)
 import WidgetKit
@@ -209,22 +208,39 @@ extension ContentView {
         return streak
     }
     
-    // MARK: - Break Notification
+    // MARK: - Break Session
     
-    func scheduleBreakNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = "Break's over!"
-        content.body = "You've had 5 minutes to recharge. Ready for the next session?"
-        content.sound = .default
+    func startBreakSession() {
+        guard let timerManager else { return }
         
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5 * 60, repeats: false)
-        let request = UNNotificationRequest(identifier: "break-timer", content: content, trigger: trigger)
+        // Find or create a reusable archived "Break" goal
+        // Archived status keeps it out of the main goal list and session refresh
+        let breakGoal: Goal
+        let breakTitle = "Break"
+        let descriptor = FetchDescriptor<Goal>(predicate: #Predicate<Goal> { $0.title == breakTitle })
         
-        UNUserNotificationCenter.current().add(request)
+        if let existing = (try? modelContext.fetch(descriptor))?.first(where: { $0.status == .archived }) {
+            breakGoal = existing
+        } else {
+            breakGoal = Goal(title: breakTitle)
+            breakGoal.iconName = "cup.and.saucer"
+            breakGoal.unifiedDailyTarget = 300 // 5 minutes in seconds
+            breakGoal.themeID = "palette_07"
+            breakGoal.status = .archived
+            // Schedule for all days so the session init picks up the target
+            for weekday in 1...7 {
+                breakGoal.setTimes(Set(TimeOfDay.allCases), forWeekday: weekday)
+                breakGoal.perDayTargets[String(weekday)] = 300
+            }
+            modelContext.insert(breakGoal)
+        }
         
-        navigation.toastConfig = ToastConfig(
-            message: "Break timer set for 5 minutes",
-            showUndo: false
-        )
+        // Create a session for the break
+        let breakSession = GoalSession(title: breakTitle, goal: breakGoal, day: day)
+        modelContext.insert(breakSession)
+        
+        // Start the timer and open NowPlaying
+        timerManager.toggleTimer(for: breakSession, in: day)
+        navigation.showNowPlaying = true
     }
 }

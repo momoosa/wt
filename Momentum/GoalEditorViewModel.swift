@@ -161,8 +161,16 @@ class GoalEditorViewModel: Identifiable {
         return avail
     }()
     var signalStrengths: [SignalType: SignalStrength] = [:]
-    var conditionMatchMode: ConditionMatchMode = .all
+    var conditionMatchMode: ConditionMatchMode = .any
     var showingRelevanceRuleSheet: Bool = false
+    
+    // MARK: - Goal Sequence
+    
+    var sequenceEnabled: Bool = false
+    var sequenceGoalID: String?
+    var sequenceGoalTitle: String?
+    var sequenceGoalIcon: String?
+    var sequenceDirection: String = "after"  // "before" or "after"
     
     // MARK: - Scheduling
     
@@ -470,6 +478,14 @@ class GoalEditorViewModel: Identifiable {
         for signalType in SignalType.allCases {
             signalStrengths[signalType] = goal.signalStrength(for: signalType)
         }
+        
+        // Load condition match mode
+        conditionMatchMode = goal.conditionMatchMode
+        
+        // Load goal sequence
+        sequenceEnabled = goal.sequenceEnabled
+        sequenceGoalID = goal.sequenceGoalID
+        sequenceDirection = goal.sequenceDirection ?? "after"
         
         // Go straight to duration stage when editing
         currentStage = .duration
@@ -873,6 +889,9 @@ class GoalEditorViewModel: Identifiable {
         if locationEnabled && locationLatitude != nil {
             signals.append(locationName.isEmpty ? "📍 location" : "📍 \(locationName)")
         }
+        if sequenceEnabled, let title = sequenceGoalTitle {
+            signals.append("\(sequenceDirection == "before" ? "Before" : "After") \(title)")
+        }
         
         if !signals.isEmpty {
             parts.append(signals.joined(separator: " / "))
@@ -904,6 +923,10 @@ class GoalEditorViewModel: Identifiable {
         }
         if weatherEnabled && hasMaxWindSpeed {
             signalDescriptions.append("wind ≤\(Int(maxWindSpeed)) km/h")
+        }
+        if sequenceEnabled, let title = sequenceGoalTitle {
+            let dir = sequenceDirection == "before" ? "before" : "after"
+            signalDescriptions.append("\(dir) \(title)")
         }
         if !signalDescriptions.isEmpty {
             parts.append("Promoted when \(signalDescriptions.joined(separator: " or "))")
@@ -942,6 +965,12 @@ class GoalEditorViewModel: Identifiable {
             locationLongitude = nil
             locationName = ""
             locationRadius = 200
+        case .goalSequence:
+            sequenceEnabled = false
+            sequenceGoalID = nil
+            sequenceGoalTitle = nil
+            sequenceGoalIcon = nil
+            sequenceDirection = "after"
         }
     }
     
@@ -966,6 +995,8 @@ class GoalEditorViewModel: Identifiable {
             return weatherEnabled && (!selectedWeatherConditions.isEmpty || hasMinTemperature || hasMaxTemperature || hasMaxWindSpeed)
         case .location:
             return locationEnabled && locationLatitude != nil
+        case .goalSequence:
+            return sequenceEnabled && sequenceGoalID != nil
         }
     }
     
@@ -992,6 +1023,10 @@ class GoalEditorViewModel: Identifiable {
         case .location:
             if !locationEnabled || locationLatitude == nil { return "Not set" }
             return locationName.isEmpty ? "Pinned location" : locationName
+        case .goalSequence:
+            guard sequenceEnabled, let title = sequenceGoalTitle else { return "Not set" }
+            let dir = sequenceDirection == "before" ? "Before" : "After"
+            return "\(dir) \(title)"
         }
     }
     
@@ -1443,6 +1478,12 @@ class GoalEditorViewModel: Identifiable {
         for (signalType, strength) in signalStrengths {
             goal.setSignalStrength(strength, for: signalType)
         }
+        goal.conditionMatchMode = conditionMatchMode
+        
+        // ✅ Save goal sequence
+        goal.sequenceEnabled = sequenceEnabled
+        goal.sequenceGoalID = sequenceEnabled ? sequenceGoalID : nil
+        goal.sequenceDirection = sequenceEnabled ? sequenceDirection : nil
         
         // ✅ Save checklist items
         // Remove old checklist items

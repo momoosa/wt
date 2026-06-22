@@ -837,13 +837,14 @@ struct GoalSessionDetailView: View {
         case .weeklyProgress, .quickFinish: return "YOUR PATTERN"
         case .userPriority, .plannedTheme: return "PRIORITY"
         case .weather: return "WEATHER"
+        case .goalSequence: return "GOAL SEQUENCE"
         }
     }
     
     private func strengthBadge(for reason: RecommendationReason) -> some View {
         let strength: (String, Color) = {
             switch reason {
-            case .preferredTime, .weeklyProgress, .constrained:
+            case .preferredTime, .weeklyProgress, .constrained, .goalSequence:
                 return ("STRONG", Color(.systemGreen))
             case .availableTime, .quickFinish, .usualTime:
                 return ("MEDIUM", Color(.systemOrange))

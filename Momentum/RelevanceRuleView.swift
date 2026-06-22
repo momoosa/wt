@@ -6,6 +6,7 @@ import MomentumKit
 struct RelevanceRuleView: View {
     @Bindable var viewModel: GoalEditorViewModel
     let activeThemeColor: Color
+    let allGoals: [Goal]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     
@@ -21,7 +22,7 @@ struct RelevanceRuleView: View {
         case dayTime
         case weather
         case location
-        case calendar
+        case goalSequence
     }
     
     var body: some View {
@@ -29,8 +30,10 @@ struct RelevanceRuleView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     headerSection
-                    matchModeToggle
                     conditionCards
+                    if activeConditionCount >= 2 {
+                        matchModeToggle
+                    }
                     addConditionSection
                 }
                 .padding()
@@ -99,55 +102,6 @@ struct RelevanceRuleView: View {
         }
     }
     
-    // MARK: - Match Mode Toggle
-    
-    private var matchModeToggle: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 0) {
-                matchModeButton(.all, isSelected: viewModel.conditionMatchMode == .all)
-                matchModeButton(.any, isSelected: viewModel.conditionMatchMode == .any)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(.systemBackground))
-            )
-            
-            Text(matchModeDescription)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-    
-    private func matchModeButton(_ mode: ConditionMatchMode, isSelected: Bool) -> some View {
-        Button {
-            withAnimation(.snappy(duration: 0.2)) {
-                viewModel.conditionMatchMode = mode
-            }
-        } label: {
-            Text(mode.displayName)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .foregroundStyle(isSelected ? (viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .white) : .secondary)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? activeThemeColor : Color.clear)
-                )
-                .padding(2)
-        }
-        .buttonStyle(.plain)
-    }
-    
-    private var matchModeDescription: String {
-        switch viewModel.conditionMatchMode {
-        case .all:
-            return "Stack as many conditions as you like — Momentum suggests the goal when they all match."
-        case .any:
-            return "Momentum suggests the goal when at least one condition is true."
-        }
-    }
-    
     // MARK: - Condition Cards
     
     private var conditionCards: some View {
@@ -158,7 +112,8 @@ struct RelevanceRuleView: View {
                     type: .dayTime,
                     label: "DAY & TIME",
                     summary: dayTimeSummary,
-                    icon: "clock.fill"
+                    icon: "clock.fill",
+                    signalType: .timeOfDay
                 ) {
                     dayTimeDetail
                 }
@@ -170,7 +125,8 @@ struct RelevanceRuleView: View {
                     type: .weather,
                     label: "WEATHER",
                     summary: weatherSummary,
-                    icon: "cloud.sun.fill"
+                    icon: "cloud.sun.fill",
+                    signalType: .weather
                 ) {
                     weatherDetail
                 }
@@ -182,9 +138,23 @@ struct RelevanceRuleView: View {
                     type: .location,
                     label: "LOCATION",
                     summary: locationSummary,
-                    icon: "location.fill"
+                    icon: "location.fill",
+                    signalType: .location
                 ) {
                     locationDetail
+                }
+            }
+            
+            // Goal sequence condition
+            if viewModel.sequenceEnabled {
+                conditionCard(
+                    type: .goalSequence,
+                    label: "GOAL SEQUENCE",
+                    summary: goalSequenceSummary,
+                    icon: "arrow.right.arrow.left.circle.fill",
+                    signalType: .goalSequence
+                ) {
+                    goalSequenceDetail
                 }
             }
         }
@@ -195,6 +165,7 @@ struct RelevanceRuleView: View {
         label: String,
         summary: String,
         icon: String,
+        signalType: SignalType? = nil,
         @ViewBuilder detail: @escaping () -> Detail
     ) -> some View {
         VStack(spacing: 0) {
@@ -218,10 +189,15 @@ struct RelevanceRuleView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
-                        // Green dot indicator
-                        Circle()
-                            .fill(activeThemeColor)
-                            .frame(width: 6, height: 6)
+                        // Strength chevron indicator
+                        if let signalType, let strength = viewModel.signalStrengths[signalType] {
+                            strengthChevron(strength)
+                        } else {
+                            // Default green dot indicator
+                            Circle()
+                                .fill(activeThemeColor)
+                                .frame(width: 6, height: 6)
+                        }
                     }
                     
                     Image(systemName: "chevron.right")
@@ -333,8 +309,16 @@ struct RelevanceRuleView: View {
                     }
                 }
                 
-                addConditionButton(label: "Calendar", icon: "calendar") {
-                    // Calendar not yet implemented
+                if !viewModel.sequenceEnabled {
+                    addConditionButton(label: "Goal sequence", icon: "arrow.right.arrow.left") {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            viewModel.sequenceEnabled = true
+                            if viewModel.signalStrengths[.goalSequence] == nil {
+                                viewModel.signalStrengths[.goalSequence] = .boost
+                            }
+                            expandedCondition = .goalSequence
+                        }
+                    }
                 }
             }
         }
@@ -355,6 +339,53 @@ struct RelevanceRuleView: View {
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(.systemBackground))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Match Mode Toggle
+    
+    /// Number of active signal conditions (not counting day scheduling).
+    private var activeConditionCount: Int {
+        var count = 0
+        if hasDayTimeCondition { count += 1 }
+        if viewModel.weatherEnabled { count += 1 }
+        if viewModel.locationEnabled { count += 1 }
+        if viewModel.sequenceEnabled { count += 1 }
+        return count
+    }
+    
+    private var matchModeToggle: some View {
+        HStack(spacing: 0) {
+            matchModeButton(.any)
+            matchModeButton(.all)
+        }
+        .background(Color(.systemGray5))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+    
+    private func matchModeButton(_ mode: ConditionMatchMode) -> some View {
+        let isSelected = viewModel.conditionMatchMode == mode
+        return Button {
+            withAnimation(.snappy(duration: 0.2)) {
+                viewModel.conditionMatchMode = mode
+            }
+        } label: {
+            VStack(spacing: 2) {
+                Text(mode == .any ? "Match ANY" : "Match ALL")
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .bold : .regular)
+                Text(mode == .any ? "Any condition boosts ranking" : "All conditions must match")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color(.systemBackground) : .clear)
+                    .shadow(color: isSelected ? .black.opacity(0.08) : .clear, radius: 2, y: 1)
             )
         }
         .buttonStyle(.plain)
@@ -389,6 +420,10 @@ struct RelevanceRuleView: View {
     
     private var dayTimeDetail: some View {
         VStack(alignment: .leading, spacing: 16) {
+            signalStrengthPicker(for: .timeOfDay)
+            
+            Divider()
+            
             // Day picker
             Text("Days")
                 .font(.caption)
@@ -513,6 +548,10 @@ struct RelevanceRuleView: View {
     
     private var weatherDetail: some View {
         VStack(alignment: .leading, spacing: 14) {
+            signalStrengthPicker(for: .weather)
+            
+            Divider()
+            
             Text("Weather conditions")
                 .font(.caption)
                 .fontWeight(.semibold)
@@ -599,6 +638,193 @@ struct RelevanceRuleView: View {
         }
     }
     
+    // MARK: - Strength Chevron
+    
+    private func strengthChevron(_ strength: SignalStrength) -> some View {
+        let (iconName, color): (String, Color) = switch strength {
+        case .boost: ("chevron.up", .green)
+        case .require: ("chevron.up.2", .green)
+        case .avoid: ("chevron.down", .red)
+        }
+        return Image(systemName: iconName)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(color)
+    }
+    
+    private func signalStrengthPicker(for signalType: SignalType) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Signal effect")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            HStack(spacing: 6) {
+                ForEach(SignalStrength.allCases, id: \.self) { strength in
+                    let isSelected = viewModel.signalStrengths[signalType] == strength
+                    let (iconName, color): (String, Color) = switch strength {
+                    case .boost: ("chevron.up", .green)
+                    case .require: ("chevron.up.2", .green)
+                    case .avoid: ("chevron.down", .red)
+                    }
+                    Button {
+                        withAnimation(.snappy(duration: 0.15)) {
+                            viewModel.signalStrengths[signalType] = strength
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: iconName)
+                                .font(.caption2.weight(.bold))
+                            Text(strength.displayName)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(isSelected ? .white : color)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isSelected ? color : color.opacity(0.1))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Goal Sequence Detail
+    
+    private var goalSequenceSummary: String {
+        guard let title = viewModel.sequenceGoalTitle else { return "Not set" }
+        let dir = viewModel.sequenceDirection == "before" ? "Before" : "After"
+        return "\(dir) \(title)"
+    }
+    
+    /// Goals available for sequence linking (active, excluding the current goal being edited)
+    private var availableGoals: [Goal] {
+        allGoals.filter { goal in
+            goal.status == .active && goal.id.uuidString != viewModel.existingGoal?.id.uuidString
+        }
+    }
+    
+    private var goalSequenceDetail: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            signalStrengthPicker(for: .goalSequence)
+            
+            Divider()
+            
+            // Direction picker
+            Text("Direction")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            HStack(spacing: 6) {
+                directionButton("before", label: "Before", icon: "arrow.left")
+                directionButton("after", label: "After", icon: "arrow.right")
+            }
+            
+            Divider()
+            
+            // Goal picker
+            Text("Linked goal")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+            
+            if availableGoals.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.circle")
+                        .foregroundStyle(.secondary)
+                    Text("No other active goals to link to")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(availableGoals) { goal in
+                        let isSelected = viewModel.sequenceGoalID == goal.id.uuidString
+                        Button {
+                            withAnimation(.snappy(duration: 0.15)) {
+                                viewModel.sequenceGoalID = goal.id.uuidString
+                                viewModel.sequenceGoalTitle = goal.title
+                                viewModel.sequenceGoalIcon = goal.iconName
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: goal.iconName ?? "circle")
+                                    .font(.body)
+                                    .foregroundStyle(isSelected ? activeThemeColor : .secondary)
+                                    .frame(width: 28)
+                                
+                                Text(goal.title)
+                                    .font(.subheadline)
+                                    .fontWeight(isSelected ? .semibold : .regular)
+                                    .foregroundStyle(.primary)
+                                
+                                Spacer()
+                                
+                                if isSelected {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(activeThemeColor)
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 4)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if goal.id != availableGoals.last?.id {
+                            Divider().padding(.leading, 42)
+                        }
+                    }
+                }
+            }
+            
+            // Summary
+            if let title = viewModel.sequenceGoalTitle {
+                let dir = viewModel.sequenceDirection == "before" ? "before" : "after"
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(activeThemeColor)
+                    Text("Recommend this \(dir) completing **\(title)**")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+    
+    private func directionButton(_ direction: String, label: String, icon: String) -> some View {
+        let isSelected = viewModel.sequenceDirection == direction
+        return Button {
+            withAnimation(.snappy(duration: 0.15)) {
+                viewModel.sequenceDirection = direction
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption.weight(.semibold))
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .foregroundStyle(isSelected ? (viewModel.activeThemePreset?.foregroundColor(for: colorScheme) ?? .white) : .primary)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? activeThemeColor : Color(.systemGray6))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    
     // MARK: - Location Detail
     
     private var locationSummary: String {
@@ -617,6 +843,10 @@ struct RelevanceRuleView: View {
     
     private var locationDetail: some View {
         VStack(alignment: .leading, spacing: 14) {
+            signalStrengthPicker(for: .location)
+            
+            Divider()
+            
             // Search bar
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
@@ -875,8 +1105,8 @@ struct RelevanceRuleView: View {
             viewModel.removeSignal(.weather)
         case .location:
             viewModel.removeSignal(.location)
-        case .calendar:
-            break
+        case .goalSequence:
+            viewModel.removeSignal(.goalSequence)
         }
     }
     
@@ -938,7 +1168,9 @@ struct RelevanceRuleView: View {
     
     private func buildRichSummary() -> AttributedString {
         let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let joiner = viewModel.conditionMatchMode == .all ? " and " : " or "
         var result = AttributedString()
+        var isFirstSignal = true
         
         // Preferred days
         let preferred = (1...7).filter { viewModel.dayAvailabilities[$0] == .preferred }
@@ -958,10 +1190,11 @@ struct RelevanceRuleView: View {
         // Time of day
         let allTimes = Set((1...7).flatMap { viewModel.dayTimePreferences[$0] ?? [] })
         if !allTimes.isEmpty && allTimes.count < TimeOfDay.allCases.count {
-            var sep = AttributedString(" · ")
+            var sep = AttributedString(isFirstSignal ? " · " : joiner)
             sep.font = .subheadline
             sep.foregroundColor = .secondary
             result += sep
+            isFirstSignal = false
             
             var times = AttributedString(allTimes.sorted().map { $0.displayName.lowercased() }.joined(separator: ", "))
             times.font = .subheadline.bold()
@@ -969,13 +1202,12 @@ struct RelevanceRuleView: View {
         }
         
         // Weather
-        let joiner = viewModel.conditionMatchMode == .all ? " and " : " or "
-        
         if viewModel.weatherEnabled && !viewModel.selectedWeatherConditions.isEmpty {
-            var sep = AttributedString(joiner)
+            var sep = AttributedString(isFirstSignal ? " · " : joiner)
             sep.font = .subheadline
             sep.foregroundColor = .secondary
             result += sep
+            isFirstSignal = false
             
             var conditions = AttributedString(
                 viewModel.selectedWeatherConditions
@@ -989,22 +1221,38 @@ struct RelevanceRuleView: View {
         
         // Wind speed
         if viewModel.weatherEnabled && viewModel.hasMaxWindSpeed {
-            var sep = AttributedString(" · ")
+            var sep = AttributedString(isFirstSignal ? " · " : joiner)
             sep.font = .subheadline
             sep.foregroundColor = .secondary
             result += sep
+            isFirstSignal = false
             
             var w = AttributedString("wind ≤\(Int(viewModel.maxWindSpeed)) km/h")
             w.font = .subheadline.bold()
             result += w
         }
         
-        // Location
-        if viewModel.locationEnabled, viewModel.locationLatitude != nil {
-            var sep = AttributedString(joiner)
+        // Goal sequence
+        if viewModel.sequenceEnabled, let title = viewModel.sequenceGoalTitle {
+            var sep = AttributedString(isFirstSignal ? " · " : joiner)
             sep.font = .subheadline
             sep.foregroundColor = .secondary
             result += sep
+            isFirstSignal = false
+            
+            let dir = viewModel.sequenceDirection == "before" ? "before" : "after"
+            var seq = AttributedString("\(dir) \(title)")
+            seq.font = .subheadline.bold()
+            result += seq
+        }
+        
+        // Location
+        if viewModel.locationEnabled, viewModel.locationLatitude != nil {
+            var sep = AttributedString(isFirstSignal ? " · " : joiner)
+            sep.font = .subheadline
+            sep.foregroundColor = .secondary
+            result += sep
+            isFirstSignal = false
             
             let locText = viewModel.locationName.isEmpty ? "pinned location" : "near \(viewModel.locationName)"
             var loc = AttributedString(locText)

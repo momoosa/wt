@@ -846,13 +846,16 @@ struct RecommendWhenCard: View {
         let hasSpecificTimes = !allTimes.isEmpty && allTimes.count < TimeOfDay.allCases.count
         let hasWeather = vm.weatherEnabled && !vm.selectedWeatherConditions.isEmpty
         let hasDayTime = !preferred.isEmpty || hasSpecificTimes
+        let hasSequence = vm.sequenceEnabled && vm.sequenceGoalTitle != nil
+        let hasAny = hasDayTime || hasWeather || hasSequence
         
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 if hasDayTime {
                     conditionPill(
                         icon: "clock.fill",
-                        label: dayTimePillLabel(preferred: preferred, times: hasSpecificTimes ? allTimes : nil)
+                        label: dayTimePillLabel(preferred: preferred, times: hasSpecificTimes ? allTimes : nil),
+                        signalType: .timeOfDay
                     )
                 }
                 
@@ -862,11 +865,21 @@ struct RecommendWhenCard: View {
                         label: vm.selectedWeatherConditions
                             .sorted(by: { $0.displayName < $1.displayName })
                             .map { $0.displayName.lowercased() }
-                            .joined(separator: ", ")
+                            .joined(separator: ", "),
+                        signalType: .weather
                     )
                 }
                 
-                if !hasDayTime && !hasWeather {
+                if hasSequence {
+                    let dir = vm.sequenceDirection == "before" ? "Before" : "After"
+                    conditionPill(
+                        icon: "arrow.right.arrow.left",
+                        label: "\(dir) \(vm.sequenceGoalTitle ?? "")",
+                        signalType: .goalSequence
+                    )
+                }
+                
+                if !hasAny {
                     conditionPill(icon: "plus", label: "Add conditions")
                 }
             }
@@ -892,12 +905,23 @@ struct RecommendWhenCard: View {
         return parts.isEmpty ? "Any day" : parts.joined(separator: " · ")
     }
     
-    private func conditionPill(icon: String, label: String) -> some View {
+    private func conditionPill(icon: String, label: String, signalType: SignalType? = nil) -> some View {
         HStack(spacing: 5) {
-            // Green dot
-            Circle()
-                .fill(themeColor)
-                .frame(width: 5, height: 5)
+            // Strength chevron or green dot
+            if let signalType, let strength = vm.signalStrengths[signalType] {
+                let (chevronIcon, color): (String, Color) = switch strength {
+                case .boost: ("chevron.up", .green)
+                case .require: ("chevron.up.2", .green)
+                case .avoid: ("chevron.down", .red)
+                }
+                Image(systemName: chevronIcon)
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(color)
+            } else {
+                Circle()
+                    .fill(themeColor)
+                    .frame(width: 5, height: 5)
+            }
             
             Image(systemName: icon)
                 .font(.caption2)

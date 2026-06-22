@@ -541,6 +541,7 @@ public enum SignalType: String, Codable, CaseIterable, Identifiable, Hashable {
     case timeOfDay
     case weather
     case location
+    case goalSequence
 
     public var id: String { rawValue }
 
@@ -549,6 +550,7 @@ public enum SignalType: String, Codable, CaseIterable, Identifiable, Hashable {
         case .timeOfDay: return "Time of Day"
         case .weather: return "Weather"
         case .location: return "Location"
+        case .goalSequence: return "Goal Sequence"
         }
     }
 
@@ -557,6 +559,7 @@ public enum SignalType: String, Codable, CaseIterable, Identifiable, Hashable {
         case .timeOfDay: return "clock.fill"
         case .weather: return "cloud.sun.fill"
         case .location: return "location.fill"
+        case .goalSequence: return "arrow.right.arrow.left.circle.fill"
         }
     }
 }

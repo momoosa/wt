@@ -684,4 +684,456 @@ struct DeterministicRecommenderTests {
         // Scores should be identical - schedule flexibility doesn't apply to unscheduled goals
         #expect(recsWith[0].score == recsWithout[0].score)
     }
+    
+    // MARK: - Goal Sequence Scoring Tests
+    
+    func createTestDay() -> Day {
+        let now = Date()
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: now)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        return Day(start: start, end: end)
+    }
+    
+    @Test("Goal with 'after' sequence scores high when linked goal completed")
+    func afterSequenceScoresHighWhenLinkedCompleted() {
+        let recommender = DeterministicRecommender()
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        let stretchingGoal = Goal(title: "Stretching")
+        stretchingGoal.targetUnit = .seconds
+        stretchingGoal.unifiedDailyTarget = 600
+        stretchingGoal.sequenceEnabled = true
+        stretchingGoal.sequenceGoalID = runningGoal.id.uuidString
+        stretchingGoal.sequenceDirection = "after"
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 1800 // completed
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [stretchingGoal],
+            sessions: [runningSession],
+            context: context,
+            limit: 1
+        )
+        
+        #expect(recs[0].reasons.contains(.goalSequence))
+        #expect(recs[0].score > 0)
+    }
+    
+    @Test("Goal with 'after' sequence scores zero when linked goal not started")
+    func afterSequenceScoresZeroWhenLinkedNotStarted() {
+        let recommender = DeterministicRecommender()
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        let stretchingGoal = Goal(title: "Stretching")
+        stretchingGoal.targetUnit = .seconds
+        stretchingGoal.unifiedDailyTarget = 600
+        stretchingGoal.sequenceEnabled = true
+        stretchingGoal.sequenceGoalID = runningGoal.id.uuidString
+        stretchingGoal.sequenceDirection = "after"
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 0 // not started
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [stretchingGoal],
+            sessions: [runningSession],
+            context: context,
+            limit: 1
+        )
+        
+        #expect(!recs[0].reasons.contains(.goalSequence))
+    }
+    
+    @Test("Goal with 'after' sequence gives partial score when linked goal in progress")
+    func afterSequencePartialScoreWhenInProgress() {
+        let recommender = DeterministicRecommender()
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        let stretchingGoal = Goal(title: "Stretching")
+        stretchingGoal.targetUnit = .seconds
+        stretchingGoal.unifiedDailyTarget = 600
+        stretchingGoal.sequenceEnabled = true
+        stretchingGoal.sequenceGoalID = runningGoal.id.uuidString
+        stretchingGoal.sequenceDirection = "after"
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 900 // half done
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [stretchingGoal],
+            sessions: [runningSession],
+            context: context,
+            limit: 1
+        )
+        
+        // Partial score but not a full reason (30% of sequence weight)
+        #expect(recs[0].score > 0)
+        #expect(!recs[0].reasons.contains(.goalSequence))
+    }
+    
+    @Test("Goal with 'before' sequence scores high when linked goal not started")
+    func beforeSequenceScoresHighWhenLinkedNotStarted() {
+        let recommender = DeterministicRecommender()
+        
+        let warmupGoal = Goal(title: "Warmup")
+        warmupGoal.targetUnit = .seconds
+        warmupGoal.unifiedDailyTarget = 300
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        warmupGoal.sequenceEnabled = true
+        warmupGoal.sequenceGoalID = runningGoal.id.uuidString
+        warmupGoal.sequenceDirection = "before"
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 0 // not started
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [warmupGoal],
+            sessions: [runningSession],
+            context: context,
+            limit: 1
+        )
+        
+        #expect(recs[0].reasons.contains(.goalSequence))
+    }
+    
+    @Test("Goal with 'before' sequence scores high when no linked session exists")
+    func beforeSequenceScoresHighWhenNoLinkedSession() {
+        let recommender = DeterministicRecommender()
+        
+        let warmupGoal = Goal(title: "Warmup")
+        warmupGoal.targetUnit = .seconds
+        warmupGoal.unifiedDailyTarget = 300
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        warmupGoal.sequenceEnabled = true
+        warmupGoal.sequenceGoalID = runningGoal.id.uuidString
+        warmupGoal.sequenceDirection = "before"
+        
+        // No running session at all today
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [warmupGoal],
+            sessions: [],
+            context: context,
+            limit: 1
+        )
+        
+        #expect(recs[0].reasons.contains(.goalSequence))
+    }
+    
+    @Test("Goal with 'before' sequence scores zero when linked goal already done")
+    func beforeSequenceScoresZeroWhenLinkedAlreadyDone() {
+        let recommender = DeterministicRecommender()
+        
+        let warmupGoal = Goal(title: "Warmup")
+        warmupGoal.targetUnit = .seconds
+        warmupGoal.unifiedDailyTarget = 300
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        warmupGoal.sequenceEnabled = true
+        warmupGoal.sequenceGoalID = runningGoal.id.uuidString
+        warmupGoal.sequenceDirection = "before"
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 1800 // already completed
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [warmupGoal],
+            sessions: [runningSession],
+            context: context,
+            limit: 1
+        )
+        
+        // Linked goal already done, no sequence bonus
+        #expect(!recs[0].reasons.contains(.goalSequence))
+    }
+    
+    @Test("Sequence disabled goal gets no sequence score")
+    func sequenceDisabledGetsNoScore() {
+        let recommender = DeterministicRecommender()
+        
+        let goalA = Goal(title: "Goal A")
+        goalA.targetUnit = .seconds
+        goalA.unifiedDailyTarget = 600
+        
+        let goalB = Goal(title: "Goal B")
+        goalB.targetUnit = .seconds
+        goalB.unifiedDailyTarget = 600
+        // sequenceEnabled defaults to false
+        goalB.sequenceGoalID = goalA.id.uuidString
+        goalB.sequenceDirection = "after"
+        
+        let day = createTestDay()
+        let sessionA = GoalSession(title: "A", goal: goalA, day: day)
+        sessionA.currentValue = 600 // completed
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [goalB],
+            sessions: [sessionA],
+            context: context,
+            limit: 1
+        )
+        
+        #expect(!recs[0].reasons.contains(.goalSequence))
+    }
+    
+    @Test("After-sequence goal ranks higher than unlinked goal when linked completed")
+    func afterSequenceRanksHigherThanUnlinked() {
+        let recommender = DeterministicRecommender()
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        let stretchGoal = Goal(title: "Stretching")
+        stretchGoal.targetUnit = .seconds
+        stretchGoal.unifiedDailyTarget = 600
+        stretchGoal.sequenceEnabled = true
+        stretchGoal.sequenceGoalID = runningGoal.id.uuidString
+        stretchGoal.sequenceDirection = "after"
+        
+        let readingGoal = Goal(title: "Reading")
+        readingGoal.targetUnit = .seconds
+        readingGoal.unifiedDailyTarget = 600
+        // No sequence
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 1800 // completed
+        
+        let context = createContext()
+        let recs = recommender.recommend(
+            goals: [stretchGoal, readingGoal],
+            sessions: [runningSession],
+            context: context,
+            limit: 2
+        )
+        
+        #expect(recs[0].goal.title == "Stretching")
+        #expect(recs[0].score > recs[1].score)
+    }
+    
+    // MARK: - Condition Match Mode Tests
+    
+    @Test("Match ANY mode: single matching signal gives full score")
+    func matchAnyModeSingleSignalGivesScore() {
+        let recommender = DeterministicRecommender()
+        
+        let goal = Goal(title: "Outdoor Run")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1800
+        // Configure weather signal only
+        goal.weatherEnabled = true
+        goal.weatherConditions = [WeatherCondition.clear.rawValue]
+        goal.conditionMatchModeRaw = ConditionMatchMode.any.rawValue
+        
+        // Also set time signal to NOT match
+        for weekday in 1...7 {
+            goal.setTimes([.evening], forWeekday: weekday)
+        }
+        
+        // Context: clear weather but morning (time doesn't match)
+        let context = createContext(weather: .clear, temperature: 20.0, timeOfDay: .morning)
+        let recs = recommender.recommend(
+            goals: [goal],
+            sessions: [],
+            context: context,
+            limit: 1
+        )
+        
+        // With Match ANY, weather matching alone should give a weather reason
+        #expect(recs[0].reasons.contains(.weather))
+    }
+    
+    @Test("Match ALL mode: all signals matching gives bonus")
+    func matchAllModeAllSignalsMatchingGivesBonus() {
+        let recommender = DeterministicRecommender()
+        
+        let goalAll = Goal(title: "Perfect Match")
+        goalAll.targetUnit = .seconds
+        goalAll.unifiedDailyTarget = 1800
+        goalAll.weatherEnabled = true
+        goalAll.weatherConditions = [WeatherCondition.clear.rawValue]
+        goalAll.conditionMatchModeRaw = ConditionMatchMode.all.rawValue
+        for weekday in 1...7 {
+            goalAll.setTimes([.morning], forWeekday: weekday)
+        }
+        
+        let goalAny = Goal(title: "Any Match")
+        goalAny.targetUnit = .seconds
+        goalAny.unifiedDailyTarget = 1800
+        goalAny.weatherEnabled = true
+        goalAny.weatherConditions = [WeatherCondition.clear.rawValue]
+        goalAny.conditionMatchModeRaw = ConditionMatchMode.any.rawValue
+        for weekday in 1...7 {
+            goalAny.setTimes([.morning], forWeekday: weekday)
+        }
+        
+        // Context: clear morning — both signals match
+        let context = createContext(weather: .clear, temperature: 20.0, timeOfDay: .morning)
+        let recsAll = recommender.recommend(goals: [goalAll], sessions: [], context: context, limit: 1)
+        let recsAny = recommender.recommend(goals: [goalAny], sessions: [], context: context, limit: 1)
+        
+        // Match ALL should get a bonus when all signals match
+        #expect(recsAll[0].score > recsAny[0].score)
+    }
+    
+    @Test("Match ALL mode: one signal not matching penalizes score")
+    func matchAllModeOneSignalMissingPenalizesScore() {
+        let recommender = DeterministicRecommender()
+        
+        let goalAll = Goal(title: "Strict Goal")
+        goalAll.targetUnit = .seconds
+        goalAll.unifiedDailyTarget = 1800
+        // Weather signal: expects clear
+        goalAll.weatherEnabled = true
+        goalAll.weatherConditions = [WeatherCondition.clear.rawValue]
+        // Time signal: expects morning
+        for weekday in 1...7 {
+            goalAll.setTimes([.morning], forWeekday: weekday)
+        }
+        goalAll.conditionMatchModeRaw = ConditionMatchMode.all.rawValue
+        
+        let goalAny = Goal(title: "Flexible Goal")
+        goalAny.targetUnit = .seconds
+        goalAny.unifiedDailyTarget = 1800
+        goalAny.weatherEnabled = true
+        goalAny.weatherConditions = [WeatherCondition.clear.rawValue]
+        for weekday in 1...7 {
+            goalAny.setTimes([.morning], forWeekday: weekday)
+        }
+        goalAny.conditionMatchModeRaw = ConditionMatchMode.any.rawValue
+        
+        // Context: clear weather but EVENING (time doesn't match)
+        let context = createContext(weather: .clear, temperature: 20.0, timeOfDay: .evening)
+        let recsAll = recommender.recommend(goals: [goalAll], sessions: [], context: context, limit: 1)
+        let recsAny = recommender.recommend(goals: [goalAny], sessions: [], context: context, limit: 1)
+        
+        // Match ALL should score lower than Match ANY when one signal misses
+        #expect(recsAll[0].score < recsAny[0].score)
+    }
+    
+    @Test("Match ALL mode: no reasons when a signal is missing")
+    func matchAllModeNoReasonsWhenSignalMissing() {
+        let recommender = DeterministicRecommender()
+        
+        let goal = Goal(title: "Strict Run")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 1800
+        goal.weatherEnabled = true
+        goal.weatherConditions = [WeatherCondition.clear.rawValue]
+        for weekday in 1...7 {
+            goal.setTimes([.morning], forWeekday: weekday)
+        }
+        goal.conditionMatchModeRaw = ConditionMatchMode.all.rawValue
+        
+        // Context: rainy morning — weather doesn't match, time does
+        let context = createContext(weather: .rainy, temperature: 10.0, timeOfDay: .morning)
+        let recs = recommender.recommend(goals: [goal], sessions: [], context: context, limit: 1)
+        
+        // Neither weather nor preferredTime should be given as a reason
+        // because Match ALL mode suppresses reasons when not all signals match
+        #expect(!recs[0].reasons.contains(.weather))
+        #expect(!recs[0].reasons.contains(.preferredTime))
+    }
+    
+    @Test("Match ALL mode with sequence: all three signals must match")
+    func matchAllModeWithSequenceAllThreeMustMatch() {
+        let recommender = DeterministicRecommender()
+        
+        let runningGoal = Goal(title: "Running")
+        runningGoal.targetUnit = .seconds
+        runningGoal.unifiedDailyTarget = 1800
+        
+        let goal = Goal(title: "Outdoor Stretch")
+        goal.targetUnit = .seconds
+        goal.unifiedDailyTarget = 600
+        goal.weatherEnabled = true
+        goal.weatherConditions = [WeatherCondition.clear.rawValue]
+        goal.sequenceEnabled = true
+        goal.sequenceGoalID = runningGoal.id.uuidString
+        goal.sequenceDirection = "after"
+        goal.conditionMatchModeRaw = ConditionMatchMode.all.rawValue
+        
+        let day = createTestDay()
+        let runningSession = GoalSession(title: "Running", goal: runningGoal, day: day)
+        runningSession.currentValue = 1800 // completed
+        
+        // Context: clear weather — weather matches AND sequence matches
+        let contextMatch = createContext(weather: .clear, temperature: 20.0)
+        let recsMatch = recommender.recommend(
+            goals: [goal],
+            sessions: [runningSession],
+            context: contextMatch,
+            limit: 1
+        )
+        
+        // Both signals match — should get reasons
+        #expect(recsMatch[0].reasons.contains(.weather))
+        #expect(recsMatch[0].reasons.contains(.goalSequence))
+        
+        // Context: rainy weather — weather misses, sequence matches
+        let contextPartial = createContext(weather: .rainy, temperature: 10.0)
+        let recsPartial = recommender.recommend(
+            goals: [goal],
+            sessions: [runningSession],
+            context: contextPartial,
+            limit: 1
+        )
+        
+        // Match ALL: one signal missed, so reasons should be suppressed
+        #expect(!recsPartial[0].reasons.contains(.weather))
+        #expect(!recsPartial[0].reasons.contains(.goalSequence))
+        #expect(recsPartial[0].score < recsMatch[0].score)
+    }
+    
+    @Test("Default match mode is ANY")
+    func defaultMatchModeIsAny() {
+        let goal = Goal(title: "Test")
+        #expect(goal.conditionMatchMode == .any)
+    }
+    
+    @Test("Condition match mode persists via raw value")
+    func conditionMatchModePersistsViaRawValue() {
+        let goal = Goal(title: "Test")
+        goal.conditionMatchMode = .all
+        #expect(goal.conditionMatchModeRaw == "all")
+        #expect(goal.conditionMatchMode == .all)
+        
+        goal.conditionMatchMode = .any
+        #expect(goal.conditionMatchModeRaw == "any")
+        #expect(goal.conditionMatchMode == .any)
+    }
 }
