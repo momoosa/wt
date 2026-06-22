@@ -23,7 +23,6 @@ struct RecommendationReasonTests {
         #expect(RecommendationReason.plannedTheme.rawValue == "planned_theme")
         #expect(RecommendationReason.quickFinish.rawValue == "quick_finish")
         #expect(RecommendationReason.preferredTime.rawValue == "preferred_time")
-        #expect(RecommendationReason.energyLevel.rawValue == "energy_level")
         #expect(RecommendationReason.usualTime.rawValue == "usual_time")
         #expect(RecommendationReason.constrained.rawValue == "constrained")
     }
@@ -39,7 +38,6 @@ struct RecommendationReasonTests {
         #expect(RecommendationReason.plannedTheme.displayName == "Planned Theme")
         #expect(RecommendationReason.quickFinish.displayName == "Quick Finish")
         #expect(RecommendationReason.preferredTime.displayName == "Preferred Time")
-        #expect(RecommendationReason.energyLevel.displayName == "Peak Energy")
         #expect(RecommendationReason.usualTime.displayName == "Usual Time")
         #expect(RecommendationReason.constrained.displayName == "Time-Limited")
     }
@@ -62,7 +60,6 @@ struct RecommendationReasonTests {
         #expect(RecommendationReason.plannedTheme.icon == "tag.fill")
         #expect(RecommendationReason.quickFinish.icon == "flag.checkered")
         #expect(RecommendationReason.preferredTime.icon == "calendar")
-        #expect(RecommendationReason.energyLevel.icon == "bolt.fill")
         #expect(RecommendationReason.usualTime.icon == "clock.arrow.circlepath")
         #expect(RecommendationReason.constrained.icon == "hourglass")
     }
@@ -85,7 +82,6 @@ struct RecommendationReasonTests {
         #expect(RecommendationReason.plannedTheme.description.contains("focus"))
         #expect(RecommendationReason.quickFinish.description.contains("finish"))
         #expect(RecommendationReason.preferredTime.description.contains("preferred"))
-        #expect(RecommendationReason.energyLevel.description.contains("focus"))
         #expect(RecommendationReason.usualTime.description.contains("often"))
         #expect(RecommendationReason.constrained.description.contains("time window"))
     }
@@ -101,7 +97,7 @@ struct RecommendationReasonTests {
 
     @Test("RecommendationReason has all expected cases")
     func recommendationReasonHasAllExpectedCases() {
-        #expect(RecommendationReason.allCases.count == 10)
+        #expect(RecommendationReason.allCases.count == 9)
     }
 
     @Test("RecommendationReason allCases contains all reasons")
@@ -114,7 +110,6 @@ struct RecommendationReasonTests {
         #expect(allCases.contains(.plannedTheme))
         #expect(allCases.contains(.quickFinish))
         #expect(allCases.contains(.preferredTime))
-        #expect(allCases.contains(.energyLevel))
         #expect(allCases.contains(.usualTime))
         #expect(allCases.contains(.constrained))
     }

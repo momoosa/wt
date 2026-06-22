@@ -73,28 +73,10 @@ struct SectionPillBar: View {
     }
     
     private func pillTitle(for type: ContextualSection.SectionType) -> String {
-        switch type {
-        case .recommendedNow:
-            return "Top Picks"
-        case .notNow:
-            return "Not Now"
-        default:
-            return type.title
-        }
+        type.title
     }
     
     private func pillID(for type: ContextualSection.SectionType) -> String {
-        switch type {
-        case .recommendedNow: return "pill_recommendedNow"
-        case .weatherWindow(let time, let condition, _): return "pill_weather_\(time)_\(condition)"
-        case .timeWindow(let time, let reason, _): return "pill_time_\(time)_\(reason)"
-        case .energyWindow(let time, let energyLevel): return "pill_energy_\(time)_\(energyLevel)"
-        case .available: return "pill_available"
-        case .later: return "pill_later"
-        case .completed: return "pill_completed"
-        case .skipped: return "pill_skipped"
-        case .inactive: return "pill_inactive"
-        case .notNow: return "pill_notNow"
-        }
+        "pill_\(type.hashValue)"
     }
 }

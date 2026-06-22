@@ -58,7 +58,7 @@ struct SessionRowView: View {
     /// Reusable play/stop button with circular progress gauge
     private var gaugeButton: some View {
         Button {
-            timerManager?.toggleTimer(for: session, in: day)
+            sessionActions.onToggleTimer?(session)
         } label: {
             let image = isActive ? "stop.circle.fill" : "play.circle.fill"
             let color = isRecommended ? session.theme.foregroundColor(for: colorScheme) : session.theme.color(for: colorScheme)
@@ -70,8 +70,8 @@ struct SessionRowView: View {
     var body: some View {
         ZStack {
             NavigationLink {
-                if let timerManager {
-                    GoalSessionDetailView(session: session, animation: animation, timerManager: timerManager)
+                if let timerManager, let goal = session.goal {
+                    GoalSessionDetailView(goal: goal, session: session, animation: animation, timerManager: timerManager)
                         .tint(tintColor)
                         .environment(goalStore)
                 }

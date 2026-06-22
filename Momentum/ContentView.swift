@@ -91,6 +91,9 @@ struct ContentView: View {
     
     // Shared session actions for child views (eliminates callback prop drilling)
     @State var sessionActions = SessionActions()
+    
+    // Pending celebration data (held until NowPlayingView fullScreenCover dismisses)
+    @State var pendingCelebrationData: CelebrationData?
 
     // MARK: - Initialization
 
@@ -208,6 +211,7 @@ struct ContentView: View {
             .task {
                 // Configure shared session actions for child views
                 sessionActions.onSkip = { [self] session in skip(session: session) }
+                sessionActions.onToggleTimer = { [self] session in handleTimerToggle(for: session) }
                 sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
                 sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
                 setupOnAppear()
@@ -261,6 +265,8 @@ struct ContentView: View {
 #endif
             .sheet(isPresented: $navigation.showPlannerSheet) {
                 plannerSheet
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
                     .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
             }
 
@@ -274,9 +280,33 @@ struct ContentView: View {
             .sheet(isPresented: $navigation.showAllGoals) {
                 allGoalsSheet
             }
-            .fullScreenCover(isPresented: $navigation.showNowPlaying) {
+            .fullScreenCover(isPresented: $navigation.showNowPlaying, onDismiss: {
+                if let data = pendingCelebrationData {
+                    navigation.celebrationData = data
+                    pendingCelebrationData = nil
+                }
+            }) {
                 nowPlayingView
                     .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
+            }
+            .sheet(item: $navigation.celebrationData) { data in
+                SessionCompleteSheet(
+                    celebrationData: data,
+                    onStartSuggested: { session in
+                        navigation.celebrationData = nil
+                        handleTimerToggle(for: session)
+                        navigation.showNowPlaying = true
+                    },
+                    onTakeBreak: {
+                        navigation.celebrationData = nil
+                        scheduleBreakNotification()
+                    },
+                    onDismiss: {
+                        navigation.celebrationData = nil
+                    }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $navigation.showSettings) {
                 settingsSheet
@@ -313,8 +343,9 @@ struct ContentView: View {
                 }
             }
             .navigationDestination(item: $navigation.selectedSession) { session in
-                if let timerManager = timerManager {
+                if let timerManager = timerManager, let goal = session.goal {
                     GoalSessionDetailView(
+                        goal: goal,
                         session: session,
                         animation: animation,
                         timerManager: timerManager,
@@ -397,16 +428,7 @@ struct ContentView: View {
                     Spacer()
                         .frame(height: LayoutConstants.Heights.smallSpacer)
                 }
-            } else {
-                // Greeting header for empty state
-                Section {
-                    Text(timeOfDayGreeting)
-                        .font(.largeTitle.bold())
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                }
-            }
-
+            } 
             // Inline permissions prompt — shown when any permission is undetermined
             if permissionsViewModel.hasAnyUndetermined {
                 Section {

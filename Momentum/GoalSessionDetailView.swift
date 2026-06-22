@@ -37,8 +37,9 @@ struct GoalSessionDetailView: View {
     }
     
     /// Full init from planner (with session context)
-    init(session: GoalSession, animation: Namespace.ID, timerManager: SessionTimerManager, onMarkedComplete: (() -> Void)? = nil) {
-        self.goal = session.goal!
+    init(goal: Goal, session: GoalSession?, animation: Namespace.ID, timerManager: SessionTimerManager, onMarkedComplete: (() -> Void)? = nil) {
+        self.goal = goal
+        
         self._initialSession = session
         self.animation = animation
         self._externalTimerManager = timerManager
@@ -140,6 +141,16 @@ struct GoalSessionDetailView: View {
     
     private var dailyTargetMinutes: Double {
         (session?.effectiveTargetValue ?? goal.unifiedDailyTarget) / 60.0
+    }
+    
+    private var formattedDailyTarget: String {
+        let targetUnit = session?.targetUnit ?? goal.targetUnit
+        if targetUnit.isTimeBased {
+            return "\(Int(dailyTargetMinutes))m"
+        } else {
+            let target = Int(session?.effectiveTargetValue ?? goal.unifiedDailyTarget)
+            return "\(target.formatted()) \(targetUnit.label)"
+        }
     }
     
     private var isReadOnly: Bool {
@@ -826,7 +837,6 @@ struct GoalSessionDetailView: View {
         case .weeklyProgress, .quickFinish: return "YOUR PATTERN"
         case .userPriority, .plannedTheme: return "PRIORITY"
         case .weather: return "WEATHER"
-        case .energyLevel: return "ENERGY"
         }
     }
     
@@ -837,7 +847,7 @@ struct GoalSessionDetailView: View {
                 return ("STRONG", Color(.systemGreen))
             case .availableTime, .quickFinish, .usualTime:
                 return ("MEDIUM", Color(.systemOrange))
-            case .weather, .energyLevel, .userPriority, .plannedTheme:
+            case .weather, .userPriority, .plannedTheme:
                 return ("SLIGHT", Color(.systemGray))
             }
         }()
@@ -979,7 +989,7 @@ struct GoalSessionDetailView: View {
                         )
                 }
                 
-                Text("Target is \(Int(dailyTargetMinutes))m a day, \(daysCompletedThisWeek) of \(totalDaysThisWeek) days")
+                Text("Target is \(formattedDailyTarget) a day, \(daysCompletedThisWeek) of \(totalDaysThisWeek) days")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1709,7 +1719,7 @@ private struct GoalSessionDetailPreview: View {
     var body: some View {
         NavigationStack {
             GoalSessionDetailView(
-                session: session,
+                goal: session.goal!, session: session,
                 animation: animation,
                 timerManager: timerManager
             )

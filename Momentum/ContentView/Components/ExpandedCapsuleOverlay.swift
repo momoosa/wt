@@ -106,10 +106,14 @@ extension ContentView {
                 // Generate plan button
                 Button {
                     withAnimation { navigation.showExpandedCapsule = false }
-                    planningViewModel.cachedThemes = availableGoalThemes
-                    navigation.showPlannerSheet = true
+                    if sessions.isEmpty {
+                        goalEditorViewModel = GoalEditorViewModel()
+                    } else {
+                        planningViewModel.cachedThemes = availableGoalThemes
+                        navigation.showPlannerSheet = true
+                    }
                 } label: {
-                    Label("Generate Plan", systemImage: "sparkles")
+                    Label(sessions.isEmpty ? "Create a Goal" : "Generate Plan", systemImage: sessions.isEmpty ? "plus" : "sparkles")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

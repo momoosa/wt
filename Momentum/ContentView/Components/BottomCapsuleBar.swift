@@ -20,6 +20,8 @@ extension ContentView {
                 if let timerManager,
                    timerManager.activeSession != nil {
                     navigation.showNowPlaying = true
+                } else if sessions.isEmpty {
+                    goalEditorViewModel = GoalEditorViewModel()
                 } else {
                     planningViewModel.cachedThemes = availableGoalThemes
                     navigation.showPlannerSheet = true

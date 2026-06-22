@@ -17,7 +17,6 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
     case plannedTheme = "planned_theme"          // Matches theme selected in planner
     case quickFinish = "quick_finish"            // Close to completing (< 25% remaining)
     case preferredTime = "preferred_time"        // Matches user's preferred time of day
-    case energyLevel = "energy_level"            // Optimal for current time's energy level
     case usualTime = "usual_time"                // Based on historical usage patterns
     case constrained = "constrained"             // Goal is only active now, not later in the day
     
@@ -30,7 +29,6 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .plannedTheme: return "Planned Theme"
         case .quickFinish: return "Quick Finish"
         case .preferredTime: return "Preferred Time"
-        case .energyLevel: return "Peak Energy"
         case .usualTime: return "Usual Time"
         case .constrained: return "Time-Limited"
         }
@@ -45,7 +43,6 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .plannedTheme: return "tag.fill"
         case .quickFinish: return "flag.checkered"
         case .preferredTime: return "calendar"
-        case .energyLevel: return "bolt.fill"
         case .usualTime: return "clock.arrow.circlepath"
         case .constrained: return "hourglass"
         }
@@ -60,7 +57,6 @@ public enum RecommendationReason: String, Codable, CaseIterable, Hashable {
         case .plannedTheme: return "Matches your focus area"
         case .quickFinish: return "Almost done - finish it now"
         case .preferredTime: return "Your preferred time slot"
-        case .energyLevel: return "Best time for focus"
         case .usualTime: return "You often work on this now"
         case .constrained: return "Only available during this time window"
         }

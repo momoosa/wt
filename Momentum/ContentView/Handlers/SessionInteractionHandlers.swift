@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import SwiftData
+import UserNotifications
 import MomentumKit
 #if canImport(WidgetKit)
 import WidgetKit
@@ -18,14 +20,30 @@ extension ContentView {
     func handleTimerToggle(for session: GoalSession) {
         guard let timerManager else { return }
         
-        // Check if session is currently completed
+        // Check state before toggling
         let wasCompleted = session.hasMetDailyTarget
+        let wasRunning = timerManager.activeSession?.id == session.id
+        
+        // Capture celebration data BEFORE stopping (only on first completion)
+        var celebration: CelebrationData?
+        if wasRunning && !wasCompleted {
+            celebration = captureCelebrationData(for: session)
+        }
         
         // Toggle the timer
         timerManager.toggleTimer(for: session, in: day)
         
-        // If it was completed and we just started it, show toast
-        if wasCompleted && timerManager.activeSession?.id == session.id {
+        // Show celebration if this stop caused first completion
+        if let celebration {
+            // If NowPlaying is showing, it will dismiss first and the onDismiss triggers celebration
+            if navigation.showNowPlaying {
+                pendingCelebrationData = celebration
+                navigation.showNowPlaying = false
+            } else {
+                navigation.celebrationData = celebration
+            }
+        } else if wasCompleted && timerManager.activeSession?.id == session.id {
+            // If it was already completed and we just started it, show toast
             navigation.toastConfig = ToastConfig(
                 message: "Session resumed - moved to Today",
                 showUndo: false
@@ -80,5 +98,133 @@ extension ContentView {
     
     func timerText(for session: GoalSession) -> String {
         return timerManager?.timerText(for: session) ?? "00:00"
+    }
+    
+    // MARK: - Celebration Data
+    
+    func captureCelebrationData(for session: GoalSession) -> CelebrationData? {
+        guard let timerManager,
+              let activeSession = timerManager.activeSession,
+              activeSession.id == session.id,
+              let goal = session.goal else { return nil }
+        
+        // Calculate this session's duration
+        let thisSessionDuration = activeSession.elapsedTime + Date().timeIntervalSince(activeSession.startDate)
+        
+        // Check if target is met (already met or will be met after this session)
+        let target = session.effectiveTargetValue
+        guard target > 0 else { return nil }
+        
+        let willBeMet: Bool
+        if session.hasMetDailyTarget {
+            willBeMet = true
+        } else if session.targetUnit.isTimeBased {
+            let totalAfterStop = (session.currentValue > 0 ? session.currentValue : session.elapsedTime) + thisSessionDuration
+            willBeMet = totalAfterStop >= target
+        } else {
+            willBeMet = session.currentValue >= target
+        }
+        
+        guard willBeMet else { return nil }
+        
+        // Count completed sessions today (include this one since it will be complete)
+        let todayDoneCount = sessions.filter { $0.hasMetDailyTarget }.count + (session.hasMetDailyTarget ? 0 : 1)
+        
+        // Calculate streak
+        let streak = calculateStreak(for: goal)
+        
+        // Get suggested next session (exclude the completed goal)
+        let suggestedNext: GoalSession? = {
+            // Try recommended sessions first
+            let recommended = getRecommendedSessions()
+            if let next = recommended.first(where: { $0.goal?.id != goal.id && !$0.hasMetDailyTarget }) {
+                return next
+            }
+            // Fall back to any incomplete session
+            return sessions.first {
+                $0.goal?.id != goal.id && !$0.hasMetDailyTarget && $0.isActiveGoal
+            }
+        }()
+        
+        return CelebrationData(
+            goalTitle: goal.title,
+            goalID: goal.id,
+            sessionDuration: thisSessionDuration,
+            todayDoneCount: todayDoneCount,
+            targetUnit: session.targetUnit,
+            theme: session.theme,
+            streak: streak,
+            suggestedNextSession: suggestedNext
+        )
+    }
+    
+    // MARK: - Streak Calculation
+    
+    private func calculateStreak(for goal: Goal) -> Int {
+        let calendar = Calendar.current
+        let goalIDString = goal.id.uuidString
+        var streak = 1 // Today counts (celebration only triggers when target met)
+        
+        var checkDate = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: Date()))!
+        let maxLookback = 365
+        
+        for _ in 0..<maxLookback {
+            let weekday = calendar.component(.weekday, from: checkDate)
+            
+            // Skip non-scheduled days (don't break streak)
+            guard goal.isScheduledDay(weekday) else {
+                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
+                continue
+            }
+            
+            let dayTarget = goal.unifiedTarget(for: weekday)
+            guard dayTarget > 0 else {
+                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
+                continue
+            }
+            
+            // Fetch the Day by ID
+            let dayID = checkDate.yearMonthDayID(with: calendar)
+            let descriptor = FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })
+            
+            guard let days = try? modelContext.fetch(descriptor),
+                  let day = days.first,
+                  let historicalSessions = day.historicalSessions else {
+                break // No day record = streak broken
+            }
+            
+            let totalDuration = historicalSessions
+                .filter { $0.goalIDs.contains(goalIDString) }
+                .reduce(0.0) { $0 + $1.duration }
+            
+            if totalDuration >= dayTarget {
+                streak += 1
+            } else {
+                break // Streak broken
+            }
+            
+            checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
+        }
+        
+        return streak
+    }
+    
+    // MARK: - Break Notification
+    
+    func scheduleBreakNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Break's over!"
+        content.body = "You've had 5 minutes to recharge. Ready for the next session?"
+        content.sound = .default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5 * 60, repeats: false)
+        let request = UNNotificationRequest(identifier: "break-timer", content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request)
+        
+        navigation.toastConfig = ToastConfig(
+            message: "Break timer set for 5 minutes",
+            showUndo: false
+        )
     }
 }

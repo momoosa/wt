@@ -13,15 +13,18 @@ import MomentumKit
 @Observable
 final class SessionActions {
     var onSkip: (GoalSession) -> Void
+    var onToggleTimer: ((GoalSession) -> Void)?
     var onSyncHealthKit: (() -> Void)?
     var isSyncingHealthKit: Bool
 
     init(
         onSkip: @escaping (GoalSession) -> Void = { _ in },
+        onToggleTimer: ((GoalSession) -> Void)? = nil,
         onSyncHealthKit: (() -> Void)? = nil,
         isSyncingHealthKit: Bool = false
     ) {
         self.onSkip = onSkip
+        self.onToggleTimer = onToggleTimer
         self.onSyncHealthKit = onSyncHealthKit
         self.isSyncingHealthKit = isSyncingHealthKit
     }

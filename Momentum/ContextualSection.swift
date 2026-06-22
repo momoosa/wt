@@ -16,15 +16,10 @@ struct ContextualSection: Identifiable {
     var id: String {
         switch type {
         case .recommendedNow: return "recommendedNow"
-        case .weatherWindow(let time, let condition, _): return "weather_\(time)_\(condition)"
-        case .timeWindow(let time, let reason, _): return "time_\(time)_\(reason)"
-        case .energyWindow(let time, let energyLevel): return "energy_\(time)_\(energyLevel)"
-        case .available: return "available"
+        case .weatherMatch(let condition): return "weather_\(condition)"
         case .later: return "later"
         case .completed: return "completed"
         case .skipped: return "skipped"
-        case .inactive: return "inactive"
-        case .notNow: return "notNow"
         }
     }
     let type: SectionType
@@ -33,38 +28,23 @@ struct ContextualSection: Identifiable {
     
     enum SectionType: Equatable, Hashable {
         case recommendedNow
-        case weatherWindow(time: String, condition: String, icon: String)
-        case timeWindow(time: String, reason: String, icon: String)
-        case energyWindow(time: String, energyLevel: String)
-        case available
+        case weatherMatch(condition: String)
         case later
         case completed
         case skipped
-        case inactive
-        case notNow
         
         var title: String {
             switch self {
             case .recommendedNow:
-                return "Recommended Now"
-            case .weatherWindow(let time, let condition, _):
-                return "\(time) when it's \(condition)"
-            case .timeWindow(let time, let reason, _):
-                return "\(time) - \(reason)"
-            case .energyWindow(let time, let energyLevel):
-                return "\(time) (\(energyLevel) energy)"
-            case .available:
-                return "Available Goals"
+                return "This Moment"
+            case .weatherMatch(let condition):
+                return "Good for \(condition)"
             case .later:
                 return "Later"
             case .completed:
                 return "Completed Today"
             case .skipped:
                 return "Skipped"
-            case .inactive:
-                return "Inactive"
-            case .notNow:
-                return "Not Now"
             }
         }
         
@@ -72,32 +52,22 @@ struct ContextualSection: Identifiable {
             switch self {
             case .recommendedNow:
                 return "star.fill"
-            case .weatherWindow(_, _, let icon):
-                return icon
-            case .timeWindow(_, _, let icon):
-                return icon
-            case .energyWindow:
-                return "bolt.fill"
-            case .available:
-                return "lightbulb.fill"
+            case .weatherMatch:
+                return "sun.max.fill"
             case .later:
                 return nil
             case .completed:
                 return "checkmark.circle.fill"
             case .skipped:
                 return "xmark.circle.fill"
-            case .inactive:
-                return "circle.dotted"
-            case .notNow:
-                return "cloud.sun.fill"
             }
         }
         
         var shouldShowExplanation: Bool {
             switch self {
-            case .recommendedNow, .weatherWindow, .timeWindow, .energyWindow, .available, .notNow:
+            case .recommendedNow, .weatherMatch:
                 return true
-            case .later, .completed, .skipped, .inactive:
+            case .later, .completed, .skipped:
                 return false
             }
         }
@@ -105,12 +75,10 @@ struct ContextualSection: Identifiable {
         var iconColor: Color {
             switch self {
             case .recommendedNow: return .yellow
-            case .weatherWindow, .timeWindow, .energyWindow: return .blue
-            case .available: return .orange
+            case .weatherMatch: return .blue
             case .completed: return .green
             case .skipped: return .orange
-            case .notNow: return .orange
-            case .later, .inactive: return .gray
+            case .later: return .gray
             }
         }
     }
@@ -129,10 +97,9 @@ extension ContextualSection {
         var sections: [ContextualSection] = []
         let recommendedIDs = Set(recommendedSessions.map { $0.id })
         
-        // 1. Recommended Now section (top 3 with reasons)
+        // 1. This Moment — top recommended picks
         if !recommendedSessions.isEmpty {
             let topRecommended = Array(recommendedSessions.prefix(3))
-            
             sections.append(ContextualSection(
                 type: .recommendedNow,
                 sessions: topRecommended,
@@ -140,16 +107,33 @@ extension ContextualSection {
             ))
         }
         
-        // Get remaining sessions (not in recommended)
+        // Collect all non-recommended, non-completed sessions
         let remainingSessions = sessions.filter { !recommendedIDs.contains($0.id) }
         
-        // 2. Group remaining sessions by timing constraints
-        let groupedByConstraints = groupByConstraints(remainingSessions, currentDate: currentDate)
-        sections.append(contentsOf: groupedByConstraints)
+        // 2. Weather/location match — sessions that match current weather conditions
+        let weatherSessions = remainingSessions.filter { session in
+            session.safeRecommendationReasons.contains(.weather) && !session.hasMetDailyTarget
+        }
         
-        // 3. Later section (everything else, excluding completed goals)
-        let constraintSectionIDs = Set(groupedByConstraints.flatMap { $0.sessions.map { $0.id } })
-        let laterSessions = remainingSessions.filter { !constraintSectionIDs.contains($0.id) && !$0.hasMetDailyTarget }
+        if !weatherSessions.isEmpty {
+            sections.append(ContextualSection(
+                type: .weatherMatch(condition: "this weather"),
+                sessions: weatherSessions,
+                explanation: "Conditions match for outdoor activities"
+            ))
+        }
+        
+        let weatherIDs = Set(weatherSessions.map { $0.id })
+        
+        // 3. Later — everything else not completed
+        var laterSessions = remainingSessions.filter {
+            !weatherIDs.contains($0.id) && !$0.hasMetDailyTarget
+        }
+        
+        // Include downranked sessions (weather mismatch, not scheduled today) in Later
+        let scheduledIDs = Set(sessions.map { $0.id })
+        let downrankedToInclude = downrankedSessions.filter { !scheduledIDs.contains($0.session.id) }
+        laterSessions.append(contentsOf: downrankedToInclude.map(\.session))
         
         if !laterSessions.isEmpty {
             sections.append(ContextualSection(
@@ -159,44 +143,17 @@ extension ContextualSection {
             ))
         }
         
-        // 4. Available Goals section (goals not scheduled for today but could be worked on)
+        // 4. Skipped
+        if !skippedSessions.isEmpty {
+            sections.append(ContextualSection(
+                type: .skipped,
+                sessions: skippedSessions,
+                explanation: nil
+            ))
+        }
+        
+        // 5. Completed Today
         if let allGoals = allGoals {
-            let scheduledIDs = Set(sessions.map { $0.id })
-            let downrankedIDs = Set(downrankedSessions.map { $0.session.id })
-            let availableGoals = allGoals.filter { goal in
-                // Not already in a scheduled section
-                !scheduledIDs.contains(goal.id) &&
-                // Not already in the "Not Now" section
-                !downrankedIDs.contains(goal.id) &&
-                // Not scheduled for today (no target for today)
-                goal.unifiedTargetValue == 0 &&
-                // Goal is active (not skipped or archived)
-                goal.status != .skipped &&
-                goal.goal?.status != .archived &&
-                // Goal has a schedule and target (is a real goal, not just inactive)
-                goal.isActiveGoal &&
-                // Not yet completed
-                !goal.hasMetDailyTarget
-            }
-            
-            if !availableGoals.isEmpty {
-                let explanation = generateAvailableGoalsExplanation(
-                    availableGoals: availableGoals,
-                    scheduledSessions: sessions,
-                    currentDate: currentDate
-                )
-                
-                // Limit to top 3-5 most relevant
-                let topAvailable = selectTopAvailableGoals(availableGoals, currentDate: currentDate)
-                
-                sections.append(ContextualSection(
-                    type: .available,
-                    sessions: topAvailable,
-                    explanation: explanation
-                ))
-            }
-            
-            // 5. Completed Today section (goals that have met their daily target)
             let completedGoals = allGoals.filter { goal in
                 goal.hasMetDailyTarget && (goal.unifiedTargetValue > 0 || goal.isActiveGoal)
             }
@@ -208,275 +165,8 @@ extension ContextualSection {
                     explanation: nil
                 ))
             }
-            
-            // 6. Skipped section
-            if !skippedSessions.isEmpty {
-                sections.append(ContextualSection(
-                    type: .skipped,
-                    sessions: skippedSessions,
-                    explanation: nil
-                ))
-            }
-            
-            // 7. Not Now section (weather mismatch, not scheduled today — still actionable)
-            if !downrankedSessions.isEmpty {
-                let explanation = generateNotNowExplanation(for: downrankedSessions, currentDate: currentDate)
-                sections.append(ContextualSection(
-                    type: .notNow,
-                    sessions: downrankedSessions.map(\.session),
-                    explanation: explanation
-                ))
-            }
-            
-            // 8. Inactive section
-            let inactiveGoals = allGoals.filter { goal in
-                !scheduledIDs.contains(goal.id) &&
-                !downrankedIDs.contains(goal.id) &&
-                goal.unifiedTargetValue == 0 &&
-                !goal.isActiveGoal &&
-                goal.status != .skipped &&
-                goal.goal?.status != .archived
-            }
-            
-            if !inactiveGoals.isEmpty {
-                sections.append(ContextualSection(
-                    type: .inactive,
-                    sessions: inactiveGoals,
-                    explanation: nil
-                ))
-            }
         }
         
         return sections
-    }
-    
-    /// Generate explanation for downranked "Not Now" sessions
-    private static func generateNotNowExplanation(
-        for downranked: [DownrankedSession],
-        currentDate: Date
-    ) -> String {
-        let hasWeather = downranked.contains { $0.reason == .weatherMismatch }
-        let hasSchedule = downranked.contains { $0.reason == .notScheduledToday }
-        
-        if hasWeather && hasSchedule {
-            return "Conditions or schedule don't match right now"
-        } else if hasWeather {
-            return "Weather conditions don't match right now"
-        } else if hasSchedule {
-            let weekdayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-            let todayWeekday = Calendar.current.component(.weekday, from: currentDate)
-            let todayName = weekdayNames[todayWeekday]
-            return "Not scheduled for \(todayName) — start anyway if you'd like"
-        }
-        return "Not ideal right now, but you can still start"
-    }
-    
-    private static func groupByConstraints(
-        _ sessions: [GoalSession],
-        currentDate: Date
-    ) -> [ContextualSection] {
-        var sections: [ContextualSection] = []
-        var processedSessionIDs = Set<UUID>()
-        
-        let calendar = Calendar.current
-        _ = calendar.component(.hour, from: currentDate)
-        
-        // Group by weather constraints
-        let weatherSessions = sessions.filter { session in
-            !processedSessionIDs.contains(session.id) &&
-            session.safeRecommendationReasons.contains(.weather)
-        }
-        
-        if !weatherSessions.isEmpty {
-            // Find the time window for weather
-            if let firstSession = weatherSessions.first,
-               let plannedTime = firstSession.plannedStartTime {
-                let timeStr = formatTimeWindow(plannedTime)
-                
-                sections.append(ContextualSection(
-                    type: .weatherWindow(
-                        time: timeStr,
-                        condition: "☀️",
-                        icon: "sun.max.fill"
-                    ),
-                    sessions: weatherSessions,
-                    explanation: "Ideal weather conditions for outdoor activities"
-                ))
-                
-                processedSessionIDs.formUnion(weatherSessions.map { $0.id })
-            }
-        }
-        
-        // Group by constrained time windows
-        let constrainedSessions = sessions.filter { session in
-            !processedSessionIDs.contains(session.id) &&
-            session.safeRecommendationReasons.contains(.constrained)
-        }
-        
-        if !constrainedSessions.isEmpty {
-            // Group by similar time windows
-            let timeGroups = Dictionary(grouping: constrainedSessions) { session -> String in
-                guard let plannedTime = session.plannedStartTime else { return "later" }
-                let hour = calendar.component(.hour, from: plannedTime)
-                
-                // Group into time blocks
-                switch hour {
-                case 0..<12: return "morning"
-                case 12..<17: return "afternoon"
-                case 17..<21: return "evening"
-                default: return "night"
-                }
-            }
-            
-            for (_, groupSessions) in timeGroups.sorted(by: { $0.key < $1.key }) {
-                if let firstSession = groupSessions.first,
-                   let plannedTime = firstSession.plannedStartTime {
-                    let timeStr = formatTimeWindow(plannedTime)
-                    
-                    sections.append(ContextualSection(
-                        type: .timeWindow(
-                            time: timeStr,
-                            reason: "Time-limited",
-                            icon: "hourglass"
-                        ),
-                        sessions: groupSessions,
-                        explanation: "Only available during this time window"
-                    ))
-                    
-                    processedSessionIDs.formUnion(groupSessions.map { $0.id })
-                }
-            }
-        }
-        
-        // Group by energy level windows
-        let energySessions = sessions.filter { session in
-            !processedSessionIDs.contains(session.id) &&
-            session.safeRecommendationReasons.contains(.energyLevel)
-        }
-        
-        if !energySessions.isEmpty {
-            if let firstSession = energySessions.first,
-               let plannedTime = firstSession.plannedStartTime {
-                let timeStr = formatTimeWindow(plannedTime)
-                
-                sections.append(ContextualSection(
-                    type: .energyWindow(
-                        time: timeStr,
-                        energyLevel: "Peak"
-                    ),
-                    sessions: energySessions,
-                    explanation: "Best time for deep focus work"
-                ))
-                
-                processedSessionIDs.formUnion(energySessions.map { $0.id })
-            }
-        }
-        
-        return sections
-    }
-    
-    private static let timeWindowFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }()
-    
-    private static func formatTimeWindow(_ date: Date) -> String {
-        timeWindowFormatter.string(from: date)
-    }
-    
-    /// Generate contextual explanation for available goals section
-    private static func generateAvailableGoalsExplanation(
-        availableGoals: [GoalSession],
-        scheduledSessions: [GoalSession],
-        currentDate: Date
-    ) -> String {
-        let scheduledCompleted = scheduledSessions.filter { $0.hasMetDailyTarget }.count
-        let totalScheduled = scheduledSessions.count
-        
-        // Case 1: All scheduled goals completed
-        if totalScheduled > 0 && scheduledCompleted == totalScheduled {
-            return "All scheduled tasks done! Consider working on these"
-        }
-        
-        // Case 2: No goals scheduled for today
-        if totalScheduled == 0 {
-            return "Nothing scheduled today • You could work on these"
-        }
-        
-        // Case 3: Some scheduled goals completed, extra time available
-        if scheduledCompleted > 0 {
-            return "Ahead of schedule • Extra goals you could tackle"
-        }
-        
-        // Default
-        return "Goals you could work on when you have time"
-    }
-    
-    /// Select the most relevant available goals to show
-    private static func selectTopAvailableGoals(
-        _ availableGoals: [GoalSession],
-        currentDate: Date
-    ) -> [GoalSession] {
-        let calendar = Calendar.current
-        let currentHour = calendar.component(.hour, from: currentDate)
-        let currentWeekday = calendar.component(.weekday, from: currentDate)
-        
-        // Score each goal based on relevance
-        let scored = availableGoals.map { goal -> (session: GoalSession, score: Double) in
-            var score: Double = 0
-            
-            // 1. Behind on weekly progress (high priority)
-            if let goalModel = goal.goal {
-                let weeklyTarget = goalModel.unifiedWeeklyTarget
-                if weeklyTarget > 0 {
-                    // Use session's currentValue for metric goals, elapsedTime for time goals
-                    let sessionProgress = goalModel.targetUnit.isTimeBased ? goal.elapsedTime : goal.currentValue
-                    let progress = sessionProgress / weeklyTarget
-                    if progress < 0.5 {
-                        score += 10 // Behind schedule
-                    } else if progress < 0.7 {
-                        score += 5 // Could use more work
-                    }
-                }
-            }
-            
-            // 2. Usually done at this time of day (on other days)
-            let currentTimeOfDay: TimeOfDay? = {
-                switch currentHour {
-                case 6..<11: return .morning
-                case 11..<14: return .midday
-                case 14..<17: return .afternoon
-                case 17..<22: return .evening
-                default: return nil
-                }
-            }()
-            
-            if let timeOfDay = currentTimeOfDay {
-                // Check if this goal is scheduled for this time on other days
-                for weekday in 1...7 where weekday != currentWeekday {
-                    let times = goal.goal?.timesForWeekday(weekday) ?? []
-                    if times.contains(timeOfDay) {
-                        score += 3 // Sometimes done at this time
-                    }
-                }
-            }
-            
-            // 3. Recent activity (worked on in past week)
-            if goal.elapsedTime > 0 {
-                score += 2
-            }
-            
-            // 4. Quick wins (can be completed soon)
-            if goal.progress > 0.7 {
-                score += 4
-            }
-            
-            return (goal, score)
-        }
-        
-        // Sort by score and take top 5
-        let sorted = scored.sorted { $0.score > $1.score }
-        return Array(sorted.prefix(5).map { $0.session })
     }
 }

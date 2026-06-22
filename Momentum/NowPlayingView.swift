@@ -142,7 +142,6 @@ struct NowPlayingView: View {
                 ZStack {
                     let progress = activeSessionDetails.progress
                     let completedLaps = Int(progress)
-                    let currentLap = progress - Double(completedLaps)
                     let ringSize: CGFloat = 280
                     let lineWidth: CGFloat = 14
                     
@@ -154,26 +153,43 @@ struct NowPlayingView: View {
                         )
                         .frame(width: ringSize, height: ringSize)
                     
-                    // Completed lap rings
-                    ForEach(0..<min(completedLaps, 5), id: \.self) { lap in
+                    if progress < 1.0 {
+                        // Under 100%: simple arc
                         Circle()
+                            .trim(from: 0, to: progress)
                             .stroke(
-                                foregroundColor.opacity(0.2 + Double(lap) * 0.05),
+                                foregroundColor.opacity(0.8),
                                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                             )
                             .frame(width: ringSize, height: ringSize)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.spring(response: 0.6), value: progress)
+                    } else {
+                        // Over 100%: Apple Watch-style overlapping ring
+                        let overflowFraction = progress.truncatingRemainder(dividingBy: 1.0)
+                        let displayFraction = overflowFraction == 0 ? 1.0 : overflowFraction
+                        
+                        // Full completed ring at full opacity
+                        Circle()
+                            .stroke(
+                                foregroundColor.opacity(0.8),
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                            )
+                            .frame(width: ringSize, height: ringSize)
+                        
+                        // Overflow arc with shadow at the leading edge
+                        Circle()
+                            .trim(from: 0, to: displayFraction)
+                            .stroke(
+                                foregroundColor.opacity(0.8),
+                                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                            )
+                            .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 0)
+                            .frame(width: ringSize, height: ringSize)
+                            .rotationEffect(.degrees(-90))
+                            .clipShape(Circle().stroke(lineWidth: lineWidth + 12))
+                            .animation(.spring(response: 0.6), value: progress)
                     }
-                    
-                    // Progress arc
-                    Circle()
-                        .trim(from: 0, to: progress >= 1.0 ? currentLap : progress)
-                        .stroke(
-                            foregroundColor.opacity(0.8),
-                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                        )
-                        .frame(width: ringSize, height: ringSize)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.spring(response: 0.6), value: progress)
                     
                     // Last week's progress triangle marker
                     if let lwProgress = lastWeekProgress, lwProgress > 0 {
@@ -301,7 +317,6 @@ struct NowPlayingView: View {
                     Button {
                         HapticFeedbackManager.trigger(.medium)
                         onStopTapped()
-                        dismiss()
                     } label: {
                         Image(systemName: "square.fill")
                             .font(.system(size: 16))
@@ -317,7 +332,6 @@ struct NowPlayingView: View {
                     Button {
                         HapticFeedbackManager.trigger(.medium)
                         onStopTapped()
-                        dismiss()
                     } label: {
                         Image(systemName: "pause.fill")
                             .font(.system(size: 24))
@@ -343,6 +357,11 @@ struct NowPlayingView: View {
                                     .fill(foregroundColor.opacity(0.15))
                             )
                     }
+                }
+                
+                // Checklist card
+                if let checklistItems = session.checklist, !checklistItems.isEmpty {
+                    nowPlayingChecklist(items: checklistItems)
                 }
                 
                 Spacer()
@@ -372,6 +391,57 @@ struct NowPlayingView: View {
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled)
         }
+    }
+}
+
+// MARK: - Now Playing Checklist
+
+extension NowPlayingView {
+    func nowPlayingChecklist(items: [ChecklistItemSession]) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(items, id: \.id) { item in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            item.isCompleted.toggle()
+                        }
+                        HapticFeedbackManager.trigger(.light)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                .contentTransition(.symbolEffect(.replace))
+                                .foregroundStyle(item.isCompleted ? foregroundColor : foregroundColor.opacity(0.4))
+                                .font(.body)
+                            
+                            Text(item.checklistItem?.title ?? "")
+                                .font(.subheadline)
+                                .foregroundStyle(foregroundColor.opacity(item.isCompleted ? 0.4 : 0.9))
+                                .strikethrough(item.isCompleted, color: foregroundColor.opacity(0.3))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    if item.id != items.last?.id {
+                        Divider()
+                            .background(foregroundColor.opacity(0.1))
+                            .padding(.leading, 42)
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: 160)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(foregroundColor.opacity(0.08))
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
     }
 }
 

@@ -510,13 +510,13 @@ class GoalEditorViewModel: Identifiable {
     /// Redistributes a new weekly total evenly across active days
     func updateWeeklyTarget(_ newWeeklyMinutes: Int) {
         let dayCount = max(activeDays.count, 1)
-        // Enforce minimum 5 minutes per day for time-based goals
-        let clampedWeekly = max(newWeeklyMinutes, dayCount * 5)
+        // Enforce minimum 1 minute per day for time-based goals
+        let clampedWeekly = max(newWeeklyMinutes, dayCount * 1)
         let baseDailyMinutes = clampedWeekly / dayCount
         let remainder = clampedWeekly % dayCount
         let sortedDays = activeDays.sorted()
         for (index, weekday) in sortedDays.enumerated() {
-            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 5)
+            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
         }
         durationInMinutes = clampedWeekly
     }
@@ -616,7 +616,7 @@ class GoalEditorViewModel: Identifiable {
         let remainder = template.duration % dayCount
         let sortedDays = targetDays.sorted()
         for (index, weekday) in sortedDays.enumerated() {
-            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 5)
+            dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
         }
         
         // Infer and set icon from template
@@ -1023,7 +1023,7 @@ class GoalEditorViewModel: Identifiable {
                     let sortedDays = activeDays.sorted()
                     for (index, weekday) in sortedDays.enumerated() {
                         // Distribute remainder across first few days so weekly total is exact
-                        dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 5)
+                        dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
                     }
                 }
                 currentStage = .duration
@@ -1391,7 +1391,7 @@ class GoalEditorViewModel: Identifiable {
         switch selectedGoalType {
         case .seconds:
             let avgDailySeconds = activeDays.isEmpty ? 1800.0 : Double(calculatedWeeklyTarget * 60) / Double(activeDays.count)
-            goal.unifiedDailyTarget = max(avgDailySeconds, 300) // Minimum 5 minutes
+            goal.unifiedDailyTarget = max(avgDailySeconds, 60) // Minimum 1 minute
             goal.perDayTargets.removeAll()
             for (weekday, minutes) in dailyTargets {
                 goal.perDayTargets[String(weekday)] = Double(minutes * 60)

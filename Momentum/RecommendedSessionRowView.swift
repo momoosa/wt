@@ -74,17 +74,26 @@ struct RecommendedSessionRowView: View {
                 .foregroundStyle(foreground.opacity(0.9))
             }
             
-            // Row 4: SESSION label + duration + play button
+            // Row 4: Progress + play button
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("SESSION")
+                    Text("PROGRESS")
                         .font(.caption2.weight(.medium))
                         .tracking(0.5)
                         .foregroundStyle(foreground.opacity(0.6))
                     
-                    Text(formattedTargetDuration)
-                        .font(.title.bold())
-                        .foregroundStyle(foreground)
+                    if let activeSession = timerManager?.activeSession,
+                       activeSession.id == session.id,
+                       let timeText = activeSession.timeText {
+                        Text(timeText)
+                            .font(.title.bold())
+                            .foregroundStyle(foreground)
+                            .contentTransition(.numericText())
+                    } else {
+                        Text(session.formattedTime)
+                            .font(.title.bold())
+                            .foregroundStyle(foreground)
+                    }
                 }
                 
                 Spacer()
@@ -110,7 +119,7 @@ struct RecommendedSessionRowView: View {
                 } else {
                     // Regular or HealthKit-writable goal: play/stop button
                     Button {
-                        timerManager?.toggleTimer(for: session, in: day)
+                        sessionActions.onToggleTimer?(session)
                     } label: {
                         GaugePlayIcon(
                             imageName: isActive ? "stop.circle.fill" : "play.circle.fill",
@@ -157,17 +166,6 @@ struct RecommendedSessionRowView: View {
         return f
     }()
     
-    private var formattedTargetDuration: String {
-        let totalSeconds = session.unifiedTargetValue
-        let minutes = Int(totalSeconds / 60)
-        if minutes >= 60 {
-            let h = minutes / 60
-            let m = minutes % 60
-            return m > 0 ? "\(h)h \(m)m" : "\(h)h"
-        }
-        return "\(minutes)m"
-    }
-    
     private func iconForReason(_ reason: RecommendationReason) -> String {
         switch reason {
         case .weeklyProgress: return "chart.line.uptrend.xyaxis"
@@ -177,7 +175,6 @@ struct RecommendedSessionRowView: View {
         case .plannedTheme: return "calendar"
         case .quickFinish: return "flag.checkered"
         case .preferredTime: return "heart.fill"
-        case .energyLevel: return "bolt.fill"
         case .usualTime: return "clock.arrow.circlepath"
         case .constrained: return "hourglass"
         }

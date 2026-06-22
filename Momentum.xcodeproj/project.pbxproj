@@ -131,6 +131,8 @@
 		CDD5A9622FE5BEC400C5E968 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */; };
 		CDD5A9642FE5BF0200C5E968 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */; };
 		CDD5A9662FE5C2E600C5E968 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */; };
+		CDDED65B2FE855C4008AAA4B /* CelebrationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */; };
+		CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */; };
 		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
 		CDEBAA352EE9FA1000C1C411 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CDEBAA262EE9FA1000C1C411 /* Assets.xcassets */; };
 		CDEBAA372EE9FA1000C1C411 /* ActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEBAA252EE9FA1000C1C411 /* ActionView.swift */; };
@@ -363,6 +365,8 @@
 		CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		CDD6D19F2FBF685500133F88 /* MomentumKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = MomentumKit; sourceTree = "<group>"; };
+		CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelebrationData.swift; sourceTree = "<group>"; };
+		CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompleteSheet.swift; sourceTree = "<group>"; };
 		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
 		CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePreviewView.swift; sourceTree = "<group>"; };
 		CDEBAA252EE9FA1000C1C411 /* ActionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionView.swift; sourceTree = "<group>"; };
@@ -757,6 +761,8 @@
 				CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */,
 				CD2C50612FE1196200F9ABD9 /* WeeklyRecapView.swift */,
 				CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */,
+				CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */,
+				CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -1208,12 +1214,14 @@
 				CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */,
 				CD713B172F200BDE003F901D /* SettingsView.swift in Sources */,
 				CD52E8592FD9F3540026E5B4 /* AppPermissionsView.swift in Sources */,
+				CDDED65B2FE855C4008AAA4B /* CelebrationData.swift in Sources */,
 				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
 				CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */,
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
+				CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */,
 				CD6A0C372F899D0C008F5D93 /* FilterService.swift in Sources */,

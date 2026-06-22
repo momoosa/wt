@@ -31,6 +31,9 @@ class NavigationState {
     var visibleSectionType: ContextualSection.SectionType?
     var showExpandedCapsule = false
     
+    // MARK: - Celebration
+    var celebrationData: CelebrationData?
+    
     // MARK: - Toast
     var toastConfig: ToastConfig?
     
@@ -42,6 +45,7 @@ class NavigationState {
         showNowPlaying = false
         showDayOverview = false
         showExpandedCapsule = false
+        celebrationData = nil
     }
     
     func openSession(_ session: GoalSession) {

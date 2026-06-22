@@ -745,9 +745,7 @@ private struct PlanSessionCard: View {
             HStack(spacing: 12) {
                 Button {
                     HapticFeedbackManager.trigger(.medium)
-                    if let day = session.day {
-                        timerManager?.toggleTimer(for: session, in: day)
-                    }
+                    sessionActions.onToggleTimer?(session)
                 } label: {
                     Label("Start", systemImage: "play.fill")
                         .font(.subheadline)

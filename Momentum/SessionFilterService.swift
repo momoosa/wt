@@ -262,11 +262,6 @@ struct SessionFilterService {
             reasons.append(.weather)
         }
         
-        // Energy Level — morning or early afternoon
-        if (6...9).contains(currentHour) || (13...15).contains(currentHour) {
-            reasons.append(.energyLevel)
-        }
-        
         return reasons
     }
     

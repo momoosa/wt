@@ -301,12 +301,7 @@ extension ContentView {
             }
         }
         
-        // 4. Energy Level - morning/early afternoon are typically high energy
-        if (6...9).contains(currentHour) || (13...15).contains(currentHour) {
-            reasons.append(.energyLevel)
-        }
-        
-        // 5. Planned Theme - check if matches selected themes
+        // 4. Planned Theme - check if matches selected themes
         if let primaryTag = goal.primaryTag, planningViewModel.selectedThemes.contains(primaryTag.title.lowercased()) {
             reasons.append(.plannedTheme)
         }

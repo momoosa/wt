@@ -126,43 +126,32 @@ extension ContentView {
     }
     
     func fetchNextCalendarEvent() {
-        // Request authorization on MainActor, then move the synchronous
-        // EventKit query off the main thread to avoid blocking UI.
+        // Only fetch if calendar access is already granted — never prompt here.
+        // The user grants access via the permissions card or settings.
+        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return }
+        
         Task {
-            do {
-                let granted = try await calendarEventStore.requestFullAccessToEvents()
-                guard granted else { return }
+            let store = calendarEventStore
+            let event: EKEvent? = await Task.detached(priority: .utility) {
+                let now = Date()
+                let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
                 
-                let store = calendarEventStore
-                let event: EKEvent? = await Task.detached(priority: .utility) {
-                    let now = Date()
-                    let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
-                    
-                    let predicate = store.predicateForEvents(
-                        withStart: now,
-                        end: endOfDay,
-                        calendars: nil
-                    )
-                    
-                    return store.events(matching: predicate)
-                        .filter { !$0.isAllDay }
-                        .sorted { $0.startDate < $1.startDate }
-                        .first
-                }.value
+                let predicate = store.predicateForEvents(
+                    withStart: now,
+                    end: endOfDay,
+                    calendars: nil
+                )
                 
-                // Update state on MainActor without triggering animations
-                await MainActor.run {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        nextCalendarEvent = event
-                    }
-                }
-            } catch {
-                // Silently fail - calendar is optional
-                await MainActor.run {
-                    nextCalendarEvent = nil
-                }
+                return store.events(matching: predicate)
+                    .filter { !$0.isAllDay }
+                    .sorted { $0.startDate < $1.startDate }
+                    .first
+            }.value
+            
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                nextCalendarEvent = event
             }
         }
     }
