@@ -13,10 +13,12 @@ struct ChecklistItemData: Identifiable, Equatable {
     let id: UUID
     var title: String
     var notes: String
+    var group: String
 
-    init(id: UUID = UUID(), title: String = "", notes: String = "") {
+    init(id: UUID = UUID(), title: String = "", notes: String = "", group: String = "") {
         self.id = id
         self.title = title
         self.notes = notes
+        self.group = group
     }
 }

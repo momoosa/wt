@@ -239,6 +239,38 @@ public struct DeterministicRecommender {
         _ goal: Goal,
         context: Context
     ) -> (score: Double, reason: RecommendationReason?) {
+        // Use goal-level weather configuration when available (from relevance rules)
+        if goal.weatherEnabled, let conditions = goal.weatherConditions, !conditions.isEmpty {
+            guard let currentWeather = context.weather else {
+                // No weather data available — neutral score
+                return (weights.weatherContext * 0.5, nil)
+            }
+            
+            let conditionMatches = conditions.contains(currentWeather.rawValue)
+            
+            // Check temperature bounds if configured
+            var tempMatches = true
+            if let minTemp = goal.minTemperature, let temp = context.temperature {
+                tempMatches = tempMatches && temp >= minTemp
+            }
+            if let maxTemp = goal.maxTemperature, let temp = context.temperature {
+                tempMatches = tempMatches && temp <= maxTemp
+            }
+            
+            // Check wind speed if configured
+            var windMatches = true
+            if let maxWind = goal.maxWindSpeed, let wind = context.windSpeed {
+                windMatches = wind <= maxWind
+            }
+            
+            if conditionMatches && tempMatches && windMatches {
+                return (weights.weatherContext, .weather)
+            } else {
+                return (0.0, nil)
+            }
+        }
+        
+        // Fall back to tag-based weather matching
         guard let tag = goal.primaryTag else {
             // No tag means no weather preference - neutral score
             return (weights.weatherContext * 0.5, nil)

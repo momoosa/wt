@@ -1157,9 +1157,15 @@ struct NotesChecklistCard: View {
         }
     }
     
+    enum AddMode: String, CaseIterable {
+        case item = "Item"
+        case group = "Group"
+    }
+    
     @State private var selectedTab: Tab = .notes
     @Namespace private var tabAnimation
     @State private var newItemTitle: String = ""
+    @State private var addMode: AddMode = .item
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1257,16 +1263,175 @@ struct NotesChecklistCard: View {
     
     // MARK: - Checklist Page
     
+    /// Ordered list of unique group names preserving insertion order
+    private var orderedGroups: [String] {
+        var seen = Set<String>()
+        var groups: [String] = []
+        for item in vm.checklistItems {
+            if !item.group.isEmpty && seen.insert(item.group).inserted {
+                groups.append(item.group)
+            }
+        }
+        return groups
+    }
+    
+    private var ungroupedItems: [ChecklistItemData] {
+        vm.checklistItems.filter { $0.group.isEmpty }
+    }
+    
+    private func itemsInGroup(_ group: String) -> [ChecklistItemData] {
+        vm.checklistItems.filter { $0.group == group }
+    }
+    
+    /// The group that new items should be added to (last group, or empty for ungrouped)
+    private var activeGroup: String {
+        orderedGroups.last ?? ""
+    }
+    
     private var checklistPage: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach($vm.checklistItems) { $item in
-                HStack(spacing: 10) {
-                    Image(systemName: "line.3.horizontal")
+        VStack(alignment: .leading, spacing: 0) {
+            // Header: CHECKLIST + item count
+            HStack {
+                Text("CHECKLIST")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                Text("\(vm.checklistItems.count) item\(vm.checklistItems.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            
+            // Progress bar (thin green line showing item count vs capacity, decorative)
+            if !vm.checklistItems.isEmpty {
+                GeometryReader { geo in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.green.opacity(0.3))
+                        .frame(height: 3)
+                        .overlay(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.green)
+                                .frame(width: geo.size.width * min(1.0, CGFloat(vm.checklistItems.count) / max(CGFloat(vm.checklistItems.count), 1.0)))
+                        }
+                }
+                .frame(height: 3)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+            
+            Divider()
+                .padding(.horizontal, 16)
+            
+            // Scrollable item list
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Ungrouped items first
+                    ForEach(ungroupedItems) { item in
+                        checklistItemRow(item: item)
+                    }
+                    
+                    // Grouped items
+                    ForEach(orderedGroups, id: \.self) { group in
+                        checklistGroupSection(group: group)
+                    }
+                }
+            }
+            .frame(minHeight: 100, maxHeight: 300)
+            
+            Divider()
+                .padding(.horizontal, 16)
+            
+            // Bottom toolbar: [Item] [Group] + text field + add button
+            checklistToolbar
+        }
+    }
+    
+    // MARK: - Checklist Item Row
+    
+    private func checklistItemRow(item: ChecklistItemData) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "line.3.horizontal")
+                .font(.caption)
+                .foregroundStyle(.quaternary)
+            
+            Image(systemName: "circle")
+                .font(.system(size: 18))
+                .foregroundStyle(.secondary.opacity(0.5))
+            
+            if let index = vm.checklistItems.firstIndex(where: { $0.id == item.id }) {
+                TextField("Item title", text: $vm.checklistItems[index].title)
+                    .font(.subheadline)
+            }
+            
+            Spacer()
+            
+            Button {
+                withAnimation(.snappy(duration: 0.2)) {
+                    vm.checklistItems.removeAll { $0.id == item.id }
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+    }
+    
+    // MARK: - Checklist Group Section
+    
+    private func checklistGroupSection(group: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Group header
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.quaternary)
+                
+                Text(group.uppercased())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) {
+                        vm.checklistItems.removeAll { $0.group == group }
+                    }
+                } label: {
+                    Image(systemName: "xmark")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            
+            // Items in this group
+            ForEach(itemsInGroup(group)) { item in
+                HStack(spacing: 8) {
+                    Spacer()
+                        .frame(width: 12) // indent
                     
-                    TextField("Item title", text: $item.title)
-                        .font(.subheadline)
+                    Image(systemName: "line.3.horizontal")
+                        .font(.caption)
+                        .foregroundStyle(.quaternary)
+                    
+                    Image(systemName: "circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.secondary.opacity(0.5))
+                    
+                    if let index = vm.checklistItems.firstIndex(where: { $0.id == item.id }) {
+                        TextField("Item title", text: $vm.checklistItems[index].title)
+                            .font(.subheadline)
+                    }
                     
                     Spacer()
                     
@@ -1275,36 +1440,89 @@ struct NotesChecklistCard: View {
                             vm.checklistItems.removeAll { $0.id == item.id }
                         }
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
+                        Image(systemName: "xmark")
+                            .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.vertical, 4)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
             }
-            
-            // Add item row
-            HStack(spacing: 10) {
-                Image(systemName: "plus.circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.secondary)
-                
-                TextField("Add item...", text: $newItemTitle)
-                    .font(.subheadline)
-                    .onSubmit {
-                        guard !newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                        withAnimation(.snappy(duration: 0.2)) {
-                            vm.checklistItems.append(ChecklistItemData(title: newItemTitle))
-                            newItemTitle = ""
-                        }
-                    }
-            }
-            .padding(.vertical, 4)
-            
-            Spacer(minLength: 0)
         }
-        .padding(16)
+    }
+    
+    // MARK: - Checklist Toolbar
+    
+    private var checklistToolbar: some View {
+        HStack(spacing: 8) {
+            // Item / Group toggle
+            HStack(spacing: 2) {
+                ForEach(AddMode.allCases, id: \.self) { mode in
+                    Button {
+                        addMode = mode
+                    } label: {
+                        Text(mode.rawValue)
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(addMode == mode ? Color(.tertiarySystemFill) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+                            .foregroundStyle(addMode == mode ? .primary : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(2)
+            .background(Color(.quaternarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+            
+            // Text field
+            TextField(
+                addMode == .item ? "Add a task \u{2014} paste a list for many" : "Group name",
+                text: $newItemTitle
+            )
+            .font(.subheadline)
+            .onSubmit(addItem)
+            
+            // Add button
+            Button(action: addItem) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+    
+    private func addItem() {
+        let trimmed = newItemTitle.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        
+        withAnimation(.snappy(duration: 0.2)) {
+            switch addMode {
+            case .item:
+                // Check for multi-line paste
+                let lines = trimmed.components(separatedBy: .newlines)
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
+                
+                if lines.count > 1 {
+                    for line in lines {
+                        vm.checklistItems.append(ChecklistItemData(title: line, group: activeGroup))
+                    }
+                } else {
+                    vm.checklistItems.append(ChecklistItemData(title: trimmed, group: activeGroup))
+                }
+                
+            case .group:
+                // Add a placeholder item to register the group, then switch to item mode
+                vm.checklistItems.append(ChecklistItemData(title: "", group: trimmed))
+                addMode = .item
+            }
+            newItemTitle = ""
+        }
     }
 }
 

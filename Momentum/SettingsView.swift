@@ -233,6 +233,13 @@ struct SettingsView: View {
                         Label("Score Breakdown", systemImage: "chart.bar.fill")
                     }
                     
+                    Toggle(isOn: Binding(
+                        get: { SubscriptionManager.shared.isSubscribed },
+                        set: { SubscriptionManager.shared.isSubscribed = $0 }
+                    )) {
+                        Label("Premium Subscribed", systemImage: "crown.fill")
+                    }
+                    
                     Button {
                         addDebugGoals()
                     } label: {

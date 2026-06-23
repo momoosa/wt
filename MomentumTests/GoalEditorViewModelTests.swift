@@ -36,7 +36,8 @@ struct GoalEditorViewModelTests {
                     healthKitMetric: nil,
                     icon: "brain.head.profile",
                     goalType: "time",
-                    primaryMetricTarget: nil
+                    primaryMetricTarget: nil,
+                    isPremium: nil
                 ),
                 GoalTemplateSuggestion(
                     id: "test-2",
@@ -47,7 +48,8 @@ struct GoalEditorViewModelTests {
                     healthKitMetric: nil,
                     icon: "figure.run",
                     goalType: "time",
-                    primaryMetricTarget: nil
+                    primaryMetricTarget: nil,
+                    isPremium: nil
                 )
             ]
         )
@@ -253,7 +255,8 @@ struct GoalEditorViewModelTests {
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
-            primaryMetricTarget: nil
+            primaryMetricTarget: nil,
+            isPremium: nil
         )
         
         #expect(viewModel.matchesSuggestion(suggestion, with: "Meditation", aliases: [:]))
@@ -272,7 +275,8 @@ struct GoalEditorViewModelTests {
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
-            primaryMetricTarget: nil
+            primaryMetricTarget: nil,
+            isPremium: nil
         )
         
         #expect(viewModel.matchesSuggestion(suggestion, with: "meditation", aliases: [:]))
@@ -293,7 +297,8 @@ struct GoalEditorViewModelTests {
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
-            primaryMetricTarget: nil
+            primaryMetricTarget: nil,
+            isPremium: nil
         )
         let aliases = ["Meditation": ["meditate", "mindfulness"]]
         
@@ -314,7 +319,8 @@ struct GoalEditorViewModelTests {
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
-            primaryMetricTarget: nil
+            primaryMetricTarget: nil,
+            isPremium: nil
         )
         
         #expect(!viewModel.matchesSuggestion(suggestion, with: "Running", aliases: [:]))
@@ -333,7 +339,8 @@ struct GoalEditorViewModelTests {
             healthKitMetric: nil,
             icon: "brain.head.profile",
             goalType: "time",
-            primaryMetricTarget: nil
+            primaryMetricTarget: nil,
+            isPremium: nil
         )
         
         #expect(!viewModel.matchesSuggestion(suggestion, with: "", aliases: [:]))
@@ -429,7 +436,8 @@ struct GoalEditorViewModelTests {
             healthKitMetric: nil,
             icon: "figure.run",
             goalType: "time",
-            primaryMetricTarget: nil
+            primaryMetricTarget: nil,
+            isPremium: nil
         )
         
         #expect(viewModel.hasUnsavedChanges())

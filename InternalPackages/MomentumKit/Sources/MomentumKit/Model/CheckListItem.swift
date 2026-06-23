@@ -11,6 +11,7 @@ public final class ChecklistItem {
     public var id: String = UUID().uuidString
     public var title: String = ""
     public var notes: String? // Optional notes for the checklist item
+    public var group: String = "" // Group/section name; empty = ungrouped
     
     @Relationship(deleteRule: .nullify)
     public var goal: Goal?

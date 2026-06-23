@@ -29,6 +29,7 @@ struct DebugScoreView: View {
                     contextRow("Time of Day", value: context.timeOfDay?.rawValue.capitalized ?? "Unknown")
                     contextRow("Weather", value: context.weather?.rawValue.capitalized ?? "None")
                     contextRow("Temperature", value: context.temperature.map { "\(Int($0))°" } ?? "None")
+                    contextRow("Wind", value: context.windSpeed.map { "\(Int($0)) km/h" } ?? "None")
                     contextRow("Weekday", value: weekdayName(for: context.currentDate))
                 } header: {
                     Text("Current Context")
@@ -47,7 +48,7 @@ struct DebugScoreView: View {
             } header: {
                 Text("Goal Rankings (\(scoredGoals.count) goals)")
             } footer: {
-                Text("Max possible: 115 pts (Weather 25 + Progress 30 + Time 20 + Deadline 15 + Flexibility 25)")
+                Text("Max possible: 135 pts (Weather 25 + Progress 30 + Time 20 + Deadline 15 + Flexibility 25 + Sequence 20)")
             }
         }
         .navigationTitle("Score Debug")
@@ -109,14 +110,53 @@ struct DebugScoreView: View {
         
         // Also compute individual component scores for each goal
         scoredGoals = recommendations.map { rec in
-            let components = computeComponentScores(for: rec.goal, context: ctx)
+            let goal = rec.goal
+            let components = computeComponentScores(for: goal, sessions: sessions, context: ctx)
+            
+            // Determine configured signals
+            var signals: [String] = []
+            if goal.hasSignal(.weather) { signals.append("Weather") }
+            if goal.hasSignal(.timeOfDay) { signals.append("Time") }
+            if goal.sequenceEnabled { signals.append("Sequence") }
+            
+            // Determine match-ALL pass/fail
+            var matchAllPassed: Bool? = nil
+            if goal.conditionMatchMode == .all && !signals.isEmpty {
+                // Check if each signal scored above 10% of its max
+                var allPassed = true
+                if goal.hasSignal(.weather) {
+                    allPassed = allPassed && components.weather > recommender.weights.weatherContext * 0.1
+                }
+                if goal.hasSignal(.timeOfDay) {
+                    allPassed = allPassed && components.timeOfDay > recommender.weights.timeOfDay * 0.1
+                }
+                if goal.sequenceEnabled {
+                    allPassed = allPassed && components.goalSequence > recommender.weights.goalSequence * 0.1
+                }
+                matchAllPassed = allPassed
+            }
+            
+            // Weather source
+            let weatherSource: String
+            if goal.weatherEnabled, let conditions = goal.weatherConditions, !conditions.isEmpty {
+                weatherSource = "Goal config"
+            } else if goal.primaryTag != nil {
+                weatherSource = "Tag-based"
+            } else {
+                weatherSource = "None (neutral)"
+            }
+            
             return ScoredGoal(
-                id: rec.goal.id,
-                title: rec.goal.title,
+                id: goal.id,
+                title: goal.title,
                 totalScore: rec.score,
                 reasons: rec.reasons,
                 components: components,
-                tagName: rec.goal.primaryTag?.title
+                tagName: goal.primaryTag?.title,
+                matchMode: goal.conditionMatchMode,
+                configuredSignals: signals,
+                matchAllPassed: matchAllPassed,
+                weatherSource: weatherSource
             )
         }
     }
@@ -125,16 +165,36 @@ struct DebugScoreView: View {
     /// This mirrors DeterministicRecommender.scoreGoal but exposes each component
     private func computeComponentScores(
         for goal: Goal,
+        sessions: [GoalSession],
         context: DeterministicRecommender.Context
     ) -> ScoreComponents {
         let weights = recommender.weights
         
-        // Weather
+        // Weather — use goal-level config when available, else fall back to tag-based
         let weatherScore: Double
-        if let tag = goal.primaryTag {
+        if goal.weatherEnabled, let conditions = goal.weatherConditions, !conditions.isEmpty {
+            guard let currentWeather = context.weather else {
+                weatherScore = weights.weatherContext * 0.5
+                return buildComponents(weather: weatherScore, goal: goal, sessions: sessions, context: context, weights: weights)
+            }
+            let conditionMatches = conditions.contains(currentWeather.rawValue)
+            var tempMatches = true
+            if let minTemp = goal.minTemperature, let temp = context.temperature {
+                tempMatches = tempMatches && temp >= minTemp
+            }
+            if let maxTemp = goal.maxTemperature, let temp = context.temperature {
+                tempMatches = tempMatches && temp <= maxTemp
+            }
+            var windMatches = true
+            if let maxWind = goal.maxWindSpeed, let wind = context.windSpeed {
+                windMatches = wind <= maxWind
+            }
+            weatherScore = (conditionMatches && tempMatches && windMatches) ? weights.weatherContext : 0.0
+        } else if let tag = goal.primaryTag {
             let contextScore = tag.contextMatchScore(
                 weather: context.weather,
                 temperature: context.temperature,
+                windSpeed: context.windSpeed,
                 timeOfDay: context.timeOfDay,
                 location: context.location
             )
@@ -143,6 +203,16 @@ struct DebugScoreView: View {
             weatherScore = weights.weatherContext * 0.5
         }
         
+        return buildComponents(weather: weatherScore, goal: goal, sessions: sessions, context: context, weights: weights)
+    }
+    
+    private func buildComponents(
+        weather weatherScore: Double,
+        goal: Goal,
+        sessions: [GoalSession],
+        context: DeterministicRecommender.Context,
+        weights: DeterministicRecommender.ScoringWeights
+    ) -> ScoreComponents {
         // Weekly Progress
         let progressScore: Double = {
             let calendar = Calendar.current
@@ -221,7 +291,7 @@ struct DebugScoreView: View {
             if goal.hasRelevanceRule {
                 let availability = goal.dayAvailability(for: currentWeekday)
                 switch availability {
-                case .preferred: break // continue to schedule logic
+                case .preferred: break
                 case .open: return weights.scheduleFlexibility * 0.4
                 case .never: return 0.0
                 }
@@ -253,12 +323,43 @@ struct DebugScoreView: View {
             return 0.0
         }()
         
+        // Goal Sequence
+        let sequenceScore: Double = {
+            guard goal.sequenceEnabled,
+                  let linkedGoalID = goal.sequenceGoalID,
+                  let direction = goal.sequenceDirection else {
+                return 0.0
+            }
+            let linkedSession = sessions.first { $0.goalID == linkedGoalID }
+            switch direction {
+            case "after":
+                if let session = linkedSession, session.hasMetDailyTarget {
+                    return weights.goalSequence
+                }
+                if let session = linkedSession, session.currentValue > 0 {
+                    return weights.goalSequence * 0.3
+                }
+                return 0.0
+            case "before":
+                if let session = linkedSession, session.currentValue == 0 && !session.hasMetDailyTarget {
+                    return weights.goalSequence
+                }
+                if linkedSession == nil {
+                    return weights.goalSequence * 0.8
+                }
+                return 0.0
+            default:
+                return 0.0
+            }
+        }()
+        
         return ScoreComponents(
             weather: weatherScore,
             weeklyProgress: progressScore,
             timeOfDay: timeScore,
             deadline: deadlineScore,
-            scheduleFlexibility: flexibilityScore
+            scheduleFlexibility: flexibilityScore,
+            goalSequence: sequenceScore
         )
     }
 }
@@ -272,6 +373,10 @@ struct ScoredGoal: Identifiable {
     let reasons: [RecommendationReason]
     let components: ScoreComponents
     let tagName: String?
+    let matchMode: ConditionMatchMode
+    let configuredSignals: [String]
+    let matchAllPassed: Bool?
+    let weatherSource: String
 }
 
 struct ScoreComponents {
@@ -280,13 +385,15 @@ struct ScoreComponents {
     let timeOfDay: Double
     let deadline: Double
     let scheduleFlexibility: Double
+    let goalSequence: Double
     
     static let maxValues = ScoreComponents(
         weather: 25.0,
         weeklyProgress: 30.0,
         timeOfDay: 20.0,
         deadline: 15.0,
-        scheduleFlexibility: 25.0
+        scheduleFlexibility: 25.0,
+        goalSequence: 20.0
     )
 }
 
@@ -301,11 +408,55 @@ struct GoalScoreRow: View {
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
             VStack(spacing: 8) {
+                // Match mode & signals info
+                HStack(spacing: 6) {
+                    Text(scored.matchMode == .all ? "Match ALL" : "Match ANY")
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(scored.matchMode == .all ? Color.orange.opacity(0.2) : Color.blue.opacity(0.2), in: Capsule())
+                    
+                    if let passed = scored.matchAllPassed {
+                        Image(systemName: passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(passed ? .green : .red)
+                        Text(passed ? "All matched" : "Not all matched")
+                            .font(.caption2)
+                            .foregroundStyle(passed ? .green : .red)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Weather: \(scored.weatherSource)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                
+                if !scored.configuredSignals.isEmpty {
+                    HStack(spacing: 4) {
+                        Text("Signals:")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        ForEach(scored.configuredSignals, id: \.self) { signal in
+                            Text(signal)
+                                .font(.caption2.weight(.medium))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(.fill.quaternary, in: Capsule())
+                        }
+                        Spacer()
+                    }
+                }
+                
+                Divider()
+                
+                // Score bars
                 ScoreBar(label: "Weather", score: scored.components.weather, max: ScoreComponents.maxValues.weather, color: .blue)
                 ScoreBar(label: "Weekly Progress", score: scored.components.weeklyProgress, max: ScoreComponents.maxValues.weeklyProgress, color: .orange)
                 ScoreBar(label: "Time of Day", score: scored.components.timeOfDay, max: ScoreComponents.maxValues.timeOfDay, color: .purple)
                 ScoreBar(label: "Deadline", score: scored.components.deadline, max: ScoreComponents.maxValues.deadline, color: .red)
                 ScoreBar(label: "Flexibility", score: scored.components.scheduleFlexibility, max: ScoreComponents.maxValues.scheduleFlexibility, color: .green)
+                ScoreBar(label: "Sequence", score: scored.components.goalSequence, max: ScoreComponents.maxValues.goalSequence, color: .teal)
                 
                 if !scored.reasons.isEmpty {
                     Divider()

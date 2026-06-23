@@ -202,9 +202,18 @@ struct SessionFilterService {
             .prefix(3)
             .map { $0.0 }
         
-        for session in top where session.safeRecommendationReasons.isEmpty {
-            if let goal = session.goal {
-                session.recommendationReasons = Self.basicReasons(for: session, goal: goal, at: now, weatherManager: weatherManager)
+        // Defer the mutation to avoid writing SwiftData properties during
+        // a SwiftUI view update (causes AttributeGraph precondition failure).
+        let sessionsNeedingReasons = top.compactMap { session -> (GoalSession, Goal)? in
+            guard session.safeRecommendationReasons.isEmpty, let goal = session.goal else { return nil }
+            return (session, goal)
+        }
+        if !sessionsNeedingReasons.isEmpty {
+            let weatherMgr = weatherManager
+            DispatchQueue.main.async {
+                for (session, goal) in sessionsNeedingReasons {
+                    session.recommendationReasons = Self.basicReasons(for: session, goal: goal, at: now, weatherManager: weatherMgr)
+                }
             }
         }
         

@@ -411,7 +411,7 @@ class GoalEditorViewModel: Identifiable {
         goalLink = goal.link ?? ""
         
         // Load checklist items
-        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "") } ?? []
+        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "", group: $0.group) } ?? []
         
         // Load tag/theme
         selectedGoalTheme = goal.primaryTag
@@ -1497,6 +1497,7 @@ class GoalEditorViewModel: Identifiable {
         // Add new checklist items
         for item in checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
             let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
+            checklistItem.group = item.group
             modelContext.insert(checklistItem)
             goal.checklistItems?.append(checklistItem)
         }
