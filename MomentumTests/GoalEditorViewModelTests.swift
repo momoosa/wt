@@ -53,7 +53,7 @@ struct GoalEditorViewModelTests {
                 )
             ]
         )
-        return GoalSuggestionsData(categories: [category])
+        return GoalSuggestionsData(featured: nil, categories: [category]) // TODO: Add featured
     }
     
     // MARK: - Validation Tests
