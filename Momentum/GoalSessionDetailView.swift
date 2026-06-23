@@ -68,6 +68,7 @@ struct GoalSessionDetailView: View {
     // Historical session editing
     @State private var editingHistoricalSession: HistoricalSession?
     @State private var isShowingHistoricalSessionEditor = false
+    @State private var showAllHistory = false
     @State private var isCreatingNewHistoricalSession = false
     
     // Tab selection
@@ -1269,7 +1270,11 @@ struct GoalSessionDetailView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
                 } else {
-                    ForEach(session.historicalSessions.prefix(historicalSessionLimit)) { historicalSession in
+                    let visibleSessions = showAllHistory
+                        ? session.historicalSessions
+                        : Array(session.historicalSessions.prefix(historicalSessionLimit))
+                    
+                    ForEach(visibleSessions) { historicalSession in
                         HStack {
                             HistoricalSessionRow(
                                 session: historicalSession,
@@ -1306,9 +1311,30 @@ struct GoalSessionDetailView: View {
                             }
                         }
                         
-                        if historicalSession.id != session.historicalSessions.prefix(historicalSessionLimit).last?.id {
+                        if historicalSession.id != visibleSessions.last?.id {
                             Divider()
                         }
+                    }
+                    
+                    // View All / Show Less toggle
+                    if session.historicalSessions.count > historicalSessionLimit {
+                        Button {
+                            withAnimation(.snappy(duration: 0.3)) {
+                                showAllHistory.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(showAllHistory ? "Show Less" : "View All")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                Image(systemName: showAllHistory ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundStyle(tintColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 4)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }

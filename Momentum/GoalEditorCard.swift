@@ -1182,7 +1182,7 @@ struct NotesChecklistCard: View {
                     .tag(Tab.checklist)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(minHeight: 180)
+            .frame(minHeight: 260)
             .animation(.snappy(duration: 0.3), value: selectedTab)
         }
         .background(
@@ -1326,7 +1326,7 @@ struct NotesChecklistCard: View {
             Divider()
                 .padding(.horizontal, 16)
             
-            // Scrollable item list
+            // Scrollable item list — takes remaining space between header and toolbar
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Ungrouped items first
@@ -1340,7 +1340,8 @@ struct NotesChecklistCard: View {
                     }
                 }
             }
-            .frame(minHeight: 100, maxHeight: 300)
+            
+            Spacer(minLength: 0)
             
             Divider()
                 .padding(.horizontal, 16)

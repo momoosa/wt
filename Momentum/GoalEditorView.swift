@@ -230,6 +230,13 @@ struct GoalEditorView: View {
                 viewModel.computeRecommendedTarget(modelContext: modelContext)
             }
         }
+        .onChange(of: viewModel.selectedTemplate?.id) {
+            // Auto-advance to editor when a suggestion is tapped
+            guard stage == .title, viewModel.selectedTemplate != nil else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                handleNextTap()
+            }
+        }
         .onChange(of: viewModel.userInput) {
             // Debounce: kick off a theme recommendation after a short pause
             guard stage == .title, !isEditingExisting else { return }

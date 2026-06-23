@@ -62,10 +62,6 @@ struct ScrollingHeaderView<Expanded: View, Title: View, Leading: View, Trailing:
                         )
                     
                     Spacer()
-                    
-                    // Trailing buttons
-                    trailing()
-                        .font(.title3)
                 }
                 .padding(.horizontal)
                 .frame(
@@ -89,6 +85,13 @@ struct ScrollingHeaderView<Expanded: View, Title: View, Leading: View, Trailing:
                 .padding(.bottom)
             }
             .frame(height: currentHeight)
+            // Trailing buttons — fixed position, never collapse
+            .overlay(alignment: .topTrailing) {
+                trailing()
+                    .font(.title3)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+            }
             
             Divider()
                 .opacity(collapseProgress)

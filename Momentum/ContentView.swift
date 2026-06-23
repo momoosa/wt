@@ -647,7 +647,6 @@ struct ContentView: View {
                 HStack {
                     Text("This Moment")
                         .font(.subheadline.weight(.bold))
-                        .tracking(1)
                     Spacer()
                 }
             }
