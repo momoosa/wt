@@ -94,6 +94,19 @@ struct RecommendedSessionRowView: View {
                             .font(.title.bold())
                             .foregroundStyle(foreground)
                     }
+                    
+                    if let checklist = session.checklist, !checklist.isEmpty {
+                        let completed = checklist.filter(\.isCompleted).count
+                        let total = checklist.count
+                        HStack(spacing: 4) {
+                            Image(systemName: "checklist")
+                                .font(.caption2)
+                            Text("\(completed)/\(total)")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundStyle(foreground.opacity(0.7))
+                    }
                 }
                 
                 Spacer()

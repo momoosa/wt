@@ -147,6 +147,19 @@ struct SessionRowView: View {
                             color: isRecommended ? session.theme.foregroundColor(for: colorScheme) : .red
                         )
                         
+                        if let checklist = session.checklist, !checklist.isEmpty {
+                            let completed = checklist.filter(\.isCompleted).count
+                            let total = checklist.count
+                            HStack(spacing: 3) {
+                                Image(systemName: "checklist")
+                                    .font(.system(size: 9))
+                                Text("\(completed)/\(total)")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundStyle(textForegroundColor.opacity(0.7))
+                        }
+                        
                         Spacer()
                     }
                     .foregroundStyle(useGradientAccents ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(textForegroundColor))

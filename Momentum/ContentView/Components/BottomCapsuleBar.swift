@@ -15,11 +15,13 @@ extension ContentView {
     
     var bottomCapsuleBar: some View {
         HStack(spacing: 0) {
-            // Left zone: Context info or now-playing
+            // Left zone: Now-playing > Planning status > Context info
             Button {
                 if let timerManager,
                    timerManager.activeSession != nil {
                     navigation.showNowPlaying = true
+                } else if planningViewModel.isPlanning {
+                    planningViewModel.cancelPlanning()
                 } else if sessions.isEmpty {
                     goalEditorViewModel = GoalEditorViewModel()
                 } else {
@@ -31,6 +33,8 @@ extension ContentView {
                    let activeSession = timerManager.activeSession,
                    let session = sessions.first(where: { $0.id == activeSession.id }) {
                     capsuleNowPlaying(session: session, details: activeSession)
+                } else if planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
+                    capsulePlanningStatus
                 } else {
                     capsuleContextInfo
                 }
@@ -136,5 +140,27 @@ extension ContentView {
         }
         .padding(.leading, 10)
         .foregroundStyle(session.theme.color(for: colorScheme))
+    }
+    
+    // MARK: - Capsule Content: Planning Status
+    
+    private var capsulePlanningStatus: some View {
+        HStack(spacing: 8) {
+            if planningViewModel.isPlanning {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Generating plan...")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else if planningViewModel.showPlanningComplete {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.callout)
+                Text("All done")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.leading, 16)
     }
 }

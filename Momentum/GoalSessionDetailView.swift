@@ -79,19 +79,10 @@ struct GoalSessionDetailView: View {
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
     @State private var showingPremiumPaywall = false
-    @State private var checklistScrollOffset: CGFloat = 0
-    
     /// Whether the session has a non-empty checklist
     private var hasChecklist: Bool {
         guard let checklist = session?.checklist else { return false }
         return !checklist.isEmpty
-    }
-    
-    /// How compact the now-playing card should be (0 = full, 1 = compact)
-    private var compactFraction: CGFloat {
-        guard hasChecklist else { return 0 }
-        // Start shrinking after scrolling 20pt, fully compact at 120pt
-        return min(1, max(0, -checklistScrollOffset - 20) / 100)
     }
     private var isSubscribed: Bool { SubscriptionManager.shared.isSubscribed }
     
@@ -406,17 +397,11 @@ struct GoalSessionDetailView: View {
     var body: some View {
         ScrollViewReader { scrollProxy in
             VStack(spacing: 0) {
-                // Sticky now-playing card (outside scroll when checklist present)
-                if hasChecklist, let session, let timerManager {
-                    compactNowPlayingCard(session: session, timerManager: timerManager)
-                        .zIndex(1)
-                }
-                
                 ScrollView {
                     VStack(spacing: 0) {
 
                         Spacer()
-                            .frame(height: hasChecklist ? 12 : 60)
+                            .frame(height: 60)
                             .id(DetailTab.hero)
                             .onGeometryChange(for: CGFloat.self) { proxy in
                                 proxy.frame(in: .scrollView).minY
@@ -424,39 +409,28 @@ struct GoalSessionDetailView: View {
                                 if !isScrollingFromTap && minY > -200 {
                                     selectedTab = .hero
                                 }
-                                if hasChecklist {
-                                    checklistScrollOffset = minY
-                                }
                             }
                         
-                        // Only show card in scroll when there's no checklist (normal flow)
-                        if !hasChecklist {
-                            if let session, let timerManager {
-                                ProgressSummaryCardWrapper(
-                                    session: session,
-                                    weeklyProgress: currentProgress,
-                                    weeklyElapsedTime: currentElapsed,
-                                    cardRotationY: $cardRotationY,
-                                    shimmerOffset: $shimmerOffset,
-                                    timerManager: timerManager,
-                                    onDone: { markGoalAsDone() },
-                                    onSkip: { toggleSkip() },
-                                    onManualLog: { isCreatingNewHistoricalSession = true },
-                                    onGoalTap: {
-                                        editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
-                                    }
-                                )
-                                .padding(.horizontal, 16)
-                            } else {
-                                goalOverviewCard
-                                    .padding(.horizontal, 16)
-                            }
+                        // Session card always scrolls with content
+                        if let session, let timerManager {
+                            ProgressSummaryCardWrapper(
+                                session: session,
+                                weeklyProgress: currentProgress,
+                                weeklyElapsedTime: currentElapsed,
+                                cardRotationY: $cardRotationY,
+                                shimmerOffset: $shimmerOffset,
+                                timerManager: timerManager,
+                                onDone: { markGoalAsDone() },
+                                onSkip: { toggleSkip() },
+                                onManualLog: { isCreatingNewHistoricalSession = true },
+                                onGoalTap: {
+                                    editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+                                }
+                            )
+                            .padding(.horizontal, 16)
                         } else {
-                            // No session card — show overview card only if no timer
-                            if session == nil || timerManager == nil {
-                                goalOverviewCard
-                                    .padding(.horizontal, 16)
-                            }
+                            goalOverviewCard
+                                .padding(.horizontal, 16)
                         }
                         
                         // All sections visible, scrollable
@@ -468,10 +442,7 @@ struct GoalSessionDetailView: View {
                 }
                 .overlay {
                     VStack {
-                        // Only show tab bar when card is not sticky (or push it down)
-                        if !hasChecklist {
-                            tabBar(scrollProxy: scrollProxy)
-                        }
+                        tabBar(scrollProxy: scrollProxy)
                         Spacer()
                     }
                 }
@@ -1617,147 +1588,6 @@ struct GoalSessionDetailView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.secondarySystemGroupedBackground))
         )
-    }
-    
-    // MARK: - Compact Now Playing Card (Sticky Header)
-    
-    private func compactNowPlayingCard(session: GoalSession, timerManager: SessionTimerManager) -> some View {
-        let fraction = compactFraction
-        let isCompact = fraction > 0.5
-        
-        return VStack(spacing: 0) {
-            if isCompact {
-                // Compact: single-line with circle + title + time + buttons
-                compactNowPlayingRow(session: session, timerManager: timerManager)
-                    .transition(.opacity)
-            } else {
-                // Full: normal card
-                ProgressSummaryCardWrapper(
-                    session: session,
-                    weeklyProgress: currentProgress,
-                    weeklyElapsedTime: currentElapsed,
-                    cardRotationY: $cardRotationY,
-                    shimmerOffset: $shimmerOffset,
-                    timerManager: timerManager,
-                    onDone: { markGoalAsDone() },
-                    onSkip: { toggleSkip() },
-                    onManualLog: { isCreatingNewHistoricalSession = true },
-                    onGoalTap: {
-                        editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
-                    }
-                )
-                .transition(.opacity)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-        .background(Color(.systemGroupedBackground))
-        .animation(.snappy(duration: 0.25), value: isCompact)
-    }
-    
-    private func compactNowPlayingRow(session: GoalSession, timerManager: SessionTimerManager) -> some View {
-        let themeColor = session.theme.color(for: colorScheme)
-        let textColor = session.theme.foregroundColor(for: colorScheme)
-        let isActive = timerManager.isActive(session)
-        let activeSession = isActive ? timerManager.activeSession : nil
-        
-        let currentElapsedTime: TimeInterval = {
-            if let active = activeSession {
-                let _ = active.currentTime
-                return active.elapsedTime + Date.now.timeIntervalSince(active.startDate)
-            }
-            return session.elapsedTime
-        }()
-        
-        let progress: Double = {
-            guard session.effectiveTargetValue > 0 else { return 0 }
-            if session.targetUnit.isTimeBased {
-                return currentElapsedTime / session.effectiveTargetValue
-            }
-            return session.currentValue / session.effectiveTargetValue
-        }()
-        
-        return HStack(spacing: 12) {
-            // Small progress circle
-            CircularProgressView(
-                progress: progress,
-                lineWidth: 4,
-                size: 32,
-                foregroundColor: textColor,
-                backgroundColor: textColor.opacity(0.3),
-                animateOnAppear: false
-            )
-            .overlay {
-                Text("\(Int(progress * 100))%")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(textColor)
-            }
-            
-            // Title + time
-            VStack(alignment: .leading, spacing: 2) {
-                Text(session.title)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(textColor)
-                    .lineLimit(1)
-                
-                HStack(spacing: 4) {
-                    if session.targetUnit.isTimeBased {
-                        Text(currentElapsedTime.formatted(style: .hmmss))
-                            .contentTransition(.numericText())
-                            .animation(.default, value: Int(currentElapsedTime))
-                    } else {
-                        Text("\(Int(session.currentValue)) / \(Int(session.effectiveTargetValue)) \(session.targetUnit.label)")
-                    }
-                    
-                    if let active = activeSession, active.isPaused {
-                        Text("Paused")
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(textColor.opacity(0.2))
-                            .clipShape(Capsule())
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(textColor.opacity(0.8))
-            }
-            
-            Spacer()
-            
-            // Play/pause button
-            let isPaused = isActive && (activeSession?.isPaused ?? false)
-            Button {
-                if let day = session.day {
-                    timerManager.toggleTimer(for: session, in: day)
-                }
-            } label: {
-                Image(systemName: isPaused ? "play.fill" : (isActive ? "pause.fill" : "play.fill"))
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(textColor)
-                    .frame(width: 36, height: 36)
-                    .background(textColor.opacity(0.15), in: Circle())
-            }
-            .buttonStyle(.plain)
-            
-            // Done button
-            Button {
-                markGoalAsDone()
-            } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(textColor)
-                    .frame(width: 36, height: 36)
-                    .background(textColor.opacity(0.15), in: Circle())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background {
-            session.theme.gradient(for: colorScheme)
-        }
-        .glassCardStyle(shadowColor: themeColor)
     }
     
     // MARK: - Checklist Section

@@ -20,6 +20,7 @@ struct ContentView: View {
     @Environment(GoalStore.self) var goalStore
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) var modelContext
+    @Environment(\.scenePhase) var scenePhase
     @Query var goals: [Goal]
     @Query var _sessions: [GoalSession]
     let day: Day
@@ -220,6 +221,13 @@ struct ContentView: View {
             .onChange(of: viewModel.isSyncingHealthKit) { _, newValue in
                 sessionActions.isSyncingHealthKit = newValue
             }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .active && oldPhase != .active {
+                    // Re-sync HealthKit data when returning from background
+                    // so step counts, workouts, etc. reflect the latest values
+                    syncHealthKitData()
+                }
+            }
             .onDisappear {
                 timerManager?.activeSession?.stopUITimer()
                 // Cancel background tasks that may still be running
@@ -228,6 +236,7 @@ struct ContentView: View {
                 }
                 backgroundTasks.removeAll()
                 planningViewModel.planningTask?.cancel()
+                viewModel.cleanup()
             }
             .onChange(of: goals) { old, new in
                 handleGoalsChange(old: old, new: new)
@@ -438,14 +447,9 @@ struct ContentView: View {
                 .listSectionSpacing(.compact)
             }
             
-            if !focusFilteredSessions.isEmpty || planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
+            if !focusFilteredSessions.isEmpty {
                 ForEach(contextualSections) { section in
                     contextualSectionView(section: section)
-                }
-                
-                // Show planning indicator after all sessions
-                if planningViewModel.isPlanning || planningViewModel.showPlanningComplete {
-                    planningIndicatorSection
                 }
             } else {
                 emptyStateView
@@ -728,39 +732,7 @@ struct ContentView: View {
         }
     }
         
-    private var planningIndicatorSection: some View {
-        Section {
-            HStack {
-                if planningViewModel.isPlanning {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Generating plan...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    
-                    Spacer()
-                    
-                    Button {
-                        planningViewModel.cancelPlanning()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                } else if planningViewModel.showPlanningComplete {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .imageScale(.small)
-                    Text("All done")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
-        }
-        .listSectionSpacing(.compact)
-        .transition(.opacity)
-    }
+
     
     // MARK: - Daily Progress Card (see ContentView/Components/DailyProgressCardView.swift)
     // MARK: - Weather & Calendar Helpers (see ContentView/Components/DailyProgressCardView.swift)

@@ -54,6 +54,12 @@ extension ContentView {
         backgroundTasks.append(Task {
             // HealthKit sync runs async and updates state when done
             syncHealthKitData()
+            
+            // Start HealthKit observers for real-time updates (e.g., when steps
+            // change while the app is open or shortly after returning to foreground)
+            viewModel.startHealthKitObservers(for: goals) { [self] in
+                syncHealthKitData()
+            }
         })
 
         backgroundTasks.append(Task {

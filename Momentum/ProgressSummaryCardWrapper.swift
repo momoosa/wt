@@ -279,6 +279,23 @@ struct ProgressSummaryCard: View {
                             }
                             .font(.headline)
                             .fontWeight(.bold)
+                            
+                            // Checklist badge
+                            if let checklist = session?.checklist, !checklist.isEmpty {
+                                let completed = checklist.filter(\.isCompleted).count
+                                let total = checklist.count
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checklist")
+                                        .font(.caption2)
+                                    Text("\(completed)/\(total)")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundStyle(textColor.opacity(completed == total ? 1.0 : 0.7))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(textColor.opacity(completed == total ? 0.2 : 0.1), in: Capsule())
+                            }
                         }
                         
                         Spacer()
