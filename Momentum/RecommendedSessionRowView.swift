@@ -56,8 +56,25 @@ struct RecommendedSessionRowView: View {
             
             // Row 3: Reason chips
             let reasons = Array(session.safeRecommendationReasons.prefix(3))
-            if !reasons.isEmpty {
+            let checklist = session.checklist ?? []
+            let hasChips = !reasons.isEmpty || !checklist.isEmpty
+            if hasChips {
                 HStack(spacing: 6) {
+                    if !checklist.isEmpty {
+                        let completed = checklist.filter(\.isCompleted).count
+                        let total = checklist.count
+                        HStack(spacing: 3) {
+                            Image(systemName: "checklist")
+                                .font(.system(size: 8))
+                            Text("\(completed)/\(total)")
+                                .font(.system(size: 9, weight: .semibold))
+                                .tracking(0.3)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(foreground.opacity(0.15), in: Capsule())
+                    }
+                    
                     ForEach(reasons, id: \.self) { reason in
                         HStack(spacing: 3) {
                             Image(systemName: iconForReason(reason))
@@ -95,18 +112,7 @@ struct RecommendedSessionRowView: View {
                             .foregroundStyle(foreground)
                     }
                     
-                    if let checklist = session.checklist, !checklist.isEmpty {
-                        let completed = checklist.filter(\.isCompleted).count
-                        let total = checklist.count
-                        HStack(spacing: 4) {
-                            Image(systemName: "checklist")
-                                .font(.caption2)
-                            Text("\(completed)/\(total)")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundStyle(foreground.opacity(0.7))
-                    }
+
                 }
                 
                 Spacer()
