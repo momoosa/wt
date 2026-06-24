@@ -197,13 +197,6 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .overlay(alignment: .bottom) {
-                if navigation.showExpandedCapsule {
-                    expandedCapsuleOverlay
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: navigation.showExpandedCapsule)
             .sheet(isPresented: $navigation.isSearching) {
                 searchSheet
                     .navigationTransition(.zoom(sourceID: "searchButton", in: animation))
@@ -465,11 +458,23 @@ struct ContentView: View {
             syncHealthKitData(userInitiated: true)
             refreshGoals()
         }
-        .safeAreaInset(edge: .bottom) {
-            if !navigation.showExpandedCapsule {
-                bottomCapsuleBar
-                    .transition(.move(edge: .bottom))
-            }
+        .sheet(isPresented: .constant(true)) {
+            BottomBarSheetView(
+                navigation: navigation,
+                day: day,
+                sessions: focusFilteredSessions,
+                timerManager: timerManager,
+                planningViewModel: planningViewModel,
+                animation: animation,
+                goalEditorViewModel: $goalEditorViewModel,
+                availableGoalThemes: availableGoalThemes,
+                onToggleTimer: { session in handleTimerToggle(for: session) }
+            )
+            .presentationDetents([.height(120), .large], selection: $navigation.bottomSheetDetent)
+            .presentationDragIndicator(.hidden)
+            .presentationBackgroundInteraction(.enabled(upThrough: .height(120)))
+            .presentationCornerRadius(24)
+            .interactiveDismissDisabled()
         }
     }
     

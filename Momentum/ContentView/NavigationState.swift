@@ -8,6 +8,22 @@
 import SwiftUI
 import MomentumKit
 
+enum BottomBarTab: String, CaseIterable {
+    case plan = "Plan"
+    case goals = "Goals"
+    case analytics = "Analytics"
+    case search = "Search"
+    
+    var icon: String {
+        switch self {
+        case .plan: return "calendar"
+        case .goals: return "target"
+        case .analytics: return "chart.bar.fill"
+        case .search: return "magnifyingglass"
+        }
+    }
+}
+
 @Observable
 class NavigationState {
     // MARK: - Sheet Presentation
@@ -16,6 +32,10 @@ class NavigationState {
     var showSettings = false
     var showNowPlaying = false
     var showDayOverview = false
+    
+    // MARK: - Bottom Bar
+    var selectedBottomTab: BottomBarTab = .plan
+    var bottomSheetDetent: PresentationDetent = .height(120)
     
     // MARK: - Session Selection
     var selectedSession: GoalSession?
@@ -29,7 +49,6 @@ class NavigationState {
     // MARK: - UI State
     var navigationPath = NavigationPath()
     var visibleSectionType: ContextualSection.SectionType?
-    var showExpandedCapsule = false
     
     // MARK: - Celebration
     var celebrationData: CelebrationData?
@@ -44,7 +63,7 @@ class NavigationState {
         showSettings = false
         showNowPlaying = false
         showDayOverview = false
-        showExpandedCapsule = false
+        bottomSheetDetent = .height(120)
         celebrationData = nil
     }
     

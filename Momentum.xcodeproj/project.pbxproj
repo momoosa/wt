@@ -96,8 +96,6 @@
 		CD713B1F2F2010D1003F901D /* PLANNING_PERFORMANCE.md in Resources */ = {isa = PBXBuildFile; fileRef = CD713B1E2F2010D1003F901D /* PLANNING_PERFORMANCE.md */; };
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
 		CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7578E32F5AD039003D7CFE /* WeatherManager.swift */; };
-		CD8845772FC1B8A20046F456 /* BottomCapsuleBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */; };
-		CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */; };
 		CD88457B2FC33CE50046F456 /* TagManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD88457A2FC33CE50046F456 /* TagManagementView.swift */; };
 		CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
@@ -131,6 +129,7 @@
 		CDD5A9622FE5BEC400C5E968 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */; };
 		CDD5A9642FE5BF0200C5E968 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */; };
 		CDD5A9662FE5C2E600C5E968 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */; };
+		CDDADCE42FEC3D5B00FAE04F /* BottomBarSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */; };
 		CDDED65B2FE855C4008AAA4B /* CelebrationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */; };
 		CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */; };
 		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
@@ -319,8 +318,6 @@
 		CD75CC5B2E2FE5E600890F20 /* Momentum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Momentum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomCapsuleBar.swift; sourceTree = "<group>"; };
-		CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpandedCapsuleOverlay.swift; sourceTree = "<group>"; };
 		CD88457A2FC33CE50046F456 /* TagManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagManagementView.swift; sourceTree = "<group>"; };
 		CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorCard.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
@@ -365,6 +362,7 @@
 		CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		CDD6D19F2FBF685500133F88 /* MomentumKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = MomentumKit; sourceTree = "<group>"; };
+		CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarSheetView.swift; sourceTree = "<group>"; };
 		CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelebrationData.swift; sourceTree = "<group>"; };
 		CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompleteSheet.swift; sourceTree = "<group>"; };
 		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
@@ -789,8 +787,7 @@
 			children = (
 				CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */,
 				CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */,
-				CD8845762FC1B8A20046F456 /* BottomCapsuleBar.swift */,
-				CD8845782FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift */,
+				CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1119,6 +1116,7 @@
 				CDA2DD722FDF389E00FD0DA6 /* ScrollingHeaderView.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CDF6E9082FB3A506008767D9 /* SessionActions.swift in Sources */,
+				CDDADCE42FEC3D5B00FAE04F /* BottomBarSheetView.swift in Sources */,
 				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
@@ -1173,7 +1171,6 @@
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
-				CD8845772FC1B8A20046F456 /* BottomCapsuleBar.swift in Sources */,
 				CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */,
 				CD6A0C252F8994D8008F5D93 /* HealthKitManaging.swift in Sources */,
 				CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */,
@@ -1218,7 +1215,6 @@
 				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
-				CD8845792FC1B8C80046F456 /* ExpandedCapsuleOverlay.swift in Sources */,
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
 				CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */,
