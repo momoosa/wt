@@ -97,6 +97,10 @@ struct NowPlayingView: View {
                 topBarView
                 
                 if hasChecklist {
+                    // Segmented control
+                    segmentedControl
+                        .padding(.top, 12)
+                    
                     // Paging TabView: Now Playing + Checklist
                     TabView(selection: $selectedPage) {
                         nowPlayingPage
@@ -106,10 +110,6 @@ struct NowPlayingView: View {
                             .tag(1)
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
-                    
-                    // Page indicator dots
-                    pageIndicator
-                        .padding(.bottom, 16)
                 } else {
                     // No checklist — just the now playing page
                     nowPlayingPage
@@ -131,18 +131,43 @@ struct NowPlayingView: View {
         }
     }
     
-    // MARK: - Page Indicator
+    // MARK: - Segmented Control
     
-    private var pageIndicator: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(foregroundColor.opacity(selectedPage == 0 ? 0.9 : 0.3))
-                .frame(width: 7, height: 7)
-            Circle()
-                .fill(foregroundColor.opacity(selectedPage == 1 ? 0.9 : 0.3))
-                .frame(width: 7, height: 7)
+    private var segmentedControl: some View {
+        let checklistItems = session.checklist ?? []
+        let completed = checklistItems.filter(\.isCompleted).count
+        let total = checklistItems.count
+        
+        return HStack(spacing: 0) {
+            segmentButton(title: "Now Playing", icon: "play.fill", page: 0)
+            segmentButton(title: "\(completed)/\(total)", icon: "checklist", page: 1)
         }
-        .animation(.easeInOut(duration: 0.2), value: selectedPage)
+        .background(foregroundColor.opacity(0.1), in: Capsule())
+        .padding(.horizontal, 40)
+    }
+    
+    private func segmentButton(title: String, icon: String, page: Int) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedPage = page
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.caption2.weight(.semibold))
+                Text(title)
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(selectedPage == page ? AnyShapeStyle(session.theme.gradient(for: colorScheme)) : AnyShapeStyle(foregroundColor.opacity(0.5)))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity)
+            .background(
+                Capsule()
+                    .fill(selectedPage == page ? foregroundColor : .clear)
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Now Playing Page
