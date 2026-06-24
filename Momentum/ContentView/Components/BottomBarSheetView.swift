@@ -110,7 +110,7 @@ struct BottomBarSheetView: View {
     
     private var tabBar: some View {
         HStack(spacing: 0) {
-            ForEach(BottomBarTab.allCases, id: \.self) { tab in
+            ForEach(isExpanded ? BottomBarTab.allCases : BottomBarTab.minimizedCases, id: \.self) { tab in
                 let isSelected = isExpanded && navigation.selectedBottomTab == tab
                 
                 Button {
@@ -147,9 +147,19 @@ struct BottomBarSheetView: View {
     private func nowPlayingBar(session: GoalSession, details: ActiveSessionDetails) -> some View {
         Button {
             navigation.bottomSheetDetent = .height(120)
-            navigation.showNowPlaying = true
+            navigation.showNowPlaying = true // TODO: Remove
+            if isExpanded {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    navigation.selectedBottomTab = .nowPlaying
+                }
+            } else {
+                navigation.selectedBottomTab = .nowPlaying
+                withAnimation {
+                    navigation.bottomSheetDetent = .large
+                }
+            }
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 10) {	
                 CircularProgressView(
                     progress: details.progress,
                     lineWidth: 3,

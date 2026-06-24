@@ -15,6 +15,7 @@ enum BottomBarTab: String, CaseIterable {
     case analytics = "Analytics"
     case search = "Search"
     
+    static let minimizedCases: [BottomBarTab] = [.plan, .goals, .analytics, .search]
     var icon: String {
         switch self {
         case .nowPlaying: return "play.circle.fill"
