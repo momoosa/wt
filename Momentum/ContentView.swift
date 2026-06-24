@@ -282,15 +282,15 @@ struct ContentView: View {
             .sheet(isPresented: $navigation.showAllGoals) {
                 allGoalsSheet
             }
-            .fullScreenCover(isPresented: $navigation.showNowPlaying, onDismiss: {
-                if let data = pendingCelebrationData {
-                    navigation.celebrationData = data
-                    pendingCelebrationData = nil
-                }
-            }) {
-                nowPlayingView
-                    .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
-            }
+//         TODO: Fix   .fullScreenCover(isPresented: $navigation.showNowPlaying, onDismiss: {
+//                if let data = pendingCelebrationData {
+//                    navigation.celebrationData = data
+//                    pendingCelebrationData = nil
+//                }
+//            }) {
+//                nowPlayingView
+//                    .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
+//            }
             .sheet(item: $navigation.celebrationData) { data in
                 SessionCompleteSheet(
                     celebrationData: data,
@@ -468,6 +468,8 @@ struct ContentView: View {
                 animation: animation,
                 goalEditorViewModel: $goalEditorViewModel,
                 availableGoalThemes: availableGoalThemes,
+                weatherManager: weatherManager,
+                calendarEventStore: calendarEventStore,
                 onToggleTimer: { session in handleTimerToggle(for: session) }
             )
             .presentationDetents([.height(120), .large], selection: $navigation.bottomSheetDetent)

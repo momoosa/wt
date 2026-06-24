@@ -9,13 +9,15 @@ import SwiftUI
 import MomentumKit
 
 enum BottomBarTab: String, CaseIterable {
-    case plan = "Plan"
-    case goals = "Goals"
+    case nowPlaying = "Now Playing"
+    case plan = "Today's Plan"
+    case goals = "All Goals"
     case analytics = "Analytics"
     case search = "Search"
     
     var icon: String {
         switch self {
+        case .nowPlaying: return "play.circle.fill"
         case .plan: return "calendar"
         case .goals: return "target"
         case .analytics: return "chart.bar.fill"
@@ -28,9 +30,9 @@ enum BottomBarTab: String, CaseIterable {
 class NavigationState {
     // MARK: - Sheet Presentation
     var showPlannerSheet = false
+    var showNowPlaying = false
     var showAllGoals = false
     var showSettings = false
-    var showNowPlaying = false
     var showDayOverview = false
     
     // MARK: - Bottom Bar
@@ -59,6 +61,7 @@ class NavigationState {
     // MARK: - Helper Methods
     func dismissAllSheets() {
         showPlannerSheet = false
+        showNowPlaying = false // TODO: Can't this be an enum?
         showAllGoals = false
         showSettings = false
         showNowPlaying = false
