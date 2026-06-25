@@ -43,10 +43,18 @@ struct BottomBarSheetView: View {
                 nowPlayingBar(session: session, details: activeSession)
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
+                    .transition(.asymmetric(
+                        insertion: .push(from: .bottom),
+                        removal: .push(from: .top)
+                    ))
             } else {
                 // Context info row (idle)
                 contextInfoRow
                     .padding(.top, 4)
+                    .transition(.asymmetric(
+                        insertion: .push(from: .top),
+                        removal: .push(from: .bottom)
+                    ))
             }
             
             // Tab bar — always visible
@@ -82,28 +90,108 @@ struct BottomBarSheetView: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
         }
+        .animation(.easeInOut(duration: 0.35), value: timerManager?.activeSession != nil)
+        .task {
+            fetchCalendarEvents()
+        }
     }
     
     // MARK: - Context Info (Idle state)
     
     private var contextInfoRow: some View {
-        HStack(spacing: 10) {
-            if !availableGoalThemes.isEmpty {
-                Text("\(availableGoalThemes.count) themes")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 0) {
+            // Weather segment
+            if let condition = weatherManager.getCurrentCondition(),
+               let temp = weatherManager.getCurrentTemperature() {
+                contextSegment(
+                    icon: condition.icon,
+                    iconColor: .orange,
+                    title: "\(Int(temp))° \(condition.displayName)",
+                    subtitle: weatherWindowSubtitle
+                )
                 
-                Text("·")
-                    .foregroundStyle(.quaternary)
-                    .font(.caption)
+                contextDivider
             }
             
-            Text("\(sessions.filter { $0.progress < 1.0 }.count) remaining")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // Free time segment
+            if let nextFree = nextFreeBlock {
+                contextSegment(
+                    icon: "clock",
+                    iconColor: .primary,
+                    title: nextFree.duration.formatted(style: .hourMinute) + " free",
+                    subtitle: nextFreeSubtitle(for: nextFree)
+                )
+                
+                contextDivider
+            }
+            
+            // Themes segment
+            if !availableGoalThemes.isEmpty {
+                contextSegment(
+                    icon: "square.stack.3d.up.fill",
+                    iconColor: .primary,
+                    title: "\(availableGoalThemes.count) themes",
+                    subtitle: "in play today"
+                )
+            }
         }
-        .frame(height: 28)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 16)
+    }
+    
+    private func contextSegment(icon: String, iconColor: Color, title: String, subtitle: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(iconColor)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
         .frame(maxWidth: .infinity)
+    }
+    
+    private var contextDivider: some View {
+        Divider()
+            .frame(height: 28)
+    }
+    
+    private var weatherWindowSubtitle: String {
+        // Find when weather condition changes in the forecast
+        guard let currentCondition = weatherManager.getCurrentCondition() else {
+            return "now"
+        }
+        let upcoming = weatherManager.hourlyForecast.filter { $0.date > Date() }
+        if let changeHour = upcoming.first(where: { weatherManager.forecastCondition(at: $0.date) != currentCondition }) {
+            return "window to \(changeHour.date.formatted(date: .omitted, time: .shortened))"
+        }
+        return "all day"
+    }
+    
+    private var nextFreeBlock: TimelineBlock? {
+        timelineBlocks.first(where: { $0.isFree })
+    }
+    
+    private func nextFreeSubtitle(for block: TimelineBlock) -> String {
+        // Find the next busy block after this free block
+        if let nextBusy = timelineBlocks.first(where: { !$0.isFree && $0.startTime >= block.startTime }) {
+            switch nextBusy.kind {
+            case .busy(let title):
+                return "until \(title)"
+            default:
+                break
+            }
+        }
+        return "until end of day"
     }
     
     // MARK: - Tab Bar
@@ -146,7 +234,7 @@ struct BottomBarSheetView: View {
     
     private func nowPlayingBar(session: GoalSession, details: ActiveSessionDetails) -> some View {
         Button {
-            navigation.bottomSheetDetent = .height(120)
+            navigation.bottomSheetDetent = .custom(BottomBarDetent.self)
             navigation.showNowPlaying = true // TODO: Remove
             if isExpanded {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -190,7 +278,7 @@ struct BottomBarSheetView: View {
                 // Pause / Stop
                 HStack(spacing: 6) {
                     Button {
-                        navigation.bottomSheetDetent = .height(120)
+                        navigation.bottomSheetDetent = .custom(BottomBarDetent.self)
                         navigation.showNowPlaying = true
                     } label: {
                         Image(systemName: "pause.fill")
@@ -239,10 +327,7 @@ struct BottomBarSheetView: View {
                 // The Week Ahead
                 weekAheadSection
             }
-            .padding(.bottom, 40)
-        }
-        .task {
-            fetchCalendarEvents()
+            .padding(.bottom, 20)
         }
     }
     

@@ -472,9 +472,9 @@ struct ContentView: View {
                 calendarEventStore: calendarEventStore,
                 onToggleTimer: { session in handleTimerToggle(for: session) }
             )
-            .presentationDetents([.height(120), .large], selection: $navigation.bottomSheetDetent)
+            .presentationDetents([.custom(BottomBarDetent.self), .large], selection: $navigation.bottomSheetDetent)
             .presentationDragIndicator(.hidden)
-            .presentationBackgroundInteraction(.enabled(upThrough: .height(120)))
+            .presentationBackgroundInteraction(.enabled(upThrough: .custom(BottomBarDetent.self)))
             .presentationCornerRadius(24)
             .interactiveDismissDisabled()
         }
