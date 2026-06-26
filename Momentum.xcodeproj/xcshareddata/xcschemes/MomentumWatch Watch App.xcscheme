@@ -84,7 +84,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CDBC06672F56C95200D87642"
             BuildableName = "MomentumWatch Watch App.app"
-            BlueprintName = "MomentumWatch Watch App"
             ReferencedContainer = "container:Momentum.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -101,7 +100,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CDBC06672F56C95200D87642"
             BuildableName = "MomentumWatch Watch App.app"
-            BlueprintName = "MomentumWatch Watch App"
             ReferencedContainer = "container:Momentum.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

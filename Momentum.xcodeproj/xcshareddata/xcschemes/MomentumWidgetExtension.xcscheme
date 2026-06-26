@@ -64,7 +64,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CD39BD2A2F2F633800F7265A"
             BuildableName = "MomentumWidgetExtension.appex"
-            BlueprintName = "MomentumWidgetExtension"
             ReferencedContainer = "container:Momentum.xcodeproj">
          </BuildableReference>
       </RemoteRunnable>

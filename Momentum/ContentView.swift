@@ -96,6 +96,13 @@ struct ContentView: View {
     // Pending celebration data (held until NowPlayingView fullScreenCover dismisses)
     @State var pendingCelebrationData: CelebrationData?
 
+    // Newly-added session arrival animation
+    // Tracks the sessions we already know about so we can detect a freshly
+    // created one and animate it into its ideal spot in the planner.
+    @State private var knownSessionIDs: Set<String> = []
+    @State private var arrivingSessionID: String?
+    @State private var arrivalTask: Task<Void, Never>?
+
     // MARK: - Initialization
 
     init(day: Day, viewModel: ContentViewModel) {
@@ -208,6 +215,9 @@ struct ContentView: View {
                 sessionActions.onToggleTimer = { [self] session in handleTimerToggle(for: session) }
                 sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
                 sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
+                // Seed the set of known sessions so the first goal added after
+                // launch is correctly detected as a new arrival.
+                knownSessionIDs = Set(sessions.map { $0.id.uuidString })
                 setupOnAppear()
                 await permissionsViewModel.refresh()
             }
@@ -229,6 +239,7 @@ struct ContentView: View {
                 }
                 backgroundTasks.removeAll()
                 planningViewModel.planningTask?.cancel()
+                arrivalTask?.cancel()
                 viewModel.cleanup()
             }
             .onChange(of: goals) { old, new in
@@ -240,6 +251,7 @@ struct ContentView: View {
                 // Using _sessions (the @Query) instead of computed sessions
                 // to avoid creating intermediate arrays for the equality check
                 goalStore.sessions = sessions
+                detectAndAnimateArrival()
             }
 #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -414,40 +426,37 @@ struct ContentView: View {
 
     private var mainListView: some View {
         ScrollViewReader { proxy in
-        List {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 16) {
 
-            Section {
-                
-            } header: {
-                Spacer()
+                // Reserve space behind the floating header overlay
+                Color.clear
                     .frame(height: 60)
-            }
-            if !focusFilteredSessions.isEmpty {
-                // Show daily progress card once user has saved at least one session
-                Section {
-                
-                } footer: {
-                    Spacer()
-                        .frame(height: LayoutConstants.Heights.smallSpacer)
-                }
-            } 
-            // Inline permissions prompt — shown when any permission is undetermined
-            if permissionsViewModel.hasAnyUndetermined {
-                Section {
+
+                // Inline permissions prompt — shown when any permission is undetermined
+                if permissionsViewModel.hasAnyUndetermined {
                     PermissionsPromptCard(viewModel: permissionsViewModel)
-                        .listRowInsets(EdgeInsets())
                 }
-                .listSectionSpacing(.compact)
-            }
-            
-            if !focusFilteredSessions.isEmpty {
-                ForEach(contextualSections) { section in
-                    contextualSectionView(section: section)
+
+                if !focusFilteredSessions.isEmpty {
+                    ForEach(contextualSections) { section in
+                        contextualSectionView(section: section)
+                    }
+                } else {
+                    emptyStateView
                 }
-            } else {
-                emptyStateView
+
+                // Bottom inset so content clears the bottom bar sheet
+                Color.clear
+                    .frame(height: 120)
             }
+            .padding(.horizontal)
+            // Only animate while a new session is arriving, so routine
+            // re-rankings don't cause the whole list to shuffle visibly.
+            .animation(arrivingSessionID != nil ? AnimationPresets.smoothSpring : nil,
+                       value: sessionOrderKey)
         }
+        .swipeActionsContainerIfAvailable()
         .trackScrollOffset($scrollOffset)
         .onAppear { scrollProxy = proxy }
         } // ScrollViewReader
@@ -512,7 +521,7 @@ struct ContentView: View {
     
     @ViewBuilder
     private var emptyStateView: some View {
-        Section {
+        VStack(spacing: 28) {
             VStack(spacing: 20) {
                 // Decorative circle with plus icon
                 ZStack {
@@ -527,18 +536,18 @@ struct ContentView: View {
                         .foregroundStyle(.pink.opacity(0.6))
                 }
                 .padding(.top, 8)
-                
+
                 VStack(spacing: 8) {
                     Text("What do you want\nto make time for?")
                         .font(.title2.bold())
                         .multilineTextAlignment(.center)
-                    
+
                     Text("Add your first goal and Momentum\nwill find the right moments for it.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                
+
                 // iCloud sync status
                 if let status = iCloudSyncStatus {
                     HStack(spacing: 10) {
@@ -546,7 +555,7 @@ struct ContentView: View {
                             .font(.subheadline)
                             .foregroundStyle(status.color)
                             .symbolEffect(.pulse, isActive: status.isPulsing)
-                        
+
                         VStack(alignment: .leading, spacing: 1) {
                             Text(status.title)
                                 .font(.caption)
@@ -563,51 +572,58 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .padding(.top, 8)
             .task {
                 await checkICloudSyncStatus()
             }
-        }
-        
-        Section {
-            ForEach(starterSuggestions, id: \.template.id) { item in
-                HStack(spacing: 14) {
-                    // Gradient icon circle
-                    ZStack {
-                        Circle()
-                            .fill(item.category.themePreset.gradient(for: colorScheme))
-                            .frame(width: 40, height: 40)
-                        
-                        Image(systemName: item.template.icon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Start with one")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 8) {
+                    ForEach(starterSuggestions, id: \.template.id) { item in
+                        HStack(spacing: 14) {
+                            // Gradient icon circle
+                            ZStack {
+                                Circle()
+                                    .fill(item.category.themePreset.gradient(for: colorScheme))
+                                    .frame(width: 40, height: 40)
+
+                                Image(systemName: item.template.icon)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.template.title)
+                                    .font(.subheadline.bold())
+
+                                Text("\(item.category.name) · \(item.template.duration)m")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                openEditorWithTemplate(id: item.template.id)
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.secondary.opacity(0.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)
+                        .background(sessionCardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.template.title)
-                            .font(.subheadline.bold())
-                        
-                        Text("\(item.category.name) · \(item.template.duration)m")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        openEditorWithTemplate(id: item.template.id)
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary.opacity(0.5))
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 4)
             }
-        } header: {
-            Text("Start with one")
         }
     }
     
@@ -653,22 +669,13 @@ struct ContentView: View {
     private func contextualSectionView(section: ContextualSection) -> some View {
         if case .recommendedNow = section.type {
             // Recommended Now section with TOP PICKS header
-            Section {
-            } header: {
-                HStack {
-                    Text("This Moment")
-                        .font(.subheadline.weight(.bold))
-                    Spacer()
-                }
-            }
-            .id(section.id)
-            .listSectionSpacing(.compact)
-            .onAppear { trackSectionAppeared(section) }
-            .onDisappear { trackSectionDisappeared(section) }
-            
-            // Individual featured cards
-            ForEach(Array(section.sessions.enumerated()), id: \.element.id) { index, session in
-                Section {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("This Moment")
+                    .font(.subheadline.weight(.bold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Individual featured cards
+                ForEach(Array(section.sessions.enumerated()), id: \.element.id) { index, session in
                     RecommendedSessionRowView(
                         session: session,
                         day: day,
@@ -678,22 +685,31 @@ struct ContentView: View {
                         selectedSession: $navigation.selectedSession,
                         sessionToLogManually: $navigation.sessionToLogManually
                     )
+                    .background(
+                        session.theme.gradient(for: colorScheme)
+                            .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+                    )
+                    .modifier(SessionArrivalModifier(
+                        isArriving: arrivingSessionID == session.id.uuidString,
+                        tint: session.theme.foregroundColor(for: colorScheme),
+                        cornerRadius: 25
+                    ))
+                    .id(session.id.uuidString)
                 }
-                .listSectionSpacing(.compact)
             }
+            .id(section.id)
+            .onAppear { trackSectionAppeared(section) }
+            .onDisappear { trackSectionDisappeared(section) }
         } else {
             collapsibleSection(section: section)
         }
     }
-    
+
     private func collapsibleSection(section: ContextualSection) -> some View {
         let isCompletedSection = section.type == .completed
-        
-        return Section {
-            ForEach(section.sessions) { session in
-                sessionRow(for: session, isCompleted: isCompletedSection)
-            }
-        } header: {
+
+        return VStack(alignment: .leading, spacing: 8) {
+            // Header
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     if let icon = section.type.icon {
@@ -704,7 +720,7 @@ struct ContentView: View {
                         .font(.headline)
                     Spacer()
                 }
-                
+
                 if let explanation = section.explanation {
                     Text(explanation)
                         .font(.caption)
@@ -712,11 +728,40 @@ struct ContentView: View {
                 }
             }
             .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions")
+
+            // Rows, each as its own card so swipe actions stay independent
+            VStack(spacing: 8) {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session, isCompleted: isCompletedSection)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)
+                        .background(sessionCardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .modifier(SessionArrivalModifier(
+                            isArriving: arrivingSessionID == session.id.uuidString,
+                            tint: session.theme.color(for: colorScheme),
+                            cornerRadius: 16
+                        ))
+                        .id(session.id.uuidString)
+                }
+            }
         }
         .id(section.id)
-        .listSectionSpacing(.compact)
         .onAppear { trackSectionAppeared(section) }
         .onDisappear { trackSectionDisappeared(section) }
+    }
+
+    /// Card background for a standard session row, approximating the
+    /// inset-grouped List appearance the rows previously relied on.
+    private var sessionCardBackground: Color {
+        Color(.secondarySystemGroupedBackground)
+    }
+
+    /// A stable key describing the current session ordering. When a session is
+    /// inserted or removed this changes, which (combined with `arrivingSessionID`)
+    /// drives the make-room insertion animation.
+    private var sessionOrderKey: String {
+        sessions.map { $0.id.uuidString }.joined(separator: ",")
     }
     
     // MARK: - Section Visibility Tracking
@@ -912,6 +957,52 @@ struct ContentView: View {
     }
     
 
+    // MARK: - New Session Arrival Animation
+
+    /// Compares the current sessions against the ones we last knew about and,
+    /// if exactly one new session appeared (a freshly added goal), animates it
+    /// into its planned position.
+    private func detectAndAnimateArrival() {
+        let currentIDs = Set(sessions.map { $0.id.uuidString })
+        defer { knownSessionIDs = currentIDs }
+
+        // Don't animate the initial population.
+        guard !knownSessionIDs.isEmpty else { return }
+
+        let inserted = currentIDs.subtracting(knownSessionIDs)
+        // Only animate a single, user-driven addition — bulk inserts (e.g. plan
+        // generation) shouldn't trigger the arrival choreography.
+        guard inserted.count == 1, let newID = inserted.first else { return }
+
+        animateArrival(of: newID)
+    }
+
+    /// Stages the arrival: the planner has already placed the session at its
+    /// ideal spot, so we guide the eye there, let the surrounding rows make
+    /// room, and hold a highlight while it settles in.
+    private func animateArrival(of id: String) {
+        arrivalTask?.cancel()
+        arrivingSessionID = id
+        HapticFeedbackManager.trigger(.light)
+
+        arrivalTask = Task { @MainActor in
+            // Let the planner's recompute settle, then scroll its ideal spot
+            // into view so the make-room animation is visible.
+            try? await Task.sleep(for: .milliseconds(60))
+            guard !Task.isCancelled else { return }
+            withAnimation(AnimationPresets.smoothSpring) {
+                scrollProxy?.scrollTo(id, anchor: .center)
+            }
+
+            // Hold the highlight briefly while it settles, then fade it out.
+            try? await Task.sleep(for: .milliseconds(1100))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.45)) {
+                arrivingSessionID = nil
+            }
+        }
+    }
+
     // MARK: - HealthKit Integration
 
     func syncHealthKitData(userInitiated: Bool = false) {
@@ -923,6 +1014,50 @@ struct ContentView: View {
                 modelContext: modelContext,
                 userInitiated: userInitiated
             )
+        }
+    }
+}
+
+// MARK: - New Session Arrival Highlight
+
+/// Applies a transient glow/scale highlight to a row while a newly added
+/// session is settling into its planned spot, and provides the insertion
+/// transition used when the row first appears in the list.
+private struct SessionArrivalModifier: ViewModifier {
+    let isArriving: Bool
+    let tint: Color
+    var cornerRadius: CGFloat = 16
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(tint, lineWidth: 2)
+                    .opacity(isArriving ? 1 : 0)
+            }
+            .shadow(color: isArriving ? tint.opacity(0.45) : .clear,
+                    radius: isArriving ? 14 : 0)
+            .scaleEffect(isArriving ? 1.02 : 1)
+            .animation(AnimationPresets.smoothSpring, value: isArriving)
+            .transition(
+                .scale(scale: 0.85, anchor: .top)
+                    .combined(with: .opacity)
+            )
+    }
+}
+
+// MARK: - iOS 27 Swipe Actions Container
+
+extension View {
+    /// Enables `swipeActions` on rows inside a non-`List` scrollable container.
+    /// The container modifier is iOS 27+, so it is applied conditionally to keep
+    /// the iOS 26 deployment target building.
+    @ViewBuilder
+    func swipeActionsContainerIfAvailable() -> some View {
+        if #available(iOS 27.0, *) {
+            self.swipeActionsContainer()
+        } else {
+            self
         }
     }
 }
