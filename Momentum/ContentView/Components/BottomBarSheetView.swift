@@ -61,7 +61,7 @@ struct BottomBarSheetView: View {
             tabBar
                 .padding(.top, 8)
                 .padding(.horizontal, 16)
-                .padding(.bottom, isExpanded ? 8 : 0)
+                .padding(.bottom, isExpanded ? 8 : 4)
             
             // Expanded content — only when sheet is pulled up
             if isExpanded {
@@ -72,18 +72,14 @@ struct BottomBarSheetView: View {
                     get: { navigation.selectedBottomTab },
                     set: { navigation.selectedBottomTab = $0 }
                 )) {
-                    
                     nowPlayingContent
                         .tag(BottomBarTab.nowPlaying)
                     planTabContent
                         .tag(BottomBarTab.plan)
-                    
                     goalsTabContent
                         .tag(BottomBarTab.goals)
-                    
                     analyticsTabContent
                         .tag(BottomBarTab.analytics)
-                    
                     searchTabContent
                         .tag(BottomBarTab.search)
                 }

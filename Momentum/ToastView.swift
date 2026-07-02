@@ -33,49 +33,61 @@ struct ToastView: View {
     let onDismiss: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
-    @State private var offset: CGFloat = 100
+    @State private var offset: CGFloat = -300
     @State private var opacity: Double = 0
     
+    private var backgroundColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+    
     var body: some View {
-        HStack(spacing: 12) {
-            Text(config.message)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(colorScheme == .dark ? .black : .white)
-            
-            Spacer()
-            
-            if config.showUndo, let onUndo = config.onUndo {
-                Button(action: {
-                    onUndo()
-                    dismiss()
-                }) {
-                    Text("Undo")
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                // Fill the top safe area
+                backgroundColor
+                    .frame(height: geo.safeAreaInsets.top)
+                
+                // Toast message content
+                HStack(spacing: 12) {
+                    Text(config.message)
                         .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.blue)
+                        .fontWeight(.medium)
+                        .foregroundStyle(colorScheme == .dark ? .black : .white)
+                    
+                    Spacer()
+                    
+                    if config.showUndo, let onUndo = config.onUndo {
+                        Button(action: {
+                            onUndo()
+                            dismiss()
+                        }) {
+                            Text("Undo")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    Button(action: dismiss) {
+                        Image(systemName: "xmark")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(colorScheme == .dark ? .black.opacity(0.6) : .white.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(backgroundColor)
             }
-            
-            Button(action: dismiss) {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(colorScheme == .dark ? .black.opacity(0.6) : .white.opacity(0.6))
-            }
-            .buttonStyle(.plain)
+            .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 20, bottomTrailingRadius: 20))
+            .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
+            .ignoresSafeArea(edges: .top)
+            .offset(y: offset)
+            .opacity(opacity)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ? Color.white : Color.black)
-                .shadow(color: .black.opacity(0.2), radius: 12, y: 6)
-        }
-        .padding(.horizontal, 16)
-        .offset(y: offset)
-        .opacity(opacity)
+        .frame(height: 0, alignment: .top)
         .onAppear {
             withAnimation(AnimationPresets.smoothSpring) {
                 offset = 0
@@ -92,7 +104,7 @@ struct ToastView: View {
     
     private func dismiss() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
-            offset = 100
+            offset = -300
             opacity = 0
         }
         

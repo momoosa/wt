@@ -28,12 +28,10 @@ enum BottomBarTab: String, CaseIterable {
 }
 
 struct BottomBarDetent: CustomPresentationDetent {
-    // The system adds bottom safe area inset on top of the detent height.
-    // We want ~100pt of visible content, so subtract the safe area.
+    static let contentHeight: CGFloat = 105
+    
     static func height(in context: Context) -> CGFloat? {
-        // maxDetentValue is the full sheet height minus safe areas;
-        // use a small fraction to get a compact bar
-        return 120
+        return contentHeight
     }
 }
 

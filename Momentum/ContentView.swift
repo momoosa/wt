@@ -183,18 +183,16 @@ struct ContentView: View {
                     Spacer()
                 }
             }
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: .top) {
                 if let toastConfig = navigation.toastConfig {
-                    VStack {
-                        Spacer()
-                        ToastView(
-                            config: toastConfig,
-                            onDismiss: {
-                                self.navigation.toastConfig = nil
-                            }
-                        )
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    ToastView(
+                        config: toastConfig,
+                        onDismiss: {
+                            self.navigation.toastConfig = nil
+                        }
+                    )
+                    .ignoresSafeArea(edges: .top)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
             .sheet(isPresented: $navigation.isSearching) {
@@ -475,7 +473,9 @@ struct ContentView: View {
             .presentationDetents([.custom(BottomBarDetent.self), .large], selection: $navigation.bottomSheetDetent)
             .presentationDragIndicator(.hidden)
             .presentationBackgroundInteraction(.enabled(upThrough: .custom(BottomBarDetent.self)))
-            .presentationCornerRadius(24)
+            .presentationBackground(Color(.systemGroupedBackground))
+            .presentationCornerRadius(navigation.bottomSheetDetent == .large ? 24 : 0)
+            .presentationContentInteraction(.scrolls)
             .interactiveDismissDisabled()
         }
     }
