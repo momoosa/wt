@@ -81,6 +81,26 @@ struct ContextualSection: Identifiable {
             case .later: return .gray
             }
         }
+        
+        /// Whether this section can be collapsed/expanded by tapping the header
+        var isCollapsible: Bool {
+            switch self {
+            case .recommendedNow:
+                return false
+            case .weatherMatch, .later, .completed, .skipped:
+                return true
+            }
+        }
+        
+        /// Whether this section should start in a collapsed state
+        var startsCollapsed: Bool {
+            switch self {
+            case .skipped, .completed:
+                return true
+            case .recommendedNow, .weatherMatch, .later:
+                return false
+            }
+        }
     }
 }
 

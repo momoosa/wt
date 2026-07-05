@@ -132,6 +132,10 @@ class GoalEditorViewModel: Identifiable {
     var newChecklistItemTitle: String = ""
     var newChecklistItemNotes: String = ""
     
+    // MARK: - Interval Lists
+    
+    var intervalLists: [IntervalList] = []
+    
     // MARK: - Weather Triggers
     
     var weatherEnabled: Bool = false
@@ -412,6 +416,9 @@ class GoalEditorViewModel: Identifiable {
         
         // Load checklist items
         checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "", group: $0.group) } ?? []
+        
+        // Load interval lists
+        intervalLists = (goal.intervalLists ?? []).sorted { $0.orderIndex < $1.orderIndex }
         
         // Load tag/theme
         selectedGoalTheme = goal.primaryTag
@@ -1501,6 +1508,24 @@ class GoalEditorViewModel: Identifiable {
             modelContext.insert(checklistItem)
             goal.checklistItems?.append(checklistItem)
         }
+        
+        // ✅ Save interval lists
+        for (index, list) in intervalLists.enumerated() {
+            list.goal = goal
+            list.orderIndex = index
+            // Insert if not already tracked (new lists)
+            if list.modelContext == nil {
+                modelContext.insert(list)
+            }
+        }
+        // Remove any lists that were deleted from the editor
+        let currentListIDs = Set(intervalLists.map { $0.id })
+        for existingList in (goal.intervalLists ?? []) {
+            if !currentListIDs.contains(existingList.id) {
+                modelContext.delete(existingList)
+            }
+        }
+        goal.intervalLists = intervalLists
         
         print("\n✅ Goal \(isEditing ? "updated" : "saved") with schedule:")
         print(goal.scheduleSummary)

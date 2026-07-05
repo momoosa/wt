@@ -58,7 +58,11 @@ struct GoalEditorView: View {
     // Staggered section visibility
     @State private var showScheduleSection = false
     @State private var showSettingsSection = false
+    @State private var showIntervalsSection = false
     @State private var showNotesSection = false
+    
+    // Interval editor sheet
+    @State private var intervalListToEdit: IntervalList?
     
     // Keyboard tracking
     @State private var isKeyboardVisible = false
@@ -126,9 +130,22 @@ struct GoalEditorView: View {
                             ))
                         }
                         
-                        // Section 4: Notes & checklist
+                        // Section 4: Intervals
+                        if showIntervalsSection {
+                            editorSection(number: 4, title: "Intervals") {
+                                IntervalsEditorCard(vm: viewModel, onEdit: { list in
+                                    intervalListToEdit = list
+                                })
+                            }
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity
+                            ))
+                        }
+                        
+                        // Section 5: Notes & checklist
                         if showNotesSection {
-                            editorSection(number: 4, title: "Notes & checklist") {
+                            editorSection(number: 5, title: "Notes & checklist") {
                                 NotesChecklistCard(vm: viewModel)
                             }
                             .transition(.asymmetric(
@@ -154,6 +171,7 @@ struct GoalEditorView: View {
                     cardExpanded = false
                     showScheduleSection = false
                     showSettingsSection = false
+                    showIntervalsSection = false
                     showNotesSection = false
                 }
             }
@@ -209,6 +227,9 @@ struct GoalEditorView: View {
                 allGoals: allGoals
             )
         }
+        .sheet(item: $intervalListToEdit) { list in
+            IntervalsEditorView(list: list)
+        }
         .alert("Target Adjusted", isPresented: $viewModel.showingValidationAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -226,6 +247,7 @@ struct GoalEditorView: View {
                 cardExpanded = true
                 showScheduleSection = true
                 showSettingsSection = true
+                showIntervalsSection = true
                 showNotesSection = true
                 viewModel.computeRecommendedTarget(modelContext: modelContext)
             }
@@ -509,6 +531,9 @@ struct GoalEditorView: View {
             showSettingsSection = true
         }
         withAnimation(spring.delay(0.45)) {
+            showIntervalsSection = true
+        }
+        withAnimation(spring.delay(0.60)) {
             showNotesSection = true
         }
     }
@@ -548,6 +573,92 @@ struct GoalEditorView: View {
     }
 }
 
+
+// MARK: - Intervals Editor Card
+
+private struct IntervalsEditorCard: View {
+    @Bindable var vm: GoalEditorViewModel
+    var onEdit: (IntervalList) -> Void
+    
+    @Environment(\.modelContext) private var modelContext
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Existing interval lists
+            ForEach(vm.intervalLists) { list in
+                Button {
+                    onEdit(list)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "timer")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
+                            .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(list.name.isEmpty ? "Untitled Routine" : list.name)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.primary)
+                            
+                            let count = list.intervals?.count ?? 0
+                            Text("\(count) interval\(count == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) {
+                        if let index = vm.intervalLists.firstIndex(where: { $0.id == list.id }) {
+                            let removed = vm.intervalLists.remove(at: index)
+                            modelContext.delete(removed)
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                
+                if list.id != vm.intervalLists.last?.id {
+                    Divider()
+                        .padding(.leading, 56)
+                }
+            }
+            
+            // Add button
+            Button {
+                let newList = IntervalList(name: "", orderIndex: vm.intervalLists.count)
+                modelContext.insert(newList)
+                vm.intervalLists.append(newList)
+                onEdit(newList)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Add Interval Routine")
+                        .font(.subheadline.weight(.medium))
+                }
+                .foregroundStyle(Color.accentColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
 
 // MARK: - Color Extension for Contrast
 

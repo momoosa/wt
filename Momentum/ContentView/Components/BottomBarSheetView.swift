@@ -25,36 +25,41 @@ struct BottomBarSheetView: View {
     let onToggleTimer: (GoalSession) -> Void
     
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.sheetProgress) private var sheetProgress
     @Environment(GoalStore.self) private var goalStore
     @Query private var goals: [Goal]
     
     @State private var calendarEvents: [EKEvent] = []
     
     private var isExpanded: Bool {
-        navigation.bottomSheetDetent == .large
+        navigation.bottomSheetExpanded
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Now playing bar (if active)
-            if let timerManager,
-               let activeSession = timerManager.activeSession,
-               let session = sessions.first(where: { $0.id == activeSession.id }) {
-                nowPlayingBar(session: session, details: activeSession)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .transition(.asymmetric(
-                        insertion: .push(from: .bottom),
-                        removal: .push(from: .top)
-                    ))
-            } else {
-                // Context info row (idle)
-                contextInfoRow
-                    .padding(.top, 4)
-                    .transition(.asymmetric(
-                        insertion: .push(from: .top),
-                        removal: .push(from: .bottom)
-                    ))
+            // Now playing bar / context info — fades out as sheet expands
+            if !isExpanded {
+                Group {
+                    if let timerManager,
+                       let activeSession = timerManager.activeSession,
+                       let session = sessions.first(where: { $0.id == activeSession.id }) {
+                        nowPlayingBar(session: session, details: activeSession)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 4)
+                            .transition(.asymmetric(
+                                insertion: .push(from: .bottom),
+                                removal: .push(from: .top)
+                            ))
+                    } else {
+                        contextInfoRow
+                            .padding(.top, 4)
+                            .transition(.asymmetric(
+                                insertion: .push(from: .top),
+                                removal: .push(from: .bottom)
+                            ))
+                    }
+                }
+                .opacity(max(1.0 - sheetProgress * 3.0, 0.0))
             }
             
             // Tab bar — always visible
@@ -63,10 +68,11 @@ struct BottomBarSheetView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, isExpanded ? 8 : 4)
             
-            // Expanded content — only when sheet is pulled up
+            // Expanded content — only loaded when expanded
             if isExpanded {
                 Divider()
                     .padding(.horizontal, 20)
+                    .opacity(sheetProgress)
                 
                 TabView(selection: Binding(
                     get: { navigation.selectedBottomTab },
@@ -84,6 +90,7 @@ struct BottomBarSheetView: View {
                         .tag(BottomBarTab.search)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .opacity(sheetProgress)
             }
         }
         .animation(.easeInOut(duration: 0.35), value: timerManager?.activeSession != nil)
@@ -205,7 +212,7 @@ struct BottomBarSheetView: View {
                     } else {
                         navigation.selectedBottomTab = tab
                         withAnimation {
-                            navigation.bottomSheetDetent = .large
+                            navigation.bottomSheetExpanded = true
                         }
                     }
                 } label: {
@@ -230,7 +237,7 @@ struct BottomBarSheetView: View {
     
     private func nowPlayingBar(session: GoalSession, details: ActiveSessionDetails) -> some View {
         Button {
-            navigation.bottomSheetDetent = .custom(BottomBarDetent.self)
+            navigation.bottomSheetExpanded = false
             navigation.showNowPlaying = true // TODO: Remove
             if isExpanded {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -239,7 +246,7 @@ struct BottomBarSheetView: View {
             } else {
                 navigation.selectedBottomTab = .nowPlaying
                 withAnimation {
-                    navigation.bottomSheetDetent = .large
+                    navigation.bottomSheetExpanded = true
                 }
             }
         } label: {
@@ -274,7 +281,7 @@ struct BottomBarSheetView: View {
                 // Pause / Stop
                 HStack(spacing: 6) {
                     Button {
-                        navigation.bottomSheetDetent = .custom(BottomBarDetent.self)
+                        navigation.bottomSheetExpanded = false
                         navigation.showNowPlaying = true
                     } label: {
                         Image(systemName: "pause.fill")
@@ -889,7 +896,13 @@ struct BottomBarSheetView: View {
     private var nowPlayingContent: some View {
         
         if let timerManager, let activeSession = timerManager.activeSession, let session = sessions.first(where: { $0.id == activeSession.id }) {
-            NowPlayingView(session: session, activeSessionDetails: activeSession) {
+            NowPlayingView(
+                session: session,
+                activeSessionDetails: activeSession,
+                currentIntervalName: timerManager.currentIntervalName,
+                intervalProgress: timerManager.intervalProgress,
+                intervalTimeRemaining: timerManager.intervalTimeRemaining
+            ) {
                 onToggleTimer(session)
             }
         } else {

@@ -56,7 +56,6 @@ struct GoalSessionDetailView: View {
     }
     let historicalSessionLimit = 3
     @State private var isShowingIntervalsEditor = false
-    @State private var editGoalViewModel: GoalEditorViewModel?
     // Interval playback state
     @State private var activeIntervalID: String? = nil
     @State private var intervalStartDate: Date? = nil
@@ -424,7 +423,7 @@ struct GoalSessionDetailView: View {
                                 onSkip: { toggleSkip() },
                                 onManualLog: { isCreatingNewHistoricalSession = true },
                                 onGoalTap: {
-                                    editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+                                    NotificationCenter.default.post(name: NSNotification.Name("OpenGoalEditor"), object: GoalEditorViewModel(existingGoal: goal))
                                 }
                             )
                             .padding(.horizontal, 16)
@@ -492,7 +491,7 @@ struct GoalSessionDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+                    NotificationCenter.default.post(name: NSNotification.Name("OpenGoalEditor"), object: GoalEditorViewModel(existingGoal: goal))
                 } label: {
                     Image(systemName: "pencil.circle.fill")
                         .symbolRenderingMode(.hierarchical)
@@ -509,9 +508,6 @@ struct GoalSessionDetailView: View {
         }
         .sheet(isPresented: $showingPremiumPaywall) {
             PremiumPaywallSheet()
-        }
-        .sheet(item: $editGoalViewModel) { vm in
-            GoalEditorView(viewModel: vm)
         }
         .sheet(item: $editingHistoricalSession) { historicalSession in
             HistoricalSessionEditorView(session: historicalSession)
@@ -712,7 +708,7 @@ struct GoalSessionDetailView: View {
             GoalWeeklyBarChart(dailyMinutes: thisWeekDailyMinutes, barColor: textColor)
             
             Button {
-                editGoalViewModel = GoalEditorViewModel(existingGoal: goal)
+                NotificationCenter.default.post(name: NSNotification.Name("OpenGoalEditor"), object: GoalEditorViewModel(existingGoal: goal))
             } label: {
                 HStack {
                     Text(goal.title)
@@ -934,6 +930,9 @@ struct GoalSessionDetailView: View {
             
             // Checklist
             checklistSection
+            
+            // Intervals
+            intervalSection
         }
         .padding(.horizontal, 16)
     }
@@ -1696,6 +1695,108 @@ struct GoalSessionDetailView: View {
         }
         
         return groups
+    }
+    
+    // MARK: - Interval Section
+    
+    @ViewBuilder
+    private var intervalSection: some View {
+        if let intervalLists = session?.intervalLists, !intervalLists.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("INTERVALS")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    Text("\(intervalLists.count) \(intervalLists.count == 1 ? "routine" : "routines")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                ForEach(intervalLists, id: \.id) { listSession in
+                    let intervals = (listSession.intervals ?? []).sorted {
+                        ($0.interval?.orderIndex ?? 0) < ($1.interval?.orderIndex ?? 0)
+                    }
+                    let totalSeconds = intervals.reduce(0) { $0 + ($1.interval?.durationSeconds ?? 0) }
+                    let completedCount = intervals.filter(\.isCompleted).count
+                    
+                    Button {
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("OpenIntervalFlow"),
+                            object: nil,
+                            userInfo: [
+                                "session": session as Any,
+                                "listSession": listSession
+                            ]
+                        )
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "list.bullet.rectangle.portrait")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(tintColor)
+                                .frame(width: 36, height: 36)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(tintColor.opacity(0.12))
+                                )
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(listSession.list?.name ?? "Interval Routine")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.primary)
+                                
+                                HStack(spacing: 4) {
+                                    Text("\(intervals.count) intervals")
+                                    Text("·")
+                                        .foregroundStyle(.tertiary)
+                                    Text(formatIntervalDuration(totalSeconds))
+                                    if completedCount > 0 {
+                                        Text("·")
+                                            .foregroundStyle(.tertiary)
+                                        Text("\(completedCount) done")
+                                            .foregroundStyle(.green)
+                                    }
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "play.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(tintColor)
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(.tertiarySystemGroupedBackground))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+        }
+    }
+    
+    private func formatIntervalDuration(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        if minutes > 0 && secs > 0 {
+            return "\(minutes)m \(secs)s"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "\(secs)s"
+        }
     }
     
     // MARK: - Actions

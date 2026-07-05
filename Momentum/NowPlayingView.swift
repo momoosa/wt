@@ -22,8 +22,14 @@ struct NowPlayingView: View {
     @State private var lastWeekProgress: Double?
     @State private var selectedPage = 0
     
+    
     var foregroundColor: Color {
         session.theme.foregroundColor(for: colorScheme)
+    }
+    
+    /// Theme accent color for the progress ring (vibrant hue instead of plain white)
+    private var ringColor: Color {
+        session.theme.color(for: colorScheme)
     }
     // Optional interval information
     let currentIntervalName: String?
@@ -86,6 +92,11 @@ struct NowPlayingView: View {
         return !items.isEmpty
     }
     
+    /// Whether there's scrollable content below the header (intervals or checklist)
+    private var hasScrollableContent: Bool {
+        hasIntervals || hasChecklist
+    }
+    
     var body: some View {
         ZStack {
             // Background gradient
@@ -96,27 +107,21 @@ struct NowPlayingView: View {
                 // FIXED: Top bar
                 topBarView
                 
-                if hasChecklist {
-                    // Segmented control
-                    segmentedControl
-                        .padding(.top, 12)
-                    
-                    // Paging TabView: Now Playing + Checklist
-                    TabView(selection: $selectedPage) {
-                        nowPlayingPage
-                            .tag(0)
-                        
-                        checklistPage
-                            .tag(1)
+                if hasScrollableContent {
+                    // Segmented control (if both intervals and checklist exist)
+                    if hasIntervals && hasChecklist {
+                        segmentedControl
+                            .padding(.top, 8)
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    
+                    // Sticky header + scrollable content
+                    nowPlayingScrollablePage
                 } else {
-                    // No checklist — just the now playing page
-                    nowPlayingPage
+                    // No intervals or checklist — original static layout
+                    nowPlayingStaticPage
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .task {
             lastWeekProgress = computeLastWeekProgress()
         }
@@ -139,7 +144,7 @@ struct NowPlayingView: View {
         let total = checklistItems.count
         
         return HStack(spacing: 0) {
-            segmentButton(title: "Now Playing", icon: "play.fill", page: 0)
+            segmentButton(title: "Intervals", icon: "list.bullet", page: 0)
             segmentButton(title: "\(completed)/\(total)", icon: "checklist", page: 1)
         }
         .background(foregroundColor.opacity(0.1), in: Capsule())
@@ -170,13 +175,25 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
     }
     
-    // MARK: - Now Playing Page
+    // MARK: - Now Playing Content
     
-    private var nowPlayingPage: some View {
+    /// Sorted work intervals from the goal's first interval list
+    private var goalIntervals: [Interval] {
+        guard let lists = session.goal?.intervalLists, let first = lists.sorted(by: { $0.orderIndex < $1.orderIndex }).first,
+              let intervals = first.intervals else { return [] }
+        return intervals.sorted { $0.orderIndex < $1.orderIndex }
+    }
+    
+    private var hasIntervals: Bool {
+        !goalIntervals.isEmpty || currentIntervalName != nil
+    }
+    
+    // MARK: - Static Page (no scrollable content)
+    
+    private var nowPlayingStaticPage: some View {
         VStack(spacing: 0) {
             Spacer()
             
-            // Goal title + target
             VStack(spacing: 6) {
                 Text(session.goal?.title ?? "Goal")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -190,70 +207,205 @@ struct NowPlayingView: View {
                     .foregroundStyle(foregroundColor.opacity(0.6))
             }
             
-            Spacer()
-                .frame(height: 32)
+            Spacer().frame(height: 32)
             
-            // Progress ring + timer
             progressRingView
             
-            // Current interval display (if active)
-            if let currentIntervalName, let intervalTimeRemaining, let intervalProgress {
-                VStack(spacing: 10) {
-                    Text(currentIntervalName)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(foregroundColor)
-                    
-                    Text(intervalTimeRemaining.formatted(style: .hmmss))
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(foregroundColor.opacity(0.9))
-                        .contentTransition(.numericText())
-                    
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(foregroundColor.opacity(0.15))
-                                .frame(height: 4)
-                            
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(foregroundColor.opacity(0.6))
-                                .frame(width: geometry.size.width * intervalProgress, height: 4)
-                                .animation(.linear(duration: 0.5), value: intervalProgress)
-                        }
-                    }
-                    .frame(height: 4)
-                }
-                .padding(.vertical, 16)
-                .padding(.horizontal, 24)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(foregroundColor.opacity(0.08))
-                )
-                .padding(.horizontal, 40)
-                .padding(.top, 24)
-            }
-            
             Spacer()
             
-            // Control buttons
             controlButtonsView
             
             Spacer()
         }
     }
     
-    // MARK: - Checklist Page
+    // MARK: - Scrollable Page (intervals and/or checklist)
     
-    private var checklistPage: some View {
+    private var nowPlayingScrollablePage: some View {
+        VStack(spacing: 0) {
+            // Compact header — always shown when there's a list
+            compactHeader
+            
+            // Scrollable list content
+            ScrollView {
+                VStack(spacing: 0) {
+                    if hasIntervals && hasChecklist {
+                        if selectedPage == 0 {
+                            intervalListContent
+                        } else {
+                            checklistContent
+                        }
+                    } else if hasIntervals {
+                        intervalListContent
+                    } else if hasChecklist {
+                        checklistContent
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Compact Header (horizontal layout)
+    
+    private var compactHeader: some View {
+        HStack(spacing: 16) {
+            // Small progress ring on the left
+            progressRingView
+                .scaleEffect(0.35)
+                .frame(width: 100, height: 100)
+            
+            // Title + interval info in the middle
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.goal?.title ?? "Goal")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(foregroundColor)
+                    .lineLimit(1)
+                
+                if let currentIntervalName {
+                    Text(currentIntervalName)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(foregroundColor.opacity(0.7))
+                        .lineLimit(1)
+                } else if isTimeBased {
+                    Text(elapsedFormatted)
+                        .font(.caption.weight(.medium).monospacedDigit())
+                        .foregroundStyle(foregroundColor.opacity(0.7))
+                }
+            }
+            
+            Spacer()
+            
+            // Compact controls on the right
+            HStack(spacing: 12) {
+                Button {
+                    HapticFeedbackManager.trigger(.medium)
+                    onStopTapped()
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(foregroundColor)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(foregroundColor.opacity(0.15)))
+                }
+                
+                Button {
+                    HapticFeedbackManager.trigger(.medium)
+                    onStopTapped()
+                } label: {
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(session.theme.gradient(for: colorScheme))
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(foregroundColor)
+                        )
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+    }
+    
+    private func intervalBadge(name: String) -> some View {
+        HStack(spacing: 8) {
+            Text(name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(foregroundColor)
+            
+            if let intervalProgress {
+                Text("\(Int(intervalProgress * 100))%")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(foregroundColor.opacity(0.6))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(foregroundColor.opacity(0.1), in: Capsule())
+    }
+    
+    // MARK: - Interval List Content
+    
+    private var intervalListContent: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(goalIntervals.enumerated()), id: \.element.id) { index, interval in
+                nowPlayingIntervalRow(interval, index: index)
+                
+                if index < goalIntervals.count - 1 {
+                    Divider()
+                        .foregroundStyle(foregroundColor.opacity(0.1))
+                        .padding(.leading, 56)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .background(foregroundColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 40)
+    }
+    
+    private func nowPlayingIntervalRow(_ interval: Interval, index: Int) -> some View {
+        let isCurrent = currentIntervalName?.contains(interval.name) == true
+        
+        return HStack(spacing: 12) {
+            // Numbered circle
+            ZStack {
+                Circle()
+                    .fill(isCurrent ? foregroundColor : foregroundColor.opacity(0.08))
+                    .frame(width: 32, height: 32)
+                
+                Text("\(index + 1)")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(
+                        isCurrent
+                            ? AnyShapeStyle(session.theme.gradient(for: colorScheme))
+                            : AnyShapeStyle(foregroundColor.opacity(0.6))
+                    )
+            }
+            
+            // Name
+            Text(interval.name.isEmpty ? "Interval \(index + 1)" : interval.name)
+                .font(.subheadline.weight(isCurrent ? .semibold : .medium))
+                .foregroundStyle(foregroundColor.opacity(isCurrent ? 1 : 0.8))
+                .lineLimit(1)
+            
+            Spacer()
+            
+            // Duration
+            Text(formatIntervalDuration(interval.durationSeconds))
+                .font(.subheadline.weight(.medium).monospacedDigit())
+                .foregroundStyle(foregroundColor.opacity(isCurrent ? 0.8 : 0.5))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            isCurrent ? foregroundColor.opacity(0.12) : Color.clear
+        )
+    }
+    
+    private func formatIntervalDuration(_ seconds: Int) -> String {
+        let min = seconds / 60
+        let sec = seconds % 60
+        if min > 0 && sec > 0 {
+            return "\(min)m \(sec)s"
+        } else if min > 0 {
+            return "\(min)m"
+        } else {
+            return "\(sec)s"
+        }
+    }
+    
+    // MARK: - Checklist Content
+    
+    private var checklistContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Checklist header with progress
             if let items = session.checklist, !items.isEmpty {
                 let completed = items.filter(\.isCompleted).count
                 let total = items.count
                 
                 HStack {
                     Text("Checklist")
-                        .font(.title2.bold())
+                        .font(.headline)
                         .foregroundStyle(foregroundColor)
                     
                     Spacer()
@@ -263,13 +415,10 @@ struct NowPlayingView: View {
                         .foregroundStyle(foregroundColor.opacity(0.6))
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
                 .padding(.bottom, 12)
                 
-                ScrollView {
-                    nowPlayingChecklist(items: items)
-                        .padding(.bottom, 32)
-                }
+                nowPlayingChecklist(items: items)
+                    .padding(.bottom, 40)
             }
         }
     }
@@ -327,7 +476,7 @@ struct NowPlayingView: View {
             // Background ring
             Circle()
                 .stroke(
-                    foregroundColor.opacity(0.15),
+                    ringColor.opacity(0.2),
                     lineWidth: lineWidth
                 )
                 .frame(width: ringSize, height: ringSize)
@@ -336,7 +485,7 @@ struct NowPlayingView: View {
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        foregroundColor.opacity(0.8),
+                        ringColor,
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     )
                     .frame(width: ringSize, height: ringSize)
@@ -348,7 +497,7 @@ struct NowPlayingView: View {
                 
                 Circle()
                     .stroke(
-                        foregroundColor.opacity(0.8),
+                        ringColor,
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     )
                     .frame(width: ringSize, height: ringSize)
@@ -356,7 +505,7 @@ struct NowPlayingView: View {
                 Circle()
                     .trim(from: 0, to: displayFraction)
                     .stroke(
-                        foregroundColor.opacity(0.8),
+                        ringColor,
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     )
                     .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 0)
@@ -373,7 +522,7 @@ struct NowPlayingView: View {
                 let radius = (ringSize / 2) + lineWidth / 2 + 8
                 
                 Triangle()
-                    .fill(foregroundColor.opacity(0.5))
+                    .fill(ringColor.opacity(0.5))
                     .frame(width: 10, height: 8)
                     .rotationEffect(.degrees(90) + angle)
                     .offset(

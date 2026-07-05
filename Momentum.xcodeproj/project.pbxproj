@@ -97,6 +97,13 @@
 		CD713B212F20261B003F901D /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD713B202F20261B003F901D /* NowPlayingView.swift */; };
 		CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7578E32F5AD039003D7CFE /* WeatherManager.swift */; };
 		CD88457B2FC33CE50046F456 /* TagManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD88457A2FC33CE50046F456 /* TagManagementView.swift */; };
+		CD89A61C2FF6F09A000CCF9D /* IntervalTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A61B2FF6F09A000CCF9D /* IntervalTimerManager.swift */; };
+		CD89A61E2FF6F0DC000CCF9D /* IntervalSessionOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A61D2FF6F0DC000CCF9D /* IntervalSessionOverview.swift */; };
+		CD89A6202FF6F0DD000CCF9D /* IntervalPlaybackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */; };
+		CD89A6222FF6F0FA000CCF9D /* IntervalCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */; };
+		CD89A6242FF6F10C000CCF9D /* IntervalFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */; };
+		CD89A6282FF78BCA000CCF9D /* UIKitBottomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6272FF78BC9000CCF9D /* UIKitBottomSheet.swift */; };
+		CD89A62A2FF793B7000CCF9D /* BottomBarOverlayPoC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6292FF793B7000CCF9D /* BottomBarOverlayPoC.swift */; };
 		CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA2DD702FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */; };
@@ -319,6 +326,13 @@
 		CD75CC6C2E2FE5E700890F20 /* MomentumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD75CC762E2FE5E800890F20 /* MomentumUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MomentumUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CD88457A2FC33CE50046F456 /* TagManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagManagementView.swift; sourceTree = "<group>"; };
+		CD89A61B2FF6F09A000CCF9D /* IntervalTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalTimerManager.swift; sourceTree = "<group>"; };
+		CD89A61D2FF6F0DC000CCF9D /* IntervalSessionOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalSessionOverview.swift; sourceTree = "<group>"; };
+		CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalPlaybackView.swift; sourceTree = "<group>"; };
+		CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCompletionView.swift; sourceTree = "<group>"; };
+		CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalFlowView.swift; sourceTree = "<group>"; };
+		CD89A6272FF78BC9000CCF9D /* UIKitBottomSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitBottomSheet.swift; sourceTree = "<group>"; };
+		CD89A6292FF793B7000CCF9D /* BottomBarOverlayPoC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarOverlayPoC.swift; sourceTree = "<group>"; };
 		CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorCard.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
@@ -761,6 +775,12 @@
 				CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */,
 				CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */,
 				CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */,
+				CD89A61B2FF6F09A000CCF9D /* IntervalTimerManager.swift */,
+				CD89A61D2FF6F0DC000CCF9D /* IntervalSessionOverview.swift */,
+				CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */,
+				CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */,
+				CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */,
+				CD89A6292FF793B7000CCF9D /* BottomBarOverlayPoC.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -788,6 +808,7 @@
 				CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */,
 				CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */,
 				CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */,
+				CD89A6272FF78BC9000CCF9D /* UIKitBottomSheet.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1133,9 +1154,11 @@
 				CD199C1B2FD0981C00CA3AB7 /* RelevanceRuleSummaryRow.swift in Sources */,
 				CD1D0F652F84600100A36562 /* ColorPickerSheet.swift in Sources */,
 				CD174ABA2F2381030032DDEF /* ProgressSummaryCardWrapper.swift in Sources */,
+				CD89A6242FF6F10C000CCF9D /* IntervalFlowView.swift in Sources */,
 				CD0F3CC52EEF249E00119B86 /* ListsOverviewView.swift in Sources */,
 				CD134DE62F4243B0004BF35F /* RemindersImportView.swift in Sources */,
 				CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */,
+				CD89A61E2FF6F0DC000CCF9D /* IntervalSessionOverview.swift in Sources */,
 				CDBE14492F85126B00B7FCD6 /* WeatherConfigSection.swift in Sources */,
 				CD2A6FBD2F576B8500F5503A /* AnimationPresets.swift in Sources */,
 				CD7578E42F5AD039003D7CFE /* WeatherManager.swift in Sources */,
@@ -1158,6 +1181,7 @@
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
 				CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */,
 				CDBE15002F86446E00B7FCD6 /* ThemeSelectionSection.swift in Sources */,
+				CD89A61C2FF6F09A000CCF9D /* IntervalTimerManager.swift in Sources */,
 				CDBE14552F85155D00B7FCD6 /* IconButton.swift in Sources */,
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
@@ -1168,7 +1192,9 @@
 				CDD5A9662FE5C2E600C5E968 /* SubscriptionManager.swift in Sources */,
 				CD134DE42F42439C004BF35F /* RemindersManager.swift in Sources */,
 				CD6A0C2B2F899624008F5D93 /* ToastMessageFactory.swift in Sources */,
+				CD89A6202FF6F0DD000CCF9D /* IntervalPlaybackView.swift in Sources */,
 				CD0085AB2F1B94D100A555D6 /* DailyPlannerView.swift in Sources */,
+				CD89A6222FF6F0FA000CCF9D /* IntervalCompletionView.swift in Sources */,
 				CD5ADA4A2F7BA33D000C0FD8 /* ScreenTimeManager.swift in Sources */,
 				CDEBAA3A2EE9FA1000C1C411 /* ContentView.swift in Sources */,
 				CDBE144B2F85126C00B7FCD6 /* ChecklistSection.swift in Sources */,
@@ -1215,8 +1241,10 @@
 				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
+				CD89A6282FF78BCA000CCF9D /* UIKitBottomSheet.swift in Sources */,
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
+				CD89A62A2FF793B7000CCF9D /* BottomBarOverlayPoC.swift in Sources */,
 				CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */,

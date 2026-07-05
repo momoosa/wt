@@ -84,6 +84,9 @@ struct ContentView: View {
     @State private var visibleSectionIDs: Set<String> = []
     @State private var scrollProxy: ScrollViewProxy?
     
+    // Sections that are currently collapsed (minimised)
+    @State private var collapsedSectionIDs: Set<String> = []
+    
     // Scroll offset for collapsing header
     @State var scrollOffset: CGFloat = 0
     
@@ -318,6 +321,22 @@ struct ContentView: View {
             .sheet(item: $navigation.sessionToLogManually) { session in
                 manualLogSheet(for: session)
             }
+            .fullScreenCover(isPresented: $navigation.showIntervalFlow) {
+                if let session = navigation.intervalFlowSession,
+                   let listSession = navigation.intervalFlowListSession,
+                   let timerManager = timerManager,
+                   let day = session.day {
+                    IntervalFlowView(
+                        session: session,
+                        listSession: listSession,
+                        timerManager: timerManager,
+                        day: day,
+                        onDismiss: {
+                            navigation.showIntervalFlow = false
+                        }
+                    )
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSessionFromWidget"))) { notification in
                 if let sessionID = notification.object as? String {
                     handleDeepLink(sessionID: sessionID)
@@ -340,6 +359,20 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SyncChecklistToSessions"))) { notification in
                 if let goal = notification.object as? Goal {
                     syncChecklistToSessions(for: goal)
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenGoalEditor"))) { notification in
+                if let vm = notification.object as? GoalEditorViewModel {
+                    goalEditorViewModel = vm
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenIntervalFlow"))) { notification in
+                if let userInfo = notification.userInfo,
+                   let session = userInfo["session"] as? GoalSession,
+                   let listSession = userInfo["listSession"] as? IntervalListSession {
+                    navigation.intervalFlowSession = session
+                    navigation.intervalFlowListSession = listSession
+                    navigation.showIntervalFlow = true
                 }
             }
             .navigationDestination(item: $navigation.selectedSession) { session in
@@ -445,6 +478,14 @@ struct ContentView: View {
             } else {
                 emptyStateView
             }
+            
+            // Bottom spacer so content isn't hidden behind the bottom sheet
+            Section {
+            } footer: {
+                Spacer()
+                    .frame(height: 120)
+            }
+            .listSectionSpacing(.compact)
         }
         .trackScrollOffset($scrollOffset)
         .onAppear { scrollProxy = proxy }
@@ -456,7 +497,7 @@ struct ContentView: View {
             syncHealthKitData(userInitiated: true)
             refreshGoals()
         }
-        .sheet(isPresented: .constant(true)) {
+        .uiKitBottomSheet(isExpanded: $navigation.bottomSheetExpanded) {
             BottomBarSheetView(
                 navigation: navigation,
                 day: day,
@@ -470,13 +511,7 @@ struct ContentView: View {
                 calendarEventStore: calendarEventStore,
                 onToggleTimer: { session in handleTimerToggle(for: session) }
             )
-            .presentationDetents([.custom(BottomBarDetent.self), .large], selection: $navigation.bottomSheetDetent)
-            .presentationDragIndicator(.hidden)
-            .presentationBackgroundInteraction(.enabled(upThrough: .custom(BottomBarDetent.self)))
-            .presentationBackground(Color(.systemGroupedBackground))
-            .presentationCornerRadius(navigation.bottomSheetDetent == .large ? 24 : 0)
-            .presentationContentInteraction(.scrolls)
-            .interactiveDismissDisabled()
+            .environment(goalStore)
         }
     }
     
@@ -688,34 +723,68 @@ struct ContentView: View {
     
     private func collapsibleSection(section: ContextualSection) -> some View {
         let isCompletedSection = section.type == .completed
+        let isCollapsed = collapsedSectionIDs.contains(section.id)
+        let canCollapse = section.type.isCollapsible
         
         return Section {
-            ForEach(section.sessions) { session in
-                sessionRow(for: session, isCompleted: isCompletedSection)
+            if !isCollapsed {
+                ForEach(section.sessions) { session in
+                    sessionRow(for: session, isCompleted: isCompletedSection)
+                }
             }
         } header: {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    if let icon = section.type.icon {
-                        Image(systemName: icon)
-                            .foregroundStyle(section.type.iconColor)
+            Button {
+                guard canCollapse else { return }
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    if isCollapsed {
+                        collapsedSectionIDs.remove(section.id)
+                    } else {
+                        collapsedSectionIDs.insert(section.id)
                     }
-                    Text(section.type.title)
-                        .font(.headline)
-                    Spacer()
                 }
-                
-                if let explanation = section.explanation {
-                    Text(explanation)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let icon = section.type.icon {
+                            Image(systemName: icon)
+                                .foregroundStyle(section.type.iconColor)
+                        }
+                        Text(section.type.title)
+                            .font(.headline)
+                        
+                        Text("\(section.sessions.count)")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        if canCollapse {
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                        }
+                    }
+                    
+                    if !isCollapsed, let explanation = section.explanation {
+                        Text(explanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions")
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions\(isCollapsed ? ", collapsed" : "")")
         }
         .id(section.id)
         .listSectionSpacing(.compact)
-        .onAppear { trackSectionAppeared(section) }
+        .onAppear {
+            trackSectionAppeared(section)
+            // Auto-collapse sections that should start minimised
+            if section.type.startsCollapsed && !collapsedSectionIDs.contains(section.id) {
+                collapsedSectionIDs.insert(section.id)
+            }
+        }
         .onDisappear { trackSectionDisappeared(section) }
     }
     

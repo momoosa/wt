@@ -27,14 +27,6 @@ enum BottomBarTab: String, CaseIterable {
     }
 }
 
-struct BottomBarDetent: CustomPresentationDetent {
-    static let contentHeight: CGFloat = 105
-    
-    static func height(in context: Context) -> CGFloat? {
-        return contentHeight
-    }
-}
-
 @Observable
 class NavigationState {
     // MARK: - Sheet Presentation
@@ -46,7 +38,7 @@ class NavigationState {
     
     // MARK: - Bottom Bar
     var selectedBottomTab: BottomBarTab = .plan
-    var bottomSheetDetent: PresentationDetent = .custom(BottomBarDetent.self)
+    var bottomSheetExpanded = false
     
     // MARK: - Session Selection
     var selectedSession: GoalSession?
@@ -60,6 +52,14 @@ class NavigationState {
     // MARK: - UI State
     var navigationPath = NavigationPath()
     var visibleSectionType: ContextualSection.SectionType?
+    
+    // MARK: - Interval Flow
+    var intervalFlowSession: GoalSession?
+    var intervalFlowListSession: IntervalListSession?
+    var showIntervalFlow = false
+    
+    // MARK: - Goal Editor (lifted to root so it can present from any context)
+    var goalEditorViewModel: GoalEditorViewModel?
     
     // MARK: - Celebration
     var celebrationData: CelebrationData?
@@ -75,7 +75,7 @@ class NavigationState {
         showSettings = false
         showNowPlaying = false
         showDayOverview = false
-        bottomSheetDetent = .custom(BottomBarDetent.self)
+        bottomSheetExpanded = false
         celebrationData = nil
     }
     
