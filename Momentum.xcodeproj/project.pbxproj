@@ -102,8 +102,6 @@
 		CD89A6202FF6F0DD000CCF9D /* IntervalPlaybackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */; };
 		CD89A6222FF6F0FA000CCF9D /* IntervalCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */; };
 		CD89A6242FF6F10C000CCF9D /* IntervalFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */; };
-		CD89A6282FF78BCA000CCF9D /* UIKitBottomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6272FF78BC9000CCF9D /* UIKitBottomSheet.swift */; };
-		CD89A62A2FF793B7000CCF9D /* BottomBarOverlayPoC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6292FF793B7000CCF9D /* BottomBarOverlayPoC.swift */; };
 		CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA2DD702FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */; };
@@ -115,6 +113,8 @@
 		CDA4436C2F372DB600DE984B /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436B2F372DB600DE984B /* SessionRowView.swift */; };
 		CDA4436E2F372F0C00DE984B /* RecommendedSessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */; };
 		CDA443702F377F3300DE984B /* GoalNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */; };
+		CDA9078D2FFAE37A001916DE /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA9078C2FFAE37A001916DE /* MiniPlayerView.swift */; };
+		CDA9078F2FFAE3DA001916DE /* PlanTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA9078E2FFAE3DA001916DE /* PlanTabView.swift */; };
 		CDBC06882F56C95400D87642 /* MomentumWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CDBC069A2F56C98600D87642 /* MomentumKit in Frameworks */ = {isa = PBXBuildFile; productRef = CDBC06992F56C98600D87642 /* MomentumKit */; };
 		CDBE14492F85126B00B7FCD6 /* WeatherConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE14482F85126B00B7FCD6 /* WeatherConfigSection.swift */; };
@@ -136,7 +136,6 @@
 		CDD5A9622FE5BEC400C5E968 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */; };
 		CDD5A9642FE5BF0200C5E968 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */; };
 		CDD5A9662FE5C2E600C5E968 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */; };
-		CDDADCE42FEC3D5B00FAE04F /* BottomBarSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */; };
 		CDDED65B2FE855C4008AAA4B /* CelebrationData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */; };
 		CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */; };
 		CDE0D70D2F75727400B6A06E /* ThemePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE0D70C2F75727400B6A06E /* ThemePreviewView.swift */; };
@@ -331,8 +330,6 @@
 		CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalPlaybackView.swift; sourceTree = "<group>"; };
 		CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCompletionView.swift; sourceTree = "<group>"; };
 		CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalFlowView.swift; sourceTree = "<group>"; };
-		CD89A6272FF78BC9000CCF9D /* UIKitBottomSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitBottomSheet.swift; sourceTree = "<group>"; };
-		CD89A6292FF793B7000CCF9D /* BottomBarOverlayPoC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarOverlayPoC.swift; sourceTree = "<group>"; };
 		CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorCard.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
@@ -346,6 +343,8 @@
 		CDA4436B2F372DB600DE984B /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436D2F372F0C00DE984B /* RecommendedSessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendedSessionRowView.swift; sourceTree = "<group>"; };
 		CDA4436F2F377F3300DE984B /* GoalNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalNotificationManager.swift; sourceTree = "<group>"; };
+		CDA9078C2FFAE37A001916DE /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
+		CDA9078E2FFAE3DA001916DE /* PlanTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTabView.swift; sourceTree = "<group>"; };
 		CDBC06682F56C95200D87642 /* MomentumWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MomentumWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDBC06742F56C95400D87642 /* MomentumWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDBC067E2F56C95400D87642 /* MomentumWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MomentumWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -376,7 +375,6 @@
 		CDD5A9632FE5BF0200C5E968 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		CDD6D19F2FBF685500133F88 /* MomentumKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = MomentumKit; sourceTree = "<group>"; };
-		CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarSheetView.swift; sourceTree = "<group>"; };
 		CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelebrationData.swift; sourceTree = "<group>"; };
 		CDDED65C2FE855C5008AAA4B /* SessionCompleteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompleteSheet.swift; sourceTree = "<group>"; };
 		CDE0D70B2F74478000B6A06E /* ShimmerEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
@@ -780,7 +778,6 @@
 				CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */,
 				CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */,
 				CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */,
-				CD89A6292FF793B7000CCF9D /* BottomBarOverlayPoC.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -807,8 +804,8 @@
 			children = (
 				CDF6E8FB2FB39F18008767D9 /* DailyProgressCardView.swift */,
 				CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */,
-				CDDADCE32FEC3D5B00FAE04F /* BottomBarSheetView.swift */,
-				CD89A6272FF78BC9000CCF9D /* UIKitBottomSheet.swift */,
+				CDA9078C2FFAE37A001916DE /* MiniPlayerView.swift */,
+				CDA9078E2FFAE3DA001916DE /* PlanTabView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1135,9 +1132,9 @@
 				CD1905DE2FD5780A00CA3AB7 /* DebugScoreView.swift in Sources */,
 				CD6A0C332F899C97008F5D93 /* HealthKitViewModel.swift in Sources */,
 				CDA2DD722FDF389E00FD0DA6 /* ScrollingHeaderView.swift in Sources */,
+				CDA9078D2FFAE37A001916DE /* MiniPlayerView.swift in Sources */,
 				CDEBAA462EE9FA3700C1C411 /* PermissionsHandler.swift in Sources */,
 				CDF6E9082FB3A506008767D9 /* SessionActions.swift in Sources */,
-				CDDADCE42FEC3D5B00FAE04F /* BottomBarSheetView.swift in Sources */,
 				CD1D0F6B2F84608700A36562 /* RemindersTab.swift in Sources */,
 				CD22C8162F3BB438001F2406 /* GoalFilterBar.swift in Sources */,
 				CD2A6FB72F576B5F00F5503A /* HapticFeedbackManager.swift in Sources */,
@@ -1241,13 +1238,12 @@
 				CDF6E9022FB39F44008767D9 /* SessionManagement.swift in Sources */,
 				CDEBAA3F2EE9FA1000C1C411 /* GoalSuggestion.swift in Sources */,
 				CD1A6C992F5F3C1D00AFA160 /* HistoricalSessionEditorView.swift in Sources */,
-				CD89A6282FF78BCA000CCF9D /* UIKitBottomSheet.swift in Sources */,
 				CD07E1382F6D505300D751D9 /* CalendarAvailabilityManager.swift in Sources */,
 				CDA398B32F5DA8B700E03D07 /* WatchConnectivityManager.swift in Sources */,
-				CD89A62A2FF793B7000CCF9D /* BottomBarOverlayPoC.swift in Sources */,
 				CDDED65D2FE855C5008AAA4B /* SessionCompleteSheet.swift in Sources */,
 				CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */,
 				CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */,
+				CDA9078F2FFAE3DA001916DE /* PlanTabView.swift in Sources */,
 				CD6A0C372F899D0C008F5D93 /* FilterService.swift in Sources */,
 				CDA398AD2F5D653500E03D07 /* CloudKitSyncStatusView.swift in Sources */,
 				CD07E13F2F6D738700D751D9 /* ConsolidatedTodayView.swift in Sources */,
@@ -1437,7 +1433,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -1484,7 +1480,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -1799,7 +1795,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.3;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;

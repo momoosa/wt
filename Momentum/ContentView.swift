@@ -111,292 +111,251 @@ struct ContentView: View {
         self._viewModel = State(initialValue: viewModel)
     }
 
-    var body: some View { 
-        mainListView
-            .environment(\.sessionActions, sessionActions)
-            .overlay(alignment: .top) {
-                VStack(spacing: 0) {
-                    ScrollingHeaderView(scrollOffset: scrollOffset) {
-                        HStack(spacing: 6) {
-                            Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            
-                            if showWeatherTile, let weather = weatherManager.currentWeather {
-                                HStack(spacing: 3) {
-                                    Image(systemName: weatherSymbol(for: weather.condition))
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
-                                    Text("\(Int(weather.temperature.value))°")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    } title: {
-                        Text(timeOfDayGreeting)
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                    } trailing: {
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                goalEditorViewModel = GoalEditorViewModel()
-                            }) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .frame(width: 34, height: 34)
-                                    .background(Circle().fill(Color.blue.opacity(0.12)))
-                            }
-                            .matchedTransitionSource(id: "info", in: animation)
-                            
-                            Button {
-                                navigation.showAllGoals = true
-                            } label: {
-                                Image(systemName: "target")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .frame(width: 34, height: 34)
-                                    .background(Circle().fill(Color.blue.opacity(0.12)))
-                            }
-                            
-                            Button {
-                                navigation.showSettings = true
-                            } label: {
-                                Image(systemName: "gear")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .frame(width: 34, height: 34)
-                                    .background(Circle().fill(Color.blue.opacity(0.12)))
-                            }
-                        }
-                    }
-
-                    if focusFilterStore.isFocusFilterActive {
-                        focusBanner
-                    }
-                    SectionPillBar(
-                        sections: contextualSections,
-                        visibleSectionType: navigation.visibleSectionType,
-                        onSectionTapped: { sectionType in
-                            if let section = contextualSections.first(where: { $0.type == sectionType }) {
-                                withAnimation {
-                                    scrollProxy?.scrollTo(section.id, anchor: .top)
-                                }
-                            }
-                        }
-                    )
-                    Spacer()
+    var body: some View {
+        TabView(selection: Binding(
+            get: { navigation.selectedTab },
+            set: { navigation.selectedTab = $0 }
+        )) {
+            // MARK: Home Tab
+            Tab("Home", systemImage: "house.fill", value: AppTab.home) {
+                NavigationStack {
+                    homeTabContent
                 }
             }
-            .overlay(alignment: .top) {
-                if let toastConfig = navigation.toastConfig {
-                    ToastView(
-                        config: toastConfig,
-                        onDismiss: {
-                            self.navigation.toastConfig = nil
-                        }
-                    )
-                    .ignoresSafeArea(edges: .top)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
-            .sheet(isPresented: $navigation.isSearching) {
-                searchSheet
-                    .navigationTransition(.zoom(sourceID: "searchButton", in: animation))
-            }
-            .toolbar(.hidden, for: .navigationBar)
-            .task {
-                // Configure shared session actions for child views
-                sessionActions.onSkip = { [self] session in skip(session: session) }
-                sessionActions.onToggleTimer = { [self] session in handleTimerToggle(for: session) }
-                sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
-                sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
-                setupOnAppear()
-                await permissionsViewModel.refresh()
-            }
-            .onChange(of: viewModel.isSyncingHealthKit) { _, newValue in
-                sessionActions.isSyncingHealthKit = newValue
-            }
-            .onChange(of: scenePhase) { oldPhase, newPhase in
-                if newPhase == .active && oldPhase != .active {
-                    // Re-sync HealthKit data when returning from background
-                    // so step counts, workouts, etc. reflect the latest values
-                    syncHealthKitData()
-                }
-            }
-            .onDisappear {
-                timerManager?.activeSession?.stopUITimer()
-                // Cancel background tasks that may still be running
-                for task in backgroundTasks {
-                    task.cancel()
-                }
-                backgroundTasks.removeAll()
-                planningViewModel.planningTask?.cancel()
-                viewModel.cleanup()
-            }
-            .onChange(of: goals) { old, new in
-                handleGoalsChange(old: old, new: new)
-                goalStore.goals = new
-            }
-            .onChange(of: _sessions) { _, _ in
-                // Update goalStore with day-filtered sessions
-                // Using _sessions (the @Query) instead of computed sessions
-                // to avoid creating intermediate arrays for the equality check
-                goalStore.sessions = sessions
-            }
-#if os(iOS)
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                // Check for external changes when coming back to foreground
-                timerManager?.checkForExternalChanges()
-                
-                if let activeSession = timerManager?.activeSession {
-                    activeSession.startUITimer()
-                    
-                    // Sync GoalSession.currentValue with the dynamic elapsed time
-                    let dynamicElapsed = activeSession.elapsedTime + Date.now.timeIntervalSince(activeSession.startDate)
-                    if let session = sessions.first(where: { $0.id == activeSession.id }),
-                       session.targetUnit.isTimeBased {
-                        session.currentValue = dynamicElapsed
-                    }
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                timerManager?.activeSession?.stopUITimer()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                // Also check when app becomes active (e.g., after widget interaction)
-                timerManager?.checkForExternalChanges()
-            }
-#endif
-            .sheet(isPresented: $navigation.showPlannerSheet) {
-                plannerSheet
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
-                    .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
-            }
-
-        
-            .sheet(item: $goalEditorViewModel) { vm in
-                GoalEditorView(viewModel: vm)
-                    .navigationTransition(
-                        .zoom(sourceID: "info", in: animation)
-                    )
-            }
-            .sheet(isPresented: $navigation.showAllGoals) {
-                allGoalsSheet
-            }
-//         TODO: Fix   .fullScreenCover(isPresented: $navigation.showNowPlaying, onDismiss: {
-//                if let data = pendingCelebrationData {
-//                    navigation.celebrationData = data
-//                    pendingCelebrationData = nil
-//                }
-//            }) {
-//                nowPlayingView
-//                    .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
-//            }
-            .sheet(item: $navigation.celebrationData) { data in
-                SessionCompleteSheet(
-                    celebrationData: data,
-                    onStartSuggested: { session in
-                        navigation.celebrationData = nil
-                        handleTimerToggle(for: session)
-                        navigation.showNowPlaying = true
-                    },
-                    onTakeBreak: {
-                        navigation.celebrationData = nil
-                        startBreakSession()
-                    },
-                    onDismiss: {
-                        navigation.celebrationData = nil
-                    }
-                )
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-            }
-            .sheet(isPresented: $navigation.showSettings) {
-                settingsSheet
-            }
-            .sheet(isPresented: $navigation.showDayOverview) {
-                dayOverviewSheet
-                    .navigationTransition(.zoom(sourceID: "dayOverviewButton", in: animation))
-            }
-            .sheet(item: $navigation.sessionToLogManually) { session in
-                manualLogSheet(for: session)
-            }
-            .fullScreenCover(isPresented: $navigation.showIntervalFlow) {
-                if let session = navigation.intervalFlowSession,
-                   let listSession = navigation.intervalFlowListSession,
-                   let timerManager = timerManager,
-                   let day = session.day {
-                    IntervalFlowView(
-                        session: session,
-                        listSession: listSession,
-                        timerManager: timerManager,
+            
+            // MARK: Plan Tab
+            Tab("Plan", systemImage: "calendar", value: AppTab.plan) {
+                NavigationStack {
+                    PlanTabView(
                         day: day,
-                        onDismiss: {
-                            navigation.showIntervalFlow = false
-                        }
+                        sessions: focusFilteredSessions,
+                        availableGoalThemes: availableGoalThemes,
+                        weatherManager: weatherManager,
+                        calendarEventStore: calendarEventStore
                     )
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSessionFromWidget"))) { notification in
-                if let sessionID = notification.object as? String {
-                    handleDeepLink(sessionID: sessionID)
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSearch"))) { _ in
-                navigation.isSearching = true
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
-                goalEditorViewModel = GoalEditorViewModel()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowToast"))) { notification in
-                if let message = notification.object as? String {
-                    navigation.toastConfig = ToastConfig(
-                        message: message,
-                        showUndo: false
-                    )
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SyncChecklistToSessions"))) { notification in
-                if let goal = notification.object as? Goal {
-                    syncChecklistToSessions(for: goal)
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenGoalEditor"))) { notification in
-                if let vm = notification.object as? GoalEditorViewModel {
-                    goalEditorViewModel = vm
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenIntervalFlow"))) { notification in
-                if let userInfo = notification.userInfo,
-                   let session = userInfo["session"] as? GoalSession,
-                   let listSession = userInfo["listSession"] as? IntervalListSession {
-                    navigation.intervalFlowSession = session
-                    navigation.intervalFlowListSession = listSession
-                    navigation.showIntervalFlow = true
-                }
-            }
-            .navigationDestination(item: $navigation.selectedSession) { session in
-                if let timerManager = timerManager, let goal = session.goal {
-                    GoalSessionDetailView(
-                        goal: goal,
-                        session: session,
+            
+            // MARK: Analytics Tab
+            Tab("Analytics", systemImage: "chart.bar.fill", value: AppTab.analytics) {
+                NavigationStack {
+                    DayOverviewView(
+                        day: day,
+                        sessions: Array(sessions),
+                        goals: goals,
                         animation: animation,
                         timerManager: timerManager,
-                        onMarkedComplete: {
-                            // Dismiss the detail view
-                            navigation.selectedSession = nil
-                            
-                            // Show toast
-                            navigation.toastConfig = ToastConfig(
-                                message: "Marked as complete - moved to Completed filter",
-                                showUndo: false
-                            )
-                        }
+                        healthKitManager: healthKitManager,
+                        selectedSession: $navigation.selectedSession,
+                        sessionToLogManually: $navigation.sessionToLogManually
                     )
-                    .tint(session.theme.color(for: colorScheme))
-                    .environment(goalStore)
                 }
             }
+            
+            // MARK: Search Tab
+            Tab("Search", systemImage: "magnifyingglass", value: AppTab.search) {
+                NavigationStack {
+                    SearchSheet(
+                        sessions: focusFilteredSessions,
+                        day: day,
+                        timerManager: timerManager,
+                        animation: animation,
+                        selectedSession: $navigation.selectedSession,
+                        sessionToLogManually: $navigation.sessionToLogManually,
+                        searchText: $navigation.searchText,
+                        isGoalValid: isGoalValid
+                    )
+                }
+            }
+        }
+        .environment(\.sessionActions, sessionActions)
+        // Mini player as tab bar accessory
+        .tabViewBottomAccessory(isEnabled: miniPlayerSession != nil && !navigation.showNowPlaying) {
+            if let (session, details) = miniPlayerSession {
+                MiniPlayerView(
+                    session: session,
+                    details: details,
+                    onTapped: {
+                        navigation.showNowPlaying = true
+                    },
+                    onStopTapped: {
+                        handleTimerToggle(for: session)
+                    }
+                )
+            }
+        }
+        // Toast overlay
+        .overlay(alignment: .top) {
+            if let toastConfig = navigation.toastConfig {
+                ToastView(
+                    config: toastConfig,
+                    onDismiss: {
+                        self.navigation.toastConfig = nil
+                    }
+                )
+                .ignoresSafeArea(edges: .top)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .task {
+            sessionActions.onSkip = { [self] session in skip(session: session) }
+            sessionActions.onToggleTimer = { [self] session in handleTimerToggle(for: session) }
+            sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
+            sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
+            setupOnAppear()
+            await permissionsViewModel.refresh()
+        }
+        .onChange(of: viewModel.isSyncingHealthKit) { _, newValue in
+            sessionActions.isSyncingHealthKit = newValue
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active && oldPhase != .active {
+                syncHealthKitData()
+            }
+        }
+        .onDisappear {
+            timerManager?.activeSession?.stopUITimer()
+            for task in backgroundTasks {
+                task.cancel()
+            }
+            backgroundTasks.removeAll()
+            planningViewModel.planningTask?.cancel()
+            viewModel.cleanup()
+        }
+        .onChange(of: goals) { old, new in
+            handleGoalsChange(old: old, new: new)
+            goalStore.goals = new
+        }
+        .onChange(of: _sessions) { _, _ in
+            goalStore.sessions = sessions
+        }
+#if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            timerManager?.checkForExternalChanges()
+            
+            if let activeSession = timerManager?.activeSession {
+                activeSession.startUITimer()
+                
+                let dynamicElapsed = activeSession.elapsedTime + Date.now.timeIntervalSince(activeSession.startDate)
+                if let session = sessions.first(where: { $0.id == activeSession.id }),
+                   session.targetUnit.isTimeBased {
+                    session.currentValue = dynamicElapsed
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            timerManager?.activeSession?.stopUITimer()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            timerManager?.checkForExternalChanges()
+        }
+#endif
+        .sheet(isPresented: $navigation.showPlannerSheet) {
+            plannerSheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .navigationTransition(.zoom(sourceID: "plannerButton", in: animation))
+        }
+        .sheet(item: $goalEditorViewModel) { vm in
+            GoalEditorView(viewModel: vm)
+                .navigationTransition(
+                    .zoom(sourceID: "info", in: animation)
+                )
+        }
+        .sheet(isPresented: $navigation.showAllGoals) {
+            allGoalsSheet
+        }
+        .fullScreenCover(isPresented: $navigation.showNowPlaying, onDismiss: {
+            if let data = pendingCelebrationData {
+                navigation.celebrationData = data
+                pendingCelebrationData = nil
+            }
+        }) {
+            nowPlayingView
+        }
+        .sheet(item: $navigation.celebrationData) { data in
+            SessionCompleteSheet(
+                celebrationData: data,
+                onStartSuggested: { session in
+                    navigation.celebrationData = nil
+                    handleTimerToggle(for: session)
+                    navigation.showNowPlaying = true
+                },
+                onTakeBreak: {
+                    navigation.celebrationData = nil
+                    startBreakSession()
+                },
+                onDismiss: {
+                    navigation.celebrationData = nil
+                }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $navigation.showSettings) {
+            settingsSheet
+        }
+        .sheet(isPresented: $navigation.showDayOverview) {
+            dayOverviewSheet
+                .navigationTransition(.zoom(sourceID: "dayOverviewButton", in: animation))
+        }
+        .sheet(item: $navigation.sessionToLogManually) { session in
+            manualLogSheet(for: session)
+        }
+        .fullScreenCover(isPresented: $navigation.showIntervalFlow) {
+            if let session = navigation.intervalFlowSession,
+               let listSession = navigation.intervalFlowListSession,
+               let timerManager = timerManager,
+               let day = session.day {
+                IntervalFlowView(
+                    session: session,
+                    listSession: listSession,
+                    timerManager: timerManager,
+                    day: day,
+                    onDismiss: {
+                        navigation.showIntervalFlow = false
+                    }
+                )
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSessionFromWidget"))) { notification in
+            if let sessionID = notification.object as? String {
+                handleDeepLink(sessionID: sessionID)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSearch"))) { _ in
+            navigation.selectedTab = .search
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
+            goalEditorViewModel = GoalEditorViewModel()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowToast"))) { notification in
+            if let message = notification.object as? String {
+                navigation.toastConfig = ToastConfig(
+                    message: message,
+                    showUndo: false
+                )
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SyncChecklistToSessions"))) { notification in
+            if let goal = notification.object as? Goal {
+                syncChecklistToSessions(for: goal)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenGoalEditor"))) { notification in
+            if let vm = notification.object as? GoalEditorViewModel {
+                goalEditorViewModel = vm
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenIntervalFlow"))) { notification in
+            if let userInfo = notification.userInfo,
+               let session = userInfo["session"] as? GoalSession,
+               let listSession = userInfo["listSession"] as? IntervalListSession {
+                navigation.intervalFlowSession = session
+                navigation.intervalFlowListSession = listSession
+                navigation.showIntervalFlow = true
+            }
+        }
     }
     
     // MARK: - Main List View
@@ -414,6 +373,17 @@ struct ContentView: View {
             searchText: $navigation.searchText,
             isGoalValid: isGoalValid
         )
+    }
+    
+    // MARK: - Mini Player Session
+    
+    private var miniPlayerSession: (GoalSession, ActiveSessionDetails)? {
+        guard let timerManager,
+              let activeSession = timerManager.activeSession,
+              let session = sessions.first(where: { $0.id == activeSession.id }) else {
+            return nil
+        }
+        return (session, activeSession)
     }
     
     // MARK: - Focus Banner
@@ -441,9 +411,9 @@ struct ContentView: View {
         .accessibilityLabel("Focus filter active: \(focusFilterStore.activeFocusTagTitles.joined(separator: ", "))")
     }
 
-    // MARK: - Main List View
+    // MARK: - Home Tab Content
 
-    private var mainListView: some View {
+    private var homeTabContent: some View {
         ScrollViewReader { proxy in
         List {
 
@@ -454,7 +424,6 @@ struct ContentView: View {
                     .frame(height: 60)
             }
             if !focusFilteredSessions.isEmpty {
-                // Show daily progress card once user has saved at least one session
                 Section {
                 
                 } footer: {
@@ -478,14 +447,6 @@ struct ContentView: View {
             } else {
                 emptyStateView
             }
-            
-            // Bottom spacer so content isn't hidden behind the bottom sheet
-            Section {
-            } footer: {
-                Spacer()
-                    .frame(height: 120)
-            }
-            .listSectionSpacing(.compact)
         }
         .trackScrollOffset($scrollOffset)
         .onAppear { scrollProxy = proxy }
@@ -497,21 +458,98 @@ struct ContentView: View {
             syncHealthKitData(userInitiated: true)
             refreshGoals()
         }
-        .uiKitBottomSheet(isExpanded: $navigation.bottomSheetExpanded) {
-            BottomBarSheetView(
-                navigation: navigation,
-                day: day,
-                sessions: focusFilteredSessions,
-                timerManager: timerManager,
-                planningViewModel: planningViewModel,
-                animation: animation,
-                goalEditorViewModel: $goalEditorViewModel,
-                availableGoalThemes: availableGoalThemes,
-                weatherManager: weatherManager,
-                calendarEventStore: calendarEventStore,
-                onToggleTimer: { session in handleTimerToggle(for: session) }
-            )
-            .environment(goalStore)
+        .toolbar(.hidden, for: .navigationBar)
+        .overlay(alignment: .top) {
+            VStack(spacing: 0) {
+                ScrollingHeaderView(scrollOffset: scrollOffset) {
+                    HStack(spacing: 6) {
+                        Text(day.startDate.formatted(.dateTime.weekday(.wide).month().day()))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        
+                        if showWeatherTile, let weather = weatherManager.currentWeather {
+                            HStack(spacing: 3) {
+                                Image(systemName: weatherSymbol(for: weather.condition))
+                                    .font(.caption)
+                                    .foregroundStyle(.blue)
+                                Text("\(Int(weather.temperature.value))°")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } title: {
+                    Text(timeOfDayGreeting)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                } trailing: {
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            goalEditorViewModel = GoalEditorViewModel()
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(Color.blue.opacity(0.12)))
+                        }
+                        .matchedTransitionSource(id: "info", in: animation)
+                        
+                        Button {
+                            navigation.showAllGoals = true
+                        } label: {
+                            Image(systemName: "target")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(Color.blue.opacity(0.12)))
+                        }
+                        
+                        Button {
+                            navigation.showSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(Color.blue.opacity(0.12)))
+                        }
+                    }
+                }
+
+                if focusFilterStore.isFocusFilterActive {
+                    focusBanner
+                }
+                SectionPillBar(
+                    sections: contextualSections,
+                    visibleSectionType: navigation.visibleSectionType,
+                    onSectionTapped: { sectionType in
+                        if let section = contextualSections.first(where: { $0.type == sectionType }) {
+                            withAnimation {
+                                scrollProxy?.scrollTo(section.id, anchor: .top)
+                            }
+                        }
+                    }
+                )
+                Spacer()
+            }
+        }
+        .navigationDestination(item: $navigation.selectedSession) { session in
+            if let timerManager = timerManager, let goal = session.goal {
+                GoalSessionDetailView(
+                    goal: goal,
+                    session: session,
+                    animation: animation,
+                    timerManager: timerManager,
+                    onMarkedComplete: {
+                        navigation.selectedSession = nil
+                        
+                        navigation.toastConfig = ToastConfig(
+                            message: "Marked as complete - moved to Completed filter",
+                            showUndo: false
+                        )
+                    }
+                )
+                .tint(session.theme.color(for: colorScheme))
+                .environment(goalStore)
+            }
         }
     }
     

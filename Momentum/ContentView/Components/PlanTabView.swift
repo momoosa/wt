@@ -1,8 +1,9 @@
 //
-//  BottomBarSheetView.swift
+//  PlanTabView.swift
 //  Momentum
 //
-//  Persistent bottom sheet — collapsed shows the bar, expanded shows tab content.
+//  Plan tab showing today's schedule, weather window, open blocks, themes, and the week ahead.
+//  Extracted from BottomBarSheetView.
 //
 
 import SwiftUI
@@ -11,326 +12,31 @@ import EventKit
 import WeatherKit
 import MomentumKit
 
-struct BottomBarSheetView: View {
-    let navigation: NavigationState
+struct PlanTabView: View {
     let day: Day
     let sessions: [GoalSession]
-    let timerManager: SessionTimerManager?
-    let planningViewModel: PlanningViewModel
-    let animation: Namespace.ID
-    @Binding var goalEditorViewModel: GoalEditorViewModel?
     let availableGoalThemes: [GoalTag]
     let weatherManager: WeatherManager
     let calendarEventStore: EKEventStore
-    let onToggleTimer: (GoalSession) -> Void
     
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.sheetProgress) private var sheetProgress
-    @Environment(GoalStore.self) private var goalStore
     @Query private var goals: [Goal]
     
     @State private var calendarEvents: [EKEvent] = []
     
-    private var isExpanded: Bool {
-        navigation.bottomSheetExpanded
-    }
-    
     var body: some View {
-        VStack(spacing: 0) {
-            // Now playing bar / context info — fades out as sheet expands
-            if !isExpanded {
-                Group {
-                    if let timerManager,
-                       let activeSession = timerManager.activeSession,
-                       let session = sessions.first(where: { $0.id == activeSession.id }) {
-                        nowPlayingBar(session: session, details: activeSession)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
-                            .transition(.asymmetric(
-                                insertion: .push(from: .bottom),
-                                removal: .push(from: .top)
-                            ))
-                    } else {
-                        contextInfoRow
-                            .padding(.top, 4)
-                            .transition(.asymmetric(
-                                insertion: .push(from: .top),
-                                removal: .push(from: .bottom)
-                            ))
-                    }
-                }
-                .opacity(max(1.0 - sheetProgress * 3.0, 0.0))
-            }
-            
-            // Tab bar — always visible
-            tabBar
-                .padding(.top, 8)
-                .padding(.horizontal, 16)
-                .padding(.bottom, isExpanded ? 8 : 4)
-            
-            // Expanded content — only loaded when expanded
-            if isExpanded {
-                Divider()
-                    .padding(.horizontal, 20)
-                    .opacity(sheetProgress)
-                
-                TabView(selection: Binding(
-                    get: { navigation.selectedBottomTab },
-                    set: { navigation.selectedBottomTab = $0 }
-                )) {
-                    nowPlayingContent
-                        .tag(BottomBarTab.nowPlaying)
-                    planTabContent
-                        .tag(BottomBarTab.plan)
-                    goalsTabContent
-                        .tag(BottomBarTab.goals)
-                    analyticsTabContent
-                        .tag(BottomBarTab.analytics)
-                    searchTabContent
-                        .tag(BottomBarTab.search)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .opacity(sheetProgress)
-            }
-        }
-        .animation(.easeInOut(duration: 0.35), value: timerManager?.activeSession != nil)
-        .task {
-            fetchCalendarEvents()
-        }
-    }
-    
-    // MARK: - Context Info (Idle state)
-    
-    private var contextInfoRow: some View {
-        HStack(spacing: 0) {
-            // Weather segment
-            if let condition = weatherManager.getCurrentCondition(),
-               let temp = weatherManager.getCurrentTemperature() {
-                contextSegment(
-                    icon: condition.icon,
-                    iconColor: .orange,
-                    title: "\(Int(temp))° \(condition.displayName)",
-                    subtitle: weatherWindowSubtitle
-                )
-                
-                contextDivider
-            }
-            
-            // Free time segment
-            if let nextFree = nextFreeBlock {
-                contextSegment(
-                    icon: "clock",
-                    iconColor: .primary,
-                    title: nextFree.duration.formatted(style: .hourMinute) + " free",
-                    subtitle: nextFreeSubtitle(for: nextFree)
-                )
-                
-                contextDivider
-            }
-            
-            // Themes segment
-            if !availableGoalThemes.isEmpty {
-                contextSegment(
-                    icon: "square.stack.3d.up.fill",
-                    iconColor: .primary,
-                    title: "\(availableGoalThemes.count) themes",
-                    subtitle: "in play today"
-                )
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal, 16)
-    }
-    
-    private func contextSegment(icon: String, iconColor: Color, title: String, subtitle: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(iconColor)
-            
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-    
-    private var contextDivider: some View {
-        Divider()
-            .frame(height: 28)
-    }
-    
-    private var weatherWindowSubtitle: String {
-        // Find when weather condition changes in the forecast
-        guard let currentCondition = weatherManager.getCurrentCondition() else {
-            return "now"
-        }
-        let upcoming = weatherManager.hourlyForecast.filter { $0.date > Date() }
-        if let changeHour = upcoming.first(where: { weatherManager.forecastCondition(at: $0.date) != currentCondition }) {
-            return "window to \(changeHour.date.formatted(date: .omitted, time: .shortened))"
-        }
-        return "all day"
-    }
-    
-    private var nextFreeBlock: TimelineBlock? {
-        timelineBlocks.first(where: { $0.isFree })
-    }
-    
-    private func nextFreeSubtitle(for block: TimelineBlock) -> String {
-        // Find the next busy block after this free block
-        if let nextBusy = timelineBlocks.first(where: { !$0.isFree && $0.startTime >= block.startTime }) {
-            switch nextBusy.kind {
-            case .busy(let title):
-                return "until \(title)"
-            default:
-                break
-            }
-        }
-        return "until end of day"
-    }
-    
-    // MARK: - Tab Bar
-    
-    private var tabBar: some View {
-        HStack(spacing: 0) {
-            ForEach(isExpanded ? BottomBarTab.allCases : BottomBarTab.minimizedCases, id: \.self) { tab in
-                let isSelected = isExpanded && navigation.selectedBottomTab == tab
-                
-                Button {
-                    if isExpanded {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            navigation.selectedBottomTab = tab
-                        }
-                    } else {
-                        navigation.selectedBottomTab = tab
-                        withAnimation {
-                            navigation.bottomSheetExpanded = true
-                        }
-                    }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16))
-                        Text(tab.rawValue)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundStyle(isSelected ? .primary : .secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                    .background(isSelected ? Color.primary.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 10))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-    
-    // MARK: - Now Playing Bar
-    
-    private func nowPlayingBar(session: GoalSession, details: ActiveSessionDetails) -> some View {
-        Button {
-            navigation.bottomSheetExpanded = false
-            navigation.showNowPlaying = true // TODO: Remove
-            if isExpanded {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    navigation.selectedBottomTab = .nowPlaying
-                }
-            } else {
-                navigation.selectedBottomTab = .nowPlaying
-                withAnimation {
-                    navigation.bottomSheetExpanded = true
-                }
-            }
-        } label: {
-            HStack(spacing: 10) {	
-                CircularProgressView(
-                    progress: details.progress,
-                    lineWidth: 3,
-                    size: 34,
-                    foregroundColor: session.theme.color(for: colorScheme),
-                    backgroundColor: session.theme.color(for: colorScheme).opacity(0.2),
-                    animateOnAppear: false
-                )
-                .overlay {
-                    Image(systemName: session.goal?.iconName ?? "target")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(session.theme.color(for: colorScheme))
-                }
-                
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(session.title)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(1)
-                    
-                    Text("\(details.currentValue.formatted(style: .hmmss)) · \(Int(details.progress * 100))% of \(details.dailyTarget.formatted(style: .hourMinute))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.numericText())
-                }
-                
-                Spacer(minLength: 0)
-                
-                // Pause / Stop
-                HStack(spacing: 6) {
-                    Button {
-                        navigation.bottomSheetExpanded = false
-                        navigation.showNowPlaying = true
-                    } label: {
-                        Image(systemName: "pause.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(session.theme.foregroundColor(for: colorScheme))
-                            .frame(width: 32, height: 32)
-                            .background(session.theme.color(for: colorScheme), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        onToggleTimer(session)
-                    } label: {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(session.theme.color(for: colorScheme))
-                            .frame(width: 32, height: 32)
-                            .background(session.theme.color(for: colorScheme).opacity(0.2), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(8)
-            .background(session.theme.gradient(for: colorScheme).opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
-        }
-        .buttonStyle(.plain)
-    }
-    
-    // MARK: - Plan Tab
-    
-    private var planTabContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // Header
                 planHeader
-                
-                // Weather Window
                 weatherWindowSection
-                
-                // Open Blocks Timeline
                 openBlocksSection
-                
-                // Themes in Play
                 themesInPlaySection
-                
-                // The Week Ahead
                 weekAheadSection
             }
             .padding(.bottom, 20)
+        }
+        .task {
+            fetchCalendarEvents()
         }
     }
     
@@ -361,7 +67,6 @@ struct BottomBarSheetView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionLabel("WEATHER WINDOW")
             
-            // Hourly forecast strip
             if !weatherManager.hourlyForecast.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
@@ -393,7 +98,6 @@ struct BottomBarSheetView: View {
                 .padding(.horizontal, 20)
             }
             
-            // Weather-triggered goal suggestion
             if let suggestion = weatherSuggestedSession {
                 let theme = suggestion.theme
                 HStack(spacing: 12) {
@@ -482,7 +186,6 @@ struct BottomBarSheetView: View {
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(weekDay.isToday ? .primary : .secondary)
                         
-                        // Session icons stacked
                         VStack(spacing: 3) {
                             ForEach(weekDay.sessionThemes.prefix(4), id: \.id) { theme in
                                 RoundedRectangle(cornerRadius: 3)
@@ -588,7 +291,6 @@ struct BottomBarSheetView: View {
     }
     
     private var weatherSuggestedSession: GoalSession? {
-        // Find a session whose goal has weather triggers that match current conditions
         sessions.first { session in
             guard let goal = session.goal,
                   session.progress < 1.0,
@@ -654,7 +356,6 @@ struct BottomBarSheetView: View {
         
         guard now < endOfDay else { return [] }
         
-        // Build busy blocks from calendar events
         var busyRanges: [(start: Date, end: Date, title: String)] = calendarEvents.compactMap { event -> (start: Date, end: Date, title: String)? in
             guard let eventStart = event.startDate, let eventEnd = event.endDate else { return nil }
             let start = max(eventStart, now)
@@ -664,11 +365,9 @@ struct BottomBarSheetView: View {
         }
         busyRanges.sort { $0.start < $1.start }
         
-        // Build timeline from now to end of day
         var blocks: [TimelineBlock] = []
         var cursor = now
         
-        // Sessions to distribute into free blocks
         let incompleteSessions = sessions.filter { $0.progress < 1.0 }
         var sessionQueue = incompleteSessions.sorted {
             ($0.plannedStartTime ?? .distantFuture) < ($1.plannedStartTime ?? .distantFuture)
@@ -676,7 +375,6 @@ struct BottomBarSheetView: View {
         
         for busy in busyRanges {
             if cursor < busy.start {
-                // Free block before this event
                 let freeEnd = busy.start
                 let freeDuration = freeEnd.timeIntervalSince(cursor)
                 let fittingSessions = extractSessions(from: &sessionQueue, maxDuration: freeDuration)
@@ -686,7 +384,6 @@ struct BottomBarSheetView: View {
             cursor = max(cursor, busy.end)
         }
         
-        // Remaining free time after last event
         if cursor < endOfDay {
             let fittingSessions = extractSessions(from: &sessionQueue, maxDuration: endOfDay.timeIntervalSince(cursor))
             blocks.append(TimelineBlock(startTime: cursor, endTime: endOfDay, kind: .free(sessions: fittingSessions)))
@@ -702,9 +399,9 @@ struct BottomBarSheetView: View {
         while !queue.isEmpty {
             let session = queue[0]
             let needed = max((session.unifiedTargetValue - session.currentValue), 0)
-            let duration = session.goal?.targetUnit.isTimeBased == true ? needed : 30 * 60 // 30 min default for non-time
+            let duration = session.goal?.targetUnit.isTimeBased == true ? needed : 30 * 60
             
-            if duration <= remaining + 60 { // +60s tolerance
+            if duration <= remaining + 60 {
                 result.append(queue.removeFirst())
                 remaining -= duration
             } else {
@@ -717,13 +414,11 @@ struct BottomBarSheetView: View {
     
     private func timelineRow(_ block: TimelineBlock) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // Time label
             Text(block.startTime.formatted(date: .omitted, time: .shortened))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(width: 52, alignment: .trailing)
             
-            // Dot and line
             VStack(spacing: 0) {
                 Circle()
                     .fill(block.isFree ? Color.green : Color.secondary.opacity(0.4))
@@ -737,7 +432,6 @@ struct BottomBarSheetView: View {
                 }
             }
             
-            // Content
             VStack(alignment: .leading, spacing: 4) {
                 switch block.kind {
                 case .free(let blockSessions):
@@ -827,7 +521,6 @@ struct BottomBarSheetView: View {
             var totalTime: TimeInterval = 0
             
             for goal in tagGoals {
-                // Sum today's target for this goal
                 let weekday = Calendar.current.component(.weekday, from: day.startDate)
                 totalTime += goal.unifiedTarget(for: weekday)
             }
@@ -856,7 +549,6 @@ struct BottomBarSheetView: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
-        // Start from today, show 7 days
         return (0..<7).map { offset in
             let date = calendar.date(byAdding: .day, value: offset, to: today)!
             let weekday = calendar.component(.weekday, from: date)
@@ -864,7 +556,6 @@ struct BottomBarSheetView: View {
             let initial = symbols[weekday - 1]
             let isToday = offset == 0
             
-            // Get scheduled goals for this weekday
             let scheduledGoals = goals.filter { goal in
                 guard goal.status == .active else { return false }
                 let target = goal.unifiedTarget(for: weekday)
@@ -889,60 +580,5 @@ struct BottomBarSheetView: View {
                 plannedLabel: label
             )
         }
-    }
-    
-    // MARK: - Now playing
-    @ViewBuilder
-    private var nowPlayingContent: some View {
-        
-        if let timerManager, let activeSession = timerManager.activeSession, let session = sessions.first(where: { $0.id == activeSession.id }) {
-            NowPlayingView(
-                session: session,
-                activeSessionDetails: activeSession,
-                currentIntervalName: timerManager.currentIntervalName,
-                intervalProgress: timerManager.intervalProgress,
-                intervalTimeRemaining: timerManager.intervalTimeRemaining
-            ) {
-                onToggleTimer(session)
-            }
-        } else {
-            EmptyView()
-        }
-    }
-    
-    // MARK: - Goals Tab
-    
-    private var goalsTabContent: some View {
-        AllGoalsView(goals: goals, timerManager: timerManager)
-    }
-    
-    // MARK: - Analytics Tab
-    
-    private var analyticsTabContent: some View {
-        DayOverviewView(
-            day: day,
-            sessions: sessions,
-            goals: goals,
-            animation: animation,
-            timerManager: timerManager,
-            healthKitManager: nil,
-            selectedSession: .constant(nil),
-            sessionToLogManually: .constant(nil)
-        )
-    }
-    
-    // MARK: - Search Tab
-    
-    private var searchTabContent: some View {
-        SearchSheet(
-            sessions: sessions,
-            day: day,
-            timerManager: timerManager,
-            animation: animation,
-            selectedSession: .constant(nil),
-            sessionToLogManually: .constant(nil),
-            searchText: .constant(""),
-            isGoalValid: { _ in true }
-        )
     }
 }

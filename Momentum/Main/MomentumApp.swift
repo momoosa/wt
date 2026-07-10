@@ -239,28 +239,26 @@ struct MomentumApp: App {
     var body: some Scene {
         WindowGroup {
             if let day, let contentViewModel {
-                NavigationStack {
-                    ContentView(
-                        day: day,
-                        viewModel: contentViewModel
-                    )
-                        .environment(goalStore)
-                        .task {
-                            // Request ScreenTime authorization on app launch
-                            await permissionHandler.requestScreentimeAuthorization()
-                            
-                            // Start monitoring for day changes
-                            startDayChangeMonitoring()
-                        }
-                        .onDisappear {
-                            // Clean up timer when view disappears
-                            dayChangeTimer?.invalidate()
-                            dayChangeTimer = nil
-                        }
-                }
-                .onOpenURL { url in
-                    handleURL(url)
-                }
+                ContentView(
+                    day: day,
+                    viewModel: contentViewModel
+                )
+                    .environment(goalStore)
+                    .task {
+                        // Request ScreenTime authorization on app launch
+                        await permissionHandler.requestScreentimeAuthorization()
+                        
+                        // Start monitoring for day changes
+                        startDayChangeMonitoring()
+                    }
+                    .onDisappear {
+                        // Clean up timer when view disappears
+                        dayChangeTimer?.invalidate()
+                        dayChangeTimer = nil
+                    }
+                    .onOpenURL { url in
+                        handleURL(url)
+                    }
                 
             } else {
                 Text("")
