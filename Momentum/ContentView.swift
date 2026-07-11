@@ -358,23 +358,6 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Main List View
-    
-    // MARK: - Search Sheet
-    
-    private var searchSheet: some View {
-        SearchSheet(
-            sessions: focusFilteredSessions,
-            day: day,
-            timerManager: timerManager,
-            animation: animation,
-            selectedSession: $navigation.selectedSession,
-            sessionToLogManually: $navigation.sessionToLogManually,
-            searchText: $navigation.searchText,
-            isGoalValid: isGoalValid
-        )
-    }
-    
     // MARK: - Mini Player Session
     
     private var miniPlayerSession: (GoalSession, ActiveSessionDetails)? {
@@ -552,8 +535,6 @@ struct ContentView: View {
             }
         }
     }
-    
-
     
     // MARK: - Empty State
     
@@ -845,15 +826,6 @@ struct ContentView: View {
             navigation.visibleSectionType = first.type
         }
     }
-        
-
-    
-    // MARK: - Daily Progress Card (see ContentView/Components/DailyProgressCardView.swift)
-    // MARK: - Weather & Calendar Helpers (see ContentView/Components/DailyProgressCardView.swift)
-    
-    // MARK: - Toolbar (see ContentView/Components/ToolbarBuilder.swift)
-    
-    // MARK: - Setup Methods (see ContentView/Integration/SetupMethods.swift)
     
     // MARK: - Sheet Views
     
@@ -878,18 +850,8 @@ struct ContentView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(20)
         .presentationBackground(.thinMaterial)
-        .onAppear {
-            // Cache themes when sheet appears to avoid SwiftData faults
-//            planningViewModel.cachedThemes = availableGoalThemes
-//            
-//            // Prewarm the model to reduce initial planning delay
-//            Task {
-//                await planningViewModel.planner.prewarm()
-//            }
-        }
+
     }
-    
-    
     
     private var allGoalsSheet: some View {
         AllGoalsView(goals: goals, timerManager: timerManager)
@@ -897,15 +859,13 @@ struct ContentView: View {
     
     private var nowPlayingView: some View {
         Group {
-            if let timerManager,
-               let activeSession = timerManager.activeSession,
-               let session = sessions.first(where: { $0.id == activeSession.id }) {
+            if let (session, activeSession) = miniPlayerSession {
                 NowPlayingView(
                     session: session,
                     activeSessionDetails: activeSession,
-                    currentIntervalName: timerManager.currentIntervalName,
-                    intervalProgress: timerManager.intervalProgress,
-                    intervalTimeRemaining: timerManager.intervalTimeRemaining,
+                    currentIntervalName: timerManager?.currentIntervalName,
+                    intervalProgress: timerManager?.intervalProgress,
+                    intervalTimeRemaining: timerManager?.intervalTimeRemaining,
                     onStopTapped: {
                         handleTimerToggle(for: session)
                     },
@@ -1002,7 +962,6 @@ struct ContentView: View {
         )
     }
     
-
     // MARK: - Session Row
     
     @ViewBuilder
@@ -1018,7 +977,6 @@ struct ContentView: View {
         )
     }
     
-
     // MARK: - HealthKit Integration
 
     func syncHealthKitData(userInitiated: Bool = false) {
