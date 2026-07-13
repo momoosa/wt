@@ -12,8 +12,10 @@ import MomentumKit
 struct NowPlayingView: View {
     let session: GoalSession
     let activeSessionDetails: ActiveSessionDetails
+    let intervalTimer: IntervalTimerManager
     let onStopTapped: () -> Void
-    let onAdjustStartTime: ((TimeInterval) -> Void)?
+    var onPauseTapped: (() -> Void)? = nil
+    var onAdjustStartTime: ((TimeInterval) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -21,6 +23,7 @@ struct NowPlayingView: View {
     @State private var showingAdjustments = false
     @State private var lastWeekProgress: Double?
     @State private var selectedPage = 0
+    @State private var intervalsLoaded = false
     
     
     var foregroundColor: Color {
@@ -31,19 +34,29 @@ struct NowPlayingView: View {
     private var ringColor: Color {
         session.theme.color(for: colorScheme)
     }
-    // Optional interval information
-    let currentIntervalName: String?
-    let intervalProgress: Double?
-    let intervalTimeRemaining: TimeInterval?
     
-    init(session: GoalSession, activeSessionDetails: ActiveSessionDetails, currentIntervalName: String? = nil, intervalProgress: Double? = nil, intervalTimeRemaining: TimeInterval? = nil, onStopTapped: @escaping () -> Void, onAdjustStartTime: ((TimeInterval) -> Void)? = nil) {
-        self.session = session
-        self.activeSessionDetails = activeSessionDetails
-        self.currentIntervalName = currentIntervalName
-        self.intervalProgress = intervalProgress
-        self.intervalTimeRemaining = intervalTimeRemaining
-        self.onStopTapped = onStopTapped
-        self.onAdjustStartTime = onAdjustStartTime
+    /// Active interval name from the shared timer
+    private var currentIntervalName: String? {
+        if intervalTimer.isActive || intervalTimer.phase == .completed {
+            return intervalTimer.currentIntervalName
+        }
+        return nil
+    }
+    
+    /// Active interval progress from the shared timer
+    private var intervalProgress: Double? {
+        if intervalTimer.isActive {
+            return intervalTimer.currentIntervalProgress
+        }
+        return nil
+    }
+    
+    /// Active interval time remaining from the shared timer
+    private var intervalTimeRemaining: TimeInterval? {
+        if intervalTimer.isActive {
+            return TimeInterval(intervalTimer.secondsRemaining)
+        }
+        return nil
     }
     
     private var isTimeBased: Bool {
@@ -66,7 +79,8 @@ struct NowPlayingView: View {
     }
     
     private var elapsedFormatted: String {
-        let elapsed = activeSessionDetails.elapsedTime + Date().timeIntervalSince(activeSessionDetails.startDate)
+        let liveComponent = activeSessionDetails.isPaused ? 0 : Date().timeIntervalSince(activeSessionDetails.startDate)
+        let elapsed = activeSessionDetails.elapsedTime + liveComponent
         let totalSeconds = Int(max(elapsed, 0))
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
@@ -124,6 +138,7 @@ struct NowPlayingView: View {
         }
         .task {
             lastWeekProgress = computeLastWeekProgress()
+            loadIntervalsIfNeeded()
         }
         .sheet(isPresented: $showingAdjustments) {
             SessionAdjustmentsSheet(
@@ -188,6 +203,23 @@ struct NowPlayingView: View {
         !goalIntervals.isEmpty || currentIntervalName != nil
     }
     
+    /// Whether the local interval timer is actively driving playback
+    private var isLocalIntervalActive: Bool {
+        intervalTimer.isActive || intervalTimer.phase == .completed
+    }
+    
+    /// The first IntervalListSession from the goal session
+    private var firstIntervalListSession: IntervalListSession? {
+        session.intervalLists?.sorted(by: { $0.orderIndex < $1.orderIndex }).first
+    }
+    
+    private func loadIntervalsIfNeeded() {
+        guard !intervalsLoaded, let listSession = firstIntervalListSession else { return }
+        intervalsLoaded = true
+        intervalTimer.load(from: listSession)
+    }
+    
+    
     // MARK: - Static Page (no scrollable content)
     
     private var nowPlayingStaticPage: some View {
@@ -248,20 +280,33 @@ struct NowPlayingView: View {
     // MARK: - Compact Header (horizontal layout)
     
     private var compactHeader: some View {
-        HStack(spacing: 16) {
-            // Small progress ring on the left
-            progressRingView
-                .scaleEffect(0.35)
-                .frame(width: 100, height: 100)
+        HStack(spacing: 14) {
+            // Small progress ring on the left (no inner text — too small to read)
+            compactProgressRing
             
-            // Title + interval info in the middle
-            VStack(alignment: .leading, spacing: 4) {
+            // Title, subtitle, and controls to the right
+            VStack(alignment: .leading, spacing: 6) {
+                // Title row
                 Text(session.goal?.title ?? "Goal")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(foregroundColor)
                     .lineLimit(1)
                 
-                if let currentIntervalName {
+                // Subtitle: interval info or elapsed time
+                if intervalTimer.isActive, let name = intervalTimer.currentIntervalName {
+                    HStack(spacing: 4) {
+                        Text(name)
+                        if intervalTimer.phase != .transition {
+                            Text("·")
+                            Text(formatCountdown(intervalTimer.secondsRemaining))
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
+                        }
+                    }
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(foregroundColor.opacity(0.7))
+                    .lineLimit(1)
+                } else if let currentIntervalName {
                     Text(currentIntervalName)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(foregroundColor.opacity(0.7))
@@ -271,40 +316,97 @@ struct NowPlayingView: View {
                         .font(.caption.weight(.medium).monospacedDigit())
                         .foregroundStyle(foregroundColor.opacity(0.7))
                 }
-            }
-            
-            Spacer()
-            
-            // Compact controls on the right
-            HStack(spacing: 12) {
-                Button {
-                    HapticFeedbackManager.trigger(.medium)
-                    onStopTapped()
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(foregroundColor)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(foregroundColor.opacity(0.15)))
-                }
                 
-                Button {
-                    HapticFeedbackManager.trigger(.medium)
-                    onStopTapped()
-                } label: {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(session.theme.gradient(for: colorScheme))
-                        .frame(width: 44, height: 44)
-                        .background(
-                            Circle()
-                                .fill(foregroundColor)
-                        )
+                // Controls row — below the title
+                HStack(spacing: 12) {
+                    Button {
+                        HapticFeedbackManager.trigger(.medium)
+                        intervalTimer.stop()
+                        onStopTapped()
+                    } label: {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(foregroundColor)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(foregroundColor.opacity(0.15)))
+                    }
+                    
+                    Button {
+                        HapticFeedbackManager.trigger(.medium)
+                        onPauseTapped?()
+                    } label: {
+                        Image(systemName: activeSessionDetails.isPaused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(session.theme.gradient(for: colorScheme))
+                            .frame(width: 44, height: 44)
+                            .background(
+                                Circle()
+                                    .fill(foregroundColor)
+                            )
+                    }
                 }
             }
+            
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
+    }
+    
+    /// A compact version of the progress ring without inner text
+    private var compactProgressRing: some View {
+        let progress = activeSessionDetails.progress
+        let completedLaps = Int(progress)
+        let ringSize: CGFloat = 80
+        let lineWidth: CGFloat = 8
+        
+        return ZStack {
+            Circle()
+                .stroke(ringColor.opacity(0.2), lineWidth: lineWidth)
+                .frame(width: ringSize, height: ringSize)
+            
+            if progress < 1.0 {
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .frame(width: ringSize, height: ringSize)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.spring(response: 0.6), value: progress)
+            } else {
+                let overflowFraction = progress.truncatingRemainder(dividingBy: 1.0)
+                let displayFraction = overflowFraction == 0 ? 1.0 : overflowFraction
+                
+                Circle()
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .frame(width: ringSize, height: ringSize)
+                
+                Circle()
+                    .trim(from: 0, to: displayFraction)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 0)
+                    .frame(width: ringSize, height: ringSize)
+                    .rotationEffect(.degrees(-90))
+                    .clipShape(Circle().stroke(lineWidth: lineWidth + 8))
+                    .animation(.spring(response: 0.6), value: progress)
+            }
+            
+            // Compact center content: just percentage
+            VStack(spacing: 0) {
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(foregroundColor)
+                
+                if completedLaps > 0 {
+                    HStack(spacing: 1) {
+                        Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                            .font(.system(size: 7))
+                        Text("\(completedLaps)×")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundStyle(foregroundColor.opacity(0.6))
+                }
+            }
+        }
     }
     
     private func intervalBadge(name: String) -> some View {
@@ -328,6 +430,28 @@ struct NowPlayingView: View {
     
     private var intervalListContent: some View {
         VStack(spacing: 0) {
+            // Playback controls
+            if intervalsLoaded && !intervalTimer.intervalSessions.isEmpty {
+                intervalPlaybackControls
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+            }
+            
+            // Interval rows
+            if isLocalIntervalActive, !intervalTimer.intervalSessions.isEmpty {
+                // Playback-aware rows from the interval timer
+                playbackIntervalList
+            } else {
+                // Static rows from goal intervals
+                staticIntervalList
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 40)
+    }
+    
+    private var staticIntervalList: some View {
+        VStack(spacing: 0) {
             ForEach(Array(goalIntervals.enumerated()), id: \.element.id) { index, interval in
                 nowPlayingIntervalRow(interval, index: index)
                 
@@ -340,8 +464,244 @@ struct NowPlayingView: View {
         }
         .padding(.vertical, 4)
         .background(foregroundColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+    }
+    
+    private var playbackIntervalList: some View {
+        ScrollViewReader { proxy in
+            VStack(spacing: 0) {
+                ForEach(Array(intervalTimer.intervalSessions.enumerated()), id: \.element.id) { index, intervalSession in
+                    playbackIntervalRow(intervalSession, index: index)
+                        .id(intervalSession.id)
+                    
+                    if index < intervalTimer.intervalSessions.count - 1 {
+                        Divider()
+                            .foregroundStyle(foregroundColor.opacity(0.1))
+                            .padding(.leading, 56)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+            .background(foregroundColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+            .animation(.easeInOut(duration: 0.3), value: intervalTimer.currentIntervalIndex)
+            .onChange(of: intervalTimer.currentIntervalIndex) { _, newIndex in
+                if newIndex < intervalTimer.intervalSessions.count {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(intervalTimer.intervalSessions[newIndex].id, anchor: .center)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Interval Playback Controls
+    
+    private var intervalPlaybackControls: some View {
+        HStack(spacing: 0) {
+            // Interval counter / status
+            VStack(alignment: .leading, spacing: 2) {
+                if intervalTimer.isActive {
+                    Text(intervalTimer.currentIntervalName ?? "Interval")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(foregroundColor)
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 6) {
+                        Text("\(intervalTimer.currentIntervalIndex + 1) of \(intervalTimer.totalIntervals)")
+                            .font(.caption2.weight(.medium))
+                        
+                        if intervalTimer.phase == .transition {
+                            Text("· Next in \(intervalTimer.transitionSecondsRemaining)s")
+                                .font(.caption2.weight(.medium))
+                        } else if intervalTimer.phase != .idle {
+                            Text("· \(formatCountdown(intervalTimer.secondsRemaining))")
+                                .font(.caption2.weight(.medium).monospacedDigit())
+                        }
+                    }
+                    .foregroundStyle(foregroundColor.opacity(0.5))
+                } else if intervalTimer.phase == .completed {
+                    Text("All intervals complete")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(foregroundColor)
+                } else {
+                    Text("\(goalIntervals.count) intervals")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(foregroundColor.opacity(0.7))
+                }
+            }
+            
+            Spacer()
+            
+            // Control buttons
+            HStack(spacing: 16) {
+                if intervalTimer.isActive {
+                    // Previous
+                    Button {
+                        intervalTimer.skipToPrevious()
+                    } label: {
+                        Image(systemName: "backward.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(foregroundColor)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(foregroundColor.opacity(0.12)))
+                    }
+                    
+                    // Play/Pause
+                    Button {
+                        intervalTimer.togglePause()
+                    } label: {
+                        Image(systemName: intervalTimer.phase == .paused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(session.theme.gradient(for: colorScheme))
+                            .frame(width: 40, height: 40)
+                            .background(
+                                Circle().fill(foregroundColor)
+                            )
+                    }
+                    
+                    // Next
+                    Button {
+                        intervalTimer.skipToNext()
+                    } label: {
+                        Image(systemName: "forward.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(foregroundColor)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(foregroundColor.opacity(0.12)))
+                    }
+                } else if intervalTimer.phase == .completed {
+                    // Restart button
+                    Button {
+                        if let listSession = firstIntervalListSession {
+                            intervalTimer.load(from: listSession)
+                            intervalTimer.start()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.caption.weight(.semibold))
+                            Text("Repeat")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(foregroundColor)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(foregroundColor.opacity(0.15)))
+                    }
+                } else {
+                    // Start button
+                    Button {
+                        intervalTimer.start()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "play.fill")
+                                .font(.caption)
+                            Text("Start")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(session.theme.gradient(for: colorScheme))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(foregroundColor))
+                    }
+                }
+            }
+        }
         .padding(.horizontal, 20)
-        .padding(.bottom, 40)
+    }
+    
+    private func playbackIntervalRow(_ intervalSession: IntervalSession, index: Int) -> some View {
+        let isCurrent = index == intervalTimer.currentIntervalIndex && intervalTimer.isActive
+        let isPaused = isCurrent && intervalTimer.phase == .paused
+        let isCompleted = intervalSession.isCompleted
+        let interval = intervalSession.interval
+        
+        // Progress fraction for the background bar
+        let progress: Double = {
+            if isCompleted { return 1.0 }
+            if isCurrent { return intervalTimer.currentIntervalProgress }
+            return 0
+        }()
+        
+        return HStack(spacing: 12) {
+            // Numbered circle / checkmark
+            ZStack {
+                Circle()
+                    .fill(isCurrent ? foregroundColor : foregroundColor.opacity(isCompleted ? 0.1 : 0.08))
+                    .frame(width: 32, height: 32)
+                
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(foregroundColor.opacity(0.5))
+                } else {
+                    Text("\(index + 1)")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(
+                            isCurrent
+                                ? AnyShapeStyle(session.theme.gradient(for: colorScheme))
+                                : AnyShapeStyle(foregroundColor.opacity(0.6))
+                        )
+                }
+            }
+            
+            // Name + status
+            VStack(alignment: .leading, spacing: 2) {
+                Text(interval?.name ?? "Interval \(index + 1)")
+                    .font(.subheadline.weight(isCurrent ? .semibold : .medium))
+                    .foregroundStyle(
+                        isCurrent ? foregroundColor : foregroundColor.opacity(isCompleted ? 0.4 : 0.8)
+                    )
+                    .lineLimit(1)
+                
+                if isCurrent, let kind = interval?.kind {
+                    Text(kind == .work ? "In progress" : "Rest")
+                        .font(.caption2)
+                        .foregroundStyle(foregroundColor.opacity(0.5))
+                }
+            }
+            
+            Spacer()
+            
+            // Duration or countdown
+            if isCurrent {
+                Text(formatCountdown(intervalTimer.secondsRemaining))
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(foregroundColor)
+                    .contentTransition(.numericText())
+                    .animation(.linear(duration: 0.3), value: intervalTimer.secondsRemaining)
+            } else if let duration = interval?.durationSeconds {
+                Text(formatIntervalDuration(duration))
+                    .font(.subheadline.weight(.medium).monospacedDigit())
+                    .foregroundStyle(foregroundColor.opacity(isCompleted ? 0.3 : 0.5))
+            }
+            
+            // Per-row play/pause button
+            if !isCompleted {
+                Button {
+                    if isCurrent {
+                        intervalTimer.togglePause()
+                    } else {
+                        intervalTimer.skipTo(index: index)
+                    }
+                } label: {
+                    Image(systemName: (isCurrent && !isPaused) ? "pause.fill" : "play.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(foregroundColor.opacity(0.7))
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(foregroundColor.opacity(0.12)))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            GeometryReader { geo in
+                foregroundColor.opacity(0.12)
+                    .frame(width: geo.size.width * progress)
+                    .animation(.linear(duration: 1), value: progress)
+            }
+        )
     }
     
     private func nowPlayingIntervalRow(_ interval: Interval, index: Int) -> some View {
@@ -375,6 +735,18 @@ struct NowPlayingView: View {
             Text(formatIntervalDuration(interval.durationSeconds))
                 .font(.subheadline.weight(.medium).monospacedDigit())
                 .foregroundStyle(foregroundColor.opacity(isCurrent ? 0.8 : 0.5))
+            
+            // Play button
+            Button {
+                intervalTimer.skipTo(index: index)
+            } label: {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(foregroundColor.opacity(0.7))
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(foregroundColor.opacity(0.12)))
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -393,6 +765,15 @@ struct NowPlayingView: View {
         } else {
             return "\(sec)s"
         }
+    }
+    
+    private func formatCountdown(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        if minutes > 0 {
+            return String(format: "%d:%02d", minutes, secs)
+        }
+        return String(format: "0:%02d", secs)
     }
     
     // MARK: - Checklist Content
@@ -603,6 +984,7 @@ struct NowPlayingView: View {
         HStack(spacing: 40) {
             Button {
                 HapticFeedbackManager.trigger(.medium)
+                intervalTimer.stop()
                 onStopTapped()
             } label: {
                 Image(systemName: "square.fill")
@@ -617,9 +999,9 @@ struct NowPlayingView: View {
             
             Button {
                 HapticFeedbackManager.trigger(.medium)
-                onStopTapped()
+                onPauseTapped?()
             } label: {
-                Image(systemName: "pause.fill")
+                Image(systemName: activeSessionDetails.isPaused ? "play.fill" : "pause.fill")
                     .font(.system(size: 24))
                     .foregroundStyle(session.theme.gradient(for: colorScheme))
                     .frame(width: 72, height: 72)
@@ -802,15 +1184,15 @@ struct SessionAdjustmentsSheet: View {
         return d
     }()
     
+    let previewTimer = IntervalTimerManager()
     NowPlayingView(
         session: session,
         activeSessionDetails: details,
-        currentIntervalName: "Heel Stretch 2/4",
-        intervalProgress: 0.6,
-        intervalTimeRemaining: 12
-    ) {
-        print("Stop tapped")
-    }
+        intervalTimer: previewTimer,
+        onStopTapped: {
+            print("Stop tapped")
+        }
+    )
 }
 
 #Preview("Over 100%") {
@@ -825,10 +1207,13 @@ struct SessionAdjustmentsSheet: View {
         return d
     }()
     
+    let previewTimer = IntervalTimerManager()
     NowPlayingView(
         session: session,
-        activeSessionDetails: details
-    ) {
-        print("Stop tapped")
-    }
+        activeSessionDetails: details,
+        intervalTimer: previewTimer,
+        onStopTapped: {
+            print("Stop tapped")
+        }
+    )
 }

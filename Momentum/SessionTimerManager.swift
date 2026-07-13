@@ -33,10 +33,28 @@ public final class SessionTimerManager {
     /// Callback when external changes are detected (e.g., widget stopped the timer)
     public var onExternalChange: (() -> Void)?
     
-    /// Current interval information (if intervals are active)
-    public var currentIntervalName: String?
-    public var intervalProgress: Double?
-    public var intervalTimeRemaining: TimeInterval?
+    /// Interval timer — persists across NowPlayingView presentations
+    let intervalTimer = IntervalTimerManager()
+    
+    /// Current interval information derived from intervalTimer
+    var currentIntervalName: String? {
+        if intervalTimer.isActive {
+            return intervalTimer.currentIntervalName
+        }
+        return nil
+    }
+    var intervalProgress: Double? {
+        if intervalTimer.isActive {
+            return intervalTimer.currentIntervalProgress
+        }
+        return nil
+    }
+    var intervalTimeRemaining: TimeInterval? {
+        if intervalTimer.isActive {
+            return TimeInterval(intervalTimer.secondsRemaining)
+        }
+        return nil
+    }
     
     private let goalStore: GoalStore
     private let modelContext: ModelContext
@@ -54,6 +72,7 @@ public final class SessionTimerManager {
     // MARK: - UserDefaults Keys for Timer Persistence
     private let activeSessionElapsedTimeKey = "ActiveSessionElapsedTimeV1"
     private let activeSessionStartDateKey = "ActiveSessionStartDateV1"
+    private let activeSessionOriginalStartDateKey = "ActiveSessionOriginalStartDateV1"
     private let activeSessionIDKey = "ActiveSessionIDV1"
     
     // App Group identifier for sharing data with widgets
@@ -551,6 +570,36 @@ public final class SessionTimerManager {
         }
     }
     
+    /// Pauses the currently active timer without stopping it
+    public func pauseTimer() {
+        guard let activeSession, !activeSession.isPaused else { return }
+        
+        AppLogger.sessionTimer.debug("Pausing active session")
+        
+        // Accumulate elapsed time so far and mark as paused
+        activeSession.accumulateElapsedTime()
+        activeSession.isPaused = true
+        
+        // Stop the UI timer
+        activeSession.stopUITimer()
+        
+        // Persist paused state
+        guard let defaults = sharedDefaults else { return }
+        defaults.set(activeSession.id.uuidString, forKey: "PausedSessionIDV1")
+        defaults.set(activeSession.elapsedTime, forKey: activeSessionElapsedTimeKey)
+        defaults.set(activeSession.startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
+        defaults.set(activeSession.originalStartDate.timeIntervalSince1970, forKey: activeSessionOriginalStartDateKey)
+        defaults.synchronize()
+        
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+        
+        #if os(iOS)
+        HapticFeedbackManager.trigger(.medium)
+        #endif
+    }
+    
     /// Resumes a paused timer
     public func resumeTimer() {
         guard let activeSession, activeSession.isPaused else { return }
@@ -657,7 +706,7 @@ public final class SessionTimerManager {
     public func stopTimer(for session: GoalSession, in day: Day) {
         guard let activeSession, activeSession.id == session.id else { return }
         
-        let startDate = activeSession.startDate
+        let startDate = activeSession.originalStartDate
         let endDate = Date.now
         
         // Save the session to create a historical entry
@@ -748,9 +797,11 @@ public final class SessionTimerManager {
         if let activeSession {
             defaults.set(activeSession.id.uuidString, forKey: activeSessionIDKey)
             defaults.set(activeSession.startDate.timeIntervalSince1970, forKey: activeSessionStartDateKey)
+            defaults.set(activeSession.originalStartDate.timeIntervalSince1970, forKey: activeSessionOriginalStartDateKey)
             defaults.set(activeSession.elapsedTime, forKey: activeSessionElapsedTimeKey)
         } else {
             defaults.removeObject(forKey: activeSessionStartDateKey)
+            defaults.removeObject(forKey: activeSessionOriginalStartDateKey)
             defaults.removeObject(forKey: activeSessionIDKey)
             defaults.removeObject(forKey: activeSessionElapsedTimeKey)
         }
@@ -801,13 +852,16 @@ public final class SessionTimerManager {
         }
         
         let startDate = Date(timeIntervalSince1970: timeInterval)
+        let originalStartInterval = defaults.double(forKey: activeSessionOriginalStartDateKey)
+        let originalStartDate = originalStartInterval > 0 ? Date(timeIntervalSince1970: originalStartInterval) : startDate
         
         // Recreate the active session
         let restoredSession = ActiveSessionDetails(
             id: uuid,
             startDate: startDate,
             elapsedTime: elapsed,
-            dailyTarget: session.targetUnit.isTimeBased ? session.unifiedTargetValue : 0
+            dailyTarget: session.targetUnit.isTimeBased ? session.unifiedTargetValue : 0,
+            originalStartDate: originalStartDate
         ) {
             self.onTargetReached(for: session)
         }
@@ -962,19 +1016,21 @@ public final class SessionTimerManager {
         updateLiveActivity(
             elapsedTime: dynamicElapsed,
             startDate: Date.now,
-            isActive: true
+            isActive: true,
+            intervalName: currentIntervalName
         )
         #endif
     }
     
-    private func updateLiveActivity(elapsedTime: TimeInterval, startDate: Date, isActive: Bool) {
+    private func updateLiveActivity(elapsedTime: TimeInterval, startDate: Date, isActive: Bool, intervalName: String? = nil) {
         guard let activity = liveActivity else { return }
         
         Task {
             let contentState = MomentumWidgetAttributes.ContentState(
                 elapsedTime: elapsedTime,
                 startDate: startDate,
-                isActive: isActive
+                isActive: isActive,
+                currentIntervalName: intervalName
             )
             
             // Set staleDate to 1 second in the future to encourage frequent updates

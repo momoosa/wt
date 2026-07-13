@@ -187,7 +187,7 @@ struct PlanTabView: View {
                             .foregroundStyle(weekDay.isToday ? .primary : .secondary)
                         
                         VStack(spacing: 3) {
-                            ForEach(weekDay.sessionThemes.prefix(4), id: \.id) { theme in
+                            ForEach(Array(weekDay.sessionThemes.prefix(4).enumerated()), id: \.offset) { _, theme in
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(theme.gradient(for: colorScheme))
                                     .frame(height: 6)

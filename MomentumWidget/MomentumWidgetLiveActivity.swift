@@ -142,9 +142,18 @@ struct MomentumWidgetLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(spacing: 12) {
-                        Text(context.attributes.goalTitle)
-                            .font(.headline)
-                            .lineLimit(1)
+                        VStack(spacing: 2) {
+                            Text(context.attributes.goalTitle)
+                                .font(.headline)
+                                .lineLimit(1)
+                            
+                            if let intervalName = context.state.currentIntervalName {
+                                Text(intervalName)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
                         
                         HStack(spacing: 16) {
                             // Pause/Resume button
@@ -252,7 +261,12 @@ struct LiveActivityLockScreenView: View {
                             .foregroundStyle(.secondary)
                     }
                     
-                    
+                    if let intervalName = context.state.currentIntervalName {
+                        Text(intervalName)
+                            .font(.caption)
+                            .foregroundStyle(context.themeNeonColor)
+                            .lineLimit(1)
+                    }
                 }
                 
                 Spacer()

@@ -21,11 +21,13 @@ public struct MomentumWidgetAttributes: ActivityAttributes {
         public var elapsedTime: TimeInterval
         public var startDate: Date
         public var isActive: Bool
+        public var currentIntervalName: String?
         
-        public init(elapsedTime: TimeInterval, startDate: Date, isActive: Bool) {
+        public init(elapsedTime: TimeInterval, startDate: Date, isActive: Bool, currentIntervalName: String? = nil) {
             self.elapsedTime = elapsedTime
             self.startDate = startDate
             self.isActive = isActive
+            self.currentIntervalName = currentIntervalName
         }
     }
 

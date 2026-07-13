@@ -132,7 +132,12 @@ final class IntervalTimerManager {
     
     // MARK: - Private
     
-    private var timer: Timer?
+    @ObservationIgnored
+    private nonisolated(unsafe) var timer: Timer?
+    
+    deinit {
+        timer?.invalidate()
+    }
     
     // MARK: - Lifecycle
     
@@ -222,6 +227,34 @@ final class IntervalTimerManager {
         }
         
         advanceToNextInterval()
+    }
+    
+    /// Skip to a specific interval by index
+    func skipTo(index targetIndex: Int) {
+        guard targetIndex >= 0, targetIndex < intervalSessions.count else { return }
+        
+        // Mark all intervals before target as completed
+        for i in 0..<targetIndex {
+            intervalSessions[i].isCompleted = true
+            intervalSessions[i].elapsedSeconds = intervalSessions[i].interval?.durationSeconds ?? 0
+        }
+        
+        // Reset target and all after it
+        for i in targetIndex..<intervalSessions.count {
+            intervalSessions[i].isCompleted = false
+            intervalSessions[i].elapsedSeconds = 0
+        }
+        
+        currentIntervalIndex = targetIndex
+        secondsRemaining = intervalSessions[targetIndex].interval?.durationSeconds ?? 0
+        
+        if phase != .playing {
+            phase = .playing
+            onPhaseChange?(.playing)
+            startTimer()
+        }
+        
+        HapticFeedbackManager.trigger(.medium)
     }
     
     /// Skip back to the previous interval

@@ -14,6 +14,9 @@ struct MiniPlayerView: View {
     let details: ActiveSessionDetails
     let onTapped: () -> Void
     let onStopTapped: () -> Void
+    var onPauseTapped: (() -> Void)?
+    var currentIntervalName: String?
+    var intervalTimeRemaining: TimeInterval?
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -39,17 +42,32 @@ struct MiniPlayerView: View {
                         .font(.subheadline.weight(.medium))
                         .lineLimit(1)
                     
-                    Text("\(details.currentValue.formatted(style: .hmmss)) · \(Int(details.progress * 100))% of \(details.dailyTarget.formatted(style: .hourMinute))")
+                    if let intervalName = currentIntervalName {
+                        HStack(spacing: 4) {
+                            Text(intervalName)
+                            if let remaining = intervalTimeRemaining {
+                                Text("·")
+                                Text(formatMiniCountdown(remaining))
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                            }
+                        }
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .contentTransition(.numericText())
+                        .lineLimit(1)
+                    } else {
+                        Text("\(details.currentValue.formatted(style: .hmmss)) · \(Int(details.progress * 100))% of \(details.dailyTarget.formatted(style: .hourMinute))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .contentTransition(.numericText())
+                    }
                 }
                 
                 Spacer(minLength: 0)
                 
                 HStack(spacing: 6) {
-                    // Pause button — opens full now playing
-                    Button(action: onTapped) {
+                    // Pause/Resume button
+                    Button(action: { onPauseTapped?() }) {
                         Image(systemName: details.isPaused ? "play.fill" : "pause.fill")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(session.theme.foregroundColor(for: colorScheme))
@@ -71,5 +89,13 @@ struct MiniPlayerView: View {
             }
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+    }
+    
+    private func formatMiniCountdown(_ seconds: TimeInterval) -> String {
+        let total = max(Int(seconds), 0)
+        let m = total / 60
+        let s = total % 60
+        return String(format: "%d:%02d", m, s)
     }
 }

@@ -18,7 +18,7 @@ struct IntervalFlowView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     @State private var flowPhase: FlowPhase = .overview
-    @State private var intervalTimer = IntervalTimerManager()
+    private var intervalTimer: IntervalTimerManager { timerManager.intervalTimer }
     
     enum FlowPhase {
         case overview
@@ -77,11 +77,6 @@ struct IntervalFlowView: View {
         .animation(AnimationPresets.smoothSpring, value: flowPhase)
         .onAppear {
             intervalTimer.load(from: listSession)
-            
-            // Wire interval state to SessionTimerManager
-            intervalTimer.onPhaseChange = { phase in
-                updateSessionTimerManager()
-            }
         }
     }
     
@@ -100,7 +95,6 @@ struct IntervalFlowView: View {
             flowPhase = .playback
         }
         
-        updateSessionTimerManager()
     }
     
     private func stopSession() {
@@ -111,7 +105,6 @@ struct IntervalFlowView: View {
             timerManager.toggleTimer(for: session, in: day)
         }
         
-        clearSessionTimerManagerIntervals()
         onDismiss()
     }
     
@@ -123,22 +116,6 @@ struct IntervalFlowView: View {
         withAnimation(AnimationPresets.smoothSpring) {
             flowPhase = .playback
         }
-        
-        updateSessionTimerManager()
-    }
-    
-    // MARK: - SessionTimerManager Sync
-    
-    private func updateSessionTimerManager() {
-        timerManager.currentIntervalName = intervalTimer.currentIntervalName
-        timerManager.intervalProgress = intervalTimer.currentIntervalProgress
-        timerManager.intervalTimeRemaining = TimeInterval(intervalTimer.secondsRemaining)
-    }
-    
-    private func clearSessionTimerManagerIntervals() {
-        timerManager.currentIntervalName = nil
-        timerManager.intervalProgress = nil
-        timerManager.intervalTimeRemaining = nil
     }
 }
 

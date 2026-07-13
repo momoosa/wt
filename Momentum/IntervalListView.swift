@@ -225,28 +225,7 @@ struct IntervalListView: View {
         let duration = current.durationSeconds
         let newElapsed = Date().timeIntervalSince(start)
         
-        // Update timer manager with current interval info (throttled to reduce CPU usage)
-        if let timerManager {
-            let newProgress = min(newElapsed / max(duration, 0.001), 1.0)
-            let newRemaining = max(duration - newElapsed, 0)
-            
-            // Only update if:
-            // 1. First time (name is nil)
-            // 2. Time remaining changed by at least 1 second (reduces updates from every second to meaningful changes)
-            let shouldUpdate = timerManager.currentIntervalName == nil ||
-                               abs((timerManager.intervalTimeRemaining ?? 0) - newRemaining) >= 1.0
-            
-            if shouldUpdate {
-                // Calculate position only when needed (use cached sorted list)
-                let sorted = sortedIntervals
-                let currentIndex = sorted.firstIndex(where: { $0.id == activeIntervalID }).map { $0 + 1 } ?? 0
-                let totalCount = sorted.count
-                
-                timerManager.currentIntervalName = "\(current.interval?.name ?? "Interval") \(currentIndex)/\(totalCount)"
-                timerManager.intervalProgress = newProgress
-                timerManager.intervalTimeRemaining = newRemaining
-            }
-        }
+        // Note: Interval state is now driven by IntervalTimerManager on SessionTimerManager
         
         // Update binding directly (we're already on main thread from Timer)
         intervalElapsed = newElapsed
@@ -280,12 +259,7 @@ struct IntervalListView: View {
         uiTimer?.invalidate()
         uiTimer = nil
         
-        // Clear interval info from timer manager
-        if let timerManager {
-            timerManager.currentIntervalName = nil
-            timerManager.intervalProgress = nil
-            timerManager.intervalTimeRemaining = nil
-        }
+        // Note: Interval state is now driven by IntervalTimerManager on SessionTimerManager
         // Note: Interval notification cancellation will be added in future update
     }
     

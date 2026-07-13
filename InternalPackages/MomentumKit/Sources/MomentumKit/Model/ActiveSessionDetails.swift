@@ -16,6 +16,9 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     }
     
     public private(set) var id: UUID
+    /// The original time the session was started (never changes after init)
+    public let originalStartDate: Date
+    /// The rolling start date used for live elapsed time calculation (reset on each accumulate)
     public private(set) var startDate: Date
     public private(set) var elapsedTime: TimeInterval = 0
     public var currentTime: Date?
@@ -33,6 +36,9 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
         if targetUnit.isTimeBased {
             // Access tickCount to establish an observation dependency so progress updates each tick
             _ = tickCount
+            if isPaused {
+                return elapsedTime
+            }
             let liveElapsed = elapsedTime + Date().timeIntervalSince(startDate)
             return liveElapsed
         }
@@ -46,8 +52,9 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     let timerInterval: TimeInterval = 1.0
     private var hasNotifiedTargetReached = false // Track if we've already sent the notification
 
-    public init(id: UUID, startDate: Date, elapsedTime: TimeInterval, dailyTarget: TimeInterval = 0, onTargetReached: (() -> Void)? = nil) {
+    public init(id: UUID, startDate: Date, elapsedTime: TimeInterval, dailyTarget: TimeInterval = 0, originalStartDate: Date? = nil, onTargetReached: (() -> Void)? = nil) {
         self.id = id
+        self.originalStartDate = originalStartDate ?? startDate
         self.startDate = startDate
         self.elapsedTime = elapsedTime
         self.dailyTarget = dailyTarget
@@ -60,7 +67,7 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     }
     
     public func timerText(currentTime: Date = .now) -> String {
-        let elapsed = elapsedTime + currentTime.timeIntervalSince(startDate)
+        let elapsed = isPaused ? elapsedTime : elapsedTime + currentTime.timeIntervalSince(startDate)
         
         // If we have a daily target, show it in the format "31m 6s/1h 30m"
         if dailyTarget > 0 {
@@ -100,6 +107,12 @@ public final class ActiveSessionDetails: SessionProgressProvider, Equatable {
     /// Adjust the start time by a given offset (positive = earlier, negative = later)
     public func adjustStartTime(by offset: TimeInterval) {
         startDate = startDate.addingTimeInterval(offset)
+    }
+    
+    /// Accumulates elapsed time and resets startDate so the timer can be paused.
+    public func accumulateElapsedTime() {
+        elapsedTime += Date.now.timeIntervalSince(startDate)
+        startDate = Date.now
     }
 
 }

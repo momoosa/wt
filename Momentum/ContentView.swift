@@ -75,6 +75,9 @@ struct ContentView: View {
     // Goal editor view model - held in @State to survive parent re-renders
     @State var goalEditorViewModel: GoalEditorViewModel?
     
+    // Tracks which matchedTransitionSource ID opened the goal editor
+    @State private var goalEditorSourceID: String = "info"
+    
     // Progress Card Tile Visibility Settings
     @AppStorage("showProgressTile") var showProgressTile: Bool = true
     @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
@@ -169,32 +172,59 @@ struct ContentView: View {
             }
         }
         .environment(\.sessionActions, sessionActions)
-        // Mini player as tab bar accessory
-        .tabViewBottomAccessory(isEnabled: miniPlayerSession != nil && !navigation.showNowPlaying) {
-            if let (session, details) = miniPlayerSession {
-                MiniPlayerView(
-                    session: session,
-                    details: details,
-                    onTapped: {
-                        navigation.showNowPlaying = true
-                    },
-                    onStopTapped: {
-                        handleTimerToggle(for: session)
-                    }
-                )
+        // Mini player + inline toast as tab bar accessory
+        .tabViewBottomAccessory(isEnabled: showMiniPlayer) {
+            VStack(spacing: 0) {
+                if let toastConfig = navigation.toastConfig {
+                    BottomAccessoryToastView(
+                        config: toastConfig,
+                        onDismiss: {
+                            withAnimation {
+                                navigation.toastConfig = nil
+                            }
+                        }
+                    )
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                
+                if let (session, details) = miniPlayerSession {
+                    MiniPlayerView(
+                        session: session,
+                        details: details,
+                        onTapped: {
+                            navigation.showNowPlaying = true
+                        },
+                        onStopTapped: {
+                            handleTimerToggle(for: session)
+                        },
+                        onPauseTapped: {
+                            if details.isPaused {
+                                timerManager?.resumeTimer()
+                            } else {
+                                timerManager?.pauseTimer()
+                            }
+                        },
+                        currentIntervalName: timerManager?.currentIntervalName,
+                        intervalTimeRemaining: timerManager?.intervalTimeRemaining
+                    )
+                }
             }
         }
-        // Toast overlay
-        .overlay(alignment: .top) {
-            if let toastConfig = navigation.toastConfig {
-                ToastView(
+        // Toast overlay for when there's no mini player
+        .overlay(alignment: .bottom) {
+            if !showMiniPlayer, let toastConfig = navigation.toastConfig {
+                BottomAccessoryToastView(
                     config: toastConfig,
                     onDismiss: {
-                        self.navigation.toastConfig = nil
+                        withAnimation {
+                            navigation.toastConfig = nil
+                        }
                     }
                 )
-                .ignoresSafeArea(edges: .top)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 60)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .task {
@@ -259,7 +289,7 @@ struct ContentView: View {
         .sheet(item: $goalEditorViewModel) { vm in
             GoalEditorView(viewModel: vm)
                 .navigationTransition(
-                    .zoom(sourceID: "info", in: animation)
+                    .zoom(sourceID: goalEditorSourceID, in: animation)
                 )
         }
         .sheet(isPresented: $navigation.showAllGoals) {
@@ -327,6 +357,7 @@ struct ContentView: View {
             navigation.selectedTab = .search
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenNewGoal"))) { _ in
+            goalEditorSourceID = "info"
             goalEditorViewModel = GoalEditorViewModel()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowToast"))) { notification in
@@ -344,6 +375,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenGoalEditor"))) { notification in
             if let vm = notification.object as? GoalEditorViewModel {
+                goalEditorSourceID = "info"
                 goalEditorViewModel = vm
             }
         }
@@ -367,6 +399,10 @@ struct ContentView: View {
             return nil
         }
         return (session, activeSession)
+    }
+    
+    private var showMiniPlayer: Bool {
+        miniPlayerSession != nil && !navigation.showNowPlaying
     }
     
     // MARK: - Focus Banner
@@ -468,6 +504,7 @@ struct ContentView: View {
                 } trailing: {
                     HStack(spacing: 12) {
                         Button(action: {
+                            goalEditorSourceID = "info"
                             goalEditorViewModel = GoalEditorViewModel()
                         }) {
                             Image(systemName: "plus")
@@ -626,39 +663,41 @@ struct ContentView: View {
         
         Section {
             ForEach(starterSuggestions, id: \.template.id) { item in
-                HStack(spacing: 14) {
-                    // Gradient icon circle
-                    ZStack {
-                        Circle()
-                            .fill(item.category.themePreset.gradient(for: colorScheme))
-                            .frame(width: 40, height: 40)
+                Button {
+                    goalEditorSourceID = "suggestion_\(item.template.id)"
+                    openEditorWithTemplate(id: item.template.id)
+                } label: {
+                    HStack(spacing: 14) {
+                        // Gradient icon circle
+                        ZStack {
+                            Circle()
+                                .fill(item.category.themePreset.gradient(for: colorScheme))
+                                .frame(width: 40, height: 40)
+                            
+                            Image(systemName: item.template.icon)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
                         
-                        Image(systemName: item.template.icon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.template.title)
-                            .font(.subheadline.bold())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.template.title)
+                                .font(.subheadline.bold())
+                            
+                            Text("\(item.category.name) · \(item.template.duration)m")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         
-                        Text("\(item.category.name) · \(item.template.duration)m")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        openEditorWithTemplate(id: item.template.id)
-                    } label: {
+                        Spacer()
+                        
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
                             .foregroundStyle(.secondary.opacity(0.5))
                     }
-                    .buttonStyle(.plain)
                 }
+                .buttonStyle(.plain)
                 .padding(.vertical, 4)
+                .matchedTransitionSource(id: "suggestion_\(item.template.id)", in: animation)
             }
         } header: {
             Text("Start with one")
@@ -863,11 +902,16 @@ struct ContentView: View {
                 NowPlayingView(
                     session: session,
                     activeSessionDetails: activeSession,
-                    currentIntervalName: timerManager?.currentIntervalName,
-                    intervalProgress: timerManager?.intervalProgress,
-                    intervalTimeRemaining: timerManager?.intervalTimeRemaining,
+                    intervalTimer: timerManager?.intervalTimer ?? IntervalTimerManager(),
                     onStopTapped: {
                         handleTimerToggle(for: session)
+                    },
+                    onPauseTapped: {
+                        if activeSession.isPaused {
+                            timerManager?.resumeTimer()
+                        } else {
+                            timerManager?.pauseTimer()
+                        }
                     },
                     onAdjustStartTime: { adjustment in
                         handleStartTimeAdjustment(for: session, adjustment: adjustment)

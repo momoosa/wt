@@ -115,6 +115,63 @@ struct ToastView: View {
     }
 }
 
+/// Compact toast designed for display inside a tabViewBottomAccessory.
+/// Renders as a simple horizontal bar without the sliding-from-top animation.
+struct BottomAccessoryToastView: View {
+    let config: ToastConfig
+    let onDismiss: () -> Void
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var foregroundColor: Color {
+        colorScheme == .dark ? .black : .white
+    }
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(config.message)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(foregroundColor)
+                .lineLimit(1)
+            
+            Spacer(minLength: 0)
+            
+            if config.showUndo, let onUndo = config.onUndo {
+                Button {
+                    onUndo()
+                    onDismiss()
+                } label: {
+                    Text("Undo")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(foregroundColor.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(backgroundColor, in: RoundedRectangle(cornerRadius: 14))
+        .task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            onDismiss()
+        }
+    }
+}
+
 #Preview {
     VStack {
         Spacer()

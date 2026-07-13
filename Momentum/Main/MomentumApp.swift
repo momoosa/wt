@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import CoreData
+import CloudKit
 import MomentumKit
 import UserNotifications
 import BackgroundTasks
@@ -22,20 +23,74 @@ import WidgetKit
 // MARK: - App Delegate for Notification Handling
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    // MARK: - Daily refresh ping (silent push via CloudKit public database)
+
+    private let refreshPingContainerIdentifier = "iCloud.com.moosa.momentum.ios"
+    private let refreshPingSubscriptionID = "refresh-ping-subscription"
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Set notification delegate to handle foreground notifications
         UNUserNotificationCenter.current().delegate = self
-        
+
         // Register background refresh task
         registerBackgroundTasks()
-        
+
+        // Register for silent remote (push) notifications, e.g. the daily refresh ping
+        application.registerForRemoteNotifications()
+        subscribeToRefreshPingIfNeeded()
+
         #if os(iOS)
         // Initialize WatchConnectivity early to start listening for Watch messages
         _ = WatchConnectivityManager.shared
         AppLogger.app.info("WatchConnectivityManager initialized")
         #endif
-        
+
         return true
+    }
+
+    // Subscribe (once) to the public-database RefreshPing record so a daily
+    // scheduled write to it triggers a silent push that wakes this app.
+    func subscribeToRefreshPingIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: "hasSubscribedToRefreshPing") else { return }
+
+        let container = CKContainer(identifier: refreshPingContainerIdentifier)
+        let subscription = CKQuerySubscription(
+            recordType: "RefreshPing",
+            predicate: NSPredicate(value: true),
+            subscriptionID: refreshPingSubscriptionID,
+            options: [.firesOnRecordCreation, .firesOnRecordUpdate]
+        )
+
+        let notificationInfo = CKSubscription.NotificationInfo()
+        notificationInfo.shouldSendContentAvailable = true
+        subscription.notificationInfo = notificationInfo
+
+        container.publicCloudDatabase.save(subscription) { _, error in
+            if let error {
+                AppLogger.notifications.error("Failed to subscribe to refresh ping: \(error)")
+                return
+            }
+            UserDefaults.standard.set(true, forKey: "hasSubscribedToRefreshPing")
+            AppLogger.notifications.info("Subscribed to daily refresh ping")
+        }
+    }
+
+    // Handle the silent push: refresh background data/widgets without launching the UI
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        guard let notification = CKNotification(fromRemoteNotificationDictionary: userInfo),
+              notification.subscriptionID == refreshPingSubscriptionID else {
+            completionHandler(.noData)
+            return
+        }
+
+        AppLogger.background.info("Received daily refresh ping")
+
+        #if canImport(WidgetKit)
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
+        AppLogger.background.info("Daily refresh ping: Reloaded widget timelines")
+        #endif
+
+        completionHandler(.newData)
     }
     
     // Register background task for widget updates
