@@ -34,3 +34,18 @@ enum AnimationPresets {
     /// Linear animation (duration: 0.3)
     static let linearFast = Animation.linear(duration: 0.3)
 }
+
+// MARK: - Stagger Reveal Modifier
+
+extension View {
+    /// Applies a stagger-in effect that works inside List rows.
+    /// Animates content opacity and a subtle vertical offset without
+    /// trying to hide the List row chrome (which List controls).
+    func staggerReveal(isRevealed: Bool) -> some View {
+        self
+            .opacity(isRevealed ? 1 : 0)
+            .offset(y: isRevealed ? 0 : 8)
+            .allowsHitTesting(isRevealed)
+            .animation(.easeOut(duration: 0.35), value: isRevealed)
+    }
+}

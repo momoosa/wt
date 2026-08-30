@@ -17,215 +17,211 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        let recommendations = await fetchRecommendations()
-        return SimpleEntry(date: Date(), recommendations: recommendations, configuration: configuration)
+        let recs = await snapshotRecommendations()
+        return SimpleEntry(date: Date(), recommendations: recs, configuration: configuration)
     }
-    
+
+    @MainActor
+    private func snapshotRecommendations() -> [RecommendedSession] {
+        guard let context = makeContext() else { return [] }
+        return recommendations(for: Date(), context: context, timer: readActiveTimer())
+    }
+
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        let recommendations = await fetchRecommendations()
-        
-        let currentDate = Date()
-        
-        // Check if any session has an active timer
-        let hasActiveTimer = recommendations.contains { $0.isTimerActive }
-        
-        // Update more frequently if timer is active (every 1 minute)
-        // Otherwise update every 15 minutes to keep recommendations fresh
-        let updateInterval = hasActiveTimer ? 1 : 15
-        
-        // Create multiple timeline entries to improve background refresh reliability
-        var entries: [SimpleEntry] = []
-        for minuteOffset in stride(from: 0, through: updateInterval * 3, by: updateInterval) {
-            if let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate) {
-                entries.append(SimpleEntry(date: entryDate, recommendations: recommendations, configuration: configuration))
+        await buildTimeline(configuration: configuration)
+    }
+
+    // MARK: - Timeline construction
+
+    /// A day-spanning, midnight-crossing timeline. Recommendations are derived from
+    /// the durable goal definitions for each entry's date, so the widget stays
+    /// accurate as the day progresses and rolls over — even on days the app itself
+    /// never ran — without needing a server push.
+    @MainActor
+    private func buildTimeline(configuration: ConfigurationAppIntent) -> Timeline<SimpleEntry> {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfTomorrow = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86_400)
+        )
+
+        guard let context = makeContext() else {
+            return Timeline(entries: [SimpleEntry(date: now, recommendations: [], configuration: configuration)],
+                            policy: .after(startOfTomorrow))
+        }
+
+        let timer = readActiveTimer()
+
+        // Timer active: refresh quickly so the live count stays fresh.
+        if timer != nil {
+            let recs = recommendations(for: now, context: context, timer: timer)
+            let entries: [SimpleEntry] = stride(from: 0, through: 3, by: 1).compactMap { minute in
+                calendar.date(byAdding: .minute, value: minute, to: now).map {
+                    SimpleEntry(date: $0, recommendations: recs, configuration: configuration)
+                }
+            }
+            return Timeline(entries: entries, policy: .atEnd)
+        }
+
+        // Idle: an entry now, one at each remaining time-of-day boundary today, and
+        // one just after midnight showing tomorrow's plan. Each entry recomputes for
+        // its own date, so the day rolls over correctly without a live reload.
+        var dates: [Date] = [now]
+        for hour in [10, 14, 17, 21] {
+            if let boundary = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: now),
+               boundary > now, boundary < startOfTomorrow {
+                dates.append(boundary)
             }
         }
-        
-        // Use .atEnd policy to request updates as soon as the timeline expires
-        return Timeline(entries: entries, policy: .atEnd)
-    }
-    
-    @MainActor
-    private func fetchRecommendations() async -> [RecommendedSession] {
-        // Set up model container with App Group for widget access
-        let schema = Schema([
-            Goal.self,
-            GoalTag.self,
-            GoalSession.self,
-            Day.self,
-            HistoricalSession.self,
-            ChecklistItemSession.self,
-            IntervalListSession.self,
-        ])
-        
-        // Use App Group container for shared data access
-        // You need to configure this App Group in your target settings
-        let appGroupIdentifier = "group.com.moosa.momentum.ios"
-        
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("❌ Widget: Failed to get App Group container URL")
-            print("   Make sure App Group '\(appGroupIdentifier)' is configured in both app and widget targets")
-            return []
+        dates.append(startOfTomorrow.addingTimeInterval(30))
+        dates.sort()
+
+        let entries = dates.map { date in
+            SimpleEntry(date: date,
+                        recommendations: recommendations(for: date, context: context, timer: nil),
+                        configuration: configuration)
         }
-        
+        // Also ask WidgetKit to refresh at the new day to extend the horizon.
+        return Timeline(entries: entries, policy: .after(startOfTomorrow))
+    }
+
+    // MARK: - Shared store
+
+    private var appGroupIdentifier: String { "group.com.moosa.momentum.ios" }
+
+    @MainActor
+    private func makeContext() -> ModelContext? {
+        let schema = Schema([
+            Goal.self, GoalTag.self, GoalSession.self, Day.self,
+            HistoricalSession.self, ChecklistItemSession.self, IntervalListSession.self,
+        ])
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            print("❌ Widget: Failed to get App Group container URL for \(appGroupIdentifier)")
+            return nil
+        }
         let storeURL = containerURL.appendingPathComponent("default.store")
-        print("📁 Widget: Using store at: \(storeURL.path)")
-        
         let modelConfiguration = ModelConfiguration(url: storeURL)
-        
         guard let container = try? ModelContainer(for: schema, configurations: [modelConfiguration]) else {
             print("❌ Widget: Failed to create model container")
-            return []
+            return nil
         }
-        
-        print("✅ Widget: Model container created successfully")
-        
         let context = container.mainContext
-        
-        // Fetch today's day
-        let now = Date()
-        let calendar = Calendar.current
-        
-        // Construct today's day ID using the same format as Day.init
-        let todayID = now.yearMonthDayID(with: calendar)
-        print("🔍 Widget: Looking for day with ID: \(todayID)")
-        
-        // Fetch day by ID
-        let dayPredicate = #Predicate<Day> { day in
-            day.id == todayID
-        }
-        let dayDescriptor = FetchDescriptor<Day>(predicate: dayPredicate)
-        
-        guard let day = try? context.fetch(dayDescriptor).first else {
-            print("❌ Widget: No day found with ID \(todayID)")
-            // Try fetching all days to see what's available
-            if let allDays = try? context.fetch(FetchDescriptor<Day>()) {
-                print("   Available days: \(allDays.map { $0.id }.joined(separator: ", "))")
-            }
-            return []
-        }
-        
-        print("✅ Widget: Found today's day: \(day.id)")
-        
-        // Fetch sessions for today
-        let dayID = day.id
-        let sessionPredicate = #Predicate<GoalSession> { session in
-            session.day?.id == dayID
-        }
-        let sessionDescriptor = FetchDescriptor<GoalSession>(predicate: sessionPredicate)
-        let sessions = (try? context.fetch(sessionDescriptor)) ?? []
-        
-        print("📊 Widget: Found \(sessions.count) sessions")
-        
-        // Filter active, non-skipped, non-completed sessions
-        let activeSessions = sessions.filter { session in
-            session.goal?.status != .archived && session.status != .skipped && !session.hasMetDailyTarget
-        }
-        
-        print("✅ Widget: \(activeSessions.count) active sessions")
-        
-        // Check for active timer from UserDefaults
+        context.autosaveEnabled = false  // The widget is read-only; never persist changes.
+        return context
+    }
+
+    private struct ActiveTimerInfo {
+        let sessionID: String
+        let startDate: Double
+        let elapsed: Double
+    }
+
+    private func readActiveTimer() -> ActiveTimerInfo? {
         let defaults = UserDefaults(suiteName: appGroupIdentifier)
-        let activeTimerSessionID = defaults?.string(forKey: "ActiveSessionIDV1")
-        let activeSessionStartDate = defaults?.double(forKey: "ActiveSessionStartDateV1")
-        let activeSessionElapsedTime = defaults?.double(forKey: "ActiveSessionElapsedTimeV1")
-        
-        // Use same ordering logic as ContentView
+        guard let id = defaults?.string(forKey: "ActiveSessionIDV1"), !id.isEmpty else { return nil }
+        return ActiveTimerInfo(
+            sessionID: id,
+            startDate: defaults?.double(forKey: "ActiveSessionStartDateV1") ?? 0,
+            elapsed: defaults?.double(forKey: "ActiveSessionElapsedTimeV1") ?? 0
+        )
+    }
+
+    // MARK: - Recommendations (derived from durable goals)
+
+    /// Ranks what to do on `date` straight from the durable `Goal` definitions,
+    /// enriching each with its materialised `GoalSession` (progress, live timer) when
+    /// one exists. Goals scheduled for the date but not yet materialised are surfaced
+    /// as zero-progress placeholders, so the widget never shows an empty day just
+    /// because the app hasn't created today's sessions yet.
+    @MainActor
+    private func recommendations(for date: Date, context: ModelContext, timer: ActiveTimerInfo?) -> [RecommendedSession] {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: date)
+        let dayID = date.yearMonthDayID(with: calendar)
+
+        let activeGoals = ((try? context.fetch(FetchDescriptor<Goal>())) ?? []).filter { $0.status == .active }
+
+        // Materialised session rows for this date, if the app has created them.
+        var sessionsForDay: [GoalSession] = []
+        if let day = try? context.fetch(FetchDescriptor<Day>(predicate: #Predicate { $0.id == dayID })).first {
+            let did = day.id
+            sessionsForDay = (try? context.fetch(FetchDescriptor<GoalSession>(predicate: #Predicate { $0.day?.id == did }))) ?? []
+        }
+        var sessionByGoal: [UUID: GoalSession] = [:]
+        for session in sessionsForDay {
+            if let gid = session.goal?.id { sessionByGoal[gid] = session }
+        }
+
+        // Candidate goals: active, scheduled/relevant for the date, not skipped or met.
+        let candidates: [(goal: Goal, session: GoalSession?)] = activeGoals.compactMap { goal in
+            guard goal.isScheduledDay(weekday) else { return nil }
+            if goal.hasRelevanceRule, goal.dayAvailability(for: weekday) == .never { return nil }
+            let session = sessionByGoal[goal.id]
+            if let session, session.status == .skipped || session.hasMetDailyTarget { return nil }
+            return (goal, session)
+        }
+
         let planner = GoalSessionPlanner()
         let preferences = PlannerPreferences.default
-        
-        // First: Show pinned sessions (always at the top)
-        let pinnedSessions = activeSessions
-            .filter { $0.pinnedInWidget }
-            .sorted { session1, session2 in
-                // Sort pinned by planned time if available, otherwise by title
-                if let time1 = session1.plannedStartTime, let time2 = session2.plannedStartTime {
-                    return time1 < time2
-                }
-                return session1.title < session2.title
-            }
-        
-        var orderedSessions: [GoalSession] = Array(pinnedSessions)
-        
-        // Fill remaining slots up to 10 sessions
-        if orderedSessions.count < 10 {
-            let pinnedIDs = Set(pinnedSessions.map { $0.id })
-            let unpinnedSessions = activeSessions.filter { !pinnedIDs.contains($0.id) }
-            
-            // Second: Show planned sessions with recommendation reasons (top 3)
-            let filtered = unpinnedSessions.filter { $0.plannedStartTime != nil && !$0.recommendationReasons.isEmpty }
-            let sorted = filtered.sorted { ($0.plannedStartTime ?? Date.distantFuture) < ($1.plannedStartTime ?? Date.distantFuture) }
-            let plannedSessions = Array(sorted.prefix(3))
-            
-            orderedSessions.append(contentsOf: plannedSessions)
-            
-            // Fill remaining slots
-            if orderedSessions.count < 10 {
-                let plannedIDs = Set(plannedSessions.map { $0.id })
-                let remainingSessions = unpinnedSessions.filter { !plannedIDs.contains($0.id) }
-                
-                // Sort remaining by planned time if available, otherwise by score
-                let sorted = remainingSessions.sorted { session1, session2 in
-                    let has1 = session1.plannedStartTime != nil
-                    let has2 = session2.plannedStartTime != nil
-                    
-                    if has1 && has2 {
-                        return session1.plannedStartTime! < session2.plannedStartTime!
-                    } else if has1 {
-                        return true
-                    } else if has2 {
-                        return false
-                    } else {
-                        // Use scoring for unplanned sessions
-                        guard let goal1 = session1.goal, let goal2 = session2.goal else { return false }
-                        let score1 = planner.scoreSession(for: goal1, session: session1, at: now, preferences: preferences)
-                        let score2 = planner.scoreSession(for: goal2, session: session2, at: now, preferences: preferences)
-                        return score1 > score2
-                    }
-                }
-                
-                orderedSessions.append(contentsOf: sorted.prefix(10 - orderedSessions.count))
-            }
+
+        let ranked = candidates.sorted { lhs, rhs in
+            let lPinned = lhs.session?.pinnedInWidget ?? false
+            let rPinned = rhs.session?.pinnedInWidget ?? false
+            if lPinned != rPinned { return lPinned }
+            let lScore = planner.scoreSession(for: lhs.goal, session: lhs.session, sessions: sessionsForDay, at: date, preferences: preferences)
+            let rScore = planner.scoreSession(for: rhs.goal, session: rhs.session, sessions: sessionsForDay, at: date, preferences: preferences)
+            return lScore > rScore
         }
-        
-        // Convert to widget format - get top 10 and let widget views decide how many to show
-        let topSessions = orderedSessions
-            .prefix(10)
-            .map { session in
-                let isActive = activeTimerSessionID == session.id.uuidString
-                let isHealthKitSynced = (session.goal?.healthKitSyncEnabled == true) && (session.goal?.healthKitMetric != nil)
-                let supportsWrite = session.goal?.healthKitMetric?.supportsWrite ?? true
-                
-                // Get timer data if this session is active
-                var timerStart: Date? = nil
-                var elapsed: TimeInterval = session.elapsedTime
-                
-                if isActive, let startInterval = activeSessionStartDate, startInterval > 0 {
-                    timerStart = Date(timeIntervalSince1970: startInterval)
-                    if let baseElapsed = activeSessionElapsedTime {
-                        elapsed = baseElapsed
-                    }
-                }
-                
-                return RecommendedSession(
-                    id: session.id,
-                    title: session.title,
-                    theme: session.goal?.resolvedTheme ?? ThemeStore.defaultPreset,
-                    progress: session.progress,
-                    formattedTime: session.formattedTime,
-                    hasMetTarget: session.hasMetDailyTarget,
-                    dayID: day.id,
-                    isTimerActive: isActive,
-                    isHealthKitSynced: isHealthKitSynced,
-                    supportsWrite: supportsWrite,
-                    isPinned: session.pinnedInWidget,
-                    timerStartDate: timerStart,
-                    elapsedTime: elapsed,
-                    dailyTarget: session.unifiedTargetValue
-                )
+
+        return ranked.prefix(10).map {
+            makeRecommendation(goal: $0.goal, session: $0.session, dayID: dayID, weekday: weekday, timer: timer)
+        }
+    }
+
+    @MainActor
+    private func makeRecommendation(goal: Goal, session: GoalSession?, dayID: String, weekday: Int, timer: ActiveTimerInfo?) -> RecommendedSession {
+        let isHealthKitSynced = goal.healthKitSyncEnabled && goal.healthKitMetric != nil
+        let supportsWrite = goal.healthKitMetric?.supportsWrite ?? true
+        let theme = goal.resolvedTheme
+
+        if let session {
+            let isActive = timer?.sessionID == session.id.uuidString
+            var timerStart: Date? = nil
+            var elapsed = session.elapsedTime
+            if isActive, let start = timer?.startDate, start > 0 {
+                timerStart = Date(timeIntervalSince1970: start)
+                if let base = timer?.elapsed { elapsed = base }
             }
-        
-        return Array(topSessions)
+            return RecommendedSession(
+                id: session.id, title: session.title, theme: theme, progress: session.progress,
+                formattedTime: session.formattedTime, hasMetTarget: session.hasMetDailyTarget, dayID: dayID,
+                isTimerActive: isActive, isHealthKitSynced: isHealthKitSynced, supportsWrite: supportsWrite,
+                isPinned: session.pinnedInWidget, timerStartDate: timerStart, elapsedTime: elapsed,
+                dailyTarget: session.unifiedTargetValue, isPlaceholder: false
+            )
+        }
+
+        // No session materialised yet — synthesise a zero-progress recommendation from
+        // the goal. Tapping it opens the app, which creates the real session.
+        let target = goal.unifiedTarget(for: weekday)
+        return RecommendedSession(
+            id: goal.id, title: goal.title, theme: theme, progress: 0,
+            formattedTime: placeholderFormattedTime(goal: goal, target: target), hasMetTarget: false, dayID: dayID,
+            isTimerActive: false, isHealthKitSynced: isHealthKitSynced, supportsWrite: supportsWrite,
+            isPinned: false, timerStartDate: nil, elapsedTime: 0, dailyTarget: target, isPlaceholder: true
+        )
+    }
+
+    @MainActor
+    private func placeholderFormattedTime(goal: Goal, target: Double) -> String {
+        switch goal.targetUnit {
+        case .seconds, .screenTime:
+            return TimeInterval(0).formattedProgress(target: target)
+        case .steps:
+            return "0/\(Int(target).formatted())"
+        case .kilocalories:
+            return "0/\(Int(target)) cal"
+        }
     }
 }
 
@@ -246,6 +242,32 @@ struct RecommendedSession: Identifiable {
     let timerStartDate: Date?
     let elapsedTime: TimeInterval
     let dailyTarget: TimeInterval
+
+    /// True when this row is derived from a goal whose session hasn't been created
+    /// yet (the app hasn't run today). It renders as a "not started" row and its
+    /// controls open the app instead of driving a non-existent session.
+    let isPlaceholder: Bool
+
+    init(id: UUID, title: String, theme: ThemePreset, progress: Double, formattedTime: String,
+         hasMetTarget: Bool, dayID: String, isTimerActive: Bool, isHealthKitSynced: Bool,
+         supportsWrite: Bool, isPinned: Bool, timerStartDate: Date?, elapsedTime: TimeInterval,
+         dailyTarget: TimeInterval, isPlaceholder: Bool = false) {
+        self.id = id
+        self.title = title
+        self.theme = theme
+        self.progress = progress
+        self.formattedTime = formattedTime
+        self.hasMetTarget = hasMetTarget
+        self.dayID = dayID
+        self.isTimerActive = isTimerActive
+        self.isHealthKitSynced = isHealthKitSynced
+        self.supportsWrite = supportsWrite
+        self.isPinned = isPinned
+        self.timerStartDate = timerStartDate
+        self.elapsedTime = elapsedTime
+        self.dailyTarget = dailyTarget
+        self.isPlaceholder = isPlaceholder
+    }
 }
 
 struct SimpleEntry: TimelineEntry {
@@ -457,7 +479,13 @@ struct MediumWidgetCell: View {
             }
             
             // Action button - play/stop for trackable sessions, pencil for manual-only
-            if session.isHealthKitSynced && !session.supportsWrite {
+            if session.isPlaceholder {
+                // No session materialised yet: the button opens the app, which creates it.
+                Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
+                    Image(systemName: "play.circle.fill")
+                        .foregroundStyle(session.theme.color(for: colorScheme))
+                }
+            } else if session.isHealthKitSynced && !session.supportsWrite {
                 // Read-only HealthKit: Show pencil icon (opens app for manual entry)
                 Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
                     Image(systemName: "pencil.circle.fill")
@@ -502,19 +530,26 @@ struct LargeWidgetView: View {
                     Link(destination: URL(string: "momentum://goal/\(session.id.uuidString)")!) {
                         HStack(spacing: 12) {
                             // Play/Stop Button
-                            Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
-                                ZStack {
-                                    Circle()
-                                        .fill(session.theme.color(for: colorScheme))
-                                        .frame(width: 44, height: 44)
-                                    
-                                    Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
-                                        .font(.title3)
-                                        .foregroundStyle(.white)
-                                }
+                            let playStop = ZStack {
+                                Circle()
+                                    .fill(session.theme.color(for: colorScheme))
+                                    .frame(width: 44, height: 44)
+
+                                Image(systemName: session.isTimerActive ? "stop.fill" : "play.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(.white)
                             }
-                            .buttonStyle(.plain)
-                            
+
+                            if session.isPlaceholder {
+                                // No session yet: let the enclosing Link open the app.
+                                playStop
+                            } else {
+                                Button(intent: ToggleTimerIntent(sessionID: session.id.uuidString, dayID: session.dayID)) {
+                                    playStop
+                                }
+                                .buttonStyle(.plain)
+                            }
+
                             VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text(session.title)

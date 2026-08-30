@@ -1,70 +1,95 @@
-# Performance Optimizations 1-3: Implementation Plan
+# Reminders List Sync Feature - Implementation Plan
 
 ## Overview
-Three targeted performance improvements to reduce unnecessary computation and view invalidation.
+Link an Apple Reminders list to a Goal's checklist. When linked, the Reminders list items become the Goal's checklist items with two-way sync — checking off in the app completes in Reminders and vice versa. Pro feature.
 
----
+## Model Changes
 
-## 1. Cache `GoalSession.historicalSessions`
+### 1. `Goal.swift` (MomentumKit) — Add 2 stored properties
+- `linkedRemindersListID: String?` — the `calendarIdentifier` of the linked EKCalendar (Reminders list)
+- `linkedRemindersLastSynced: Date?` — timestamp of last successful sync
 
-**Problem:** `historicalSessions` is a computed property that runs `day?.historicalSessions?.filter({ $0.goalIDs.contains(goalID)}) ?? []` on every access. It cascades into `elapsedTime` → `progress` → `hasMetDailyTarget` → `formattedTime`, meaning a single session row can trigger this O(n) filter 3-4 times per render.
+### 2. `ChecklistItem.swift` (MomentumKit) — Add 1 stored property
+- `remindersIdentifier: String?` — the `calendarItemIdentifier` of the linked EKReminder, used to sync completion status back
 
-**Solution:** Store the filtered result in a `@Transient` cached property, invalidated when the backing data changes.
+## New Files
 
-**File:** `GoalSession.swift`
+### 3. `RemindersListLinkSheet.swift` — New UI file (~200 lines)
+A sheet presented from the `GoalSessionDetailView` checklist section header.
 
-**Changes:**
-- Add a `@Transient` private var `_cachedHistoricalSessions: [HistoricalSession]?` (transient = not persisted)
-- Add a `@Transient` private var `_historicalSessionsCacheKey: String?` to track staleness (based on day's historicalSessions count + goalID)
-- Modify `historicalSessions` to check the cache first, compute + store on miss
-- Add `invalidateHistoricalSessionsCache()` public method for callers that mutate HistoricalSession data (e.g., HealthKit sync)
+**UI (matching the screenshot):**
+- Title: "Link a Reminders list" with checklist icon
+- Subtitle explaining sync behavior
+- List of all Reminders lists (EKCalendar), each showing:
+  - Colored dot (calendar.cgColor)
+  - List name (calendar.title)
+  - Item count + preview of first 2-3 item titles (truncated)
+  - Checkmark if selected
+- Bottom: "Link [ListName]" primary button + "Unlink list" text button (if already linked)
 
-**Why @Transient:** SwiftData `@Transient` properties are not persisted to the store, making them ideal for in-memory caches. They survive for the lifetime of the model object in memory.
+**Flow:**
+- On "Link": calls `RemindersSyncService.linkList(...)` which replaces goal's checklist items with reminders from the list, then syncs to existing sessions
+- On "Unlink": clears `goal.linkedRemindersListID`, keeps existing checklist items as-is (they become standalone)
 
-**Cache invalidation approach:** Simple — compare a lightweight key (count of day's historicalSessions + goalID) to detect when recomputation is needed. The cache also naturally resets when the model object is re-faulted by SwiftData.
+### 4. `RemindersSyncService.swift` — New sync logic file (~180 lines)
+Handles the actual two-way sync between a Goal's checklist and a Reminders list.
 
----
+**Key methods:**
+- `linkList(calendarID:, to goal:, context:)` — Initial link: fetch all incomplete reminders from the list, replace goal's checklist items, set `linkedRemindersListID`
+- `syncIfLinked(goal:, session:, context:)` — Two-way sync: pull new/changed reminders, push completion status
+- `pushCompletionToReminders(item:, isCompleted:)` — Mark/unmark a single reminder in EventKit when user toggles in the app
 
-## 2. Add Predicates to `@Query var _sessions` in ContentView
+**Sync logic (for `syncIfLinked`):**
+1. Fetch all reminders (completed + incomplete) from the linked calendar
+2. For each reminder in the list:
+   - If no matching ChecklistItem exists (by `remindersIdentifier`): create a new ChecklistItem + ChecklistItemSession for today
+   - If matching ChecklistItem exists: update title if changed
+3. For each ChecklistItem with a `remindersIdentifier`:
+   - If no matching reminder exists in the list: delete the ChecklistItem (it was removed in Reminders)
+4. Sync completion for today's session:
+   - If reminder is completed and today's ChecklistItemSession isn't → mark completed
+   - If today's ChecklistItemSession is completed and reminder isn't → mark reminder completed
+5. Update `goal.linkedRemindersLastSynced = Date()`
 
-**Problem:** `@Query var _sessions: [GoalSession]` fetches ALL GoalSession objects from the entire database with no predicate. The computed `sessions` property then filters to `session.day?.id == day.id` in memory. As sessions accumulate over weeks/months, this loads increasingly more data than needed.
+## Modifications to Existing Files
 
-**Solution:** Initialize `_sessions` with a predicate scoped to the current day's sessions.
+### 5. `RemindersManager.swift` — Add list-level operations
+- `fetchAllLists() -> [EKCalendar]` — all reminder-type calendars
+- `fetchReminders(in calendarID: String, includeCompleted: Bool) async throws -> [EKReminder]`
+- `saveReminder(_ reminder: EKReminder) throws` — persist completion changes
+- `calendar(for id: String) -> EKCalendar?` — lookup by identifier
 
-**File:** `ContentView.swift`
+### 6. `GoalSessionDetailView.swift` — Modify checklist section
+In `checklistSection`, between the "CHECKLIST" header and the progress bar:
+- When `goal.linkedRemindersListID != nil`: show linked list header row:
+  - Colored dot(s) + list name + "synced X ago" + "Change" button
+- When no list is linked: show a "Link Reminders" button (Pro-gated)
+- Add `@State private var showingRemindersLinkSheet = false`
+- Add `.sheet` for `RemindersListLinkSheet`
+- Add `.task` to trigger `RemindersSyncService.syncIfLinked()` on appear
+- Wrap checklist item toggle to also call `pushCompletionToReminders()` for linked items
 
-**Changes:**
-- Modify the `init(day:viewModel:)` to configure `_sessions` with a `#Predicate` filtering by `day.id`
-- The predicate will use `GoalSession`'s `day` relationship: `#Predicate<GoalSession> { $0.day?.id == dayID }`
-- Keep the deduplication logic in the computed `sessions` property (can't easily express that in a predicate)
-- This scopes the SwiftData fetch to only today's sessions at the SQL level
+### 7. `SessionManagement.swift` — Trigger sync on daily refresh
+In `refreshGoals()`, after creating sessions: if the goal has a `linkedRemindersListID`, trigger a sync to pick up overnight changes from Reminders.
 
-**Note:** SwiftData `@Query` can accept an initial value via `_sessions = Query(filter:sort:)` in the init.
+## Sync Triggers
+1. **GoalSessionDetailView appear** — `.task` calls sync
+2. **Checklist item toggle** — immediately pushes completion to Reminders
+3. **Daily session creation** — syncs to pick up changes since last open
+4. **After linking/changing list** — full re-sync
 
----
+## Pro Gating
+- "Link Reminders" button shows lock icon for non-subscribers
+- Tapping when not subscribed → `PremiumPaywallSheet`
+- Uses existing `SubscriptionManager.shared.isSubscribed`
 
-## 3. Remove `withAnimation` from Timer Tick
-
-**Problem:** In `ActiveSessionDetails.startUITimer()`, the timer callback wraps ALL state mutations in `withAnimation { ... }`. This fires every 1 second and causes SwiftUI to create an animation transaction for every property change. Since `@Observable` notifies all readers, every `SessionRowView` in the list gets invalidated with an animation transaction — even rows that aren't the active session.
-
-**Solution:** Remove the `withAnimation` wrapper. The `Text.contentTransition(.numericText())` modifier on the time text in `SessionRowView` already handles smooth number transitions independently — it doesn't require the source mutation to be wrapped in `withAnimation`.
-
-**File:** `ActiveSessionDetails.swift`
-
-**Changes:**
-- Remove the `withAnimation { }` wrapper from the timer callback
-- Keep all the state mutations (tickCount, timeText, currentTime, target check, onTick) — just unwrap them from the animation block
-- The `.contentTransition(.numericText())` in SessionRowView will continue to animate text changes smoothly without needing `withAnimation` at the source
-
-**Why this works:** `contentTransition(.numericText())` uses its own built-in animation that activates whenever the text content changes — it doesn't depend on being inside a `withAnimation` transaction. Removing the wrapper means non-active session rows won't receive unnecessary animation transactions on every tick.
-
----
-
-## Execution Order
-1. **Timer fix** (smallest change, biggest immediate impact on per-second overhead)
-2. **@Query predicate** (moderate change, reduces data loaded)
-3. **historicalSessions cache** (most complex, reduces per-render computation)
-
-## Testing
-- Run full test suite after all changes
-- Build to verify compilation
+## File Summary
+| File | Action | Est. Lines |
+|------|--------|------------|
+| `Goal.swift` | Modify — 2 properties | ~5 |
+| `ChecklistItem.swift` | Modify — 1 property | ~3 |
+| `RemindersManager.swift` | Modify — 4 methods | ~60 |
+| `RemindersListLinkSheet.swift` | **New** | ~200 |
+| `RemindersSyncService.swift` | **New** | ~180 |
+| `GoalSessionDetailView.swift` | Modify — header + sync | ~80 |
+| `SessionManagement.swift` | Modify — sync trigger | ~10 |

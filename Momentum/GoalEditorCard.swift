@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MomentumKit
+import EventKit
 import FamilyControls
 import ManagedSettings
 
@@ -20,44 +21,27 @@ struct GoalEditorCard: View {
     @State private var showingPremiumPaywall = false
     @Namespace private var cardAnimation
     @FocusState private var isNameFocused: Bool
-    @FocusState private var isValueFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
-    
+
+    private let spring = Animation.spring(response: 0.32, dampingFraction: 0.86)
+
     enum ActivePicker: Equatable {
-        case value, unit, period, style
+        case count, amount, unit, period, freq, style
     }
     
-    // MARK: UI-level unit display
-    
-    /// Sentence-friendly unit labels derived from the VM's goal type
-    private var unitLabel: String {
-        switch vm.selectedGoalType {
-        case .seconds: "min"
-        case .steps: "steps"
-        case .kilocalories: "kcal"
-        case .screenTime: "min"
-        }
+    // MARK: - Sentence helpers
+
+    /// Plural-aware session noun for the current metric ("session"/"sessions").
+    private var nounPlural: String {
+        let noun = vm.sentenceMetric.noun
+        return vm.sessionCount == 1 ? noun : noun + "s"
     }
-    
-    /// The numeric target shown in the sentence chip (per-day for time goals)
-    private var displayTarget: Int {
-        switch vm.selectedGoalType {
-        case .seconds:
-            let dayCount = max(vm.activeDays.count, 1)
-            return vm.durationInMinutes / dayCount
-        case .steps, .kilocalories:
-            return Int(vm.primaryMetricTarget)
-        case .screenTime:
-            return Int(vm.primaryMetricTarget)
-        }
+
+    /// The period word shown in the sentence ("day"/"week").
+    private var periodWord: String {
+        vm.targetPeriod == .day ? "day" : "week"
     }
-    
-    /// Period label based on active day count
-    private var periodLabel: String {
-        if vm.activeDays.count == 7 { return "day" }
-        return "week"
-    }
-    
+
     /// The resolved icon name
     private var iconName: String {
         vm.selectedIcon ?? "chart.line.uptrend.xyaxis"
@@ -123,23 +107,25 @@ struct GoalEditorCard: View {
                 }
                 .matchedGeometryEffect(id: "icon", in: cardAnimation)
             
-            if isExpanded, let theme = vm.selectedGoalTheme?.title {
-                Text(theme.uppercased())
+            if isExpanded {
+                // Expanded: the goal name lives inline in the sentence below, so the
+                // header shows the theme label (or "THE GOAL") + the style toggle.
+                Text((vm.selectedGoalTheme?.title ?? "The Goal").uppercased())
                     .font(.caption)
                     .fontWeight(.bold)
                     .tracking(1.5)
                     .foregroundStyle(.secondary)
-                
+
                 Spacer()
-                
+
                 styleButton
             } else {
                 TextField("Write your own goal...", text: $vm.userInput)
-                    .font(.system(size: isExpanded ? 26 : 17, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(.primary)
                     .focused($isNameFocused)
                     .matchedGeometryEffect(id: "label", in: cardAnimation)
-                
+
                 Spacer()
             }
         }
@@ -183,131 +169,454 @@ struct GoalEditorCard: View {
                 stylePicker
                     .transition(.opacity.combined(with: .move(edge: .top)))
             } else {
-                sentenceEditor
-                    .padding(.bottom, 12)
-                
-                summaryText
-                    .padding(.bottom, activePicker != nil ? 16 : 0)
-                
-                if let recommended = vm.recommendedDailyMinutes, vm.selectedGoalType.isTimeBased {
-                    recommendedTargetButton(dailyMinutes: recommended)
-                }
-                
-                if activePicker == .unit {
-                    unitPicker
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-                
-                if activePicker == .period {
-                    periodPicker
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-                
-                if activePicker == .value {
-                    valuePicker
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-                
-                if vm.selectedGoalType == .screenTime {
-                    screenTimeAppPickerSection
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-        }
-    }
-    
-    // MARK: - Sentence Editor
-    
-    private var sentenceEditor: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                TextField("Goal name", text: $vm.userInput, axis: .vertical)
-                    .font(.system(size: 26, weight: .bold, design: .default))
-                    .focused($isNameFocused)
-                    .textFieldStyle(.plain)
-//                    .matchedGeometryEffect(id: "label", in: cardAnimation)
+                VStack(alignment: .leading, spacing: 0) {
+                    titleField
+                        .padding(.bottom, 12)
 
-            }
-            
-            // Sentence: [value] [unit] a [period]
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                valueChip
-                
-                chipButton(
-                    text: unitLabel,
-                    isActive: activePicker == .unit,
-                    picker: .unit
-                )
-                
-                Text("a")
-                    .font(.system(size: 26, weight: .regular))
-                    .foregroundStyle(.secondary)
-                
-                chipButton(
-                    text: periodLabel,
-                    isActive: activePicker == .period,
-                    picker: .period
-                )
+                    sentenceFlow
+                        .padding(.bottom, 14)
+
+                    rollupChip
+
+                    if let recommended = vm.recommendedDailyMinutes, vm.selectedGoalType == .seconds {
+                        recommendedTargetButton(dailyMinutes: recommended)
+                            .padding(.top, 12)
+                    }
+
+                    activePanel
+
+                    if vm.selectedGoalType == .screenTime {
+                        screenTimeAppPickerSection
+                            .padding(.top, 12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
             }
         }
     }
-    
-    /// Formatted display string for the target value (e.g. "10,000")
-    private var formattedTarget: String {
-        displayTarget.formatted(.number)
+
+    // MARK: - Sentence
+
+    private static let titleFont = Font.system(size: 25, weight: .heavy)
+
+    /// The goal name — on its own line so it can wrap. An invisible `Text` mirror
+    /// drives the width so the field (and its highlight fill) hugs the content for
+    /// short titles and only wraps once the title fills the available width. A
+    /// subtle fill appears while it's empty or focused to advertise the tap target,
+    /// then fades to a clean heading once the goal is named.
+    private var titleField: some View {
+        let highlighted = vm.userInput.isEmpty || isNameFocused
+        let measure = vm.userInput.isEmpty ? "Name your goal" : vm.userInput
+        return Text(measure)
+            .font(Self.titleFont)
+            .lineLimit(1...4)
+            .hidden()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(highlighted ? themeColor.opacity(0.12) : Color.clear)
+            )
+            .overlay(alignment: .leading) {
+                TextField("Name your goal", text: $vm.userInput, axis: .vertical)
+                    .font(Self.titleFont)
+                    .foregroundStyle(.primary)
+                    .focused($isNameFocused)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
-    /// The value chip — a TextField that accepts only numbers
-    private var valueChip: some View {
-        TextField("0", value: Binding(
-            get: { displayTarget },
-            set: { applyTarget($0) }
-        ), format: .number)
-        .keyboardType(.numberPad)
-        .multilineTextAlignment(.center)
-        .focused($isValueFocused)
-        .font(.system(size: 26, weight: .bold))
-        .foregroundStyle(.primary)
-        .fixedSize()
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(themeColor.opacity(isValueFocused || activePicker == .value ? 0.3 : 0.15))
-        )
-        .onTapGesture {
-            withAnimation {
-                activePicker = activePicker == .value ? nil : .value
+
+    private var sentenceFlow: some View {
+        let m = vm.sentenceMetric
+
+        return SentenceFlowLayout(spacing: 3, lineSpacing: 6) {
+            if m.isSession {
+                token("\(vm.sessionCount)", active: activePicker == .count) { toggle(.count) }
+                token(m.format(vm.sessionMinutes), active: activePicker == .amount) { toggle(.amount) }
+                dropToken(m.amountUnitLabel, active: activePicker == .unit) { toggle(.unit) }
+                word("\(nounPlural) a")
+            } else {
+                token(m.format(vm.tallyTarget), active: activePicker == .amount) { toggle(.amount) }
+                dropToken(m.amountUnitLabel, active: activePicker == .unit) { toggle(.unit) }
+                word("a")
             }
-        }
-        .onChange(of: isValueFocused) { _, focused in
-            if focused {
-                withAnimation { activePicker = .value }
+
+            token(periodWord, active: activePicker == .period) { toggle(.period) }
+
+            if vm.targetPeriod == .day {
+                word(",")
+                token(vm.dayPhrase, active: activePicker == .freq) { toggle(.freq) }
             }
+
+            word(".")
         }
     }
-    
-    private func chipButton(text: String, isActive: Bool, picker: ActivePicker) -> some View {
-        Button {
-            withAnimation {
-                activePicker = activePicker == picker ? nil : picker
-            }
-        } label: {
+
+    private func token(_ text: String, active: Bool, _ tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
             Text(text)
-                .font(.system(size: 26, weight: .bold))
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
+                .font(.system(size: 21, weight: .heavy))
+                .tracking(-0.4)
+                .foregroundStyle(active ? themeColor.contrastingTextColor : .primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 3)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(themeColor.opacity(isActive ? 0.3 : 0.15))
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(active ? AnyShapeStyle(themeColor) : AnyShapeStyle(themeColor.opacity(0.15)))
                 )
         }
         .buttonStyle(.plain)
     }
-    
-    // MARK: - Summary
-    
+
+    /// A token with a trailing chevron — the unit, which opens the metric/unit picker.
+    private func dropToken(_ text: String, active: Bool, _ tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            HStack(spacing: 3) {
+                Text(text)
+                    .font(.system(size: 21, weight: .heavy))
+                    .tracking(-0.4)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .heavy))
+                    .opacity(0.75)
+            }
+            .foregroundStyle(active ? themeColor.contrastingTextColor : .primary)
+            .padding(.leading, 10)
+            .padding(.trailing, 7)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(active ? AnyShapeStyle(themeColor) : AnyShapeStyle(themeColor.opacity(0.15)))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func word(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 21, weight: .semibold))
+            .tracking(-0.3)
+            .foregroundStyle(.secondary)
+    }
+
+    private func toggle(_ picker: ActivePicker) {
+        withAnimation(spring) {
+            activePicker = activePicker == picker ? nil : picker
+        }
+        HapticFeedbackManager.trigger(.light)
+    }
+
+    // MARK: - Rollup Chip
+
+    private var rollupChip: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "equal")
+                    .font(.system(size: 8, weight: .bold))
+                Text("WEEKLY")
+                    .font(.system(size: 9.5, weight: .heavy))
+                    .tracking(0.5)
+            }
+            .foregroundStyle(themeColor.contrastingTextColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(RoundedRectangle(cornerRadius: 7).fill(themeColor))
+
+            Text(vm.sentenceRollupText)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 2)
+    }
+
+    // MARK: - Accordion Panels
+
+    @ViewBuilder private var activePanel: some View {
+        switch activePicker {
+        case .count:
+            countPanel.transition(.opacity.combined(with: .move(edge: .top)))
+        case .amount:
+            amountPanel.transition(.opacity.combined(with: .move(edge: .top)))
+        case .unit:
+            unitPanel.transition(.opacity.combined(with: .move(edge: .top)))
+        case .period:
+            periodPanel.transition(.opacity.combined(with: .move(edge: .top)))
+        case .freq:
+            freqPanel.transition(.opacity.combined(with: .move(edge: .top)))
+        default:
+            EmptyView()
+        }
+    }
+
+    private var countPanel: some View {
+        let m = vm.sentenceMetric
+        let noun = m.noun.isEmpty ? "Session" : m.noun.capitalized
+        return panelBox {
+            panelTitle(vm.targetPeriod == .day ? "\(noun)s on each day" : "\(noun)s a week")
+            bigStepper(
+                text: "\(vm.sessionCount)", unit: nounPlural,
+                canDec: vm.sessionCount > SentenceMetric.countRange.lowerBound,
+                canInc: vm.sessionCount < SentenceMetric.countRange.upperBound,
+                dec: { vm.setSessionCount(vm.sessionCount - 1) },
+                inc: { vm.setSessionCount(vm.sessionCount + 1) }
+            )
+            presetRow(values: SentenceMetric.countPresets, current: vm.sessionCount,
+                      label: { "\($0)" }, pick: { vm.setSessionCount($0) })
+        }
+    }
+
+    private var amountPanel: some View {
+        let m = vm.sentenceMetric
+        let value = m.isSession ? vm.sessionMinutes : vm.tallyTarget
+        let set: (Int) -> Void = m.isSession ? { vm.setSessionMinutes($0) } : { vm.setTallyTarget($0) }
+        let title = m.isSession
+            ? "How long each \(m.noun)"
+            : (vm.targetPeriod == .day ? "Target each active day" : "Target for the week")
+        return panelBox {
+            panelTitle(title)
+            bigStepper(
+                text: m.format(value), unit: m.amountUnitLabel,
+                canDec: value > m.amountMin, canInc: value < m.amountMax,
+                dec: { set(value - m.amountStep) },
+                inc: { set(value + m.amountStep) }
+            )
+            presetRow(values: m.amountPresets, current: value,
+                      label: { m.chip($0) }, pick: set)
+        }
+    }
+
+    private var unitPanel: some View {
+        panelBox {
+            panelTitle("Measure in")
+            VStack(spacing: 4) {
+                ForEach(SentenceMetric.all, id: \.unit) { metric in
+                    let on = vm.selectedGoalType == metric.unit
+                    Button {
+                        if metric.unit == .screenTime && !SubscriptionManager.shared.isSubscribed {
+                            showingPremiumPaywall = true
+                        } else {
+                            withAnimation(spring) {
+                                vm.switchMetric(metric.unit)
+                                activePicker = nil
+                            }
+                            HapticFeedbackManager.trigger(.light)
+                        }
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: metric.sfSymbol)
+                                .font(.body)
+                                .foregroundStyle(on ? themeColor : .secondary)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(metric.pickerLabel)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Text(metric.menuSubtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if on {
+                                Image(systemName: "checkmark")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(themeColor)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(on ? themeColor.opacity(0.12) : Color.clear)
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var periodPanel: some View {
+        let m = vm.sentenceMetric
+        return panelBox {
+            panelTitle(m.isSession ? "Count sessions per…" : "Reach the target per…")
+            HStack(spacing: 8) {
+                perOption(
+                    title: "A week",
+                    sub: m.isSession ? "Any days — hit the count" : "Cumulative — any days",
+                    on: vm.targetPeriod == .week
+                ) {
+                    withAnimation(spring) { vm.setTargetPeriod(.week); activePicker = nil }
+                }
+                perOption(
+                    title: "A day",
+                    sub: m.isSession ? "Same count each active day" : "Reach it on each active day",
+                    on: vm.targetPeriod == .day
+                ) {
+                    withAnimation(spring) { vm.setTargetPeriod(.day); activePicker = nil }
+                }
+            }
+        }
+    }
+
+    private var freqPanel: some View {
+        panelBox {
+            panelTitle("On how many days a week")
+            HStack(spacing: 5) {
+                ForEach(1...7, id: \.self) { n in
+                    let on = vm.daysPerWeek == n
+                    Button {
+                        withAnimation(spring) { vm.setDaysPerWeek(n) }
+                        HapticFeedbackManager.trigger(.light)
+                    } label: {
+                        Text(n == 7 ? "∀" : "\(n)")
+                            .font(.system(size: 14, weight: .heavy))
+                            .foregroundStyle(on ? themeColor.contrastingTextColor : .primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(on ? AnyShapeStyle(themeColor) : AnyShapeStyle(Color(.tertiarySystemFill)))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            HStack {
+                Text("1 day").font(.system(size: 10, weight: .bold)).foregroundStyle(.tertiary)
+                Spacer()
+                Text("every day").font(.system(size: 10, weight: .bold)).foregroundStyle(.tertiary)
+            }
+            .padding(.top, 7)
+        }
+    }
+
+    // MARK: - Panel Building Blocks
+
+    private func panelBox<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(spacing: 0) { content() }
+            .padding(.top, 16)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Color(.separator)).frame(height: 0.5)
+            }
+            .padding(.top, 12)
+    }
+
+    private func panelTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 12)
+    }
+
+    private func bigStepper(
+        text: String, unit: String,
+        canDec: Bool, canInc: Bool,
+        dec: @escaping () -> Void, inc: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 16) {
+            stepperCircle("minus", enabled: canDec, action: dec)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(text)
+                    .font(.system(size: text.count > 4 ? 30 : 40, weight: .heavy))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                Text(unit)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(themeColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(themeColor.opacity(0.15)))
+            }
+            .frame(minWidth: 92)
+            stepperCircle("plus", enabled: canInc, action: inc)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func stepperCircle(_ icon: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            HapticFeedbackManager.trigger(.light)
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(enabled ? themeColor : Color.secondary.opacity(0.4))
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(enabled ? themeColor.opacity(0.15) : Color(.tertiarySystemFill)))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.6)
+    }
+
+    private func presetRow(
+        values: [Int], current: Int,
+        label: @escaping (Int) -> String, pick: @escaping (Int) -> Void
+    ) -> some View {
+        HStack(spacing: 6) {
+            ForEach(values, id: \.self) { p in
+                let on = current == p
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) { pick(p) }
+                    HapticFeedbackManager.trigger(.light)
+                } label: {
+                    Text(label(p))
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(on ? themeColor.contrastingTextColor : .primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 9)
+                                .fill(on ? AnyShapeStyle(themeColor) : AnyShapeStyle(Color(.tertiarySystemFill)))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, 14)
+    }
+
+    private func perOption(title: String, sub: String, on: Bool, _ tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 14.5, weight: .heavy))
+                        .foregroundStyle(on ? themeColor.contrastingTextColor : .primary)
+                    if on {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(themeColor.contrastingTextColor)
+                    }
+                }
+                Text(sub)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(on ? themeColor.contrastingTextColor.opacity(0.85) : .secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(on ? AnyShapeStyle(themeColor) : AnyShapeStyle(Color(.tertiarySystemFill)))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Duration Formatting
+
     private func formatDuration(_ minutes: Int) -> String {
         let hours = minutes / 60
         let mins = minutes % 60
@@ -320,62 +629,16 @@ struct GoalEditorCard: View {
         }
     }
     
-    private var summaryText: some View {
-        let dayCount = vm.activeDays.count
-        let isDaily = dayCount == 7
-        
-        let summaryString: String = {
-            switch vm.selectedGoalType {
-            case .seconds:
-                let weeklyTotal = vm.calculatedWeeklyTarget
-                if isDaily {
-                    return "That's **\(formatDuration(weeklyTotal))** per week"
-                } else {
-                    let dailyAvg = weeklyTotal / max(dayCount, 1)
-                    return "~**\(formatDuration(dailyAvg))** per day across **\(dayCount)** days"
-                }
-            case .steps:
-                let daily = Int(vm.primaryMetricTarget)
-                if isDaily {
-                    let weekly = daily * dayCount
-                    return "That's **\(weekly.formatted())** steps per week"
-                } else {
-                    return "**\(daily.formatted())** steps per day across **\(dayCount)** days"
-                }
-            case .kilocalories:
-                let daily = Int(vm.primaryMetricTarget)
-                if isDaily {
-                    let weekly = daily * dayCount
-                    return "That's **\(weekly.formatted())** kcal per week"
-                } else {
-                    return "**\(daily.formatted())** kcal per day across **\(dayCount)** days"
-                }
-            case .screenTime:
-                let daily = Int(vm.primaryMetricTarget)
-                if isDaily {
-                    let weekly = daily * dayCount
-                    return "That's **\(formatDuration(weekly))** per week"
-                } else {
-                    return "**\(formatDuration(daily))** per day across **\(dayCount)** days"
-                }
-            }
-        }()
-        
-        return Text(.init(summaryString))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-    }
-    
     // MARK: - Recommended Target
-    
+
     private func recommendedTargetButton(dailyMinutes: Int) -> some View {
         Button {
             if SubscriptionManager.shared.isSubscribed {
-                let dayCount = max(vm.activeDays.count, 1)
-                let weeklyMinutes = dailyMinutes * dayCount
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    vm.durationInMinutes = weeklyMinutes
-                    vm.updateWeeklyTarget(weeklyMinutes)
+                withAnimation(spring) {
+                    // Apply the suggestion as a single session on each active day.
+                    vm.targetPeriod = .day
+                    vm.sessionCount = 1
+                    vm.setSessionMinutes(dailyMinutes)
                 }
                 HapticFeedbackManager.trigger(.success)
             } else {
@@ -399,186 +662,6 @@ struct GoalEditorCard: View {
         }
         .buttonStyle(.plain)
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
-    }
-    
-    // MARK: - Unit Picker
-    
-    private var unitPicker: some View {
-        let options: [(type: Goal.TargetUnit, title: String, subtitle: String, icon: String)] = [
-            (.seconds, "Minutes", "Total time", "clock"),
-            (.steps, "Steps", "Step count from Health", "shoeprints.fill"),
-            (.kilocalories, "Calories", "Active energy burned", "flame"),
-            (.screenTime, "Screen Time", "Limit app & category usage", "hourglass"),
-        ]
-        
-        return VStack(spacing: 4) {
-            ForEach(options, id: \.type) { option in
-                Button {
-                    if option.type == .screenTime && !SubscriptionManager.shared.isSubscribed {
-                        showingPremiumPaywall = true
-                    } else {
-                        withAnimation {
-                            vm.selectedGoalType = option.type
-                            vm.handleGoalTypeChange(option.type)
-                            activePicker = nil
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: option.icon)
-                            .font(.body)
-                            .foregroundStyle(option.type == vm.selectedGoalType ? themeColor : .secondary)
-                            .frame(width: 24)
-                        
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(option.title)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-                            Text(option.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        if option.type == vm.selectedGoalType {
-                            Image(systemName: "checkmark")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(themeColor)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(option.type == vm.selectedGoalType ? themeColor.opacity(0.12) : Color.clear)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-    
-    // MARK: - Period Picker
-    
-    private var periodPicker: some View {
-        let options: [(label: String, title: String, subtitle: String, icon: String, days: Set<Int>)] = [
-            ("day", "Daily", "Every single day", "sun.max", Set(1...7)),
-            ("week", "Weekly", "Choose your active days", "calendar", vm.activeDays.isEmpty ? Set(2...6) : vm.activeDays),
-        ]
-        
-        return VStack(spacing: 4) {
-            ForEach(options, id: \.label) { option in
-                let isSelected = (option.label == "day" && vm.activeDays.count == 7) ||
-                    (option.label == "week" && vm.activeDays.count < 7)
-                
-                Button {
-                    withAnimation {
-                        if option.label == "week" && vm.activeDays.count == 7 {
-                            // Switching from daily to weekly — default to weekdays
-                            vm.activeDays = Set(2...6)
-                        } else {
-                            vm.activeDays = option.days
-                        }
-                        // Redistribute the weekly target across the new day count
-                        let weekly = vm.calculatedWeeklyTarget
-                        vm.updateWeeklyTarget(weekly)
-                        activePicker = nil
-                    }
-                } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: option.icon)
-                            .font(.body)
-                            .foregroundStyle(isSelected ? themeColor : .secondary)
-                            .frame(width: 24)
-                        
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(option.title)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-                            Text(option.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        if isSelected {
-                            Image(systemName: "checkmark")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(themeColor)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(isSelected ? themeColor.opacity(0.12) : Color.clear)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-    
-    // MARK: - Value Picker
-    
-    private var valuePicker: some View {
-        let currentValue = displayTarget
-        
-        return VStack(spacing: 16) {
-            // Quick-select strip
-            HStack(spacing: 0) {
-                ForEach(quickSelectValues, id: \.self) { value in
-                    Button {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            applyTarget(value)
-                        }
-                    } label: {
-                        Text("\(value)")
-                            .font(.body)
-                            .fontWeight(value == currentValue ? .bold : .regular)
-                            .foregroundStyle(value == currentValue ? .white : .primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(value == currentValue ? Color(.label) : Color.clear)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-    
-    /// Write the target value back to the VM
-    private func applyTarget(_ value: Int) {
-        switch vm.selectedGoalType {
-        case .seconds:
-            // value is daily minutes — distribute across active days
-            let weeklyMinutes = value * max(vm.activeDays.count, 1)
-            vm.updateWeeklyTarget(weeklyMinutes)
-        case .steps, .kilocalories:
-            vm.primaryMetricTarget = Double(value)
-        case .screenTime:
-            vm.primaryMetricTarget = Double(value)
-        }
-    }
-    
-    private var quickSelectValues: [Int] {
-        switch vm.selectedGoalType {
-        case .seconds:
-            return [10, 15, 20, 30, 45, 60]
-        case .steps:
-            return [2000, 5000, 7500, 10000, 15000]
-        case .kilocalories:
-            return [200, 300, 400, 500, 600]
-        case .screenTime:
-            return [30, 60, 90, 120, 180, 240]
-        }
     }
     
     // MARK: - Screen Time App Picker Section
@@ -1166,6 +1249,9 @@ struct NotesChecklistCard: View {
     @Namespace private var tabAnimation
     @State private var newItemTitle: String = ""
     @State private var addMode: AddMode = .item
+    @State private var showingRemindersLinkSheet = false
+    @State private var linkedCalendarTitle: String?
+    @State private var linkedCalendarColor: CGColor?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1306,27 +1392,60 @@ struct NotesChecklistCard: View {
             .padding(.top, 12)
             .padding(.bottom, 8)
             
-            // Progress bar (thin green line showing item count vs capacity, decorative)
+            // Linked Reminders header
+            if vm.linkedRemindersListID != nil {
+                HStack(spacing: 8) {
+                    HStack(spacing: 3) {
+                        if let linkedCalendarColor {
+                            Circle()
+                                .fill(Color(cgColor: linkedCalendarColor))
+                                .frame(width: 8, height: 8)
+                        }
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                    }
+                    
+                    Text(linkedCalendarTitle ?? "Reminders")
+                        .font(.caption.weight(.medium))
+                    
+                    Text("· linked")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    Button {
+                        showingRemindersLinkSheet = true
+                    } label: {
+                        Text("Change")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+            
+            // Progress bar
             if !vm.checklistItems.isEmpty {
                 GeometryReader { geo in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.green.opacity(0.3))
-                        .frame(height: 3)
+                        .fill(Color.green.opacity(0.2))
+                        .frame(height: 4)
                         .overlay(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Color.green)
                                 .frame(width: geo.size.width * min(1.0, CGFloat(vm.checklistItems.count) / max(CGFloat(vm.checklistItems.count), 1.0)))
                         }
                 }
-                .frame(height: 3)
+                .frame(height: 4)
                 .padding(.horizontal, 16)
-                .padding(.bottom, 8)
+                .padding(.bottom, 4)
             }
             
-            Divider()
-                .padding(.horizontal, 16)
-            
-            // Scrollable item list — takes remaining space between header and toolbar
+            // Scrollable item list
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Ungrouped items first
@@ -1339,6 +1458,25 @@ struct NotesChecklistCard: View {
                         checklistGroupSection(group: group)
                     }
                 }
+                .padding(.top, 8)
+            }
+            
+            // Link Reminders List button (when not linked)
+            if vm.linkedRemindersListID == nil {
+                Button {
+                    showingRemindersLinkSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checklist")
+                            .font(.caption)
+                        Text("Link Reminders List")
+                            .font(.caption.weight(.medium))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
             }
             
             Spacer(minLength: 0)
@@ -1349,23 +1487,37 @@ struct NotesChecklistCard: View {
             // Bottom toolbar: [Item] [Group] + text field + add button
             checklistToolbar
         }
+        .sheet(isPresented: $showingRemindersLinkSheet) {
+            RemindersListLinkSheetForEditor(vm: vm)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .task(id: vm.linkedRemindersListID) {
+            if let calendarID = vm.linkedRemindersListID {
+                let manager = RemindersManager()
+                _ = try? await manager.requestAccess()
+                if let cal = manager.calendar(for: calendarID) {
+                    linkedCalendarTitle = cal.title
+                    linkedCalendarColor = cal.cgColor
+                }
+            } else {
+                linkedCalendarTitle = nil
+                linkedCalendarColor = nil
+            }
+        }
     }
     
     // MARK: - Checklist Item Row
     
     private func checklistItemRow(item: ChecklistItemData) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "line.3.horizontal")
-                .font(.caption)
-                .foregroundStyle(.quaternary)
-            
+        HStack(spacing: 12) {
             Image(systemName: "circle")
-                .font(.system(size: 18))
-                .foregroundStyle(.secondary.opacity(0.5))
+                .font(.system(size: 22))
+                .foregroundStyle(.secondary.opacity(0.4))
             
             if let index = vm.checklistItems.firstIndex(where: { $0.id == item.id }) {
                 TextField("Item title", text: $vm.checklistItems[index].title)
-                    .font(.subheadline)
+                    .font(.body)
             }
             
             Spacer()
@@ -1375,14 +1527,14 @@ struct NotesChecklistCard: View {
                     vm.checklistItems.removeAll { $0.id == item.id }
                 }
             } label: {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.quaternary)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 6)
+        .padding(.vertical, 10)
     }
     
     // MARK: - Checklist Group Section
@@ -1391,13 +1543,9 @@ struct NotesChecklistCard: View {
         VStack(alignment: .leading, spacing: 0) {
             // Group header
             HStack(spacing: 8) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.caption)
-                    .foregroundStyle(.quaternary)
-                
                 Text(group.uppercased())
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
                 
                 Spacer()
                 
@@ -1406,32 +1554,26 @@ struct NotesChecklistCard: View {
                         vm.checklistItems.removeAll { $0.group == group }
                     }
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.quaternary)
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+            .padding(.top, 4)
             
             // Items in this group
             ForEach(itemsInGroup(group)) { item in
-                HStack(spacing: 8) {
-                    Spacer()
-                        .frame(width: 12) // indent
-                    
-                    Image(systemName: "line.3.horizontal")
-                        .font(.caption)
-                        .foregroundStyle(.quaternary)
-                    
+                HStack(spacing: 12) {
                     Image(systemName: "circle")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.secondary.opacity(0.5))
+                        .font(.system(size: 22))
+                        .foregroundStyle(.secondary.opacity(0.4))
                     
                     if let index = vm.checklistItems.firstIndex(where: { $0.id == item.id }) {
                         TextField("Item title", text: $vm.checklistItems[index].title)
-                            .font(.subheadline)
+                            .font(.body)
                     }
                     
                     Spacer()
@@ -1441,14 +1583,14 @@ struct NotesChecklistCard: View {
                             vm.checklistItems.removeAll { $0.id == item.id }
                         }
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.quaternary)
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 6)
+                .padding(.vertical, 10)
             }
         }
     }

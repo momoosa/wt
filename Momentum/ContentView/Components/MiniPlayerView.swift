@@ -16,7 +16,7 @@ struct MiniPlayerView: View {
     let onStopTapped: () -> Void
     var onPauseTapped: (() -> Void)?
     var currentIntervalName: String?
-    var intervalTimeRemaining: TimeInterval?
+    var intervalTimeElapsed: TimeInterval?
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -45,9 +45,9 @@ struct MiniPlayerView: View {
                     if let intervalName = currentIntervalName {
                         HStack(spacing: 4) {
                             Text(intervalName)
-                            if let remaining = intervalTimeRemaining {
+                            if let elapsed = intervalTimeElapsed {
                                 Text("·")
-                                Text(formatMiniCountdown(remaining))
+                                Text(formatMiniCountdown(elapsed))
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
                             }

@@ -48,6 +48,9 @@ struct ContentView: View {
 
     // Planning
     @State var planningViewModel = PlanningViewModel()
+    
+    // Tracks mini player visibility for animated transitions
+    @State private var isMiniPlayerVisible = false
 
     // Focus filter
     @State var focusFilterStore = FocusFilterStore.shared
@@ -82,6 +85,10 @@ struct ContentView: View {
     @AppStorage("showProgressTile") var showProgressTile: Bool = true
     @AppStorage("showWeatherTile") var showWeatherTile: Bool = true
     @AppStorage("showCalendarTile") var showCalendarTile: Bool = true
+
+    // Daily "plan ahead" summary — surfaced once per day on the first open of the day.
+    @AppStorage("dailySummaryEnabled") var dailySummaryEnabled: Bool = true
+    @AppStorage("lastDailySummaryDay") var lastDailySummaryDay: Double = 0
     
     // Track which sections are currently visible so we can highlight the topmost pill
     @State private var visibleSectionIDs: Set<String> = []
@@ -101,6 +108,10 @@ struct ContentView: View {
     
     // Pending celebration data (held until NowPlayingView fullScreenCover dismisses)
     @State var pendingCelebrationData: CelebrationData?
+    
+    // MARK: - Cached Computed Data (avoids recalculating on every body evaluation)
+    @State var cachedFilteredSessions: [GoalSession] = []
+    @State var cachedContextualSections: [ContextualSection] = []
 
     // MARK: - Initialization
 
@@ -131,7 +142,7 @@ struct ContentView: View {
                 NavigationStack {
                     PlanTabView(
                         day: day,
-                        sessions: focusFilteredSessions,
+                        sessions: cachedFilteredSessions,
                         availableGoalThemes: availableGoalThemes,
                         weatherManager: weatherManager,
                         calendarEventStore: calendarEventStore
@@ -159,7 +170,7 @@ struct ContentView: View {
             Tab("Search", systemImage: "magnifyingglass", value: AppTab.search) {
                 NavigationStack {
                     SearchSheet(
-                        sessions: focusFilteredSessions,
+                        sessions: cachedFilteredSessions,
                         day: day,
                         timerManager: timerManager,
                         animation: animation,
@@ -172,48 +183,26 @@ struct ContentView: View {
             }
         }
         .environment(\.sessionActions, sessionActions)
-        // Mini player + inline toast as tab bar accessory
-        .tabViewBottomAccessory(isEnabled: showMiniPlayer) {
-            VStack(spacing: 0) {
-                if let toastConfig = navigation.toastConfig {
-                    BottomAccessoryToastView(
-                        config: toastConfig,
-                        onDismiss: {
-                            withAnimation {
-                                navigation.toastConfig = nil
-                            }
-                        }
-                    )
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                
-                if let (session, details) = miniPlayerSession {
-                    MiniPlayerView(
-                        session: session,
-                        details: details,
-                        onTapped: {
-                            navigation.showNowPlaying = true
-                        },
-                        onStopTapped: {
-                            handleTimerToggle(for: session)
-                        },
-                        onPauseTapped: {
-                            if details.isPaused {
-                                timerManager?.resumeTimer()
-                            } else {
-                                timerManager?.pauseTimer()
-                            }
-                        },
-                        currentIntervalName: timerManager?.currentIntervalName,
-                        intervalTimeRemaining: timerManager?.intervalTimeRemaining
-                    )
-                }
-            }
+        // Plan button + mini player live in the tab bar's native bottom-accessory
+        // slot (iOS 26) so they sit cleanly above the tab bar instead of floating
+        // over it. Extracted to BottomAccessoryBarView so timer ticks only re-render
+        // this subtree.
+        .tabViewBottomAccessory {
+            BottomAccessoryBarView(
+                sessions: sessions,
+                timerManager: timerManager,
+                navigation: navigation,
+                planningViewModel: planningViewModel,
+                weatherManager: weatherManager,
+                showPlanButton: navigation.selectedTab == .home && !cachedFilteredSessions.isEmpty,
+                isMiniPlayerVisible: $isMiniPlayerVisible,
+                onTimerToggle: { session in handleTimerToggle(for: session) },
+                onShowPlannerSheet: { navigation.showPlannerSheet = true }
+            )
         }
-        // Toast overlay for when there's no mini player
+        // Toast overlay for when there's no bottom bar
         .overlay(alignment: .bottom) {
-            if !showMiniPlayer, let toastConfig = navigation.toastConfig {
+            if !isMiniPlayerVisible && !showBottomPlanButton, let toastConfig = navigation.toastConfig {
                 BottomAccessoryToastView(
                     config: toastConfig,
                     onDismiss: {
@@ -233,7 +222,12 @@ struct ContentView: View {
             sessionActions.onSyncHealthKit = { [self] in syncHealthKitData(userInitiated: true) }
             sessionActions.isSyncingHealthKit = viewModel.isSyncingHealthKit
             setupOnAppear()
+            recomputeSections()
             await permissionsViewModel.refresh()
+
+            // Let the Home view settle, then surface the daily "plan ahead" once a day.
+            try? await Task.sleep(for: .milliseconds(500))
+            maybeShowDailySummary()
         }
         .onChange(of: viewModel.isSyncingHealthKit) { _, newValue in
             sessionActions.isSyncingHealthKit = newValue
@@ -241,6 +235,8 @@ struct ContentView: View {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .active && oldPhase != .active {
                 syncHealthKitData()
+                // Returning to the app on a new day surfaces the plan-ahead once.
+                maybeShowDailySummary()
             }
         }
         .onDisappear {
@@ -255,9 +251,11 @@ struct ContentView: View {
         .onChange(of: goals) { old, new in
             handleGoalsChange(old: old, new: new)
             goalStore.goals = new
+            recomputeSections()
         }
         .onChange(of: _sessions) { _, _ in
             goalStore.sessions = sessions
+            recomputeSections()
         }
 #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -401,8 +399,8 @@ struct ContentView: View {
         return (session, activeSession)
     }
     
-    private var showMiniPlayer: Bool {
-        miniPlayerSession != nil && !navigation.showNowPlaying
+    private var showBottomPlanButton: Bool {
+        navigation.selectedTab == .home && !cachedFilteredSessions.isEmpty
     }
     
     // MARK: - Focus Banner
@@ -435,37 +433,35 @@ struct ContentView: View {
     private var homeTabContent: some View {
         ScrollViewReader { proxy in
         List {
-
-            Section {
-                
-            } header: {
-                Spacer()
-                    .frame(height: 60)
-            }
-            if !focusFilteredSessions.isEmpty {
+                // Top spacer for header overlay
                 Section {
-                
-                } footer: {
+                 
+                } header: {
                     Spacer()
-                        .frame(height: LayoutConstants.Heights.smallSpacer)
+                        .frame(height: 120)
+                        .listRowSeparator(.hidden)
+                    
+                    if !cachedFilteredSessions.isEmpty {
+                        Spacer()
+                            .frame(height: LayoutConstants.Heights.smallSpacer)
+                            .listRowSeparator(.hidden)
+                    }
+                    
+                    // Inline permissions prompt
+                    if permissionsViewModel.hasAnyUndetermined {
+                        PermissionsPromptCard(viewModel: permissionsViewModel)
+                    }
                 }
-            } 
-            // Inline permissions prompt — shown when any permission is undetermined
-            if permissionsViewModel.hasAnyUndetermined {
-                Section {
-                    PermissionsPromptCard(viewModel: permissionsViewModel)
-                        .listRowInsets(EdgeInsets())
+                
+                if !cachedFilteredSessions.isEmpty {
+                    ForEach(cachedContextualSections) { section in
+                        contextualSectionView(section: section)
+                    }
+                } else {
+                    Section {
+                        emptyStateView
+                    }
                 }
-                .listSectionSpacing(.compact)
-            }
-            
-            if !focusFilteredSessions.isEmpty {
-                ForEach(contextualSections) { section in
-                    contextualSectionView(section: section)
-                }
-            } else {
-                emptyStateView
-            }
         }
         .trackScrollOffset($scrollOffset)
         .onAppear { scrollProxy = proxy }
@@ -538,10 +534,10 @@ struct ContentView: View {
                     focusBanner
                 }
                 SectionPillBar(
-                    sections: contextualSections,
+                    sections: cachedContextualSections,
                     visibleSectionType: navigation.visibleSectionType,
                     onSectionTapped: { sectionType in
-                        if let section = contextualSections.first(where: { $0.type == sectionType }) {
+                        if let section = cachedContextualSections.first(where: { $0.type == sectionType }) {
                             withAnimation {
                                 scrollProxy?.scrollTo(section.id, anchor: .top)
                             }
@@ -603,7 +599,7 @@ struct ContentView: View {
     
     @ViewBuilder
     private var emptyStateView: some View {
-        Section {
+        VStack(spacing: 20) {
             VStack(spacing: 20) {
                 // Decorative circle with plus icon
                 ZStack {
@@ -654,53 +650,57 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
             .task {
                 await checkICloudSyncStatus()
             }
-        }
-        
-        Section {
-            ForEach(starterSuggestions, id: \.template.id) { item in
-                Button {
-                    goalEditorSourceID = "suggestion_\(item.template.id)"
-                    openEditorWithTemplate(id: item.template.id)
-                } label: {
-                    HStack(spacing: 14) {
-                        // Gradient icon circle
-                        ZStack {
-                            Circle()
-                                .fill(item.category.themePreset.gradient(for: colorScheme))
-                                .frame(width: 40, height: 40)
+            
+            VStack(spacing: 0) {
+                Text("Start with one")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                
+                ForEach(starterSuggestions, id: \.template.id) { item in
+                    Button {
+                        goalEditorSourceID = "suggestion_\(item.template.id)"
+                        openEditorWithTemplate(id: item.template.id)
+                    } label: {
+                        HStack(spacing: 14) {
+                            // Gradient icon circle
+                            ZStack {
+                                Circle()
+                                    .fill(item.category.themePreset.gradient(for: colorScheme))
+                                    .frame(width: 40, height: 40)
+                                
+                                Image(systemName: item.template.icon)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
                             
-                            Image(systemName: item.template.icon)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.white)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.template.title)
-                                .font(.subheadline.bold())
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.template.title)
+                                    .font(.subheadline.bold())
+                                
+                                Text("\(item.category.name) · \(item.template.duration)m")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             
-                            Text("\(item.category.name) · \(item.template.duration)m")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Spacer()
+                            
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary.opacity(0.5))
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary.opacity(0.5))
                     }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 16)
+                    .matchedTransitionSource(id: "suggestion_\(item.template.id)", in: animation)
                 }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
-                .matchedTransitionSource(id: "suggestion_\(item.template.id)", in: animation)
             }
-        } header: {
-            Text("Start with one")
         }
     }
     
@@ -788,6 +788,7 @@ struct ContentView: View {
             if !isCollapsed {
                 ForEach(section.sessions) { session in
                     sessionRow(for: session, isCompleted: isCompletedSection)
+                        .staggerReveal(isRevealed: !planningViewModel.isStaggering || planningViewModel.revealedSessionIDs.contains(session.id))
                 }
             }
         } header: {
@@ -835,10 +836,8 @@ struct ContentView: View {
             .accessibilityLabel("\(section.type.title), \(section.sessions.count) sessions\(isCollapsed ? ", collapsed" : "")")
         }
         .id(section.id)
-        .listSectionSpacing(.compact)
         .onAppear {
             trackSectionAppeared(section)
-            // Auto-collapse sections that should start minimised
             if section.type.startsCollapsed && !collapsedSectionIDs.contains(section.id) {
                 collapsedSectionIDs.insert(section.id)
             }
@@ -860,8 +859,7 @@ struct ContentView: View {
     
     /// Pick the topmost visible section by matching against the ordered contextualSections list
     private func updateVisibleSectionType() {
-        let sections = contextualSections
-        if let first = sections.first(where: { visibleSectionIDs.contains($0.id) }) {
+        if let first = cachedContextualSections.first(where: { visibleSectionIDs.contains($0.id) }) {
             navigation.visibleSectionType = first.type
         }
     }
@@ -874,7 +872,7 @@ struct ContentView: View {
             availableTimeMinutes: $planningViewModel.availableTimeMinutes,
             selectedWeather: $planningViewModel.selectedWeather,
             allThemes: planningViewModel.cachedThemes,
-            sessions: focusFilteredSessions,
+            sessions: cachedFilteredSessions,
             currentWeather: weatherManager.getCurrentCondition(),
             nextEvent: nextCalendarEvent,
             calendarFreeMinutes: nil,
@@ -994,11 +992,36 @@ struct ContentView: View {
     
     // MARK: - Session Management (see ContentView/Handlers/SessionManagement.swift)
     
+    // MARK: - Section Recomputation
+    
+    /// Recomputes cached filtered sessions and contextual sections.
+    /// Call this instead of relying on computed properties in the body.
+    func recomputeSections() {
+        cachedFilteredSessions = focusFilteredSessions
+        let recommended = getRecommendedSessions(from: cachedFilteredSessions)
+        let filterResult = SessionFilterService.filterActiveSessionsWithDownranked(
+            cachedFilteredSessions,
+            validationCheck: isGoalValid,
+            weatherManager: weatherManager
+        )
+        cachedContextualSections = ContextualSection.groupSessions(
+            filterResult.active,
+            recommendedSessions: recommended,
+            allGoals: cachedFilteredSessions,
+            downrankedSessions: filterResult.downranked,
+            skippedSessions: filterResult.skipped
+        )
+    }
+    
     // MARK: - Recommendations
     
     func getRecommendedSessions() -> [GoalSession] {
+        return getRecommendedSessions(from: focusFilteredSessions)
+    }
+    
+    private func getRecommendedSessions(from filteredSessions: [GoalSession]) -> [GoalSession] {
         return SessionFilterService.getRecommendedSessions(
-            from: focusFilteredSessions,
+            from: filteredSessions,
             planner: planningViewModel.planner,
             preferences: planningViewModel.plannerPreferences,
             validationCheck: isGoalValid,

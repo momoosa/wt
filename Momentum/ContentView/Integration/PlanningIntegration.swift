@@ -67,6 +67,11 @@ extension ContentView {
                     planningViewModel.showPlanningComplete = false
                 }
                 
+                // Stagger-reveal session rows
+                recomputeSections()
+                let sessionIDs = cachedContextualSections.flatMap { $0.sessions.map(\.id) }
+                planningViewModel.staggerReveal(sessionIDs: sessionIDs)
+                
                 // Update timestamp to cache when plan was last generated
                 lastPlanGeneratedTimestamp = Date().timeIntervalSince1970
                 AppLogger.planner.debug("Updated plan generation timestamp")

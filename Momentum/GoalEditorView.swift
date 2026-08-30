@@ -275,6 +275,7 @@ struct GoalEditorView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             isKeyboardVisible = false
         }
+        .interactiveDismissDisabled(stage == .editor)
     }
     
     // MARK: - Bottom Bar

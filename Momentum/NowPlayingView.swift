@@ -51,14 +51,6 @@ struct NowPlayingView: View {
         return nil
     }
     
-    /// Active interval time remaining from the shared timer
-    private var intervalTimeRemaining: TimeInterval? {
-        if intervalTimer.isActive {
-            return TimeInterval(intervalTimer.secondsRemaining)
-        }
-        return nil
-    }
-    
     private var isTimeBased: Bool {
         activeSessionDetails.targetUnit.isTimeBased
     }
@@ -208,6 +200,12 @@ struct NowPlayingView: View {
         intervalTimer.isActive || intervalTimer.phase == .completed
     }
     
+    /// Elapsed seconds for the current interval (counts up)
+    private var currentIntervalElapsed: Int {
+        let duration = intervalTimer.currentIntervalSession?.interval?.durationSeconds ?? 0
+        return duration - intervalTimer.secondsRemaining
+    }
+    
     /// The first IntervalListSession from the goal session
     private var firstIntervalListSession: IntervalListSession? {
         session.intervalLists?.sorted(by: { $0.orderIndex < $1.orderIndex }).first
@@ -298,7 +296,7 @@ struct NowPlayingView: View {
                         Text(name)
                         if intervalTimer.phase != .transition {
                             Text("·")
-                            Text(formatCountdown(intervalTimer.secondsRemaining))
+                            Text(formatCountdown(currentIntervalElapsed))
                                 .monospacedDigit()
                                 .contentTransition(.numericText())
                         }
@@ -441,9 +439,11 @@ struct NowPlayingView: View {
             if isLocalIntervalActive, !intervalTimer.intervalSessions.isEmpty {
                 // Playback-aware rows from the interval timer
                 playbackIntervalList
+                    .transition(.opacity)
             } else {
                 // Static rows from goal intervals
                 staticIntervalList
+                    .transition(.opacity)
             }
         }
         .padding(.horizontal, 20)
@@ -513,7 +513,7 @@ struct NowPlayingView: View {
                             Text("· Next in \(intervalTimer.transitionSecondsRemaining)s")
                                 .font(.caption2.weight(.medium))
                         } else if intervalTimer.phase != .idle {
-                            Text("· \(formatCountdown(intervalTimer.secondsRemaining))")
+                            Text("· \(formatCountdown(currentIntervalElapsed))")
                                 .font(.caption2.weight(.medium).monospacedDigit())
                         }
                     }
@@ -536,7 +536,9 @@ struct NowPlayingView: View {
                 if intervalTimer.isActive {
                     // Previous
                     Button {
-                        intervalTimer.skipToPrevious()
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            intervalTimer.skipToPrevious()
+                        }
                     } label: {
                         Image(systemName: "backward.fill")
                             .font(.system(size: 12))
@@ -547,7 +549,9 @@ struct NowPlayingView: View {
                     
                     // Play/Pause
                     Button {
-                        intervalTimer.togglePause()
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            intervalTimer.togglePause()
+                        }
                     } label: {
                         Image(systemName: intervalTimer.phase == .paused ? "play.fill" : "pause.fill")
                             .font(.system(size: 14))
@@ -560,7 +564,9 @@ struct NowPlayingView: View {
                     
                     // Next
                     Button {
-                        intervalTimer.skipToNext()
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            intervalTimer.skipToNext()
+                        }
                     } label: {
                         Image(systemName: "forward.fill")
                             .font(.system(size: 12))
@@ -571,9 +577,11 @@ struct NowPlayingView: View {
                 } else if intervalTimer.phase == .completed {
                     // Restart button
                     Button {
-                        if let listSession = firstIntervalListSession {
-                            intervalTimer.load(from: listSession)
-                            intervalTimer.start()
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            if let listSession = firstIntervalListSession {
+                                intervalTimer.load(from: listSession)
+                                intervalTimer.start()
+                            }
                         }
                     } label: {
                         HStack(spacing: 4) {
@@ -587,26 +595,11 @@ struct NowPlayingView: View {
                         .padding(.vertical, 8)
                         .background(Capsule().fill(foregroundColor.opacity(0.15)))
                     }
-                } else {
-                    // Start button
-                    Button {
-                        intervalTimer.start()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "play.fill")
-                                .font(.caption)
-                            Text("Start")
-                                .font(.caption.weight(.semibold))
-                        }
-                        .foregroundStyle(session.theme.gradient(for: colorScheme))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(foregroundColor))
-                    }
                 }
             }
         }
         .padding(.horizontal, 20)
+        .animation(.easeInOut(duration: 0.3), value: intervalTimer.phase)
     }
     
     private func playbackIntervalRow(_ intervalSession: IntervalSession, index: Int) -> some View {
@@ -662,13 +655,13 @@ struct NowPlayingView: View {
             
             Spacer()
             
-            // Duration or countdown
+            // Elapsed time or duration
             if isCurrent {
-                Text(formatCountdown(intervalTimer.secondsRemaining))
+                Text(formatCountdown(currentIntervalElapsed))
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(foregroundColor)
                     .contentTransition(.numericText())
-                    .animation(.linear(duration: 0.3), value: intervalTimer.secondsRemaining)
+                    .animation(.linear(duration: 0.3), value: currentIntervalElapsed)
             } else if let duration = interval?.durationSeconds {
                 Text(formatIntervalDuration(duration))
                     .font(.subheadline.weight(.medium).monospacedDigit())
@@ -678,10 +671,12 @@ struct NowPlayingView: View {
             // Per-row play/pause button
             if !isCompleted {
                 Button {
-                    if isCurrent {
-                        intervalTimer.togglePause()
-                    } else {
-                        intervalTimer.skipTo(index: index)
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        if isCurrent {
+                            intervalTimer.togglePause()
+                        } else {
+                            intervalTimer.skipTo(index: index)
+                        }
                     }
                 } label: {
                     Image(systemName: (isCurrent && !isPaused) ? "pause.fill" : "play.fill")
@@ -738,7 +733,9 @@ struct NowPlayingView: View {
             
             // Play button
             Button {
-                intervalTimer.skipTo(index: index)
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    intervalTimer.skipTo(index: index)
+                }
             } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 10))

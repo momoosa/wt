@@ -23,6 +23,9 @@ class PlanningViewModel {
     var revealedSessionIDs: Set<UUID> = []
     var hasAutoPlannedToday: Bool = false
     
+    /// Whether a stagger-in animation is currently running
+    var isStaggering: Bool = false
+    
     // MARK: - Cached Data
     var cachedThemes: [GoalTag] = []
     
@@ -55,6 +58,33 @@ class PlanningViewModel {
     func resetForNewDay() {
         hasAutoPlannedToday = false
         revealedSessionIDs.removeAll()
+        isStaggering = false
+    }
+    
+    /// Stagger-reveal a list of session IDs one by one
+    func staggerReveal(sessionIDs: [UUID]) {
+        guard !sessionIDs.isEmpty else { return }
+        
+        revealedSessionIDs.removeAll()
+        isStaggering = true
+        
+        Task {
+            // Small delay to let SwiftUI process data changes before animating
+            try? await Task.sleep(for: .seconds(0.15))
+            
+            for (index, id) in sessionIDs.enumerated() {
+                if index > 0 {
+                    try? await Task.sleep(for: .seconds(0.06))
+                }
+                withAnimation(.easeOut(duration: 0.35)) {
+                    revealedSessionIDs.insert(id)
+                }
+            }
+            
+            // Mark stagger complete after last animation finishes
+            try? await Task.sleep(for: .seconds(0.35))
+            isStaggering = false
+        }
     }
     
     /// Clear cached themes

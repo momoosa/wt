@@ -166,15 +166,6 @@ struct RecommendedSessionRowView: View {
             }
         }
         .matchedTransitionSource(id: session.id, in: animation)
-        .swipeActions {
-            Button {
-                HapticFeedbackManager.trigger(.medium)
-                sessionActions.onSkip(session)
-            } label: {
-                Label(session.status == .skipped ? "Reactivate" : "Skip", systemImage: "xmark.circle.fill")
-            }
-            .tint(.orange)
-        }
     }
     
     // MARK: - Helpers

@@ -14,11 +14,13 @@ struct ChecklistItemData: Identifiable, Equatable {
     var title: String
     var notes: String
     var group: String
+    var remindersIdentifier: String?
 
-    init(id: UUID = UUID(), title: String = "", notes: String = "", group: String = "") {
+    init(id: UUID = UUID(), title: String = "", notes: String = "", group: String = "", remindersIdentifier: String? = nil) {
         self.id = id
         self.title = title
         self.notes = notes
         self.group = group
+        self.remindersIdentifier = remindersIdentifier
     }
 }

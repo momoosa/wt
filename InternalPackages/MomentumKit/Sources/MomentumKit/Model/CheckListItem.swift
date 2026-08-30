@@ -12,6 +12,7 @@ public final class ChecklistItem {
     public var title: String = ""
     public var notes: String? // Optional notes for the checklist item
     public var group: String = "" // Group/section name; empty = ungrouped
+    public var remindersIdentifier: String? // calendarItemIdentifier of linked EKReminder
     
     @Relationship(deleteRule: .nullify)
     public var goal: Goal?

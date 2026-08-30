@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import OSLog
 import MomentumKit
+import EventKit
 import UserNotifications
 import Charts
 #if canImport(WidgetKit)
@@ -78,6 +79,9 @@ struct GoalSessionDetailView: View {
     @State private var cardRotationY: Double = 0
     @State private var shimmerOffset: CGFloat = -200
     @State private var showingPremiumPaywall = false
+    @State private var showingRemindersLinkSheet = false
+    @State private var linkedCalendarTitle: String?
+    @State private var linkedCalendarColor: CGColor?
     /// Whether the session has a non-empty checklist
     private var hasChecklist: Bool {
         guard let checklist = session?.checklist else { return false }
@@ -431,6 +435,11 @@ struct GoalSessionDetailView: View {
                             goalOverviewCard
                                 .padding(.horizontal, 16)
                         }
+                        
+                        // Checklist (always visible in hero area, below action buttons)
+                        checklistSection
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
                         
                         // All sections visible, scrollable
                         ForEach(availableTabs.filter { $0 != .hero }, id: \.self) { tab in
@@ -927,9 +936,6 @@ struct GoalSessionDetailView: View {
             
             // Stats
             goalStatsSection
-            
-            // Checklist
-            checklistSection
             
             // Intervals
             intervalSection
@@ -1593,13 +1599,17 @@ struct GoalSessionDetailView: View {
     
     @ViewBuilder
     private var checklistSection: some View {
-        if let checklist = session?.checklist, !checklist.isEmpty {
+        let checklist = session?.checklist ?? []
+        let hasLinkedList = goal.linkedRemindersListID != nil
+        let hasChecklist = !checklist.isEmpty
+        
+        if hasChecklist || hasLinkedList {
             let completedCount = checklist.filter { $0.isCompleted }.count
             let totalCount = checklist.count
             let progress = totalCount > 0 ? Double(completedCount) / Double(totalCount) : 0
             
             VStack(alignment: .leading, spacing: 12) {
-                // Header: CHECKLIST + "X of Y done"
+                // Header: CHECKLIST + count
                 HStack {
                     Text("CHECKLIST")
                         .font(.caption2)
@@ -1608,58 +1618,90 @@ struct GoalSessionDetailView: View {
                     
                     Spacer()
                     
-                    Text("\(completedCount) of \(totalCount) done")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if totalCount > 0 {
+                        Text("\(completedCount) / \(totalCount)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 
-                // Green progress bar
-                GeometryReader { geo in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.green.opacity(0.2))
-                        .frame(height: 4)
-                        .overlay(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.green)
-                                .frame(width: geo.size.width * progress)
-                                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: completedCount)
-                        }
+                // Linked Reminders list header
+                if hasLinkedList {
+                    linkedRemindersHeader
                 }
-                .frame(height: 4)
                 
-                // Grouped display
-                let ungrouped = checklist.filter { ($0.checklistItem?.group ?? "").isEmpty }
-                let groups = checklistGroups(from: checklist)
-                
-                // Ungrouped items
-                ForEach(ungrouped) { item in
-                    ChecklistRow(item: item)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                item.isCompleted.toggle()
+                if totalCount > 0 {
+                    // Green progress bar
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.green.opacity(0.2))
+                            .frame(height: 4)
+                            .overlay(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.green)
+                                    .frame(width: geo.size.width * progress)
+                                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: completedCount)
+                            }
+                    }
+                    .frame(height: 4)
+                    
+                    // Grouped display
+                    let ungrouped = checklist.filter { ($0.checklistItem?.group ?? "").isEmpty }
+                    let groups = checklistGroups(from: checklist)
+                    
+                    // Ungrouped items
+                    ForEach(ungrouped) { item in
+                        ChecklistRow(item: item)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    item.isCompleted.toggle()
+                                }
+                                // Push completion to Reminders if linked
+                                if item.checklistItem?.remindersIdentifier != nil {
+                                    RemindersSyncService.pushCompletionToReminders(item: item)
+                                }
+                            }
+                    }
+                    
+                    // Grouped items
+                    ForEach(groups, id: \.name) { group in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(group.name.uppercased())
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 4)
+                            
+                            ForEach(group.items) { item in
+                                ChecklistRow(item: item)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            item.isCompleted.toggle()
+                                        }
+                                        if item.checklistItem?.remindersIdentifier != nil {
+                                            RemindersSyncService.pushCompletionToReminders(item: item)
+                                        }
+                                    }
                             }
                         }
+                    }
                 }
                 
-                // Grouped items
-                ForEach(groups, id: \.name) { group in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(group.name.uppercased())
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
+                // Footer: remaining tasks count (when linked)
+                if hasLinkedList && totalCount > 0 {
+                    let remaining = totalCount - completedCount
+                    if remaining > 0 {
+                        Text("\(remaining) task\(remaining == 1 ? "" : "s") left · the checklist completes this, not the timer")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                             .padding(.top, 4)
-                        
-                        ForEach(group.items) { item in
-                            ChecklistRow(item: item)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        item.isCompleted.toggle()
-                                    }
-                                }
-                        }
                     }
+                }
+                
+                // Link button (when not linked)
+                if !hasLinkedList {
+                    remindersLinkButton
                 }
             }
             .padding(16)
@@ -1667,6 +1709,111 @@ struct GoalSessionDetailView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color(.secondarySystemGroupedBackground))
             )
+            .sheet(isPresented: $showingRemindersLinkSheet) {
+                RemindersListLinkSheet(goal: goal, session: session)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .task(id: goal.linkedRemindersListID) {
+                // Load linked calendar info and sync
+                if let calendarID = goal.linkedRemindersListID {
+                    let manager = RemindersManager()
+                    _ = try? await manager.requestAccess()
+                    if let cal = manager.calendar(for: calendarID) {
+                        linkedCalendarTitle = cal.title
+                        linkedCalendarColor = cal.cgColor
+                    }
+                    await RemindersSyncService.syncIfLinked(
+                        goal: goal,
+                        session: session,
+                        context: context
+                    )
+                } else {
+                    linkedCalendarTitle = nil
+                    linkedCalendarColor = nil
+                }
+            }
+        } else {
+            // No checklist and no linked list — show standalone link button
+            remindersLinkButton
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                )
+                .sheet(isPresented: $showingRemindersLinkSheet) {
+                    RemindersListLinkSheet(goal: goal, session: session)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                }
+        }
+    }
+    
+    private var remindersLinkButton: some View {
+        Button {
+            if isSubscribed {
+                showingRemindersLinkSheet = true
+            } else {
+                showingPremiumPaywall = true
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checklist")
+                    .font(.caption)
+                Text("Link Reminders List")
+                    .font(.caption.weight(.medium))
+                if !isSubscribed {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2)
+                }
+            }
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 8)
+        }
+    }
+    
+    /// Header showing the linked Reminders list name, sync status, and Change button
+    @ViewBuilder
+    private var linkedRemindersHeader: some View {
+        HStack(spacing: 8) {
+            // Colored dots — list color + sync indicator
+            HStack(spacing: 3) {
+                if let linkedCalendarColor {
+                    Circle()
+                        .fill(Color(cgColor: linkedCalendarColor))
+                        .frame(width: 8, height: 8)
+                }
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 8, height: 8)
+            }
+            
+            // List name
+            Text(linkedCalendarTitle ?? "Reminders")
+                .font(.subheadline.weight(.medium))
+            
+            // Sync status
+            if let lastSynced = goal.linkedRemindersLastSynced {
+                Text("· synced \(lastSynced, format: .relative(presentation: .named))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            // Change button
+            Button {
+                if isSubscribed {
+                    showingRemindersLinkSheet = true
+                } else {
+                    showingPremiumPaywall = true
+                }
+            } label: {
+                Text("Change")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.blue)
+            }
         }
     }
     

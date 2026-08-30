@@ -54,6 +54,65 @@ class RemindersManager {
         }
     }
     
+    // MARK: - List Operations
+    
+    /// Fetch all reminder-type calendars (lists)
+    func fetchAllLists() -> [EKCalendar] {
+        guard isAuthorized else { return [] }
+        return eventStore.calendars(for: .reminder)
+    }
+    
+    /// Look up a specific calendar by identifier
+    func calendar(for identifier: String) -> EKCalendar? {
+        guard isAuthorized else { return nil }
+        return eventStore.calendar(withIdentifier: identifier)
+    }
+    
+    /// Fetch reminders from a specific calendar
+    func fetchReminders(in calendarID: String, includeCompleted: Bool = false) async throws -> [EKReminder] {
+        guard isAuthorized else { throw RemindersError.notAuthorized }
+        guard let calendar = eventStore.calendar(withIdentifier: calendarID) else {
+            throw RemindersError.fetchFailed
+        }
+        
+        // Fetch incomplete reminders
+        let incomplete: [EKReminder] = try await withCheckedThrowingContinuation { continuation in
+            let predicate = eventStore.predicateForIncompleteReminders(
+                withDueDateStarting: nil, ending: nil, calendars: [calendar]
+            )
+            eventStore.fetchReminders(matching: predicate) { reminders in
+                continuation.resume(returning: reminders ?? [])
+            }
+        }
+        
+        guard includeCompleted else { return incomplete }
+        
+        // Fetch completed reminders separately and merge
+        let completed: [EKReminder] = try await withCheckedThrowingContinuation { continuation in
+            let predicate = eventStore.predicateForCompletedReminders(
+                withCompletionDateStarting: nil, ending: nil, calendars: [calendar]
+            )
+            eventStore.fetchReminders(matching: predicate) { reminders in
+                continuation.resume(returning: reminders ?? [])
+            }
+        }
+        
+        return incomplete + completed
+    }
+    
+    /// Save changes to a reminder (e.g. completion status)
+    func saveReminder(_ reminder: EKReminder) throws {
+        try eventStore.save(reminder, commit: true)
+    }
+    
+    /// Look up a single reminder by its calendarItemIdentifier
+    func fetchReminderByIdentifier(_ identifier: String) -> EKReminder? {
+        guard isAuthorized else { return nil }
+        return eventStore.calendarItem(withIdentifier: identifier) as? EKReminder
+    }
+    
+    // MARK: - Goal Import
+    
     /// Convert a reminder to a Goal
     func createGoal(from reminder: EKReminder, context: ModelContext, goalStore: GoalStore) -> Goal {
         let title = reminder.title ?? "Untitled Reminder"

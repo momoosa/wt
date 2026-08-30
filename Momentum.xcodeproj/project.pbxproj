@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A11CE5E12FDFD17B00A1FE57 /* GoalSentenceMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11CE5E22FDFD17B00A1FE57 /* GoalSentenceMetric.swift */; };
 		CD00858D2F1ADB1500A555D6 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */; };
 		CD00858F2F1ADB4300A555D6 /* HealthKitConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */; };
 		CD0085912F1ADB8200A555D6 /* HealthKitBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */; };
@@ -103,6 +104,8 @@
 		CD89A6222FF6F0FA000CCF9D /* IntervalCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */; };
 		CD89A6242FF6F10C000CCF9D /* IntervalFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */; };
 		CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */; };
+		CD9361AE30108D6B006E77DD /* RemindersSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9361AD30108D6B006E77DD /* RemindersSyncService.swift */; };
+		CD9361B030108D9C006E77DD /* RemindersListLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9361AF30108D9C006E77DD /* RemindersListLinkSheet.swift */; };
 		CD936C3E2F56BE2000D81B86 /* IntervalsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */; };
 		CDA2DD702FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */; };
 		CDA2DD722FDF389E00FD0DA6 /* ScrollingHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA2DD712FDF389E00FD0DA6 /* ScrollingHeaderView.swift */; };
@@ -131,6 +134,7 @@
 		CDBE15062F864D7200B7FCD6 /* ScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15052F864D7200B7FCD6 /* ScheduleSection.swift */; };
 		CDBE15082F864D8300B7FCD6 /* ScheduleDaysListSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15072F864D8300B7FCD6 /* ScheduleDaysListSection.swift */; };
 		CDBE150A2F864FD000B7FCD6 /* GoalEditorModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */; };
+		CDC7EFF13038B197005B8C24 /* BottomAccessoryBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC7EFF03038B197005B8C24 /* BottomAccessoryBarView.swift */; };
 		CDCE06A22F84420900034FD3 /* GoalTypeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCE06A12F84420900034FD3 /* GoalTypeSection.swift */; };
 		CDD5A9602FE5BEC400C5E968 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A95F2FE5BEC400C5E968 /* RevenueCat */; };
 		CDD5A9622FE5BEC400C5E968 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = CDD5A9612FE5BEC400C5E968 /* RevenueCatUI */; };
@@ -233,6 +237,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A11CE5E22FDFD17B00A1FE57 /* GoalSentenceMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalSentenceMetric.swift; sourceTree = "<group>"; };
 		CD00858C2F1ADB1500A555D6 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		CD00858E2F1ADB4300A555D6 /* HealthKitConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitConfigurationView.swift; sourceTree = "<group>"; };
 		CD0085902F1ADB8200A555D6 /* HealthKitBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitBadge.swift; sourceTree = "<group>"; };
@@ -331,6 +336,8 @@
 		CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCompletionView.swift; sourceTree = "<group>"; };
 		CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalFlowView.swift; sourceTree = "<group>"; };
 		CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorCard.swift; sourceTree = "<group>"; };
+		CD9361AD30108D6B006E77DD /* RemindersSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSyncService.swift; sourceTree = "<group>"; };
+		CD9361AF30108D9C006E77DD /* RemindersListLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersListLinkSheet.swift; sourceTree = "<group>"; };
 		CD936C3D2F56BE2000D81B86 /* IntervalsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsEditorView.swift; sourceTree = "<group>"; };
 		CD943D9C2F31294A00824A8B /* MomentumWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgetExtension.entitlements; sourceTree = "<group>"; };
 		CD99B76D2FB7815300D9E37D /* MomentumTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MomentumTests.xctestplan; sourceTree = "<group>"; };
@@ -368,6 +375,7 @@
 		CDBE15052F864D7200B7FCD6 /* ScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSection.swift; sourceTree = "<group>"; };
 		CDBE15072F864D8300B7FCD6 /* ScheduleDaysListSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleDaysListSection.swift; sourceTree = "<group>"; };
 		CDBE15092F864FD000B7FCD6 /* GoalEditorModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditorModels.swift; sourceTree = "<group>"; };
+		CDC7EFF03038B197005B8C24 /* BottomAccessoryBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomAccessoryBarView.swift; sourceTree = "<group>"; };
 		CDCE069E2F82826700034FD3 /* VIEWMODEL_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = VIEWMODEL_REFACTORING.md; sourceTree = "<group>"; };
 		CDCE069F2F84416200034FD3 /* COMPOSITION_REFACTORING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = COMPOSITION_REFACTORING.md; sourceTree = "<group>"; };
 		CDCE06A02F8441A300034FD3 /* GoalTypeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalTypeSection.swift; sourceTree = "<group>"; };
@@ -769,6 +777,7 @@
 				CDA2DD6F2FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift */,
 				CDA2DD712FDF389E00FD0DA6 /* ScrollingHeaderView.swift */,
 				CD906F192FDFD17B00A1FE57 /* GoalEditorCard.swift */,
+				A11CE5E22FDFD17B00A1FE57 /* GoalSentenceMetric.swift */,
 				CD2C50612FE1196200F9ABD9 /* WeeklyRecapView.swift */,
 				CDD5A9652FE5C2E600C5E968 /* SubscriptionManager.swift */,
 				CDDED65A2FE855C4008AAA4B /* CelebrationData.swift */,
@@ -778,6 +787,8 @@
 				CD89A61F2FF6F0DD000CCF9D /* IntervalPlaybackView.swift */,
 				CD89A6212FF6F0FA000CCF9D /* IntervalCompletionView.swift */,
 				CD89A6232FF6F10C000CCF9D /* IntervalFlowView.swift */,
+				CD9361AD30108D6B006E77DD /* RemindersSyncService.swift */,
+				CD9361AF30108D9C006E77DD /* RemindersListLinkSheet.swift */,
 			);
 			path = Momentum;
 			sourceTree = "<group>";
@@ -806,6 +817,7 @@
 				CDF6E8FD2FB39F18008767D9 /* ToolbarBuilder.swift */,
 				CDA9078C2FFAE37A001916DE /* MiniPlayerView.swift */,
 				CDA9078E2FFAE3DA001916DE /* PlanTabView.swift */,
+				CDC7EFF03038B197005B8C24 /* BottomAccessoryBarView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1174,6 +1186,7 @@
 				CD22C8192F3BB4AA001F2406 /* GoalRow.swift in Sources */,
 				CDBE14512F8514D600B7FCD6 /* TagSelectionSheet.swift in Sources */,
 				CD0799912F65A9B9001B9C33 /* DailyProgressViewModel.swift in Sources */,
+				CDC7EFF13038B197005B8C24 /* BottomAccessoryBarView.swift in Sources */,
 				CDBE144F2F8514B100B7FCD6 /* ThemeTagButton.swift in Sources */,
 				CD713B1D2F200F40003F901D /* PlannerConfigurationSheet.swift in Sources */,
 				CD0799952F66AC22001B9C33 /* HealthKitMetricsBrowserView.swift in Sources */,
@@ -1183,6 +1196,8 @@
 				CD5F7AFE2F39C37C00B3E941 /* DayOverviewView.swift in Sources */,
 				CD0085AD2F1B951100A555D6 /* PlannerIntegrationExamples.swift in Sources */,
 				CDBE14FE2F86444B00B7FCD6 /* NotesAndResourcesSection.swift in Sources */,
+				CD9361B030108D9C006E77DD /* RemindersListLinkSheet.swift in Sources */,
+				CD9361AE30108D6B006E77DD /* RemindersSyncService.swift in Sources */,
 				CD199C192FD0981200CA3AB7 /* RelevanceRuleView.swift in Sources */,
 				CDEBAA392EE9FA1000C1C411 /* ChecklistRow.swift in Sources */,
 				CD6A0C212F88429F008F5D93 /* ContentViewModel.swift in Sources */,
@@ -1202,6 +1217,7 @@
 				CDA2DD702FDF37E100FD0DA6 /* ScrollingNavBarPOC.swift in Sources */,
 				CDBE14532F85155100B7FCD6 /* CategoryButton.swift in Sources */,
 				CD906F1A2FDFD17B00A1FE57 /* GoalEditorCard.swift in Sources */,
+				A11CE5E12FDFD17B00A1FE57 /* GoalSentenceMetric.swift in Sources */,
 				CD0085A32F1B818500A555D6 /* GoalSuggestionsModel.swift in Sources */,
 				CD22C8152F3BB424001F2406 /* SessionFilterService.swift in Sources */,
 				CDBE14FC2F86443A00B7FCD6 /* CompletionBehaviorsSection.swift in Sources */,

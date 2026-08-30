@@ -32,15 +32,16 @@ extension ContentView {
         // Toggle the timer
         timerManager.toggleTimer(for: session, in: day)
         
-        // Show celebration if this stop caused first completion
-        if let celebration {
-            // If NowPlaying is showing, it will dismiss first and the onDismiss triggers celebration
-            if navigation.showNowPlaying {
+        // Dismiss NowPlaying when stopping a running timer
+        if wasRunning && navigation.showNowPlaying {
+            if let celebration {
+                // Dismiss first, then show celebration via onDismiss handler
                 pendingCelebrationData = celebration
-                navigation.showNowPlaying = false
-            } else {
-                navigation.celebrationData = celebration
             }
+            navigation.showNowPlaying = false
+        } else if let celebration {
+            // Stopped from outside NowPlaying (e.g., mini player)
+            navigation.celebrationData = celebration
         } else if wasCompleted && timerManager.activeSession?.id == session.id {
             // If it was already completed and we just started it, show toast
             navigation.toastConfig = ToastConfig(

@@ -199,7 +199,6 @@ struct SessionRowView: View {
             }
             .buttonStyle(.plain)
             .opacity(isCompleted ? 0.6 : 1.0)
-            .listRowBackground(rowBackground)
             .onTapGesture {
                 HapticFeedbackManager.trigger(.light)
                 withAnimation(AnimationPresets.quickSpring) {
@@ -209,30 +208,9 @@ struct SessionRowView: View {
             .matchedTransitionSource(id: session.id, in: animation)
 
         }
-        .swipeActions(edge: .trailing) {
-            Button {
-                HapticFeedbackManager.trigger(.medium)
-                sessionActions.onSkip(session)
-            } label: {
-                Label {
-                    Text(session.status == .skipped ? "Reactivate" : "Skip")
-                } icon: {
-                    Image(systemName: "xmark.circle.fill")
-                }
-            }
-            .tint(.orange)
-        }
-        .swipeActions(edge: .leading) {
-            if !session.targetUnit.isTimeBased || session.goal?.healthKitSyncEnabled == true {
-                Button {
-                    HapticFeedbackManager.trigger(.light)
-                    sessionToLogManually = session
-                } label: {
-                    Label("Log", systemImage: "plus.circle.fill")
-                }
-                .tint(tintColor)
-            }
-        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+        .background(rowBackground, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 

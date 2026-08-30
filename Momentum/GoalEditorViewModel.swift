@@ -29,7 +29,7 @@ class GoalEditorViewModel: Identifiable {
     // MARK: - Core State
     var existingGoal: Goal?
     var userInput: String = ""
-    var durationInMinutes: Int = 30
+    var durationInMinutes: Int = 210
     var dailyMinimumMinutes: Int?
     var hasDailyMinimum: Bool = false
     var currentStage: EditorStage = .name {
@@ -105,10 +105,63 @@ class GoalEditorViewModel: Identifiable {
     var healthKitSyncEnabled: Bool = false
     
     // MARK: - Goal Types & Metrics
-    
+
     var selectedGoalType: Goal.TargetUnit = .seconds
     var primaryMetricTarget: Double = 0
     var dailyTargets: [Int: Int] = [:]
+
+    // MARK: - Sentence Builder (metric × count × period)
+
+    /// Sessions per period, for session metrics (Time). e.g. the "3" in "3 × 20-min sessions".
+    var sessionCount: Int = 1
+    /// Minutes per session, for session metrics (Time). e.g. the "20" in "20-min".
+    var sessionMinutes: Int = 20
+    /// The sentence number for tally metrics (Steps / Calories / Screen Time) — the
+    /// period target, e.g. "8,000" in "8,000 steps a day".
+    var tallyTarget: Int = 8000
+    /// The pivot: `.day` repeats on each active day, `.week` spreads across the week.
+    var targetPeriod: Goal.TargetPeriod = .day
+
+    /// The active metric descriptor for the current goal type.
+    var sentenceMetric: SentenceMetric { SentenceMetric.named(selectedGoalType) }
+
+    /// How many days a week the target repeats — mirrors the active-day count.
+    /// Setting it selects that many days (Monday-first) and re-derives the target.
+    var daysPerWeek: Int {
+        get { max(1, min(7, activeDays.count)) }
+        set { setDaysPerWeek(newValue) }
+    }
+
+    /// Weekly totals derived live from the sentence — never stored.
+    var sentenceRollup: SentenceRollup {
+        let m = sentenceMetric
+        if m.isSession {
+            let sw = targetPeriod == .day ? sessionCount * daysPerWeek : sessionCount
+            return SentenceRollup(sessionsPerWeek: sw, weeklyAmount: sw * sessionMinutes)
+        } else {
+            let weekly = targetPeriod == .day ? tallyTarget * daysPerWeek : tallyTarget
+            return SentenceRollup(sessionsPerWeek: 0, weeklyAmount: weekly)
+        }
+    }
+
+    /// The "= WEEKLY …" rollup summary shown under the sentence.
+    var sentenceRollupText: String {
+        let m = sentenceMetric
+        let r = sentenceRollup
+        if m.isSession {
+            let s = r.sessionsPerWeek == 1 ? "session" : "sessions"
+            return "\(r.sessionsPerWeek) \(s) · about \(m.amountPhrase(r.weeklyAmount)) a week"
+        }
+        // `amountPhrase` formats time-based units (screen time) as a duration and
+        // renders steps/calories as "<count> <unit>".
+        return "about \(m.amountPhrase(r.weeklyAmount)) a week"
+    }
+
+    /// "on 5 days a week" / "every day" — shown only when `targetPeriod == .day`.
+    var dayPhrase: String {
+        let n = daysPerWeek
+        return n >= 7 ? "every day" : "on \(n) \(n == 1 ? "day" : "days") a week"
+    }
     
     // MARK: - Validation
     
@@ -131,6 +184,7 @@ class GoalEditorViewModel: Identifiable {
     var checklistItems: [ChecklistItemData] = []
     var newChecklistItemTitle: String = ""
     var newChecklistItemNotes: String = ""
+    var linkedRemindersListID: String?
     
     // MARK: - Interval Lists
     
@@ -415,7 +469,8 @@ class GoalEditorViewModel: Identifiable {
         goalLink = goal.link ?? ""
         
         // Load checklist items
-        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "", group: $0.group) } ?? []
+        checklistItems = goal.checklistItems?.map { ChecklistItemData(id: UUID(uuidString: $0.id) ?? UUID(), title: $0.title, notes: $0.notes ?? "", group: $0.group, remindersIdentifier: $0.remindersIdentifier) } ?? []
+        linkedRemindersListID = goal.linkedRemindersListID
         
         // Load interval lists
         intervalLists = (goal.intervalLists ?? []).sorted { $0.orderIndex < $1.orderIndex }
@@ -494,6 +549,9 @@ class GoalEditorViewModel: Identifiable {
         sequenceGoalID = goal.sequenceGoalID
         sequenceDirection = goal.sequenceDirection ?? "after"
         
+        // Rebuild the sentence-builder state from the loaded target
+        loadSentenceState(from: goal)
+
         // Go straight to duration stage when editing
         currentStage = .duration
     }
@@ -623,20 +681,116 @@ class GoalEditorViewModel: Identifiable {
         }
     }
     
+    // MARK: - Sentence Builder Mutations
+
+    /// Switch the target metric from the metric picker, seeding sensible defaults
+    /// and keeping the derived (canonical) target in sync.
+    func switchMetric(_ unit: Goal.TargetUnit) {
+        guard unit != selectedGoalType else { return }
+        selectedGoalType = unit
+        handleGoalTypeChange(unit)   // wires HealthKit / screen-time side effects
+
+        switch unit {
+        case .seconds:
+            if sessionMinutes < SentenceMetric.time.amountMin { sessionMinutes = 20 }
+            sessionCount = max(1, sessionCount)
+        case .steps:
+            tallyTarget = 8000
+        case .kilocalories:
+            tallyTarget = 500
+        case .screenTime:
+            tallyTarget = 120
+        }
+        syncDerivedTarget()
+    }
+
+    func setSessionCount(_ n: Int) {
+        sessionCount = sentenceMetric.clampCount(n)
+        syncDerivedTarget()
+    }
+
+    func setSessionMinutes(_ n: Int) {
+        sessionMinutes = SentenceMetric.time.clampAmount(n)
+        syncDerivedTarget()
+    }
+
+    func setTallyTarget(_ n: Int) {
+        tallyTarget = sentenceMetric.clampAmount(n)
+        syncDerivedTarget()
+    }
+
+    func setTargetPeriod(_ period: Goal.TargetPeriod) {
+        targetPeriod = period
+        // Leaving "every day" seeded when a per-day target has no active days.
+        if period == .day && activeDays.isEmpty { activeDays = Set(2...6) }
+        syncDerivedTarget()
+    }
+
+    /// Select `n` days (Monday-first) as the active-day set, then re-derive the target.
+    func setDaysPerWeek(_ n: Int) {
+        let clamped = max(1, min(7, n))
+        let ordered = [2, 3, 4, 5, 6, 7, 1]   // Mon → Sun
+        activeDays = Set(ordered.prefix(clamped))
+        syncDerivedTarget()
+    }
+
+    /// Fold the sentence (metric × count × period) into the canonical per-day /
+    /// primary-metric targets that the rest of the app tracks against.
+    func syncDerivedTarget() {
+        switch selectedGoalType {
+        case .seconds:
+            let weekly = sentenceRollup.weeklyAmount
+            updateWeeklyTarget(max(weekly, 1))
+        case .steps, .kilocalories, .screenTime:
+            let daily = targetPeriod == .day
+                ? tallyTarget
+                : Int((Double(tallyTarget) / Double(max(1, daysPerWeek))).rounded())
+            primaryMetricTarget = Double(max(daily, 1))
+        }
+    }
+
+    /// Rebuild the sentence fields from a loaded goal's stored/derived target.
+    private func loadSentenceState(from goal: Goal) {
+        targetPeriod = goal.targetPeriod ?? .day
+
+        if goal.targetUnit == .seconds {
+            if let count = goal.sessionCount, let amount = goal.sessionAmount,
+               count > 0, amount > 0 {
+                sessionCount = SentenceMetric.time.clampCount(count)
+                sessionMinutes = SentenceMetric.time.clampAmount(amount)
+            } else {
+                // Migrated goal — reconstruct a "1 × N-min session" that reproduces
+                // the existing weekly minutes across the active days.
+                let days = max(1, activeDays.count)
+                let perDay = Int((Double(durationInMinutes) / Double(days)).rounded())
+                let step = SentenceMetric.time.amountStep
+                let snapped = Int((Double(perDay) / Double(step)).rounded()) * step
+                sessionCount = 1
+                sessionMinutes = SentenceMetric.time.clampAmount(max(step, snapped))
+            }
+        } else {
+            let daily = Int(primaryMetricTarget)
+            tallyTarget = sentenceMetric.clampAmount(
+                targetPeriod == .day ? daily : daily * max(1, activeDays.count)
+            )
+        }
+    }
+
     func applyTemplate(_ template: GoalTemplateSuggestion, allTags: [GoalTag]) {
         // Set the title
         userInput = template.title
         
-        // Set duration
-        durationInMinutes = template.duration
-        
-        // Distribute the template duration across active days
+        // Set duration — template.duration is per-day, so multiply by active days for weekly total
         // If dailyGoal is true, use all 7 days; otherwise default to weekdays (Monday-Friday)
         let defaultDays: Set<Int> = (template.dailyGoal == true) ? Set(1...7) : Set(2...6)
         let targetDays = activeDays.isEmpty ? defaultDays : activeDays
         let dayCount = max(targetDays.count, 1)
-        let baseDailyMinutes = template.duration / dayCount
-        let remainder = template.duration % dayCount
+        let weeklyTotal = template.duration * dayCount
+        durationInMinutes = weeklyTotal
+        
+        // Distribute the weekly total across active days
+        let baseDailyMinutes = weeklyTotal / dayCount
+        let remainder = weeklyTotal % dayCount
         let sortedDays = targetDays.sorted()
         for (index, weekday) in sortedDays.enumerated() {
             dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
@@ -706,6 +860,18 @@ class GoalEditorViewModel: Identifiable {
 
         // Set primary metric target if specified, reset otherwise
         primaryMetricTarget = template.primaryMetricTarget ?? 0
+
+        // Seed the sentence-builder state from the template. Templates describe a
+        // per-day amount, so author them as "on each active day".
+        targetPeriod = .day
+        if selectedGoalType == .seconds {
+            sessionCount = 1
+            sessionMinutes = SentenceMetric.time.clampAmount(max(SentenceMetric.time.amountStep, template.duration))
+        } else {
+            let daily = Int(primaryMetricTarget)
+            tallyTarget = sentenceMetric.clampAmount(daily > 0 ? daily : (sentenceMetric.amountPresets.first ?? sentenceMetric.amountMin))
+        }
+        syncDerivedTarget()
 
         print("✨ Template Applied:")
         print("   Title: \(template.title)")
@@ -1056,17 +1222,10 @@ class GoalEditorViewModel: Identifiable {
                 
                 // Infer icon from title if LLM didn't provide one
                 inferIconFromInput()
-                
-                // Populate daily targets from default duration
+
+                // Seed the sentence-builder defaults and derive the canonical target
                 if dailyTargets.isEmpty {
-                    let dayCount = max(activeDays.count, 1)
-                    let baseDailyMinutes = durationInMinutes / dayCount
-                    let remainder = durationInMinutes % dayCount
-                    let sortedDays = activeDays.sorted()
-                    for (index, weekday) in sortedDays.enumerated() {
-                        // Distribute remainder across first few days so weekly total is exact
-                        dailyTargets[weekday] = max(baseDailyMinutes + (index < remainder ? 1 : 0), 1)
-                    }
+                    syncDerivedTarget()
                 }
                 currentStage = .duration
             }
@@ -1332,9 +1491,12 @@ class GoalEditorViewModel: Identifiable {
         onRequestNotificationPermissions: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) async throws -> Double {
+        // Fold the sentence (metric × count × period) into the canonical targets
+        syncDerivedTarget()
+
         // Validate primary metric target before saving
         validatePrimaryMetricTarget()
-        
+
         let goal: Goal
         let isEditing = existingGoal != nil
         
@@ -1448,7 +1610,12 @@ class GoalEditorViewModel: Identifiable {
             goal.screenTimeEnabled = true
             goal.screenTimeIsInverseGoal = true
         }
-        
+
+        // ✅ Save how the target was authored so the sentence round-trips on re-open
+        goal.targetPeriod = targetPeriod
+        goal.sessionCount = selectedGoalType == .seconds ? sessionCount : nil
+        goal.sessionAmount = selectedGoalType == .seconds ? sessionMinutes : nil
+
         // ✅ Save weather settings
         goal.weatherEnabled = weatherEnabled
         if weatherEnabled {
@@ -1493,21 +1660,46 @@ class GoalEditorViewModel: Identifiable {
         goal.sequenceDirection = sequenceEnabled ? sequenceDirection : nil
         
         // ✅ Save checklist items
-        // Remove old checklist items
+        // Remove old checklist items that are NOT linked to Reminders,
+        // and remove linked items that are no longer in the editor list
+        let editorItemIDs = Set(checklistItems.compactMap { $0.remindersIdentifier })
         if let existingItems = goal.checklistItems {
             for item in existingItems {
-                modelContext.delete(item)
+                if let rid = item.remindersIdentifier {
+                    // Keep linked items that are still in the editor
+                    if !editorItemIDs.contains(rid) {
+                        modelContext.delete(item)
+                    }
+                } else {
+                    modelContext.delete(item)
+                }
             }
         }
-        goal.checklistItems = []
+        goal.checklistItems = goal.checklistItems?.filter { item in
+            guard let rid = item.remindersIdentifier else { return false }
+            return editorItemIDs.contains(rid)
+        } ?? []
         
-        // Add new checklist items
+        // Add/update checklist items
         for item in checklistItems where !item.title.trimmingCharacters(in: .whitespaces).isEmpty {
-            let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
-            checklistItem.group = item.group
-            modelContext.insert(checklistItem)
-            goal.checklistItems?.append(checklistItem)
+            if let rid = item.remindersIdentifier,
+               let existing = goal.checklistItems?.first(where: { $0.remindersIdentifier == rid }) {
+                // Update existing linked item
+                existing.title = item.title
+                existing.notes = item.notes.isEmpty ? nil : item.notes
+                existing.group = item.group
+            } else {
+                // Create new item
+                let checklistItem = ChecklistItem(title: item.title, notes: item.notes.isEmpty ? nil : item.notes, goal: goal)
+                checklistItem.group = item.group
+                checklistItem.remindersIdentifier = item.remindersIdentifier
+                modelContext.insert(checklistItem)
+                goal.checklistItems?.append(checklistItem)
+            }
         }
+        
+        // Save linked reminders list ID
+        goal.linkedRemindersListID = linkedRemindersListID
         
         // ✅ Save interval lists
         for (index, list) in intervalLists.enumerated() {

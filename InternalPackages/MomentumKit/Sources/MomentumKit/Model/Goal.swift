@@ -70,10 +70,32 @@ public final class Goal {
     
     /// Per-weekday target overrides in the goal's native unit. Keys are weekday strings ("1"-"7").
     public var perDayTargets: [String: Double] = [:]
+
+    // MARK: - Sentence-Builder Target Authoring
+    //
+    // These describe how the target was *authored* in the goal editor's sentence
+    // builder so the sentence round-trips on re-open. They are additive metadata —
+    // the canonical target used everywhere for tracking stays `unifiedDailyTarget`
+    // / `perDayTargets`, which the editor keeps in sync on save.
+
+    /// How the target is counted: "week" (spread/accumulate across the week) or
+    /// "day" (repeat on each active day). `nil` falls back to the metric default.
+    public var targetPeriodRaw: String?
+
+    /// Sessions per period for session metrics (Time). `nil` for tally metrics.
+    public var sessionCount: Int?
+
+    /// Amount per session for session metrics, in the metric's native integer unit
+    /// (minutes for Time). `nil` for tally metrics.
+    public var sessionAmount: Int?
     
     // Notes and Resources
     public var notes: String? // User's notes about the goal
     public var link: String? // Optional URL for reference (tutorial, article, etc.)
+    
+    // Reminders Integration
+    public var linkedRemindersListID: String? // calendarIdentifier of linked EKCalendar
+    public var linkedRemindersLastSynced: Date? // Last successful sync timestamp
     
     // Weather-based triggers (overrides tag settings if set)
     public var weatherConditions: [String]? // WeatherCondition raw values
@@ -183,6 +205,14 @@ public extension Goal {
         
     }
     
+    /// The pivot for how a target is counted in the sentence-builder editor.
+    /// - `.week`: N sessions / a cumulative total spread across the week; Momentum picks the days.
+    /// - `.day`: repeated on each active day of the week.
+    enum TargetPeriod: String, Codable {
+        case week
+        case day
+    }
+
     enum Status: String, Codable {
         case suggestion
         case active
@@ -261,6 +291,13 @@ public extension Goal {
     var targetUnit: TargetUnit {
         get { TargetUnit(rawValue: targetUnitRawValue) ?? .seconds }
         set { targetUnitRawValue = newValue.rawValue }
+    }
+
+    /// How the target is counted in the sentence-builder editor (week vs day).
+    /// Returns `nil` when the goal predates the sentence builder.
+    var targetPeriod: TargetPeriod? {
+        get { targetPeriodRaw.flatMap { TargetPeriod(rawValue: $0) } }
+        set { targetPeriodRaw = newValue?.rawValue }
     }
     
     /// Get the unified daily target for a specific weekday, respecting per-day overrides

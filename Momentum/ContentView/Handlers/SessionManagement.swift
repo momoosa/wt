@@ -78,6 +78,21 @@ extension ContentView {
                 #endif
             }
         }
+        
+        // Sync linked Reminders lists for goals that have them
+        let linkedGoals = goals.filter { $0.linkedRemindersListID != nil }
+        if !linkedGoals.isEmpty {
+            Task {
+                for goal in linkedGoals {
+                    let session = sessions.first { $0.goal == goal && $0.day == day }
+                    await RemindersSyncService.syncIfLinked(
+                        goal: goal,
+                        session: session,
+                        context: modelContext
+                    )
+                }
+            }
+        }
     }
 
     /// Sync checklist changes from a goal to its existing sessions

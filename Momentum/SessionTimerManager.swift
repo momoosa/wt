@@ -55,6 +55,13 @@ public final class SessionTimerManager {
         }
         return nil
     }
+    var intervalTimeElapsed: TimeInterval? {
+        if intervalTimer.isActive {
+            let duration = intervalTimer.currentIntervalSession?.interval?.durationSeconds ?? 0
+            return TimeInterval(duration - intervalTimer.secondsRemaining)
+        }
+        return nil
+    }
     
     private let goalStore: GoalStore
     private let modelContext: ModelContext

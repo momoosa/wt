@@ -16,7 +16,37 @@ import OSLog
 // MARK: - Setup Methods
 
 extension ContentView {
-    
+
+    /// Presents the day overview ("plan ahead") once per calendar day, on the first
+    /// open of the day. It stays out of the way otherwise: it only surfaces when the
+    /// user is idle at the Home tab (no sheet, editor, or session in progress) and has
+    /// at least one active goal to summarise. Dismissing it is a normal sheet swipe.
+    func maybeShowDailySummary() {
+        guard dailySummaryEnabled else { return }
+
+        // Already shown today? `lastDailySummaryDay` holds the start-of-day timestamp
+        // of the last presentation; only surface again once a new day has started.
+        let todayStart = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+        guard lastDailySummaryDay < todayStart else { return }
+
+        // Only when idle at the Home root, with something worth summarising.
+        guard navigation.selectedTab == .home,
+              !navigation.showPlannerSheet,
+              !navigation.showNowPlaying,
+              !navigation.showAllGoals,
+              !navigation.showSettings,
+              !navigation.showDayOverview,
+              !navigation.showIntervalFlow,
+              navigation.selectedSession == nil,
+              navigation.sessionToLogManually == nil,
+              goalEditorViewModel == nil,
+              goals.contains(where: { $0.status == .active })
+        else { return }
+
+        lastDailySummaryDay = todayStart
+        navigation.showDayOverview = true
+    }
+
     func setupOnAppear() {
         // Guard against re-running setup (e.g., if .task re-fires)
         guard !hasCompletedSetup else { return }
